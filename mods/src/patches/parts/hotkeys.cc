@@ -13,6 +13,7 @@
 #include "prime/MissionsObjectViewerWidget.h"
 #include "prime/StarNodeObjectViewerWidget.h"
 
+#include "prime/ActionQueueManager.h"
 #include "prime/ActionRequirement.h"
 #include "prime/AnimatedRewardsScreenViewController.h"
 #include "prime/BookmarksManager.h"
@@ -168,7 +169,9 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
             chat_manager->OpenChannel(ChatChannelCategory::Alliance, ChatViewMode::Fullscreen);
           }
         }
-      } else if (MapKey::IsDown(GameFunction::ShowQTrials)) {
+      }
+
+      if (MapKey::IsDown(GameFunction::ShowQTrials)) {
         return GotoSection(SectionID::ChallengeSelection);
       } else if (MapKey::IsDown(GameFunction::ShowBookmarks)) {
         auto bookmark_manager = BookmarksManager::Instance();
@@ -300,7 +303,7 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
 
     if (MapKey::IsDown(GameFunction::ActionPrimary) || MapKey::IsDown(GameFunction::ActionSecondary)
         || MapKey::IsDown(GameFunction::ActionRecall) || MapKey::IsDown(GameFunction::ActionRepair)
-        || force_space_action_next_frame) {
+        || MapKey::IsDown(GameFunction::ActionQueue) || force_space_action_next_frame) {
       if (Hub::IsInSystemOrGalaxyOrStarbase() && !Hub::IsInChat() && !Key::IsInputFocused()) {
         auto fleet_bar = ObjectFinder<FleetBarViewController>::Get();
         if (fleet_bar) {
@@ -496,19 +499,30 @@ bool DidExecuteRepair(FleetBarViewController* fleet_bar)
 
 void ExecuteSpaceAction(FleetBarViewController* fleet_bar)
 {
+  auto fleet_controller = fleet_bar->_fleetPanelController;
+  auto fleet            = fleet_controller->fleet;
+
+  auto action_queue = ActionQueueManager::Instance();
+
   auto has_primary       = MapKey::IsDown(GameFunction::ActionPrimary) || force_space_action_next_frame;
   auto has_repair        = MapKey::IsDown(GameFunction::ActionRepair);
   auto has_recall_cancel = MapKey::IsDown(GameFunction::ActionRecallCancel);
   auto has_secondary     = MapKey::IsDown(GameFunction::ActionSecondary);
+  auto has_queue         = MapKey::IsDown(GameFunction::ActionQueue) && action_queue->CanAddToQueue(fleet);
   auto has_recall =
       MapKey::IsDown(GameFunction::ActionRecall) && (!Config::Get().disable_preview_recall || !CanHideViewers());
-
-  auto fleet_controller = fleet_bar->_fleetPanelController;
-  auto fleet            = fleet_controller->fleet;
 
   if (has_recall_cancel
       && (fleet->CurrentState == FleetState::WarpCharging || fleet->CurrentState == FleetState::Warping)) {
     fleet_controller->CancelWarpClicked();
+  } else if (has_queue) {
+    auto fleets_manager = FleetsManager::Instance();
+    if (fleets_manager != nullptr) {
+      auto target = fleets_manager->targetFleetData;
+      if (target != nullptr) {
+        action_queue->AddToQueue(target->ID);
+      }
+    }
   } else {
     auto all_pre_scan_widgets = ObjectFinder<PreScanTargetWidget>::GetAll();
     for (auto pre_scan_widget : all_pre_scan_widgets) {
@@ -526,7 +540,9 @@ void ExecuteSpaceAction(FleetBarViewController* fleet_bar)
             return mine_object_viewer_widget->MineClicked();
           }
         } else {
-          if (has_secondary) {
+          if (has_queue) {
+
+          } else if (has_secondary) {
             return pre_scan_widget->_scanEngageButtonsWidget->OnScanButtonClicked();
           } else if (has_primary) {
             auto armada_object_viewer_widget = ObjectFinder<ArmadaObjectViewerWidget>::Get();

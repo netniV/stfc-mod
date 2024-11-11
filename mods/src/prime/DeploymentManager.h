@@ -3,11 +3,11 @@
 #include "CallbackContainer.h"
 #include "MonoSingleton.h"
 #include "Vector3.h"
+#include "FleetPlayerData.h"
+#include "FleetDeployedData.h"
 
 #include <il2cpp/il2cpp_helper.h>
 
-struct FleetPlayerData;
-struct FleetDeployedData;
 class DeploymentService
 {
 public:

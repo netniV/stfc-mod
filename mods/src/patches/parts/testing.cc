@@ -10,6 +10,7 @@
 #include "prime/DeploymentManager.h"
 #include "prime/FleetLocalViewController.h"
 #include "prime/FleetsManager.h"
+#include "prime/FullScreenChatViewController.h"
 #include "prime/Hub.h"
 #include "prime/InventoryForPopup.h"
 #include "prime/KeyCode.h"
@@ -18,7 +19,6 @@
 #include "prime/SceneManager.h"
 #include "prime/ScreenManager.h"
 #include <prime/UIBehaviour.h>
-#include "prime/FullScreenChatViewController.h"
 
 #include <il2cpp/il2cpp_helper.h>
 #include <spud/detour.h>

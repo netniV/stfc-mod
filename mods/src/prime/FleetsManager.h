@@ -1,7 +1,9 @@
 #pragma once
 
 #include "CallbackContainer.h"
+#include "FleetDeployedData.h"
 #include "FleetPlayerData.h"
+#include "HullSpec.h"
 #include "IEnumerator.h"
 #include "MonoSingleton.h"
 #include "Vector3.h"
@@ -10,6 +12,9 @@
 
 struct FleetsManager : MonoSingleton<FleetsManager> {
   friend struct MonoSingleton<FleetsManager>;
+
+public:
+  __declspec(property(get = __get_TargetFleetData)) FleetDeployedData* targetFleetData;
 
 public:
   class IEnumerator_Tow
@@ -57,7 +62,14 @@ public:
     return GetFleetPlayerData(this, idx);
   }
 
+  FleetDeployedData* __get_TargetFleetData()
+  {
+    static auto field = get_class_helper().GetField("_targetFleetData").offset();
+    return *(FleetDeployedData**)((char*)this + field);
+  }
+
 private:
+
   static IL2CppClassHelper& get_class_helper()
   {
     static auto class_helper =
