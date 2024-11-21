@@ -312,11 +312,6 @@ SectionID ShopSummaryDirectorGoBackBehavior(auto original, ShopSummaryDirector* 
   return original(_this, status, history);
 }
 
-void ShopSummaryDirectorCtr(auto original, ShopSummaryDirector* _this)
-{
-  original(_this);
-}
-
 bool isFirstInterstitial = true;
 
 void InterstitialViewController_AboutToShow(auto original, InterstitialViewController* _this)
@@ -345,8 +340,6 @@ void InstallTempCrashFixes()
   SPUD_STATIC_DETOUR(reveal_show, ShouldShowRevealHook);
 
   auto shop_summary_director = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Shop", "ShopSummaryDirector");
-  reveal_show                = shop_summary_director.GetMethod("Start");
-  SPUD_STATIC_DETOUR(reveal_show, ShopSummaryDirectorCtr);
   reveal_show = shop_summary_director.GetMethod("GoBackBehaviour");
   SPUD_STATIC_DETOUR(reveal_show, ShopSummaryDirectorGoBackBehavior);
 

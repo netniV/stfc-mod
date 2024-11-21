@@ -12,6 +12,7 @@ add_requires("7z")
 add_requires("lzma")
 add_requires("librsync")
 add_requires("libcurl", { configs = { zlib = true } })
+add_requires("capstone 6.0.0-Alpha1")
 
 if is_plat("windows") then
     includes("win-proxy-dll")
@@ -34,7 +35,8 @@ on_fetch(function(package, opt)
 end)
 package_end()
 
-add_requires("spud v0.2.0.alpha.12")
+add_requires("spud v0.2.0")
+-- add_requires("spud-local")
 add_requires("libil2cpp")
 add_requires("simdutf")
 
