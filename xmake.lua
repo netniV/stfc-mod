@@ -4,7 +4,7 @@ set_languages("c++20")
 
 add_requires("eastl")
 add_requires("spdlog")
-add_requires("protobuf-cpp 3.19.4")
+add_requires("proto-cpp 3.19.4", { configs = { shared = false }})
 add_requires("toml++")
 add_requires("nlohmann_json")
 add_requires("inifile-cpp")
