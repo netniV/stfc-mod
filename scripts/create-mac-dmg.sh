@@ -7,10 +7,10 @@ ARCH=arm64
 
 xmake clean
 # xmake m package --plat=macosx --arch="arm64,x86_64" -f "--mode=$CONFIG --yes"
-xmake f -y -p macosx -a "arm64" -m $CONFIG
+xmake f -y -p macosx -a "$ARCH" -m $CONFIG
 xmake
-xmake f -y -p macosx -a "x86_64" -m $CONFIG
-xmake
+#xmake f -y -p macosx -a "x86_64" -m $CONFIG
+#xmake
 
 rm build/macosx/$ARCH/$CONFIG/libmods.a || true
 lipo -create build/macosx/arm64/$CONFIG/macOSLauncher build/macosx/x86_64/$CONFIG/macOSLauncher -output build/macosx/$ARCH/$CONFIG/macOSLauncher.app/Contents/MacOS/macOSLauncher
