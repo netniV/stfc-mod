@@ -1,4 +1,5 @@
 #include "config.h"
+#include "errormsg.h"
 
 #include <patches/mapkey.h>
 
@@ -80,9 +81,9 @@ void NavigationZoom_Update_Hook(auto original, NavigationZoom *_this)
         do_absolute_zoom = false;
         do_default_zoom  = true;
       } else if (MapKey::IsDown(GameFunction::ZoomMin)) {
-        zoomDelta     = config->zoom;
+        zoomDelta = config->zoom;
       } else if (MapKey::IsDown(GameFunction::ZoomMax)) {
-        zoomDelta     = 100;
+        zoomDelta = 100;
       }
     }
 
@@ -192,20 +193,42 @@ void NavigationCamera_SetSystemViewSizeData_Hook(auto original, uint8_t *_this_c
 
 void InstallZoomHooks()
 {
-  auto screen_manager_helper   = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Navigation", "NavigationZoom");
-  auto ptr_set_view_parameters = screen_manager_helper.GetMethod("SetViewParameters");
-  auto ptr_update              = screen_manager_helper.GetMethod("Update");
-  auto ptr_apply_range_changes = screen_manager_helper.GetMethod("ApplyRangeChanges");
-  auto ptr_set_depth           = screen_manager_helper.GetMethod("SetDepth");
-  SPUD_STATIC_DETOUR(ptr_update, NavigationZoom_Update_Hook);
-  SPUD_STATIC_DETOUR(ptr_set_depth, NavigationZoom_SetDepth_Hook);
+  auto screen_manager_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Navigation", "NavigationZoom");
+  if (!screen_manager_helper.HasClass()) {
+    ErrorMsg::MissingHelper("Navigation", "NavigationZoom");
+  } else {
+    auto ptr_update = screen_manager_helper.GetMethod("Update");
+    if (ptr_update == nullptr) {
+      ErrorMsg::MissingMethod("NavigationZoom", "Update");
+    } else {
+      SPUD_STATIC_DETOUR(ptr_update, NavigationZoom_Update_Hook);
+    }
+
+    auto ptr_set_depth = screen_manager_helper.GetMethod("SetDepth");
+    if (ptr_set_depth == nullptr) {
+      ErrorMsg::MissingMethod("NavigationZoom", "SetDepth");
+    } else {
+      SPUD_STATIC_DETOUR(ptr_set_depth, NavigationZoom_SetDepth_Hook);
+    }
 
 #if _WIN32
-  SPUD_STATIC_DETOUR(ptr_set_view_parameters, NavigationZoom_SetViewParameters_Hook);
-  // SPUD_STATIC_DETOUR(ptr_apply_range_changes, NavigationZoom_ApplyRangeChanges_Hook);
+    auto ptr_set_view_parameters = screen_manager_helper.GetMethod("SetViewParameters");
+    if (ptr_set_view_parameters == nullptr) {
+      ErrorMsg::MissingMethod("NavigationZoom", "SetViewParameters");
+    } else {
+      SPUD_STATIC_DETOUR(ptr_set_view_parameters, NavigationZoom_SetViewParameters_Hook);
+    }
+
+    // auto ptr_apply_range_changes = screen_manager_helper.GetMethod("ApplyRangeChanges");
+    // if (ptr_apply_range_changes == nullptr) {
+    //   ErrorMsg::MissingMethod("NavigationZoom", "ApplyRangeChanges");
+    // } else {
+    //   SPUD_STATIC_DETOUR(ptr_apply_range_changes, NavigationZoom_ApplyRangeChanges_Hook);
+    // }
 #endif
 
-  // auto navigation_camera = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Navigation", "NavigationCamera");
-  // auto ptr_set_system_view_size_data = navigation_camera.GetMethod("SetSystemViewSizeData");
-  // SPUD_STATIC_DETOUR(ptr_set_system_view_size_data, NavigationCamera_SetSystemViewSizeData_Hook);
+    // auto navigation_camera = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Navigation",
+    // "NavigationCamera"); auto ptr_set_system_view_size_data = navigation_camera.GetMethod("SetSystemViewSizeData");
+    // SPUD_STATIC_DETOUR(ptr_set_system_view_size_data, NavigationCamera_SetSystemViewSizeData_Hook);
+  }
 }

@@ -2,6 +2,7 @@
 #include <Windows.h>
 
 #include "config.h"
+#include "errormsg.h"
 
 #include <spud/detour.h>
 
@@ -147,14 +148,23 @@ void InstallFreeResizeHooks()
 {
   auto AspectRatioConstraintHandler_helper =
       il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.Utils", "AspectRatioConstraintHandler");
-  auto ptr_update  = AspectRatioConstraintHandler_helper.GetMethod("Update");
-  auto ptr_wndproc = AspectRatioConstraintHandler_helper.GetMethod("WndProc");
+  if (!AspectRatioConstraintHandler_helper.HasClass()) {
+    ErrorMsg::MissingHelper("Utils", "AspectRatioConstraintHandler");
+  } else {
+    auto ptr_update  = AspectRatioConstraintHandler_helper.GetMethod("Update");
+    if (ptr_update == nullptr) {
+      ErrorMsg::MissingMethod("AspectRatioConstraintHandler", "Update");
+      return;
+    }
 
-  if (!ptr_update || !ptr_wndproc) {
-    return;
+    auto ptr_wndproc = AspectRatioConstraintHandler_helper.GetMethod("WndProc");
+    if (ptr_wndproc == nullptr) {
+      ErrorMsg::MissingMethod("AspectRatioConstraintHandler", "WndProc");
+      return;
+    }
+
+    SPUD_STATIC_DETOUR(ptr_update, AspectRatioConstraintHandler_Update);
+    SPUD_STATIC_DETOUR(ptr_wndproc, AspectRatioConstraintHandler_WndProc);
   }
-
-  SPUD_STATIC_DETOUR(ptr_update, AspectRatioConstraintHandler_Update);
-  SPUD_STATIC_DETOUR(ptr_wndproc, AspectRatioConstraintHandler_WndProc);
 }
 #endif

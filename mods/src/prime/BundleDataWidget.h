@@ -46,7 +46,14 @@ public:
   {
     static auto AuxViewButtonPressedHandler =
         get_class_helper().GetMethod<void(BundleDataWidget*)>("AuxViewButtonPressedHandler");
-    AuxViewButtonPressedHandler(this);
+    static auto AuxViewButtonPressedWarn = true;
+
+    if (AuxViewButtonPressedHandler) {
+      AuxViewButtonPressedHandler(this);
+    } else if (AuxViewButtonPressedWarn) {
+      AuxViewButtonPressedWarn = false;
+      ErrorMsg::MissingMethod("BundleDataWidget", "AuxViewButtonPressedHandelr");
+    }
   }
 
 private:

@@ -1,4 +1,5 @@
 #include "config.h"
+#include "errormsg.h"
 #include "il2cpp-api-types.h"
 
 #include <il2cpp/il2cpp_helper.h>
@@ -67,7 +68,7 @@ private:
 
 static std::wstring instanceSessionId;
 static std::wstring gameServerUrl;
-static int32_t instanceId;
+static int32_t      instanceId;
 
 static std::string newUUID()
 {
@@ -193,8 +194,8 @@ static void send_data(std::wstring post_data)
 
   std::wstring httpResponseBody;
 
-  auto         url = Config::Get().sync_url;
-  CURL*        httpClient = sync_init(CURL_TYPE_UPLOAD, url);
+  auto  url        = Config::Get().sync_url;
+  CURL* httpClient = sync_init(CURL_TYPE_UPLOAD, url);
 
   struct curl_slist* list = NULL;
 
@@ -615,8 +616,11 @@ void HandleEntityGroup(EntityGroup* entity_group)
           auto amount = resource.second["current_amount"].get<int64_t>();
 
           const auto prevResourceAmountIter = resource_states.find(id);
-          const auto hadResource = (prevResourceAmountIter != resource_states.end() && prevResourceAmountIter->second != 0);
-          const auto amountChanged = amount > 0 && (prevResourceAmountIter == resource_states.end() || prevResourceAmountIter->second != amount);
+          const auto hadResource =
+              (prevResourceAmountIter != resource_states.end() && prevResourceAmountIter->second != 0);
+          const auto amountChanged =
+              amount > 0
+              && (prevResourceAmountIter == resource_states.end() || prevResourceAmountIter->second != amount);
           const auto resourceDepleted = hadResource && amount == 0;
 
           if (resourceDepleted || amountChanged) {
@@ -811,43 +815,112 @@ void InstallSyncPatches()
 
   auto missions_data_container =
       il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Models", "MissionsDataContainer");
-  auto ptr = missions_data_container.GetMethod("ParseBinaryObject");
-  SPUD_STATIC_DETOUR(ptr, MissionsDataContainer_ParseBinaryObject);
+  if (!missions_data_container.HasClass()) {
+    ErrorMsg::MissingHelper("Models", "MissionsDataContainer");
+  } else {
+    auto ptr = missions_data_container.GetMethod("ParseBinaryObject");
+    if (ptr == nullptr) {
+      ErrorMsg::MissingMethod("MissionsDataContainer", "ParseBinaryObject");
+    } else {
+      SPUD_STATIC_DETOUR(ptr, MissionsDataContainer_ParseBinaryObject);
+    }
+  }
 
   auto inventory_data_container =
       il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Services", "InventoryDataContainer");
-  ptr = inventory_data_container.GetMethod("ParseBinaryObject");
-  SPUD_STATIC_DETOUR(ptr, MissionsDataContainer_ParseBinaryObject);
+  if (!inventory_data_container.HasClass()) {
+    ErrorMsg::MissingHelper("Services", "InventoryDataContainer");
+  } else {
+    auto ptr = inventory_data_container.GetMethod("ParseBinaryObject");
+    if (ptr == nullptr) {
+      ErrorMsg::MissingMethod("InventoryDataContainer", "ParseBinaryObject");
+    } else {
+      SPUD_STATIC_DETOUR(ptr, MissionsDataContainer_ParseBinaryObject);
+    }
+  }
 
   auto research_data_container =
       il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Services", "ResearchDataContainer");
-  ptr = research_data_container.GetMethod("ParseBinaryObject");
-  SPUD_STATIC_DETOUR(ptr, MissionsDataContainer_ParseBinaryObject);
+  if (!research_data_container.HasClass()) {
+    ErrorMsg::MissingHelper("Services", "ResearchDataContainer");
+  } else {
+    auto ptr = research_data_container.GetMethod("ParseBinaryObject");
+    if (ptr == nullptr) {
+      ErrorMsg::MissingHelper("ResearchDataContainer", "ParseBinaryObject");
+    } else {
+      SPUD_STATIC_DETOUR(ptr, MissionsDataContainer_ParseBinaryObject);
+    }
+  }
 
   auto research_service =
       il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Services", "ResearchService");
-  ptr = research_service.GetMethod("ParseBinaryObject");
-  SPUD_STATIC_DETOUR(ptr, MissionsDataContainer_ParseBinaryObject);
+  if (!research_service.HasClass()) {
+    ErrorMsg::MissingHelper("Services", "ResearchService");
+  } else {
+    auto ptr = research_service.GetMethod("ParseBinaryObject");
+    if (ptr == nullptr) {
+      ErrorMsg::MissingMethod("ResearchService", "ParseBinaryObject");
+    } else {
+      SPUD_STATIC_DETOUR(ptr, MissionsDataContainer_ParseBinaryObject);
+    }
+  }
 
   auto game_server_model_registry =
       il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Core", "GameServerModelRegistry");
-  ptr = game_server_model_registry.GetMethod("ProcessResultInternal");
-  SPUD_STATIC_DETOUR(ptr, GameServerModelRegistry_ProcessResultInternal);
-  ptr = game_server_model_registry.GetMethod("HandleBinaryObjects");
-  SPUD_STATIC_DETOUR(ptr, GameServerModelRegistry_HandleBinaryObjects);
+  if (!game_server_model_registry.HasClass()) {
+    ErrorMsg::MissingHelper("Core", "GameServerModelRegistry");
+  } else {
+    auto ptr = game_server_model_registry.GetMethod("ProcessResultInternal");
+    if (ptr == nullptr) {
+      ErrorMsg::MissingMethod("GameServerModelRegistry", "ProcessResultInterval");
+    } else {
+      SPUD_STATIC_DETOUR(ptr, GameServerModelRegistry_ProcessResultInternal);
+    }
+
+    ptr = game_server_model_registry.GetMethod("HandleBinaryObjects");
+    if (ptr == nullptr) {
+      ErrorMsg::MissingMethod("GameServerModelRegsitry", "HandleBinaryObjects");
+    } else {
+      SPUD_STATIC_DETOUR(ptr, GameServerModelRegistry_HandleBinaryObjects);
+    }
+  }
 
   auto platform_model_registry =
       il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimePlatform.Core", "PlatformModelRegistry");
-  ptr = platform_model_registry.GetMethod("ProcessResultInternal");
-  SPUD_STATIC_DETOUR(ptr, GameServerModelRegistry_ProcessResultInternal);
+  if (!platform_model_registry.HasClass()) {
+    ErrorMsg::MissingHelper("Core", "PlatformModelRegistry");
+  } else {
+    auto ptr = platform_model_registry.GetMethod("ProcessResultInternal");
+    if (ptr == nullptr) {
+      ErrorMsg::MissingMethod("PlatformModelRegistry", "ProcessResultInterval");
+    } else {
+      SPUD_STATIC_DETOUR(ptr, GameServerModelRegistry_ProcessResultInternal);
+    }
+  }
 
   auto authentication_service = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.Core", "PrimeApp");
-  ptr                         = authentication_service.GetMethod("InitPrimeServer");
-  SPUD_STATIC_DETOUR(ptr, PrimeApp_InitPrimeServer);
+  if (!authentication_service.HasClass()) {
+    ErrorMsg::MissingHelper("Core", "PrimeApp");
+  } else {
+    auto ptr = authentication_service.GetMethod("InitPrimeServer");
+    if (ptr == nullptr) {
+      ErrorMsg::MissingMethod("PrimeApp", "InitPrimeServer");
+    } else {
+      SPUD_STATIC_DETOUR(ptr, PrimeApp_InitPrimeServer);
+    }
+  }
 
   auto game_server = il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Core", "GameServer");
-  ptr = game_server.GetMethod("SetInstanceIdHeader");
-  SPUD_STATIC_DETOUR(ptr, GameServer_SetInstanceIdHeader);
+  if (!game_server.HasClass()) {
+    ErrorMsg::MissingHelper("Core", "GameServer");
+  } else {
+    auto ptr = game_server.GetMethod("SetInstanceIdHeader");
+    if (ptr == nullptr) {
+      ErrorMsg::MissingMethod("GameServer", "SetInstanceIdHeader");
+    } else {
+      SPUD_STATIC_DETOUR(ptr, GameServer_SetInstanceIdHeader);
+    }
+  }
 
   std::thread(ship_sync_data).detach();
   std::thread(ship_combat_log_data).detach();

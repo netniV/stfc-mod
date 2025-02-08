@@ -14,27 +14,36 @@ public:
 
   void CancelWarpClicked()
   {
-    static auto CancelWarpClicked = get_class_helper().GetMethod<void(FleetLocalViewController*)>("CancelWarpClicked");
-    if (CancelWarpClicked != nullptr) {
-      CancelWarpClicked(this);
-    } else {
-    
+    static auto CancelWarpWarn   = true;
+    static auto CancelWarpMethod = get_class_helper().GetMethod<void(FleetLocalViewController*)>("CancelWarpClicked");
+    if (CancelWarpMethod) {
+      CancelWarpMethod(this);
+    } else if (CancelWarpWarn) {
+      CancelWarpWarn = false;
+      ErrorMsg::MissingMethod("FLeetLocalViewController", "CancelWarpClicked");
     }
   }
 
   bool RequestAction(IActionData target, ActionType type, int index, ActionBehaviour behaviourMask,
                      void* callback = nullptr)
   {
-    static auto RequestAction =
+    static auto RequestActionMethod =
         get_class_helper()
             .GetMethodSpecial<bool(FleetLocalViewController*, IActionData, ActionType, int, ActionBehaviour, void*)>(
-                "RequestAction", [](int param_count, const Il2CppType **) {
+                "RequestAction", [](int param_count, const Il2CppType**) {
                   if (param_count == 5) {
                     return true;
                   }
                   return false;
                 });
-    return RequestAction(this, target, type, index, behaviourMask, callback);
+    static auto RequestActionWarn = true;
+
+    if (RequestActionMethod) {
+      return RequestActionMethod(this, target, type, index, behaviourMask, callback);
+    } else if (!RequestActionWarn) {
+      RequestActionWarn = false;
+      ErrorMsg::MissingMethod("FleetLocalViewController", "RequestAction");
+    }
   }
 
 private:

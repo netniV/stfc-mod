@@ -1,5 +1,6 @@
 #pragma once
 
+#include "errormsg.h"
 #include <il2cpp/il2cpp_helper.h>
 
 struct GenericRewardsScreenViewController {
@@ -12,13 +13,28 @@ public:
 
   void OnCollectClicked()
   {
-    static auto OnCollectClickedMethod = get_class_helper().GetMethod<void(GenericRewardsScreenViewController*)>("OnCollectClicked");
-    OnCollectClickedMethod(this);
+    static auto OnCollectClickedWarn = true;
+    static auto OnCollectClickedMethod =
+        get_class_helper().GetMethod<void(GenericRewardsScreenViewController*)>("OnCollectClicked");
+
+    if (OnCollectClickedMethod) {
+      OnCollectClickedMethod(this);
+    } else if (OnCollectClickedWarn) {
+      OnCollectClickedWarn = false;
+      ErrorMsg::MissingMethod("GenericRewardsScreenViewController", "OnCollectClicked");
+    }
   }
 
   bool IsActive()
   {
-    auto IsActive = get_class_helper().GetMethod<bool(GenericRewardsScreenViewController*)>("IsActive");
-    return IsActive(this);
+    auto IsActiveMethod = get_class_helper().GetMethod<bool(GenericRewardsScreenViewController*)>("IsActive");
+    auto IsActiveWarn   = true;
+
+    if (IsActiveMethod) {
+      return IsActiveMethod(this);
+    } else if (IsActiveWarn) {
+      IsActiveWarn = false;
+      ErrorMsg::MissingMethod("GenericRewardsSCreenViewController", "IsActive");
+    }
   }
 };

@@ -146,8 +146,15 @@ struct SectionStorage {
 public:
   void* GetState(SectionID section)
   {
-    static auto GetState = get_class_helper().GetMethod<void*(SectionStorage*, SectionID)>("GetState");
-    return GetState(this, section);
+    static auto GetStateMethod = get_class_helper().GetMethod<void*(SectionStorage*, SectionID)>("GetState");
+    static auto GetStateWarn   = true;
+
+    if (GetStateMethod) {
+      return GetStateMethod(this, section);
+    } else if (GetStateWarn) {
+      GetStateWarn = false;
+      ErrorMsg::MissingMethod("SectionStorage", "GetState");
+    }
   }
 
 private:
@@ -162,8 +169,15 @@ struct SectionNavHistory {
 public:
   bool Contains(SectionID section)
   {
-    static auto Contains = get_class_helper().GetMethod<bool(SectionNavHistory*, SectionID)>("Contains");
-    return Contains(this, section);
+    static auto ContainsMethod = get_class_helper().GetMethod<bool(SectionNavHistory*, SectionID)>("Contains");
+    static auto ContainsWarn   = true;
+
+    if (ContainsMethod) {
+      return ContainsMethod(this, section);
+    } else if (ContainsWarn) {
+      ContainsWarn = false;
+      ErrorMsg::MissingMethod("SectionNavHistory", "Contains");
+    }
   }
 
 private:
@@ -183,10 +197,17 @@ public:
   void TriggerSectionChange(SectionID nextSectionID, void* args, bool forcedSectionChange = false,
                             bool isGoBackStep = false, bool allowSameSection = false)
   {
-    static auto trigger =
+    static auto triggerWarn = true;
+    static auto triggerMethod =
         get_class_helper().GetMethod<void(void*, SectionID, void*, bool, bool isGoBackStep, bool allowSameSection)>(
             "TriggerSectionChange");
-    trigger(this, nextSectionID, args, forcedSectionChange, isGoBackStep, allowSameSection);
+
+    if (triggerMethod) {
+      triggerMethod(this, nextSectionID, args, forcedSectionChange, isGoBackStep, allowSameSection);
+    } else if (triggerWarn) {
+      triggerWarn = false;
+      ErrorMsg::MissingMethod("SectionManager", "TriggerSectionChange");
+    }
   }
 
 private:

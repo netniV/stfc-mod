@@ -96,7 +96,7 @@ void Config::Save(toml::table config, std::string_view filename, bool apply_warn
     config_file << "####                                                               ####\n";
     config_file << "#######################################################################\n";
     config_file << "#######################################################################\n\n";
-  } 
+  }
 
   config_file << config;
   config_file.close();
@@ -601,6 +601,6 @@ void Config::Load()
       << "Loaded beta version " << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_REVISION << " (Release)"
 #endif
 
-      << "\n\nPlease see https://github.com/tashcan/bob for latest configuration help, examples and future releases\n"
+      << "\n\nPlease see https://github.com/netniv/bob for latest configuration help, examples and future releases\n"
       << "or visit the STFC Community Mod discord server at https://discord.gg/PrpHgs7Vjs\n\n";
 }

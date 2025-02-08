@@ -1,3 +1,4 @@
+#include "errormsg.h"
 #include <config.h>
 
 #include <il2cpp/il2cpp_helper.h>
@@ -60,26 +61,40 @@ void CanvasController_Show(auto original, CanvasController* _this, int desiredEn
 void InstallUiScaleHooks()
 {
   auto screen_manager_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.UI", "ScreenManager");
-  auto ptr_update_scale      = screen_manager_helper.GetMethod("UpdateCanvasRootScaleFactor");
-  SPUD_STATIC_DETOUR(ptr_update_scale, ScreenManager_UpdateCanvasRootScaleFactor_Hook);
+  if (!screen_manager_helper.HasClass()) {
+    ErrorMsg::MissingHelper("UI", "ScreenManager");
+  } else {
+    auto ptr_update_scale = screen_manager_helper.GetMethod("UpdateCanvasRootScaleFactor");
+    if (ptr_update_scale == nullptr) {
+      ErrorMsg::MissingMethod("ScreenManager", "UpdateCanvasRootScaleFactor");
+    } else {
+      SPUD_STATIC_DETOUR(ptr_update_scale, ScreenManager_UpdateCanvasRootScaleFactor_Hook);
+    }
+  }
 
   auto canvas_controller_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.UI", "CanvasController");
+  if (!canvas_controller_helper.HasClass()) {
+    ErrorMsg::MissingHelper("UI", "CanvasController");
+  } else {
+    auto ptr_canvas_show = canvas_controller_helper.GetMethodSpecial("Show", [](auto count, const Il2CppType** params) {
+      if (count != 2) {
+        return false;
+      }
 
-  auto ptr_canvas_show = canvas_controller_helper.GetMethodSpecial("Show", [](auto count, const Il2CppType** params) {
-    if (count != 2) {
+      auto p1 = params[0]->type;
+      auto p2 = params[1]->type;
+
+      if (p1 == IL2CPP_TYPE_I4 && p2 == IL2CPP_TYPE_BOOLEAN) {
+        return true;
+      }
       return false;
-    }
+    });
 
-    auto p1 = params[0]->type;
-    auto p2 = params[1]->type;
-
-    if (p1 == IL2CPP_TYPE_I4 && p2 == IL2CPP_TYPE_BOOLEAN) {
-      return true;
+    if (ptr_canvas_show == nullptr) {
+      ErrorMsg::MissingMethod("CanvasContrller", "Show");
+    } else {
+      SPUD_STATIC_DETOUR(ptr_canvas_show, CanvasController_Show);
     }
-    return false;
-  });
-  if (ptr_canvas_show) {
-    SPUD_STATIC_DETOUR(ptr_canvas_show, CanvasController_Show);
   }
 
   Config::RefreshDPI();

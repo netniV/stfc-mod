@@ -1,4 +1,5 @@
 #include "config.h"
+#include "errormsg.h"
 #include "prime/TransitionManager.h"
 
 #include <il2cpp/il2cpp_helper.h>
@@ -23,9 +24,14 @@ void InstallImproveResponsivenessHooks()
 {
   auto transition_manager_helper =
       il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.LoadingScreen", "TransitionManager");
-  auto awake = transition_manager_helper.GetMethod("Awake");
-  if (!awake) {
-    return;
+  if (!transition_manager_helper.HasClass()) {
+    ErrorMsg::MissingHelper("LoadingScreen", "TransitionManager");
+  } else {
+    auto awake = transition_manager_helper.GetMethod("Awake");
+    if (awake == nullptr) {
+      ErrorMsg::MissingMethod("TransitionManager", "Awake");
+    } else {
+      SPUD_STATIC_DETOUR(awake, TransitionManager_Awake);
+    }
   }
-  SPUD_STATIC_DETOUR(awake, TransitionManager_Awake);
 }

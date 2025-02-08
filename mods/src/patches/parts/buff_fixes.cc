@@ -1,4 +1,5 @@
 #include "config.h"
+#include "errormsg.h"
 #include "prime_types.h"
 
 #include <il2cpp/il2cpp_helper.h>
@@ -101,37 +102,46 @@ bool FleetService_ResolveOfficerAbilityBuffs_Hook(auto original, int64_t _fleet)
 
 void InstallBuffFixHooks()
 {
-  auto screen_manager_helper =
+  auto buffhelper =
       il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Services", "BuffService");
-  auto ptr = screen_manager_helper.GetMethod("IsBuffConditionMet");
-  if (!ptr) {
-    return;
-  }
-  SPUD_STATIC_DETOUR(ptr, BuffService_IsBuffConditionMet_Hook);
+  if (!buffhelper.HasClass()) {
+    ErrorMsg::MissingHelper("Services", "BuffService");
+  } else {
+    auto ptr = buffhelper.GetMethod("IsBuffConditionMet");
+    if (ptr == nullptr) {
+      ErrorMsg::MissingMethod("BuffServices", "IsBuffConditionMet");
+    } else {
+      SPUD_STATIC_DETOUR(ptr, BuffService_IsBuffConditionMet_Hook);
+    }
 
-  screen_manager_helper =
-      il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Services", "FleetService");
-  ptr = screen_manager_helper.GetMethod("ResolveOfficerAbilityBuffs");
-  if (!ptr) {
-    return;
-  }
-  SPUD_STATIC_DETOUR(ptr, FleetService_ResolveOfficerAbilityBuffs_Hook);
-
-  screen_manager_helper =
-      il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Services", "BuffService");
-  ptr =
-      screen_manager_helper.GetMethodSpecial("ApplyBuffModifiersToCostVal", [](auto count, const Il2CppType **params) {
-        if (count != 2) {
-          return false;
-        }
-        auto p2 = params[1]->type;
-        if (p2 == IL2CPP_TYPE_VALUETYPE) {
-          return true;
-        }
+    ptr = buffhelper.GetMethodSpecial("ApplyBuffModifiersToCostVal", [](auto count, const Il2CppType **params) {
+      if (count != 2) {
         return false;
-      });
-  if (!ptr) {
-    return;
+      }
+      auto p2 = params[1]->type;
+      if (p2 == IL2CPP_TYPE_VALUETYPE) {
+        return true;
+      }
+      return false;
+    });
+
+    if (ptr == nullptr) {
+      ErrorMsg::MissingMethod("BuffService", "ApplyBuffModifiersToCostVal");
+    } else {
+      SPUD_STATIC_DETOUR(ptr, BuffService_ApplyBuffModifiersToCostVal_1_Hook);
+    }
   }
-  SPUD_STATIC_DETOUR(ptr, BuffService_ApplyBuffModifiersToCostVal_1_Hook);
+
+  auto fleethelper =
+      il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Services", "FleetService");
+  if (!fleethelper.HasClass()) {
+    ErrorMsg::MissingHelper("Services", "FleetService");
+  } else {
+    auto ptr = fleethelper.GetMethod("ResolveOfficerAbilityBuffs");
+    if (ptr == nullptr) {
+      ErrorMsg::MissingMethod("FleetService", "IsBuffConditionMet");
+    } else {
+      SPUD_STATIC_DETOUR(ptr, FleetService_ResolveOfficerAbilityBuffs_Hook);
+    }
+  }
 }

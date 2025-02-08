@@ -9,8 +9,15 @@ public:
 
   void SetScaleFactor(float v)
   {
-    static auto SetScaleFactor = get_class_helper().GetMethod<void(CanvasScaler*, float)>("SetScaleFactor");
-    SetScaleFactor(this, v);
+    static auto SetScaleFactorMethod = get_class_helper().GetMethod<void(CanvasScaler*, float)>("SetScaleFactor");
+    static auto SetScaleFactorWarn   = true;
+
+    if (SetScaleFactorMethod) {
+      SetScaleFactorMethod(this, v);
+    } else if (SetScaleFactorWarn) {
+      SetScaleFactorWarn = false;
+      ErrorMsg::MissingMethod("CanvasScalar", "SetScaleFactor");
+    }
   }
 
 private:

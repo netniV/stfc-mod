@@ -29,7 +29,8 @@ public:
 
   void RequestSelect(int32_t index, bool simulated = false)
   {
-    static auto RequestSelect = get_class_helper().GetMethodSpecial<void(FleetBarViewController*, int32_t, bool)>(
+    static auto RequestSelectWarn   = true;
+    static auto RequestSelectMethod = get_class_helper().GetMethodSpecial<void(FleetBarViewController*, int32_t, bool)>(
         "RequestSelect", [](auto count, auto params) {
           if (count != 2) {
             return false;
@@ -40,14 +41,26 @@ public:
           }
           return false;
         });
-    RequestSelect(this, index, simulated);
+    if (RequestSelectMethod) {
+      RequestSelectMethod(this, index, simulated);
+    } else if (RequestSelectWarn) {
+      RequestSelectWarn = false;
+      ErrorMsg::MissingMethod("FleetBarViewController", "RequestSelect");
+    }
   }
 
   bool IsIndexSelected(int32_t index)
   {
-    static auto IsIndexSelected =
+    static auto IsIndexSelectedWarn = true;
+    static auto IsIndexSelectedMethod =
         get_class_helper().GetMethod<bool(FleetBarViewController*, int32_t)>("IsIndexSelected");
-    return IsIndexSelected(this, index);
+
+    if (IsIndexSelectedMethod) {
+      return IsIndexSelectedMethod(this, index);
+    } else if (IsIndexSelectedWarn) {
+      IsIndexSelectedWarn = false;
+      ErrorMsg::MissingMethod("FleetBarViewController", "IsIndexSelected");
+    }
   }
 
   FleetBarContext* CanvasContext()

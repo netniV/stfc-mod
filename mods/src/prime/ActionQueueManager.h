@@ -4,6 +4,7 @@
 
 #include "FleetPlayerData.h"
 #include "MonoSingleton.h"
+#include "errormsg.h"
 
 struct ActionQueueManager : MonoSingleton<ActionQueueManager> {
   friend struct MonoSingleton<ActionQueueManager>;
@@ -13,21 +14,46 @@ public:
   {
     static auto IsQueueFullMethod =
         get_class_helper().GetMethod<bool(ActionQueueManager*, FleetPlayerData*)>("IsQueueFull");
-    return IsQueueFullMethod(this, playerData);
+    static auto IsQueueFullWarn = true;
+
+    if (IsQueueFullMethod) {
+      return IsQueueFullMethod(this, playerData);
+    } else if (IsQueueFullWarn) {
+      IsQueueFullWarn = false;
+      ErrorMsg::MissingMethod("ActionQueueManager", "IsQueueFull");
+    }
+
+    return false;
   }
 
   bool IsFleetInQueue(FleetPlayerData* playerData)
   {
     static auto IsFleetInQueueMethod =
         get_class_helper().GetMethod<bool(ActionQueueManager*, FleetPlayerData*)>("IsFleetInQueue");
+    static auto IsFleetInQueueWarn = true;
 
-    return IsFleetInQueueMethod(this, playerData);
+    if (IsFleetInQueueMethod) {
+      return IsFleetInQueueMethod(this, playerData);
+    } else if (IsFleetInQueueWarn) {
+      IsFleetInQueueWarn = false;
+      ErrorMsg::MissingMethod("ActionQueueManager", "IFleetInQueue");
+    }
+
+    return false;
   }
 
   bool IsQueueUnlocked()
   {
     static auto IsQueueUnlockedMethod = get_class_helper().GetMethod<bool(ActionQueueManager*)>("IsQueueUnlocked");
-    return IsQueueUnlockedMethod(this);
+    static auto IsQueueUnlockedWarn   = true;
+    if (IsQueueUnlockedMethod) {
+      return IsQueueUnlockedMethod(this);
+    } else if (IsQueueUnlockedWarn) {
+      IsQueueUnlockedWarn = false;
+      ErrorMsg::MissingMethod("ActionQueueManager", "IsQueueUnlocked");
+    }
+
+    return false;
   }
 
   bool CanAddToQueue(FleetPlayerData* playerData)
@@ -46,8 +72,14 @@ public:
   void AddToQueue(long targetId)
   {
     static auto AddToQueueMethod = get_class_helper().GetMethod<void(ActionQueueManager*, long)>("AddActionToQueue");
+    static auto AddToQueueWarn   = true;
+
     if (AddToQueueMethod != nullptr) {
+      spdlog::warn("AddToQueue({})", targetId);
       AddToQueueMethod(this, targetId);
+    } else if (AddToQueueWarn) {
+      AddToQueueWarn = false;
+      ErrorMsg::MissingMethod("ActionQueueManager", "AddActionToQueue");
     }
   }
 

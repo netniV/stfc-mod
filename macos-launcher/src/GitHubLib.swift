@@ -2,7 +2,7 @@ import Foundation
 
 struct GitHubUpdater {
   func latestPatchVersion() async -> Int {
-    let url = URL(string: "https://api.github.com/repos/tashcan/bob/releases/latest")!
+    let url = URL(string: "https://api.github.com/repos/netniv/bob/releases/latest")!
     do {
       let (data, _) = try await URLSession.shared.data(from: url)
       let json = try JSONSerialization.jsonObject(with: data) as! [String: Any]
