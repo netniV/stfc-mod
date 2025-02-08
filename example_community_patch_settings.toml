@@ -38,6 +38,9 @@ system_zoom_preset_3 = 0.0
 system_zoom_preset_4 = 0.0
 system_zoom_preset_5 = 0.0
 
+# After using a zoom preset it will be set as default zoom
+use_presets_as_default = true
+
 # These options does not appear to be used, and may be removed from future configuration
 target_framerate = 60
 
@@ -106,6 +109,9 @@ fix_unity_web_requests = true
 # Skip the reveal box animation, and just open the damn boxes
 always_skip_reveal_sequence = true
 
+# Stay in non-restricted bundles after collecting
+stay_in_bundle_after_summary = true
+
 # Change 'false' to 'true' from the line below to remove Galaxy Chat from the game
 disable_galaxy_chat = false
 
@@ -123,14 +129,11 @@ disabled_banner_types = 'Event,Victory,Defeat'
 # FactionLevelUp
 # FactionLevelDown
 # FactionDiscovered
-# IncomingAttack
 # IncomingAttackFaction
 # FleetBattle
 # StationBattle
-# StationVictory
-# Victory
-# Defeat
-# StationDefeat
+# Victory (Includes StationVictory)
+# Defeat (Includes StationDefeat)
 # Event
 # ArmadaCreated
 # ArmadaCanceled
@@ -158,9 +161,6 @@ show_player_cargo = false
 show_station_cargo = true
 show_hostile_cargo = true
 show_armada_cargo = true
-
-# Stay in non-restricted bundles after collecting
-stay_in_bundle_after_summary = true
 
 [shortcuts]
 # Primary actions such as Mine or Attack or Go
@@ -226,8 +226,14 @@ select_ship8 = '8'
 # Show alliance screen
 show_alliance = '\'
 
+# Show alliance armada screen
+show_alliance_armada = 'CTRL-\'
+
+# Show alliance help screen
+show_alliance_help = 'SHIFT-\'
+
 # Show artifacts screen
-show_artificates = 'SHIFT-I'
+show_artifacts = 'SHIFT-I'
 
 
 # Go to the Away Team screen
