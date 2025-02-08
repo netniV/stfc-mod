@@ -21,7 +21,7 @@ public:
     if (GoBackToLastSectionMethod) {
       GoBackToLastSectionMethod(this);
     } else if (GoBackToLastSectionWarn) {
-      GoBackToLastSectionWarn == false;
+      GoBackToLastSectionWarn = false;
       ErrorMsg::MissingMethod("AnimatedRewardsScreenViewController", "GoBackToLastSection");
     }
   }
@@ -48,7 +48,7 @@ public:
     if (IsActiveMethod) {
       return IsActiveMethod(this);
     } else if (IsActiveWarn) {
-      IsActiveWarn == false;
+      IsActiveWarn = false;
       ErrorMsg::MissingMethod("AnimatedRewardsScreenViewController", "IsActive");
     }
 
