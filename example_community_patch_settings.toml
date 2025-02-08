@@ -109,9 +109,6 @@ fix_unity_web_requests = true
 # Skip the reveal box animation, and just open the damn boxes
 always_skip_reveal_sequence = true
 
-# Stay in non-restricted bundles after collecting
-stay_in_bundle_after_summary = true
-
 # Change 'false' to 'true' from the line below to remove Galaxy Chat from the game
 disable_galaxy_chat = false
 

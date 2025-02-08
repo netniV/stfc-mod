@@ -78,7 +78,6 @@ public:
   bool show_armada_cargo;
 
   bool always_skip_reveal_sequence;
-  bool stay_in_bundle_after_summary;
 
   std::map<std::string, std::string> sync_targets;
   std::string sync_proxy;

@@ -12,7 +12,7 @@ add_requires("7z")
 add_requires("lzma")
 add_requires("librsync")
 add_requires("libcurl", { configs = { zlib = true } })
-add_requires("capstone 6.0.0-Alpha1")
+-- add_requires("capstone 6.0.0-Alpha1")
 
 if is_plat("windows") then
     includes("win-proxy-dll")

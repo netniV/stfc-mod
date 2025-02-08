@@ -234,85 +234,6 @@ public:
   }
 };
 
-SectionID ShopSummaryDirectorGoBackBehavior(auto original, ShopSummaryDirector* _this, void* status,
-                                            SectionNavHistory* history)
-{
-  if (Config::Get().stay_in_bundle_after_summary
-      && strcmp(((Il2CppObject*)(_this))->klass->name, "ShopSummaryDirector") == 0) {
-    auto section_data = (ShopSectionContext*)Hub::get_SectionManager()->_sectionStorage->GetState(SectionID::Shop_List);
-    section_data      = section_data;
-
-    if (!section_data) {
-      section_data =
-          (ShopSectionContext*)Hub::get_SectionManager()->_sectionStorage->GetState(SectionID::Shop_Refining_List);
-      section_data = section_data;
-    }
-
-    auto suppress_go_back = false;
-    if (section_data) {
-      auto bundle_config = section_data->_bundleConfig;
-      if (bundle_config) {
-        auto f           = bundle_config->_category;
-        f                = f;
-        suppress_go_back = (f == 3 || f == 10 || f == 22 || f == 29);
-      }
-    }
-
-    if (suppress_go_back) {
-      if (auto id_array = _this->_backLogicSkipSectionIds) {
-        auto ids     = (SectionID*)id_array->vector;
-        auto ids_len = id_array->max_length;
-        for (size_t i = 0; i < ids_len; ++i) {
-          auto id = ids[i];
-          if (id == SectionID::Shop_Showcase) {
-            ids[i] = SectionID::Navigation_Combat_Debug;
-          }
-        }
-      }
-
-      if (auto cache_id_array = _this->backlogicCache; cache_id_array) {
-        auto cache_ids = (SectionID*)cache_id_array->vector;
-        auto cache_len = cache_id_array->max_length;
-        for (size_t i = 0; i < cache_len; ++i) {
-          auto id = cache_ids[i];
-          if (id == SectionID::Shop_Showcase) {
-            cache_ids[i] = SectionID::Navigation_Combat_Debug;
-          }
-        }
-      }
-
-      auto sectionID = original(_this, status, history);
-
-      if (auto id_array = _this->_backLogicSkipSectionIds) {
-        auto ids     = (SectionID*)id_array->vector;
-        auto ids_len = id_array->max_length;
-
-        for (size_t i = 0; i < ids_len; ++i) {
-          auto id = ids[i];
-          if (id == SectionID::Navigation_Combat_Debug) {
-            ids[i] = SectionID::Shop_Showcase;
-          }
-        }
-      }
-
-      if (auto cache_id_array = _this->backlogicCache; cache_id_array) {
-        auto cache_ids = (SectionID*)cache_id_array->vector;
-        auto cache_len = cache_id_array->max_length;
-
-        for (size_t i = 0; i < cache_len; ++i) {
-          auto id = cache_ids[i];
-          if (id == SectionID::Navigation_Combat_Debug) {
-            cache_ids[i] = SectionID::Shop_Showcase;
-          }
-        }
-      }
-
-      return sectionID;
-    }
-  }
-  return original(_this, status, history);
-}
-
 bool isFirstInterstitial = true;
 
 void InterstitialViewController_AboutToShow(auto original, InterstitialViewController* _this)
@@ -351,18 +272,6 @@ void InstallTempCrashFixes()
       ErrorMsg::MissingMethod("ShopSceneManager", "ShouldShowRevealSequence");
     } else {
       SPUD_STATIC_DETOUR(reveal_show, ShouldShowRevealHook);
-    }
-  }
-
-  auto shop_summary_director = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Shop", "ShopSummaryDirector");
-  if (!shop_summary_director.HasClass()) {
-    ErrorMsg::MissingHelper("Shop", "ShopSummaryDirector");
-  } else {
-    shop_method = shop_summary_director.GetMethod("GoBackBehaviour");
-    if (shop_method == nullptr) {
-      ErrorMsg::MissingMethod("ShopSummaryDirectory", "GoBackBehaviour");
-    } else {
-      SPUD_STATIC_DETOUR(shop_method, ShopSummaryDirectorGoBackBehavior);
     }
   }
 

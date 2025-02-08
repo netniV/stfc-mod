@@ -457,9 +457,6 @@ void Config::Load()
   this->show_armada_cargo      = get_config_or_default(config, parsed, "ui", "show_armada_cargo", true);
 
   this->always_skip_reveal_sequence = get_config_or_default(config, parsed, "ui", "always_skip_reveal_sequence", false);
-  this->stay_in_bundle_after_summary =
-      get_config_or_default(config, parsed, "ui", "stay_in_bundle_after_summary", true);
-
   this->fix_unity_web_requests = get_config_or_default(config, parsed, "tech", "fix_unity_web_requests", true);
 
   this->sync_proxy      = get_config_or_default<std::string>(config, parsed, "sync", "proxy", "");
