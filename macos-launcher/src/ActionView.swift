@@ -66,8 +66,11 @@ struct ActionView: View, XSollaUpdaterDelegate {
         GridRow {
           if gameInstalled {
             Button {
+              withAnimation {
+                openSettings()
+              }
             } label: {
-              commonButton()
+              commonButton(text: "Open Settings")
                 .foregroundColor(.lcarViolet)
             }.buttonStyle(PlainButtonStyle())
             Button {
@@ -178,6 +181,21 @@ struct ActionView: View, XSollaUpdaterDelegate {
       .joined()
   }
 
+  private func openSettings() {
+    let library = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask).first
+    if let library {
+      let preferences = library.appendingPathComponent("Preferences").appendingPathComponent(
+        "com.tashcan.startrekpatch")
+      let settingsTomlPath = preferences.appendingPathComponent("community_patch_settings.toml")
+      if !FileManager.default.fileExists(atPath: settingsTomlPath.path) {
+        do {
+          try "".write(to: settingsTomlPath, atomically: true, encoding: .utf8)
+        } catch {}
+      }
+      NSWorkspace.shared.open(settingsTomlPath)
+    }
+  }
+
   private func launchGame() {
     DispatchQueue.global().async {
       DispatchQueue.main.async {
@@ -229,17 +247,22 @@ struct PulsatingView: View {
   var body: some View {
     VStack {
       ZStack {
-        Circle().fill(colourToShow().opacity(0.25)).frame(width: 40, height: 40).scaleEffect(
-          self.animate ? 1 : 0)
-        Circle().fill(colourToShow().opacity(0.35)).frame(width: 30, height: 30).scaleEffect(
-          self.animate ? 1 : 0)
-        Circle().fill(colourToShow().opacity(0.45)).frame(width: 15, height: 15).scaleEffect(
-          self.animate ? 1 : 0)
+        Circle().fill(colourToShow().opacity(0.25)).frame(width: 40, height: 40)
+          .scaleEffect(
+            self.animate ? 1 : 0)
+        Circle().fill(colourToShow().opacity(0.35)).frame(width: 30, height: 30)
+          .scaleEffect(
+            self.animate ? 1 : 0)
+        Circle().fill(colourToShow().opacity(0.45)).frame(width: 15, height: 15)
+          .scaleEffect(
+            self.animate ? 1 : 0)
         Circle().fill(colourToShow()).frame(width: 16.25, height: 16.25)
       }
       .onAppear { self.animate = true }
       .animation(
-        animate ? Animation.easeInOut(duration: 1.5).repeatForever(autoreverses: true) : .default,
+        animate
+          ? Animation.easeInOut(duration: 1.5).repeatForever(autoreverses: true)
+          : .default,
         value: animate
       )
       .onChange(of: viewModel.colorIndex) { _ in
