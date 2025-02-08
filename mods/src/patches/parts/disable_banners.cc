@@ -1,4 +1,5 @@
 #include "config.h"
+#include "errormsg.h"
 
 #include <il2cpp/il2cpp_helper.h>
 #include <prime/Toast.h>
@@ -31,16 +32,21 @@ void ToastObserver_EnqueueOrCombineToast_Hook(auto original, ToastObserver *_thi
 void InstallToastBannerHooks()
 {
   auto helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.HUD", "ToastObserver");
-  auto ptr    = helper.GetMethod("EnqueueToast");
-  if (!ptr) {
-    return;
-  }
-  SPUD_STATIC_DETOUR(ptr, ToastObserver_EnqueueToast_Hook);
+  if (!helper.HasClass()) {
+    ErrorMsg::MissingHelper("HUD", "ToastObserver");
+  } else {
+    auto ptr = helper.GetMethod("EnqueueToast");
+    if (ptr == nullptr) {
+      ErrorMsg::MissingMethod("ToastObserver", "EnqueueTosat");
+    } else {
+      SPUD_STATIC_DETOUR(ptr, ToastObserver_EnqueueToast_Hook);
+    }
 
-  helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.HUD", "ToastObserver");
-  ptr    = helper.GetMethod("EnqueueOrCombineToast");
-  if (!ptr) {
-    return;
+    ptr = helper.GetMethod("EnqueueOrCombineToast");
+    if (ptr == nullptr) {
+      ErrorMsg::MissingMethod("ToastObserver", "EnqueueOrCombineToast");
+    } else {
+      SPUD_STATIC_DETOUR(ptr, ToastObserver_EnqueueOrCombineToast_Hook);
+    }
   }
-  SPUD_STATIC_DETOUR(ptr, ToastObserver_EnqueueOrCombineToast_Hook);
 }

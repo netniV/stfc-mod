@@ -1,7 +1,9 @@
 #pragma once
 
 #include "CallbackContainer.h"
+#include "FleetDeployedData.h"
 #include "FleetPlayerData.h"
+#include "HullSpec.h"
 #include "IEnumerator.h"
 #include "MonoSingleton.h"
 #include "Vector3.h"
@@ -12,13 +14,25 @@ struct FleetsManager : MonoSingleton<FleetsManager> {
   friend struct MonoSingleton<FleetsManager>;
 
 public:
+  __declspec(property(get = __get_TargetFleetData)) FleetDeployedData* targetFleetData;
+
+public:
   class IEnumerator_Tow
   {
   public:
     bool MoveNext()
     {
       static auto MoveNext = get_class_helper().GetMethodSpecial<bool(IEnumerator_Tow*)>("MoveNext");
-      return MoveNext(this);
+      static auto MoveWarn = true;
+
+      if (MoveNext) {
+        return MoveNext(this);
+      } else if (MoveWarn) {
+        MoveWarn = false;
+        ErrorMsg::MissingMethod("IEnumerator_Tow", "MoveNext");
+      }
+
+      return false;
     }
 
   private:
@@ -33,28 +47,66 @@ public:
   {
     static auto RequestViewFleet =
         get_class_helper().GetMethod<void(FleetsManager*, FleetPlayerData*, bool)>("RequestViewFleet");
-    RequestViewFleet(this, fleetData, showSystemInfo);
+    static auto RequestViewWarn = true;
+    if (RequestViewFleet) {
+       RequestViewFleet(this, fleetData, showSystemInfo);
+    } else if (RequestViewWarn) {
+      RequestViewWarn = false;
+      ErrorMsg::MissingMethod("FleetsManager", "RequestViewFleet");
+    }
   }
+
   void RecallFleet(long fleetId)
   {
     static auto RecallFleet = get_class_helper().GetMethod<void(FleetsManager*, long, void*)>("RecallFleet");
-    auto        ptr         = CallbackContainer::Create();
-    RecallFleet(this, fleetId, ptr);
+    static auto RecallWarn  = true;
+
+    if (RecallFleet) {
+      auto ptr = CallbackContainer::Create();
+      RecallFleet(this, fleetId, ptr);
+    } else if (RecallWarn) {
+      RecallWarn = true;
+      ErrorMsg::MissingMethod("FleetsManager", "RecallFleet");
+    }
   }
 
   IEnumerator_Tow* Tow(long towedFleetId, long towingFleetId, Vector3* targetPosition)
   {
-    static auto Tow =
+    static auto TowMethod =
         get_class_helper().GetMethod<IEnumerator_Tow*(FleetsManager*, long, long, void*, Vector3*, void*)>("Tow");
-    auto ptr = CallbackContainer::Create();
-    return Tow(this, towedFleetId, towingFleetId, nullptr, targetPosition, ptr);
+    static auto TowWarn = true;
+
+    if (TowMethod) {
+      auto ptr = CallbackContainer::Create();
+      return TowMethod(this, towedFleetId, towingFleetId, nullptr, targetPosition, ptr);
+    } else if (TowWarn) {
+      TowWarn = false;
+      ErrorMsg::MissingMethod("FleetsManager", "Tow");
+    }
+
+    return nullptr;
   }
 
   FleetPlayerData* GetFleetPlayerData(int idx)
   {
-    static auto GetFleetPlayerData =
+    static auto GetFleetPlayerDataMethod =
         get_class_helper().GetMethod<FleetPlayerData*(FleetsManager*, int)>("GetFleetPlayerData");
-    return GetFleetPlayerData(this, idx);
+    static auto GetFleetPlayerDataWarn = true;
+
+    if (GetFleetPlayerDataMethod) {
+      return GetFleetPlayerDataMethod(this, idx);
+    } else if (GetFleetPlayerDataWarn) {
+      GetFleetPlayerDataWarn = false;
+      ErrorMsg::MissingMethod("FleetPlayerData", "GetFleetPlayerData");
+    }
+
+    return nullptr;
+  }
+
+  FleetDeployedData* __get_TargetFleetData()
+  {
+    static auto field = get_class_helper().GetField("_targetFleetData").offset();
+    return *(FleetDeployedData**)((char*)this + field);
   }
 
 private:

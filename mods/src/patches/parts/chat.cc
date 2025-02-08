@@ -3,6 +3,7 @@
 #include "prime/GenericButtonContext.h"
 
 #include "config.h"
+#include "errormsg.h"
 
 #include <spud/detour.h>
 
@@ -73,25 +74,43 @@ void InstallChatPatches()
 {
   static auto fullscreen_controller =
       il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Chat", "FullScreenChatViewController");
-  auto ptr = fullscreen_controller.GetMethod("AboutToShow");
-  if (ptr) {
-    SPUD_STATIC_DETOUR(ptr, FullScreenChatViewController_AboutToShow);
+
+  if (!fullscreen_controller.HasClass()) {
+    ErrorMsg::MissingHelper("Chat", "FullScreenChatViewController");
+  } else {
+    auto ptr = fullscreen_controller.GetMethod("AboutToShow");
+    if (ptr == nullptr) {
+      ErrorMsg::MissingMethod("FullScreenChatViewController", "AboutToShow");
+    } else {
+      SPUD_STATIC_DETOUR(ptr, FullScreenChatViewController_AboutToShow);
+    }
   }
 
   static auto preview_controller =
       il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Chat", "ChatPreviewController");
-  ptr = preview_controller.GetMethod("AboutToShow");
-  if (ptr) {
-    SPUD_STATIC_DETOUR(ptr, ChatPreviewController_AboutToShow);
-  }
 
-  ptr = preview_controller.GetMethod("OnPanel_Focused");
-  if (ptr) {
-    SPUD_STATIC_DETOUR(ptr, ChatPreviewController_OnPanel_Focused);
-  }
+  if (!preview_controller.HasClass()) {
+    ErrorMsg::MissingHelper("Chat", "ChatPreviewController");
+  } else {
+    auto ptr = preview_controller.GetMethod("AboutToShow");
+    if (ptr == nullptr) {
+      ErrorMsg::MissingMethod("ChatPreviewController", "AboutToShow");
+    } else {
+      SPUD_STATIC_DETOUR(ptr, ChatPreviewController_AboutToShow);
+    }
 
-  ptr = preview_controller.GetMethod("OnGlobalMessageReceived");
-  if (ptr) {
-    SPUD_STATIC_DETOUR(ptr, ChatPreviewController_OnGlobalMessageReceived);
+    ptr = preview_controller.GetMethod("OnPanel_Focused");
+    if (ptr == nullptr) {
+      ErrorMsg::MissingMethod("ChatPreviewController", "OnPanel_Focused");
+    } else {
+      SPUD_STATIC_DETOUR(ptr, ChatPreviewController_OnPanel_Focused);
+    }
+
+    ptr = preview_controller.GetMethod("OnGlobalMessageReceived");
+    if (ptr == nullptr) {
+      ErrorMsg::MissingMethod("ChatPreviewController", "OnGlobalMessageReceived");
+    } else {
+      SPUD_STATIC_DETOUR(ptr, ChatPreviewController_OnGlobalMessageReceived);
+    }
   }
 }

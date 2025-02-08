@@ -1,5 +1,7 @@
 #pragma once
 
+#include "errormsg.h"
+
 #include <il2cpp/il2cpp_helper.h>
 
 #include "MonoSingleton.h"
@@ -28,19 +30,22 @@ public:
 
   void OpenChannel(ChatChannelCategory category = ChatChannelCategory::Alliance)
   {
-    static auto OpenChannel =
+    static auto OpenChannelMethod =
         get_class_helper().GetMethod<void(ChatManager*, ChatChannelCategory, void*, void*)>("OpenChannel", 2);
+    static auto  OpenChannelWarn = true;
     static void* params            = il2cpp_string_new("");
-    OpenChannel(this, category, params, nullptr);
+    if (OpenChannelMethod) {
+      OpenChannelMethod(this, category, params, nullptr);
+    } else if (OpenChannelWarn) {
+      OpenChannelWarn = false;
+      ErrorMsg::MissingMethod("ChatManager", "OpenChannel");
+    }
   }
 
   void OpenChannel(ChatChannelCategory category, ChatViewMode viewMode)
   {
-    static auto OpenChannel =
-        get_class_helper().GetMethod<void(ChatManager*, ChatChannelCategory, void*, void*)>("OpenChannel", 2);
-    static void* params            = il2cpp_string_new("");
     this->__set_ViewMode(viewMode);
-    OpenChannel(this, category, params, nullptr);
+    this->OpenChannel(category);
   }
 
 public:

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "errormsg.h"
 #include <il2cpp/il2cpp_helper.h>
 
 #include "MonoSingleton.h"
@@ -11,7 +12,14 @@ public:
   void ViewBookmarks()
   {
     static auto ViewBookmarksMethod = get_class_helper().GetMethod<void(BookmarksManager*)>("ViewBookmarks");
-    ViewBookmarksMethod(this);
+    static auto ViewBookmarksWarn   = true;
+
+    if (ViewBookmarksMethod) {
+      ViewBookmarksMethod(this);
+    } else if (ViewBookmarksWarn) {
+      ViewBookmarksWarn = false;
+      ErrorMsg::MissingMethod("BookmarksManager", "ViewBookmarks");
+    }
   }
 
 private:

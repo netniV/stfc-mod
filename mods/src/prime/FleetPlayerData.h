@@ -1,6 +1,7 @@
 #pragma once
 
 #include "BattleTargetData.h"
+#include "HullSpec.h"
 #include "RecallRequirement.h"
 #include "CanRepairRequirement.h"
 

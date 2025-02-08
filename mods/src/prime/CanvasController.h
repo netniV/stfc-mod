@@ -13,8 +13,15 @@ public:
 
   void ResetFocus()
   {
-    static auto ResetFocus = get_class_helper().GetMethod<void(CanvasController*)>("ResetFocus");
-    ResetFocus(this);
+    static auto ResetFocusMethod = get_class_helper().GetMethod<void(CanvasController*)>("ResetFocus");
+    static auto ResetFocusWarn   = true;
+
+    if (ResetFocusMethod) {
+      ResetFocusMethod(this);
+    } else if (ResetFocusWarn) {
+      ResetFocusWarn = false;
+      ErrorMsg::MissingMethod("CanvasController", "ResetFocus");
+    }
   }
 
   bool Visible()

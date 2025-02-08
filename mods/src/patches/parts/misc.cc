@@ -1,4 +1,5 @@
 #include "config.h"
+#include "errormsg.h"
 
 #include <prime/BundleDataWidget.h>
 #include <prime/ClientModifierType.h>
@@ -330,23 +331,58 @@ void InstallTempCrashFixes()
 {
   auto BuffService_helper =
       il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Services", "BuffService");
-
-  auto ptr_extract_buffs_of_type = BuffService_helper.GetMethod("ExtractBuffsOfType");
-  SPUD_STATIC_DETOUR(ptr_extract_buffs_of_type, ExtractBuffsOfType_Hook);
+  if (!BuffService_helper.HasClass()) {
+    ErrorMsg::MissingHelper("Services", "BuffService");
+  } else {
+    auto ptr_extract_buffs_of_type = BuffService_helper.GetMethod("ExtractBuffsOfType");
+    if (ptr_extract_buffs_of_type == nullptr) {
+      ErrorMsg::MissingMethod("BuffService", "ExtractBuffsOfType");
+    } else {
+      SPUD_STATIC_DETOUR(ptr_extract_buffs_of_type, ExtractBuffsOfType_Hook);
+    }
+  }
 
   auto shop_scene_manager = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Shop", "ShopSceneManager");
-
-  auto reveal_show = shop_scene_manager.GetMethod("ShouldShowRevealSequence");
-  SPUD_STATIC_DETOUR(reveal_show, ShouldShowRevealHook);
+  if (!shop_scene_manager.HasClass()) {
+    ErrorMsg::MissingHelper("Shop", "ShopSceneManager");
+  } else {
+    auto reveal_show = shop_scene_manager.GetMethod("ShouldShowRevealSequence");
+    if (reveal_show == nullptr) {
+      ErrorMsg::MissingMethod("ShopSceneManager", "ShouldShowRevealSequence");
+    } else {
+      SPUD_STATIC_DETOUR(reveal_show, ShouldShowRevealHook);
+    }
+  }
 
   auto shop_summary_director = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Shop", "ShopSummaryDirector");
-  reveal_show = shop_summary_director.GetMethod("GoBackBehaviour");
-  SPUD_STATIC_DETOUR(reveal_show, ShopSummaryDirectorGoBackBehavior);
+  if (!shop_summary_director.HasClass()) {
+    ErrorMsg::MissingHelper("Shop", "ShopSummaryDirector");
+  } else {
+    auto shop_method = shop_summary_director.GetMethod("Start");
+    if (shop_method == nullptr) {
+      ErrorMsg::MissingMethod("ShopSummaryDirectory", "Start");
+    } else {
+      SPUD_STATIC_DETOUR(shop_method, ShopSummaryDirectorCtr);
+    }
+
+    shop_method = shop_summary_director.GetMethod("GoBackBehaviour");
+    if (shop_method == nullptr) {
+      ErrorMsg::MissingMethod("ShopSummaryDirectory", "GoBackBehaviour");
+    } else {
+      SPUD_STATIC_DETOUR(shop_method, ShopSummaryDirectorGoBackBehavior);
+    }
+  }
 
   static auto interstitial_controller =
-      il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.UI", "InterstitialViewController");
-  auto interstitial_show = interstitial_controller.GetMethod("AboutToShow");
-  if (interstitial_show) {
-    SPUD_STATIC_DETOUR(interstitial_show, InterstitialViewController_AboutToShow);
+      il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Interstitial", "InterstitialViewController");
+  if (!interstitial_controller.HasClass()) {
+    ErrorMsg::MissingHelper("Interstitial", "InterstitialViewController");
+  } else {
+    auto interstitial_show = interstitial_controller.GetMethod("AboutToShow");
+    if (interstitial_show == nullptr) {
+      ErrorMsg::MissingMethod("InterstitialViewController", "AboutToShow");
+    } else {
+      SPUD_STATIC_DETOUR(interstitial_show, InterstitialViewController_AboutToShow);
+    }
   }
 }

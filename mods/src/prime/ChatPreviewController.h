@@ -1,5 +1,7 @@
 #pragma once
 
+#include "errormsg.h"
+
 #include <il2cpp/il2cpp_helper.h>
 
 enum PanelState { Global = 0, Alliance = 1 };
@@ -11,8 +13,14 @@ public:
 
   void FocusOnInstantly(int32_t index)
   {
-    static auto FocusOnInstantly = get_class_helper().GetMethod<void(SwipeScroller*, int32_t)>("FocusOnInstantly");
-    FocusOnInstantly(this, index);
+    static auto FocusOnInstantlyMethod = get_class_helper().GetMethod<void(SwipeScroller*, int32_t)>("FocusOnInstantly");
+    static auto FocusOnInstantlyWarn = true;
+    if (FocusOnInstantlyMethod) {
+      FocusOnInstantlyMethod(this, index);
+    } else if (FocusOnInstantlyWarn) {
+      FocusOnInstantlyWarn = false;
+      ErrorMsg::MissingMethod("SwipeSCroller", "FocusOnInstantly");
+    }
   }
 
 public:

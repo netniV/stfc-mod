@@ -1,4 +1,5 @@
 #include "config.h"
+#include "errormsg.h"
 
 #include "prime/ActionRequirement.h"
 #include "prime/BlurController.h"
@@ -10,6 +11,7 @@
 #include "prime/DeploymentManager.h"
 #include "prime/FleetLocalViewController.h"
 #include "prime/FleetsManager.h"
+#include "prime/FullScreenChatViewController.h"
 #include "prime/Hub.h"
 #include "prime/InventoryForPopup.h"
 #include "prime/KeyCode.h"
@@ -18,7 +20,6 @@
 #include "prime/SceneManager.h"
 #include "prime/ScreenManager.h"
 #include <prime/UIBehaviour.h>
-#include "prime/FullScreenChatViewController.h"
 
 #include <il2cpp/il2cpp_helper.h>
 #include <spud/detour.h>
@@ -128,15 +129,31 @@ void SetActive_hook(auto original, void* _this, bool active)
 
 void InstallTestPatches()
 {
-  auto model            = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.Core", "Model");
-  auto load_configs_ptr = model.GetMethod("LoadConfigs");
-  SPUD_STATIC_DETOUR(load_configs_ptr, Model_LoadConfigs);
+  auto model = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.Core", "Model");
+  if (!model.HasClass()) {
+    ErrorMsg::MissingHelper("Core", "Model");
+  } else {
+    auto load_configs_ptr = model.GetMethod("LoadConfigs");
+    if (load_configs_ptr == nullptr) {
+      ErrorMsg::MissingMethod("Model", "LoadConfigs");
+    } else {
+      SPUD_STATIC_DETOUR(load_configs_ptr, Model_LoadConfigs);
+    }
+  }
 
   auto battle_target_data =
       il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Models", "BattleTargetData");
-  battle_target_data = battle_target_data;
+  if (!battle_target_data.HasClass()) {
+    ErrorMsg::MissingHelper("Models", "BattleTargetData");
+  } else {
+    battle_target_data = battle_target_data;
 
-  static auto SetActive =
-      il2cpp_resolve_icall_typed<void(void*, bool)>("UnityEngine.GameObject::SetActive(System.Boolean)");
-  SPUD_STATIC_DETOUR(SetActive, SetActive_hook);
+    static auto SetActive =
+        il2cpp_resolve_icall_typed<void(void*, bool)>("UnityEngine.GameObject::SetActive(System.Boolean)");
+    if (SetActive == nullptr) {
+      ErrorMsg::MissingStaticMethod("GameObject", "SetActive");
+    } else {
+      SPUD_STATIC_DETOUR(SetActive, SetActive_hook);
+    }
+  }
 }

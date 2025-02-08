@@ -136,6 +136,10 @@ public:
     return obj;
   }
 
+  bool HasClass() {
+    return this->cls != nullptr;
+  }
+
   template <typename T = void> T* GetMethod(const char* name, int arg_count = -1)
   {
     if (!this->cls) {

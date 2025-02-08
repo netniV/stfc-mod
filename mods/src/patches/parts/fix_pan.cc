@@ -1,4 +1,5 @@
 #include "config.h"
+#include "errormsg.h"
 
 #include <il2cpp/il2cpp_helper.h>
 
@@ -43,18 +44,27 @@ bool NavigationPan_LateUpdate_Hook(auto original, NavigationPan *_this)
 
 void InstallPanHooks()
 {
-  auto helper = il2cpp_get_class_helper("Assembly-CSharp-firstpass", "", "TKTouch");
-  auto ptr    = helper.GetMethod("populateWithPosition");
-  if (!ptr) {
-    return;
+  auto touchhelper = il2cpp_get_class_helper("Assembly-CSharp-firstpass", "", "TKTouch");
+  if (!touchhelper.HasClass()) {
+    ErrorMsg::MissingHelper("<global>", "TKTouch");
+  } else {
+    auto ptr = touchhelper.GetMethod("populateWithPosition");
+    if (ptr == nullptr) {
+      ErrorMsg::MissingMethod("TKTouch", "populateWithPosition");
+    } else {
+      SPUD_STATIC_DETOUR(ptr, TKTouch_populateWithPosition_Hook);
+    }
   }
-  SPUD_STATIC_DETOUR(ptr, TKTouch_populateWithPosition_Hook);
 
-  auto h = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Navigation", "NavigationPan");
-
-  ptr = h.GetMethod("LateUpdate");
-  if (!ptr) {
-    return;
+  auto navhelper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Navigation", "NavigationPan");
+  if (!navhelper.HasClass()) {
+    ErrorMsg::MissingHelper("Navgiation", "NavigationPan");
+  } else {
+    auto ptr = navhelper.GetMethod("LateUpdate");
+    if (ptr == nullptr) {
+      ErrorMsg::MissingMethod("NavigationPan", "LateUpdate");
+    } else {
+      SPUD_STATIC_DETOUR(ptr, NavigationPan_LateUpdate_Hook);
+    }
   }
-  SPUD_STATIC_DETOUR(ptr, NavigationPan_LateUpdate_Hook);
 }

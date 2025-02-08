@@ -13,9 +13,6 @@ hotkeys_extended = true
 use_scopely_hotkeys = false
 
 [graphics]
-# This is an option that can be enabled to try and keep a more 'useable' UI scale size when resizing the Game Window, defaults to false
-adjust_scale_res = false
-
 # Allow borderless full screen mode, set to false to disable
 borderless_fullscreen_f11 = true
 

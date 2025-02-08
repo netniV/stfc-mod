@@ -59,6 +59,7 @@ enum GameFunction {
   UiViewerScaleDown,
   ActionPrimary,
   ActionSecondary,
+  ActionQueue,
   ActionView,
   ActionRecall,
   ActionRecallCancel,

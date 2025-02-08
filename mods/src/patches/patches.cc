@@ -97,7 +97,7 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
 #endif
 
   spdlog::info("");
-  spdlog::info("Please see https://github.com/tashcan/bob for latest configuration help, examples and future releases");
+  spdlog::info("Please see https://github.com/netniv/bob for latest configuration help, examples and future releases");
   spdlog::info("or visit the STFC Community Mod discord server at https://discord.gg/PrpHgs7Vjs");
   spdlog::info("");
 

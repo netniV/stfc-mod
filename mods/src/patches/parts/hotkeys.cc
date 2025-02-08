@@ -13,6 +13,7 @@
 #include "prime/MissionsObjectViewerWidget.h"
 #include "prime/StarNodeObjectViewerWidget.h"
 
+#include "prime/ActionQueueManager.h"
 #include "prime/ActionRequirement.h"
 #include "prime/AnimatedRewardsScreenViewController.h"
 #include "prime/BookmarksManager.h"
@@ -168,7 +169,9 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
             chat_manager->OpenChannel(ChatChannelCategory::Alliance, ChatViewMode::Fullscreen);
           }
         }
-      } else if (MapKey::IsDown(GameFunction::ShowQTrials)) {
+      }
+
+      if (MapKey::IsDown(GameFunction::ShowQTrials)) {
         return GotoSection(SectionID::ChallengeSelection);
       } else if (MapKey::IsDown(GameFunction::ShowBookmarks)) {
         auto bookmark_manager = BookmarksManager::Instance();
@@ -300,7 +303,7 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
 
     if (MapKey::IsDown(GameFunction::ActionPrimary) || MapKey::IsDown(GameFunction::ActionSecondary)
         || MapKey::IsDown(GameFunction::ActionRecall) || MapKey::IsDown(GameFunction::ActionRepair)
-        || force_space_action_next_frame) {
+        || MapKey::IsDown(GameFunction::ActionQueue) || force_space_action_next_frame) {
       if (Hub::IsInSystemOrGalaxyOrStarbase() && !Hub::IsInChat() && !Key::IsInputFocused()) {
         auto fleet_bar = ObjectFinder<FleetBarViewController>::Get();
         if (fleet_bar) {
@@ -496,19 +499,30 @@ bool DidExecuteRepair(FleetBarViewController* fleet_bar)
 
 void ExecuteSpaceAction(FleetBarViewController* fleet_bar)
 {
+  auto fleet_controller = fleet_bar->_fleetPanelController;
+  auto fleet            = fleet_controller->fleet;
+
+  auto action_queue = ActionQueueManager::Instance();
+
   auto has_primary       = MapKey::IsDown(GameFunction::ActionPrimary) || force_space_action_next_frame;
   auto has_repair        = MapKey::IsDown(GameFunction::ActionRepair);
   auto has_recall_cancel = MapKey::IsDown(GameFunction::ActionRecallCancel);
   auto has_secondary     = MapKey::IsDown(GameFunction::ActionSecondary);
+  auto has_queue         = MapKey::IsDown(GameFunction::ActionQueue) && action_queue->CanAddToQueue(fleet);
   auto has_recall =
       MapKey::IsDown(GameFunction::ActionRecall) && (!Config::Get().disable_preview_recall || !CanHideViewers());
-
-  auto fleet_controller = fleet_bar->_fleetPanelController;
-  auto fleet            = fleet_controller->fleet;
 
   if (has_recall_cancel
       && (fleet->CurrentState == FleetState::WarpCharging || fleet->CurrentState == FleetState::Warping)) {
     fleet_controller->CancelWarpClicked();
+  } else if (has_queue) {
+    auto fleets_manager = FleetsManager::Instance();
+    if (fleets_manager != nullptr) {
+      auto target = fleets_manager->targetFleetData;
+      if (target != nullptr) {
+        action_queue->AddToQueue(target->ID);
+      }
+    }
   } else {
     auto all_pre_scan_widgets = ObjectFinder<PreScanTargetWidget>::GetAll();
     for (auto pre_scan_widget : all_pre_scan_widgets) {
@@ -526,7 +540,9 @@ void ExecuteSpaceAction(FleetBarViewController* fleet_bar)
             return mine_object_viewer_widget->MineClicked();
           }
         } else {
-          if (has_secondary) {
+          if (has_queue) {
+
+          } else if (has_secondary) {
             return pre_scan_widget->_scanEngageButtonsWidget->OnScanButtonClicked();
           } else if (has_primary) {
             auto armada_object_viewer_widget = ObjectFinder<ArmadaObjectViewerWidget>::Get();
@@ -681,30 +697,54 @@ void InstallHotkeyHooks()
 {
   auto shortcuts_manager_helper =
       il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.GameInput", "ShortcutsManager");
-  auto ptr_can_user_shortcuts = shortcuts_manager_helper.GetMethod("InitializeActions");
-  if (!ptr_can_user_shortcuts) {
-    return;
+  if (!shortcuts_manager_helper.HasClass()) {
+    ErrorMsg::MissingHelper("GameInput", "ShortcutsManager");
+  } else {
+    auto ptr_can_user_shortcuts = shortcuts_manager_helper.GetMethod("InitializeActions");
+    if (ptr_can_user_shortcuts == nullptr) {
+      ErrorMsg::MissingMethod("ShortcutsManager", "InitializeActions");
+    } else {
+      SPUD_STATIC_DETOUR(ptr_can_user_shortcuts, InitializeActions_Hook);
+    }
   }
-  SPUD_STATIC_DETOUR(ptr_can_user_shortcuts, InitializeActions_Hook);
 
   auto screen_manager_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.UI", "ScreenManager");
-  auto ptr_update            = screen_manager_helper.GetMethod("Update");
-  if (!ptr_update) {
-    return;
+  if (!screen_manager_helper.HasClass()) {
+    ErrorMsg::MissingHelper("UI", "ScreenManager");
+  } else {
+    auto ptr_update = screen_manager_helper.GetMethod("Update");
+    if (ptr_update == nullptr) {
+      ErrorMsg::MissingMethod("ScreenManager", "Update");
+    } else {
+      SPUD_STATIC_DETOUR(ptr_update, ScreenManager_Update_Hook);
+    }
   }
-  SPUD_STATIC_DETOUR(ptr_update, ScreenManager_Update_Hook);
 
   static auto rewards_button_widget =
       il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Combat", "RewardsButtonWidget");
-  auto on_did_bind_context_ptr = rewards_button_widget.GetMethod("OnDidBindContext");
-
-  on_did_bind_context_ptr = on_did_bind_context_ptr;
-
-  SPUD_STATIC_DETOUR(on_did_bind_context_ptr, OnDidBindContext_Hook);
+  if (!rewards_button_widget.HasClass()) {
+    ErrorMsg::MissingHelper("Combat", "RewardsButtonWidget");
+  } else {
+    auto on_did_bind_context_ptr = rewards_button_widget.GetMethod("OnDidBindContext");
+    on_did_bind_context_ptr      = on_did_bind_context_ptr;
+    if (on_did_bind_context_ptr == nullptr) {
+      ErrorMsg::MissingMethod("RewardsButtonWidget", "OnDidBindContext");
+    } else {
+      SPUD_STATIC_DETOUR(on_did_bind_context_ptr, OnDidBindContext_Hook);
+    }
+  }
 
   static auto pre_scan_target_widget =
       il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Combat", "PreScanTargetWidget");
-  auto show_with_fleet_ptr = pre_scan_target_widget.GetMethod("ShowWithFleet");
-  show_with_fleet_ptr      = show_with_fleet_ptr;
-  SPUD_STATIC_DETOUR(show_with_fleet_ptr, ShowWithFleet_Hook);
+  if (!pre_scan_target_widget.HasClass()) {
+    ErrorMsg::MissingHelper("Combat", "PreScanTargetWidget");
+  } else {
+    auto show_with_fleet_ptr = pre_scan_target_widget.GetMethod("ShowWithFleet");
+    show_with_fleet_ptr      = show_with_fleet_ptr;
+    if (show_with_fleet_ptr == nullptr) {
+      ErrorMsg::MissingMethod("PreScanTargetWidget", "ShowWithFleet");
+    } else {
+      SPUD_STATIC_DETOUR(show_with_fleet_ptr, ShowWithFleet_Hook);
+    }
+  }
 }

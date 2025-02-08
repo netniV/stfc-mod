@@ -416,7 +416,6 @@ void Config::Load()
   this->ui_scale_viewer     = get_config_or_default(config, parsed, "graphics", "ui_scale_viewer", 1.0f);
   this->zoom                = get_config_or_default(config, parsed, "graphics", "zoom", 2500.f);
   this->free_resize         = get_config_or_default(config, parsed, "graphics", "free_resize", true);
-  this->adjust_scale_res    = get_config_or_default(config, parsed, "graphics", "adjust_scale_res", false);
   this->keyboard_zoom_speed = get_config_or_default(config, parsed, "graphics", "keyboard_zoom_speed", 350.0f);
 
   if (this->enable_experimental) {
@@ -564,6 +563,7 @@ void Config::Load()
 
   parse_config_shortcut(config, parsed, "action_primary", GameFunction::ActionPrimary, "SPACE");
   parse_config_shortcut(config, parsed, "action_secondary", GameFunction::ActionSecondary, "R");
+  parse_config_shortcut(config, parsed, "action_queue", GameFunction::ActionQueue, "V");
   parse_config_shortcut(config, parsed, "action_view", GameFunction::ActionView, "V");
   parse_config_shortcut(config, parsed, "action_recall", GameFunction::ActionRecall, "R");
   parse_config_shortcut(config, parsed, "action_recall_cancel", GameFunction::ActionRecallCancel, "SPACE");
@@ -668,6 +668,6 @@ void Config::Load()
       << "Loaded beta version " << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_REVISION << " (Release)"
 #endif
 
-      << "\n\nPlease see https://github.com/tashcan/bob for latest configuration help, examples and future releases\n"
+      << "\n\nPlease see https://github.com/netniv/bob for latest configuration help, examples and future releases\n"
       << "or visit the STFC Community Mod discord server at https://discord.gg/PrpHgs7Vjs\n\n";
 }

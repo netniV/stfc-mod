@@ -1,5 +1,6 @@
 #pragma once
 
+#include "errormsg.h"
 #include <il2cpp/il2cpp_helper.h>
 
 #include "GenericButtonContext.h"
@@ -10,21 +11,43 @@ struct ArmadaObjectViewerWidget : public ObjectViewerBaseWidget<ArmadaObjectView
 public:
   void SetCourseToArmada()
   {
-    static auto SetCourseToArmada =
+    static auto SetCourseToArmadaMethod =
         get_class_helper().GetMethod<void(ArmadaObjectViewerWidget*)>("SetCourseToArmada");
-    SetCourseToArmada(this);
+    static auto SetCourseToAramdaWarn = true;
+
+    if (SetCourseToArmadaMethod) {
+      SetCourseToArmadaMethod(this);
+    } else if (SetCourseToAramdaWarn) {
+      SetCourseToAramdaWarn = false;
+      ErrorMsg::MissingMethod("ArmadaObjectViewerWidget", "SetCourseToArmada");
+    }
   }
+
   void ValidateThenJoinArmada()
   {
-    static auto ValidateThenJoinArmada =
+    static auto ValidateThenJoinArmadaMethod =
         get_class_helper().GetMethod<void(ArmadaObjectViewerWidget*)>("ValidateThenJoinArmada");
-    ValidateThenJoinArmada(this);
+    static auto ValidateThenJoinArmadaWarn = true;
+
+    if (ValidateThenJoinArmadaMethod) {
+      ValidateThenJoinArmadaMethod(this);
+    } else if (ValidateThenJoinArmadaWarn) {
+      ValidateThenJoinArmadaWarn = false;
+      ErrorMsg::MissingMethod("ArmadaObjectViewerWidget", "ValidateThenJoinArmada");
+    }
   }
 
   void JoinArmada()
   {
-    static auto JoinArmada = get_class_helper().GetMethod<void(ArmadaObjectViewerWidget*)>("JoinArmada");
-    JoinArmada(this);
+    static auto JoinArmadaMethod = get_class_helper().GetMethod<void(ArmadaObjectViewerWidget*)>("JoinArmada");
+    static auto JoinArmadaWarn   = true;
+
+    if (JoinArmadaMethod) {
+      JoinArmadaMethod(this);
+    } else if (JoinArmadaWarn) {
+      JoinArmadaWarn = false;
+      ErrorMsg::MissingMethod("ArmadaObjectViewerWidget", "JoinArmada");
+    }
   }
 
   bool HasJoinButton()

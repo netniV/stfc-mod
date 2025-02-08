@@ -3,11 +3,11 @@
 #include "CallbackContainer.h"
 #include "MonoSingleton.h"
 #include "Vector3.h"
+#include "FleetPlayerData.h"
+#include "FleetDeployedData.h"
 
 #include <il2cpp/il2cpp_helper.h>
 
-struct FleetPlayerData;
-struct FleetDeployedData;
 class DeploymentService
 {
 public:
@@ -17,7 +17,16 @@ public:
     bool MoveNext()
     {
       static auto MoveNext = get_class_helper().GetMethodSpecial<bool(IEnumerator_PlanCourse*)>("MoveNext");
-      return MoveNext(this);
+      static auto MoveWarn = true;
+
+      if (MoveNext) {
+        return MoveNext(this);
+      } else if (MoveWarn) {
+        MoveWarn = false;
+        ErrorMsg::MissingMethod("IEnumerator_PlanCourse", "MoveNext");
+      }
+
+      return false;
     }
 
   private:
@@ -45,23 +54,39 @@ struct DeploymentManger : MonoSingleton<DeploymentManger> {
 public:
   void SetTowRequest(uint64_t towedFleetId, uint64_t towingFleetId)
   {
-    static auto SetTowRequest =
+    static auto SetTowRequestMethod =
         get_class_helper().GetMethod<void(DeploymentManger*, uint64_t, uint64_t, void*)>("SetTowRequest");
-    auto ptr = CallbackContainer::Create();
-    SetTowRequest(this, towedFleetId, towingFleetId, ptr);
+    static auto SetTowRequestWarn = true;
+
+    if (SetTowRequestMethod) {
+      auto ptr = CallbackContainer::Create();
+      SetTowRequestMethod(this, towedFleetId, towingFleetId, ptr);
+    } else if (SetTowRequestWarn) {
+      SetTowRequestWarn = false;
+      ErrorMsg::MissingMethod("DeploymentManager", "SetTowRequest");
+    }
   }
 
   DeploymentService::IEnumerator_PlanCourse* PlanCourse(FleetPlayerData* selectedFleet, void* targetAddress,
                                                         Vector3 targetPosition, FleetDeployedData* targetDeployedFleet,
                                                         void* starbaseData, void* allianceStarbaseData)
   {
-    static auto PlanCourse =
+    static auto PlanCourseMethod =
         get_class_helper()
             .GetMethod<DeploymentService::IEnumerator_PlanCourse*(
                 DeploymentManger*, FleetPlayerData * selectedFleet, void* targetAddress, Vector3* targetPosition,
                 FleetDeployedData* targetDeployedFleet, void* starbaseData, void* allianceStarbaseData)>("PlanCourse");
-    return PlanCourse(this, selectedFleet, targetAddress, &targetPosition, targetDeployedFleet, starbaseData,
-                      allianceStarbaseData);
+    static auto PlanCourseWarn = true;
+
+    if (PlanCourseMethod) {
+      return PlanCourseMethod(this, selectedFleet, targetAddress, &targetPosition, targetDeployedFleet, starbaseData,
+                              allianceStarbaseData);
+    } else if (PlanCourseWarn) {
+      PlanCourseWarn = false;
+      ErrorMsg::MissingMethod("DeploymentService", "PlanCourse");
+    }
+
+    return nullptr;
   }
 
 private:
