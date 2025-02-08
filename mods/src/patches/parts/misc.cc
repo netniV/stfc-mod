@@ -358,13 +358,6 @@ void InstallTempCrashFixes()
   if (!shop_summary_director.HasClass()) {
     ErrorMsg::MissingHelper("Shop", "ShopSummaryDirector");
   } else {
-    auto shop_method = shop_summary_director.GetMethod("Start");
-    if (shop_method == nullptr) {
-      ErrorMsg::MissingMethod("ShopSummaryDirectory", "Start");
-    } else {
-      SPUD_STATIC_DETOUR(shop_method, ShopSummaryDirectorCtr);
-    }
-
     shop_method = shop_summary_director.GetMethod("GoBackBehaviour");
     if (shop_method == nullptr) {
       ErrorMsg::MissingMethod("ShopSummaryDirectory", "GoBackBehaviour");
