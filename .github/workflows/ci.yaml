@@ -62,9 +62,6 @@ jobs:
         id: install-protoc-c
         run: brew install protobuf
 
-      - name: Configure
-        run: xmake f -m releasedbg -y -a x86_64 -v
-
       - name: Install brew things
         run: brew install create-dmg
 
