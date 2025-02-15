@@ -17,6 +17,7 @@
 #endif
 
 #include <algorithm>
+#include <prime/ActionQueueManager.h>
 #include <prime/InterstitialViewController.h>
 
 int64_t InventoryForPopup_set_MaxItemsToUse(auto original, InventoryForPopup* a1, int64_t a2)
@@ -246,6 +247,12 @@ void InterstitialViewController_AboutToShow(auto original, InterstitialViewContr
   }
 }
 
+void ActionQueueManager_AddActionToQueue(auto original, ActionQueueManager* _this, long fleet_id)
+{
+  spdlog::warn("ActionQueueManager_AddActionToQueue({})", fleet_id);
+  original(_this, fleet_id);
+}
+
 //   const auto section_data = Hub::get_SectionManager()->_sectionStorage->GetState(sectionID);
 
 void InstallTempCrashFixes()
@@ -285,6 +292,19 @@ void InstallTempCrashFixes()
       ErrorMsg::MissingMethod("InterstitialViewController", "AboutToShow");
     } else {
       SPUD_STATIC_DETOUR(interstitial_show, InterstitialViewController_AboutToShow);
+    }
+  }
+
+  static auto actionqueue_manager =
+      il2cpp_get_class_helper("Assembly-CSharp", "Prime.ActionQueue", "ActionQueueManager");
+  if (!actionqueue_manager.HasClass()) {
+    ErrorMsg::MissingHelper("ActionQueue", "ActionQueueMaanger");
+  } else {
+    auto addtoqueue_method = actionqueue_manager.GetMethod("AddActionToQueue");
+    if (addtoqueue_method == nullptr) {
+      ErrorMsg::MissingMethod("ActionQueueManager", "AddActionToQueue");
+    } else {
+      //SPUD_STATIC_DETOUR(addtoqueue_method, ActionQueueManager_AddActionToQueue);
     }
   }
 }
