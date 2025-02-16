@@ -193,35 +193,52 @@ static void send_data(std::wstring post_data)
   }
 
   for (const auto& sync_target : Config::Get().sync_targets) {
-    const auto& url = sync_target.first;
-    const auto& token = sync_target.second;
+    try {
+      const auto& url   = sync_target.first;
+      const auto& token = sync_target.second;
 
-    CURL*        httpClient = sync_init(CURL_TYPE_UPLOAD, url);
+      CURL* httpClient = sync_init(CURL_TYPE_UPLOAD, url);
 
-    struct curl_slist* list = NULL;
+      struct curl_slist* list = NULL;
 
-    list = sync_slist_append(CURL_TYPE_UPLOAD, list, "Content-Type", "application/json");
+      list = sync_slist_append(CURL_TYPE_UPLOAD, list, "Content-Type", "application/json");
 
-    if (!token.empty()) {
-      list = sync_slist_append(CURL_TYPE_UPLOAD, list, "stfc-sync-token", token, true);
+      if (!token.empty()) {
+        list = sync_slist_append(CURL_TYPE_UPLOAD, list, "stfc-sync-token", token, true);
+      }
+
+      if (list) {
+        process_curl_response(CURL_TYPE_UPLOAD, "set headers", curl_easy_setopt(httpClient, CURLOPT_HTTPHEADER, list));
+      }
+
+      auto post_data_str = to_string(post_data);
+      process_curl_response(CURL_TYPE_UPLOAD, "set data",
+                            curl_easy_setopt(httpClient, CURLOPT_POSTFIELDS, post_data_str.c_str()));
+
+      process_curl_response(CURL_TYPE_UPLOAD, "send data", curl_easy_perform(httpClient), true);
+
+      long http_code = 0;
+      process_curl_response(CURL_TYPE_UPLOAD, "get response code",
+                            curl_easy_getinfo(httpClient, CURLINFO_RESPONSE_CODE, &http_code));
+
+      if (http_code != 200) {
+        process_curl_response(CURL_TYPE_UPLOAD, "communicate with server", http_code, true);
+      }
+#if _WIN32
+    } catch (winrt::hresult_error const& ex) {
+      ErrorMsg::SyncWinRT(sync_target.first.c_str(), ex);
+    } catch (const std::wstring& sz) {
+      ErrorMsg::SyncMsg(sync_target.first.c_str(), sz);
     }
-
-    if (list) {
-      process_curl_response(CURL_TYPE_UPLOAD, "set headers", curl_easy_setopt(httpClient, CURLOPT_HTTPHEADER, list));
+#else
+    } catch (const std::wstring& sz) {
+      ErrorMsg::SyncMsg(sync_target.first.c_str(), sz);
     }
-
-    auto post_data_str = to_string(post_data);
-    process_curl_response(CURL_TYPE_UPLOAD, "set data",
-                          curl_easy_setopt(httpClient, CURLOPT_POSTFIELDS, post_data_str.c_str()));
-
-    process_curl_response(CURL_TYPE_UPLOAD, "send data", curl_easy_perform(httpClient), true);
-
-    long http_code = 0;
-    process_curl_response(CURL_TYPE_UPLOAD, "get response code",
-                          curl_easy_getinfo(httpClient, CURLINFO_RESPONSE_CODE, &http_code));
-
-    if (http_code != 200) {
-      process_curl_response(CURL_TYPE_UPLOAD, "communicate with server", http_code, true);
+#endif
+    catch (const std::runtime_error& e) {
+      ErrorMsg::SyncRuntime(sync_target.first.c_str(), e);
+    } catch (...) {
+      ErrorMsg::SyncMsg(sync_target.first.c_str(), L"Unknown error");
     }
   }
 }
@@ -233,7 +250,7 @@ static size_t curl_write_to_string(void* contents, size_t size, size_t nmemb, st
   return newLength;
 }
 
-static std::wstring get_data_data(std::wstring session, std::wstring url, std::wstring path, std::wstring post_data)
+static std::wstring get_scopely_data(std::wstring session, std::wstring url, std::wstring path, std::wstring post_data)
 {
   static auto loggedUrl = false;
 
@@ -483,9 +500,8 @@ void HandleEntityGroup(EntityGroup* entity_group)
       for (const auto& mission : response.activemissions()) {
         mission_array.push_back({{"type", "active_mission"}, {"mid", mission.id()}});
       }
-      if (Config::Get().sync_missions) {
-        queue_data(mission_array.dump());
-      }
+
+      queue_data(mission_array.dump());
     }
   } else if (type == EntityGroup::Type::CompletedMissions) {
     auto response = Digit::PrimeServer::Models::CompletedMissionsResponse();
@@ -534,8 +550,11 @@ void HandleEntityGroup(EntityGroup* entity_group)
         }
         if (officer_states[officer.id()] != RankLevelState{officer.rankindex(), officer.level()}) {
           officer_states[officer.id()] = RankLevelState{officer.rankindex(), officer.level()};
-          officers_array.push_back(
-              {{"type", "officer"}, {"oid", officer.id()}, {"rank", officer.rankindex()}, {"level", officer.level()}, {"shard_count", officer.shardcount()}});
+          officers_array.push_back({{"type", "officer"},
+                                    {"oid", officer.id()},
+                                    {"rank", officer.rankindex()},
+                                    {"level", officer.level()},
+                                    {"shard_count", officer.shardcount()}});
         }
       }
       if (Config::Get().sync_officer) {
@@ -549,7 +568,11 @@ void HandleEntityGroup(EntityGroup* entity_group)
       for (const auto& ft : response.forbiddentechs()) {
         if (ft_states[ft.id()] != RankLevelState{ft.tier(), ft.level()}) {
           ft_states[ft.id()] = RankLevelState{ft.tier(), ft.level()};
-          ft_array.push_back({{"type", "ft"}, {"fid", ft.id()}, {"tier", ft.tier()}, {"level", ft.level()}, {"shard_count", ft.shardcount()}});
+          ft_array.push_back({{"type", "ft"},
+                              {"fid", ft.id()},
+                              {"tier", ft.tier()},
+                              {"level", ft.level()},
+                              {"shard_count", ft.shardcount()}});
         }
       }
       if (Config::Get().sync_tech) {
@@ -688,17 +711,17 @@ void ship_sync_data()
       http::send_data(sync_data);
 #if _WIN32
     } catch (winrt::hresult_error const& ex) {
-      spdlog::error("Failed to send ship sync data: {}", winrt::to_string(ex.message()).c_str());
+      ErrorMsg::SyncWinRT("ship", ex);
     } catch (const std::wstring& sz) {
-      spdlog::error("Failed to send ship sync data: {}", winrt::to_string(sz).c_str());
+      ErrorMsg::SyncMsg("ship", sz);
     }
 #else
     } catch (const std::wstring& sz) {
-      spdlog::error("Failed to send ship sync data: {}", to_string(sz));
+      ErrorMsg::SyncMsg("ship", sz);
     }
 #endif
     catch (const std::runtime_error& e) {
-      spdlog::error("Failed to send ship sync data: {}", e.what());
+      ErrorMsg::SyncRuntime("ship", e);
     }
   }
 #if _WIN32
@@ -727,7 +750,7 @@ void ship_combat_log_data()
       })();
 
       auto body       = L"{\"journal_id\":" + std::to_wstring(sync_data) + L"}";
-      auto battle_log = http::get_data_data(http::instanceSessionId, http::gameServerUrl, L"/journals/get", body);
+      auto battle_log = http::get_scopely_data(http::instanceSessionId, http::gameServerUrl, L"/journals/get", body);
 
       using json = nlohmann::json;
 
@@ -760,8 +783,8 @@ void ship_combat_log_data()
                                                       return a + (a.length() > 0 ? "," : "") + b;
                                                     });
       auto        profiles_body   = "{\"user_ids\":[" + profiles_joined + "]}";
-      auto profiles      = http::get_data_data(http::instanceSessionId, http::gameServerUrl, L"/user_profile/profiles",
-                                               to_wstring(profiles_body));
+      auto profiles = http::get_scopely_data(http::instanceSessionId, http::gameServerUrl, L"/user_profile/profiles",
+                                             to_wstring(profiles_body));
       auto profiles_json = json::parse(profiles);
       auto names         = json::object();
       for (const auto& profile : profiles_json["user_profiles"].get<json::object_t>()) {
@@ -775,17 +798,17 @@ void ship_combat_log_data()
         http::send_data(ship_data);
 #if _WIN32
       } catch (winrt::hresult_error const& ex) {
-        spdlog::error("Failed to send combat sync data: {}", winrt::to_string(ex.message()).c_str());
+        ErrorMsg::SyncWinRT("combat", ex);
       } catch (const std::wstring& sz) {
-        spdlog::error("Failed to send combat sync data: {}", winrt::to_string(sz).c_str());
+        ErrorMsg::SyncMsg("combat", sz);
       }
 #else
       } catch (const std::wstring& sz) {
-        spdlog::error("Failed to send combat sync data: {}", to_string(sz));
+        ErrorMsg::SyncMsg("combat", sz);
       }
 #endif
       catch (const std::runtime_error& e) {
-        spdlog::error("Failed to send combat sync data: {}", e.what());
+        ErrorMsg::SyncRuntime("combat", e);
       }
     } catch (...) {
     }
