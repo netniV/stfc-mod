@@ -161,7 +161,9 @@ static CURL* sync_init(std::string type, std::string url)
     process_curl_response(type, "set verifypeer", curl_easy_setopt(httpClient, CURLOPT_SSL_VERIFYPEER, false));
   }
 
-  process_curl_response(type, "set TLS", curl_easy_setopt(httpClient, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2TLS));
+  //Setting thee HTTP/2 TLS option doesn't esem to work right now...
+  //process_curl_response(type, "set TLS", curl_easy_setopt(httpClient, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2TLS));
+
   process_curl_response(type, "set UserAgent", curl_easy_setopt(httpClient, CURLOPT_USERAGENT, "stfc community patch"));
 
   if (spdlog::get_level() == spdlog::level::trace) {
