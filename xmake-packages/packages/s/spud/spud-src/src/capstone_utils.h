@@ -1,0 +1,4 @@
+namespace spud {
+//
+
+} // namespace spud

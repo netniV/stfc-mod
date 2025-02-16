@@ -1,8 +1,7 @@
 package("spud")
 add_deps("cmake")
-add_urls("https://github.com/tashcan/spud/archive/refs/tags/$(version).tar.gz",
-    "https://github.com/tashcan/spud.git")
-add_versions("v0.1.1", "4298ec14727080166a959051d647a2acfcdceb0170bd1d269c1c76c8e51c1dca")
+set_sourcedir(path.join(os.scriptdir(), "spud-src"))
+
 on_install(function(package)
     local configs = {}
     table.insert(configs, "-DCMAKE_BUILD_TYPE=" .. (package:debug() and "Debug" or "Release"))

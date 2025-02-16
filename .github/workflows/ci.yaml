@@ -58,8 +58,9 @@ jobs:
         id: set-up-homebrew
         uses: Homebrew/actions/setup-homebrew@master
 
-      - name: Configure
-        run: xmake f -m releasedbg -y -a x86_64 -v
+      - name: Install protoc
+        id: install-protoc-c
+        run: brew install protobuf
 
       - name: Install brew things
         run: brew install create-dmg

@@ -4,7 +4,7 @@ set_languages("c++20")
 
 add_requires("eastl")
 add_requires("spdlog")
-add_requires("protobuf-cpp 3.19.4")
+add_requires("protobuf-cpp")
 add_requires("toml++")
 add_requires("nlohmann_json")
 add_requires("inifile-cpp")
@@ -12,7 +12,7 @@ add_requires("7z")
 add_requires("lzma")
 add_requires("librsync")
 add_requires("libcurl", { configs = { zlib = true } })
--- add_requires("capstone 6.0.0-Alpha1")
+add_requires("capstone", { debug = true, })
 
 if is_plat("windows") then
     includes("win-proxy-dll")
