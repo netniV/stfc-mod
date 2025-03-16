@@ -4,7 +4,7 @@
 #define VERSION_MAJOR               0
 #define VERSION_MINOR               6
 #define VERSION_REVISION            1
-#define VERSION_PATCH               4
+#define VERSION_PATCH               5
 
 #define STRINGIFY_(s)               #s
 #define STRINGIFY(s)                STRINGIFY_(s)
@@ -25,7 +25,7 @@
 #define VER_PRODUCT_VERSION_STR     VER_FILE_VERSION_STR
 #define VER_ORIGINAL_FILENAME_STR   "stfc-community-patch.dll"
 #define VER_INTERNAL_NAME_STR       VER_ORIGINAL_FILENAME_STR
-#define VER_COPYRIGHT_STR           "Copyright (C) 2023"
+#define VER_COPYRIGHT_STR           "Copyright (C) 2025"
 
 #ifdef DEBUG
 #define VER_FILEFLAGS               VS_FF_DEBUG

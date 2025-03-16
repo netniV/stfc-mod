@@ -10,37 +10,11 @@
 
 #include <algorithm>
 #include <cstdio>
-#include <filesystem>
 #include <iostream>
 #include <string>
 #include <string_view>
 
-#if !_WIN32
-#include "folder_manager.h"
-#else
-#include <shellapi.h>
-#include <windows.h>
-#endif
-
-static auto make_config_path(auto filename, bool create_dir = false)
-{
-#if !_WIN32
-  auto ApplicationSupportPath =
-      (char*)fm::FolderManager::pathForDirectory(fm::NSApplicationSupportDirectory, fm::NSUserDomainMask);
-  auto LibraryPath = (char*)fm::FolderManager::pathForDirectory(fm::NSLibraryDirectory, fm::NSUserDomainMask);
-
-  const auto config_dir = std::filesystem::path(LibraryPath) / "Preferences" / "com.tashcan.startrekpatch";
-
-  if (create_dir) {
-    std::error_code ec;
-    std::filesystem::create_directories(config_dir, ec);
-  }
-  std::filesystem::path config_path = config_dir / filename;
-  return config_path.u8string();
-#else
-  return filename;
-#endif
-}
+#include "file.h"
 
 static const eastl::tuple<const char*, int> bannerTypes[] = {
     {"Standard", ToastState::Standard},
@@ -75,13 +49,13 @@ void Config::Save(toml::table config, std::string_view filename, bool apply_warn
 {
   std::ofstream config_file;
 
-  auto config_path = make_config_path(filename, true);
+  auto config_path = File::MakePath(filename, true);
 
   config_file.open(config_path);
   if (apply_warning) {
-    char defaultFile[44], configFile[44];
-    snprintf(defaultFile, 44, "%-44s", CONFIG_FILE_DEFAULT);
-    snprintf(configFile, 44, "%-44s", Config::Filename().data());
+    char defaultFile[255], configFile[255];
+    snprintf(defaultFile, 255, "%s", File::Default());
+    snprintf(configFile, 255, "%s", File::Config());
 
     config_file << "#######################################################################\n";
     config_file << "#######################################################################\n";
@@ -90,9 +64,9 @@ void Config::Save(toml::table config, std::string_view filename, bool apply_warn
     config_file << "####       by the STFC community patch.  It is provided to help    ####\n";
     config_file << "####       see what configuration is being used by the runtime     ####\n";
     config_file << "####       and any desired settings should be copied to the same   ####\n";
-    config_file << "####       section in: " << defaultFile << " ####\n";
+    config_file << "####       section in: " << defaultFile << "\n";
     config_file << "####                                                               ####\n";
-    config_file << "####        Config in: " << configFile << " ####\n";
+    config_file << "####        Config in: " << configFile << "\n";
     config_file << "####                                                               ####\n";
     config_file << "#######################################################################\n";
     config_file << "#######################################################################\n\n";
@@ -323,76 +297,17 @@ void parse_config_shortcut(toml::table config, toml::table& new_config, std::str
   spdlog::info("shortcut value {}.{} value: {}", section, item, shortcut);
 }
 
-#if _WIN32
-std::string ConvertWStringToString(const std::wstring& wstr)
-{
-  if (wstr.empty())
-    return std::string();
-
-  int         sizeNeeded = WideCharToMultiByte(CP_UTF8, 0, &wstr[0], (int)wstr.size(), nullptr, 0, nullptr, nullptr);
-  std::string str(sizeNeeded, 0);
-  WideCharToMultiByte(CP_UTF8, 0, &wstr[0], (int)wstr.size(), &str[0], sizeNeeded, nullptr, nullptr);
-
-  return str;
-}
-#endif
-
-std::string_view Config::Filename()
-{
-  static std::string configFile = "";
-
-  if (configFile.empty()) {
-#if _WIN32
-    // Get the command line
-    LPCWSTR cmdLine = GetCommandLineW();
-
-    // Parse command line into individual arguments
-    int     argc;
-    LPWSTR* argv = CommandLineToArgvW(cmdLine, &argc);
-
-    // If we have some arguments, lets see what we got
-    std::wstring argValue;
-    if (argv != nullptr) {
-      // Output the arguments (for example purposes, we'll just print them)
-      for (int i = 0; i < argc - 1; ++i) {
-        if (std::wstring(argv[i]) == L"-ccm" && i + 1 < argc) {
-          // Found "-ccm", so take the next argument as the value
-          argValue = argv[i + 1];
-          break;
-        }
-      }
-
-      if (!argValue.empty()) {
-        configFile = ConvertWStringToString(argValue);
-      }
-
-      // Clean up
-      LocalFree(argv);
-    }
-#endif
-
-    // Second check here is because on windows, it may still be
-    // unset at this point.  On the mac, we do not currently
-    // support multiple configuration files
-    if (configFile.empty()) {
-      configFile = CONFIG_FILE_DEFAULT;
-    }
-  }
-
-  return configFile;
-}
-
 void Config::Load()
 {
   spdlog::info("=-=-=-==-=-=-=-=-=-=-=-=-=-=");
-  spdlog::info("Loading Config :: {}", Config::Filename());
+  spdlog::info("Loading Config :: {}", File::Config());
   spdlog::info("=-=-=-==-=-=-=-=-=-=-=-=-=-=");
 
   toml::table config;
   toml::table parsed;
   bool        write_config = false;
   try {
-    config       = std::move(toml::parse_file(make_config_path(Config::Filename())));
+    config       = std::move(toml::parse_file(File::MakePath(File::Config())));
     write_config = true;
   } catch (const toml::parse_error& e) {
     spdlog::warn("Failed to load config file, falling back to default settings: {}", e.description());
@@ -457,7 +372,7 @@ void Config::Load()
   this->show_armada_cargo      = get_config_or_default(config, parsed, "ui", "show_armada_cargo", true);
 
   this->always_skip_reveal_sequence = get_config_or_default(config, parsed, "ui", "always_skip_reveal_sequence", false);
-  this->fix_unity_web_requests = get_config_or_default(config, parsed, "tech", "fix_unity_web_requests", true);
+  this->fix_unity_web_requests      = get_config_or_default(config, parsed, "tech", "fix_unity_web_requests", true);
 
   this->sync_proxy      = get_config_or_default<std::string>(config, parsed, "sync", "proxy", "");
   this->sync_file       = get_config_or_default<std::string>(config, parsed, "sync", "file", "");
@@ -634,24 +549,24 @@ void Config::Load()
     parse_config_shortcut(config, parsed, "toggle_cargo_armada", GameFunction::ToggleCargoArmada, "ALT-5");
   }
 
-  if (!std::filesystem::exists(make_config_path(CONFIG_FILE_RUNTIME))) {
+  if (!std::filesystem::exists(File::MakePath(File::Config()))) {
     message.str("");
-    message << "Creating " << Config::Filename() << " (default config file)";
+    message << "Creating " << File::Config() << " (default config file)";
     spdlog::warn(message.str());
 
-    Config::Save(config, Config::Filename(), false);
+    Config::Save(config, File::Config(), false);
   }
 
   message.str("");
-  message << "Creating " << CONFIG_FILE_RUNTIME << " (final config file)";
+  message << "Creating " << File::Vars() << " (final config file)";
   spdlog::info(message.str());
 
-  if (std::filesystem::exists(CONFIG_FILE_PARSED)) {
-    message << "Removing " << CONFIG_FILE_PARSED << " (old parsed file)";
-    std::filesystem::remove(CONFIG_FILE_PARSED);
+  if (std::filesystem::exists(FILE_DEF_PARSED)) {
+    message << "Removing " << FILE_DEF_PARSED << " (old parsed file)";
+    std::filesystem::remove(FILE_DEF_PARSED);
   }
 
-  Config::Save(parsed, CONFIG_FILE_RUNTIME);
+  Config::Save(parsed, File::Vars());
 
   std::cout
       << message.str() << ":\n-----------------------------\n\n"

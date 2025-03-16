@@ -1,3 +1,4 @@
+#include "file.h"
 #include "config.h"
 #include "errormsg.h"
 #include "il2cpp-api-types.h"
@@ -466,7 +467,7 @@ static void load_previously_sent_logs()
   previously_sent_battlelogs.set_capacity(300);
   using json = nlohmann::json;
   try {
-    std::ifstream file("patch_battlelogs_sent.json");
+    std::ifstream file(File::Battles());
     std::string   battlelog_json;
     file >> battlelog_json;
     const auto battlelogs = json::parse(battlelog_json);
@@ -484,7 +485,7 @@ static void save_previously_sent_logs()
   for (auto id : previously_sent_battlelogs) {
     battlelog_array.push_back(id);
   }
-  std::ofstream file("patch_battlelogs_sent.json");
+  std::ofstream file(File::Battles());
   file << battlelog_array.dump();
   file.close();
 }

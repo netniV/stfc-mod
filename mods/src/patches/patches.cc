@@ -1,4 +1,5 @@
 #include "patches.h"
+#include "file.h"
 #include "version.h"
 
 #include <il2cpp/il2cpp-functions.h>
@@ -39,25 +40,6 @@ void InstallObjectTrackers();
 
 __int64 il2cpp_init_hook(auto original, const char* domain_name)
 {
-  printf("il2cpp_init_hook(%s)\n", domain_name);
-
-  auto r = original(domain_name);
-
-#if _WIN32
-#ifndef NDEBUG
-  AllocConsole();
-  FILE* fp;
-  freopen_s(&fp, "CONOUT$", "w", stdout);
-#endif
-#endif
-
-  auto file_logger = spdlog::basic_logger_mt("default", "community_patch.log", true);
-  auto sink        = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-  file_logger->sinks().push_back(sink);
-  spdlog::set_default_logger(file_logger);
-
-  spdlog::info("Initializing STFC Community Patch ({})", VER_PRODUCT_VERSION_STR);
-
   const std::pair<const char*, void (*)()> patches[] = {
     {"UiScaleHooks", InstallUiScaleHooks},
     {"ZoomHooks", InstallZoomHooks},
@@ -77,6 +59,37 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
     {"SyncPatches", InstallSyncPatches},
     {"ObjectTracker", InstallObjectTrackers}
   };
+
+  printf("il2cpp_init_hook(%s)\n", domain_name);
+
+  auto r = original(domain_name);
+
+#if _WIN32
+#ifndef NDEBUG
+  AllocConsole();
+  FILE* fp;
+  freopen_s(&fp, "CONOUT$", "w", stdout);
+#endif
+#endif
+
+  auto file_logger = spdlog::basic_logger_mt("default", File::Log(), true);
+  auto sink        = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+  file_logger->sinks().push_back(sink);
+  spdlog::set_default_logger(file_logger);
+
+  spdlog::info("Initializing STFC Community Patch ({})", VER_PRODUCT_VERSION_STR);
+  spdlog::info("");
+  if (File::hasCustomNames()) {
+    spdlog::info("Using custom names");
+  } else {
+    spdlog::info("Using standard names");
+  }
+
+  spdlog::info("Log: {}", File::Log());
+  spdlog::info("Cfg: {}", File::Config());
+  spdlog::info("Var: {}", File::Vars());
+  spdlog::info("BL: {}", File::Battles());
+  spdlog::info("");
 
   auto patch_count = 0;
   auto patch_total = sizeof(patches) / sizeof(patches[0]);
