@@ -28,6 +28,7 @@
 #define FILE_DEF_VARS "community_path_runtime.vars"
 #define FILE_DEF_BL "patch_battlelogs_sent.json"
 #define FILE_DEF_PARSED "community_patch_settings_parsed.toml"
+#define FILE_DEF_TITLE "Star Trek Fleet Command"
 
 #define FILE_EXT_TOML ".toml"
 #define FILE_EXT_VARS ".vars"
@@ -37,12 +38,14 @@
 class File
 {
 public:
+  static void        Init();
   static const char* Default();
   static const char* Config();
   static const char* Vars();
   static const char* Log();
   static const char* Battles();
-  static bool hasCustomNames();
+  static const char* Title();
+  static bool        hasCustomNames();
 
 #if _WIN32
   static std::string_view MakePath(std::string_view filename, bool create_dir = false);
@@ -53,5 +56,5 @@ public:
 private:
   static std::filesystem::path Path();
 
-  static bool overriden;
+  static bool override;
 };

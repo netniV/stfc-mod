@@ -14,20 +14,12 @@ std::string ConvertWStringToString(const std::wstring& wstr)
 }
 #endif
 
-std::string_view remove_extension(const std::string_view& filename)
-{
-  size_t lastdot = filename.find_last_of(".");
-  if (lastdot == std::string::npos)
-    return filename;
-  return filename.substr(0, lastdot);
-}
-
 std::filesystem::path File::Path()
 {
   static std::filesystem::path configPath = "";
 
   if (configPath.empty()) {
-    File::overriden = false;
+    File::override = false;
 
 #if _WIN32
     // Get the command line
@@ -50,7 +42,7 @@ std::filesystem::path File::Path()
       }
 
       if (!argValue.empty()) {
-        File::overriden = true;
+        File::override = true;
         configPath      = std::filesystem::path(ConvertWStringToString(argValue));
       }
 
@@ -63,7 +55,7 @@ std::filesystem::path File::Path()
     // unset at this point.  On the mac, we do not currently
     // support multiple configuration files
     if (configPath.empty()) {
-      File::overriden = false;
+      File::override = false;
       configPath      = std::filesystem::path(File::Default());
     }
   }
@@ -86,7 +78,7 @@ const char* File::Config()
   static std::string cacheNameConfig = "";
 
   if (cacheNameConfig.empty()) {
-    if (File::overriden) {
+    if (File::override) {
       cacheNameConfig = File::Path().replace_extension(FILE_EXT_TOML).string();
     } else {
       cacheNameConfig = std::string(FILE_DEF_CONFIG);
@@ -101,7 +93,7 @@ const char* File::Vars()
   static std::string cacheNameVar = "";
 
   if (cacheNameVar.empty()) {
-    if (File::overriden) {
+    if (File::override) {
       cacheNameVar = File::Path().replace_extension(FILE_EXT_VARS).string();
     } else {
       cacheNameVar = std::string(FILE_DEF_VARS);
@@ -116,7 +108,7 @@ const char* File::Log()
   static std::string cacheNameLog = "";
 
   if (cacheNameLog.empty()) {
-    if (File::overriden) {
+    if (File::override) {
       cacheNameLog = File::Path().replace_extension(FILE_EXT_LOG).string();
     } else {
       cacheNameLog = std::string(FILE_DEF_LOG);
@@ -131,7 +123,7 @@ const char* File::Battles()
   static std::string cacheNameBattles = "";
 
   if (cacheNameBattles.empty()) {
-    if (File::overriden) {
+    if (File::override) {
       cacheNameBattles = File::Path().replace_extension(FILE_EXT_JSON).string();
     } else {
       cacheNameBattles = std::string(FILE_DEF_BL);
@@ -139,6 +131,20 @@ const char* File::Battles()
   }
 
   return cacheNameBattles.c_str();
+}
+
+const char* File::Title()
+{
+  static std::string cacheNameTitle = "";
+  if (cacheNameTitle.empty()) {
+    if (File::override) {
+      cacheNameTitle = File::Path().replace_extension().string().append(" - ").append(FILE_DEF_TITLE);
+    } else {
+      cacheNameTitle = std::string(FILE_DEF_TITLE);
+    }
+  }
+
+  return cacheNameTitle.c_str();
 }
 
 #if !_WIN32
@@ -164,9 +170,13 @@ std::string_view File::MakePath(std::string_view filename, bool create_dir)
 }
 #endif
 
-bool File::hasCustomNames()
-{
-  return File::overriden;
+void File::Init() {
+  File::Path();
 }
 
-bool File::overriden = false;
+bool File::hasCustomNames()
+{
+  return File::override;
+}
+
+bool File::override = false;

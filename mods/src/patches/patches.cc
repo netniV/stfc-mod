@@ -72,6 +72,8 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
 #endif
 #endif
 
+  File::Init();
+
   auto file_logger = spdlog::basic_logger_mt("default", File::Log(), true);
   auto sink        = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
   file_logger->sinks().push_back(sink);
@@ -85,6 +87,7 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
     spdlog::info("Using standard names");
   }
 
+  spdlog::info("Title: {}", File::Title());
   spdlog::info("Log: {}", File::Log());
   spdlog::info("Cfg: {}", File::Config());
   spdlog::info("Var: {}", File::Vars());

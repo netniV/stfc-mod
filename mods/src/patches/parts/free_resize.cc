@@ -3,6 +3,7 @@
 
 #include "config.h"
 #include "errormsg.h"
+#include "file.h"
 
 #include <spud/detour.h>
 
@@ -105,6 +106,7 @@ struct ResolutionArray {
 
 void AspectRatioConstraintHandler_Update(auto original, void* _this)
 {
+  static auto set_title       = false;
   static auto get_fullscreen  = il2cpp_resolve_icall_typed<bool()>("UnityEngine.Screen::get_fullScreen()");
   static auto get_height      = il2cpp_resolve_icall_typed<int()>("UnityEngine.Screen::get_height()");
   static auto get_width       = il2cpp_resolve_icall_typed<int()>("UnityEngine.Screen::get_width()");
@@ -133,6 +135,14 @@ void AspectRatioConstraintHandler_Update(auto original, void* _this)
       }
     }
   }
+
+#if _WIN32
+  HWND hwnd = GetForegroundWindow();
+  if (hwnd != NULL && !set_title) {
+    set_title = SetWindowTextA(hwnd, File::Title());
+  }
+#endif
+
   // SetResolution(1920, 1080, 4, 60);
 }
 
@@ -151,7 +161,7 @@ void InstallFreeResizeHooks()
   if (!AspectRatioConstraintHandler_helper.HasClass()) {
     ErrorMsg::MissingHelper("Utils", "AspectRatioConstraintHandler");
   } else {
-    auto ptr_update  = AspectRatioConstraintHandler_helper.GetMethod("Update");
+    auto ptr_update = AspectRatioConstraintHandler_helper.GetMethod("Update");
     if (ptr_update == nullptr) {
       ErrorMsg::MissingMethod("AspectRatioConstraintHandler", "Update");
       return;

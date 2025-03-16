@@ -609,28 +609,37 @@ void HandleEntityGroup(EntityGroup* entity_group)
 
       if (result.contains("battle_result_headers")) {
         auto headers = result["battle_result_headers"];
-        if (Config::Get().sync_battlelogs && battlelog_states.empty()) {
-          load_previously_sent_logs();
-          for (const auto header : headers) {
-            const auto id = header["id"].get<uint64_t>();
-            battlelog_states.insert(id);
-            if (eastl::find(previously_sent_battlelogs.begin(), previously_sent_battlelogs.end(), id)
-                == previously_sent_battlelogs.end()) {
-              combat_log_data_queue.push(id);
-              previously_sent_battlelogs.push_back(id);
-            }
-          }
-          save_previously_sent_logs();
-        } else if (Config::Get().sync_battlelogs) {
+        auto loadData = battlelog_states.empty();
+
+        if (Config::Get().sync_battlelogs) {
           std::lock_guard lk(m2);
+          if (loadData) {
+            load_previously_sent_logs();
+          }
+
           for (const auto header : headers) {
             const auto id = header["id"].get<uint64_t>();
-            if (!battlelog_states.contains(id)) {
+            bool pushData = false;
+
+            if (loadData) {
+              pushData = (eastl::find(previously_sent_battlelogs.begin(), previously_sent_battlelogs.end(), id)
+                          == previously_sent_battlelogs.end());
+            } else {
+              pushData = !battlelog_states.contains(id);
+            }
+
+            if (pushData) {
               battlelog_states.insert(id);
               combat_log_data_queue.push(id);
               previously_sent_battlelogs.push_back(id);
-              save_previously_sent_logs();
+              if (!loadData) {
+                save_previously_sent_logs();
+              }
             }
+          }
+
+          if (loadData) {
+            save_previously_sent_logs();
           }
         }
         cv2.notify_all();
