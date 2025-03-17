@@ -472,6 +472,7 @@ void Config::Load()
   parse_config_shortcut(config, parsed, "select_ship6", GameFunction::SelectShip6, "6");
   parse_config_shortcut(config, parsed, "select_ship7", GameFunction::SelectShip7, "7");
   parse_config_shortcut(config, parsed, "select_ship8", GameFunction::SelectShip8, "8");
+  parse_config_shortcut(config, parsed, "select_current", GameFunction::SelectCurrent, "CTRL-SPACE");
 
   parse_config_shortcut(config, parsed, "action_primary", GameFunction::ActionPrimary, "SPACE");
   parse_config_shortcut(config, parsed, "action_secondary", GameFunction::ActionSecondary, "R");

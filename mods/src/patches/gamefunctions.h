@@ -16,6 +16,7 @@ enum GameFunction {
   SelectShip6,
   SelectShip7,
   SelectShip8,
+  SelectCurrent,
   ShowAlliance,
   ShowAllianceArmada,
   ShowAllianceHelp,

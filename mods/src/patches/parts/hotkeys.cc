@@ -143,6 +143,20 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
     }
   }
 
+  if (MapKey::IsDown(GameFunction::SelectCurrent)) {
+    auto fleet_bar = ObjectFinder<FleetBarViewController>::Get();
+    if (fleet_bar) {
+      auto fleet = fleet_bar->_fleetPanelController->fleet;
+      if (fleet) {
+        if (NavigationSectionManager::Instance() && NavigationSectionManager::Instance()->SNavigationManager) {
+          NavigationSectionManager::Instance()->SNavigationManager->HideInteraction();
+        }
+        FleetsManager::Instance()->RequestViewFleet(fleet, true);
+        return;
+      }
+    }
+  }
+
   if (Key::Pressed(KeyCode::Escape) && (Key::IsInputFocused() || Hub::IsInChat())) {
     // This fixes issues with detecting when an input is selected
     // As the game usually doesn't clear this when using Escape, only when
