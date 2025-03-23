@@ -86,6 +86,30 @@ Config& Config::Get()
 static HMONITOR lastMonitor = (HMONITOR)-1;
 static float    dpi         = 1.0f;
 
+HWND Config::WindowHandle()
+{
+  static HWND hwnd = nullptr;
+
+  if (hwnd == nullptr) {
+    DWORD processId = GetCurrentProcessId();
+    hwnd            = GetTopWindow(nullptr); // Start with the first top-level window
+
+    while (hwnd != nullptr) {
+      DWORD windowProcessId;
+      GetWindowThreadProcessId(hwnd, &windowProcessId);
+
+      // Check if the window belongs to the current process and is the main window
+      if (windowProcessId == processId && GetWindow(hwnd, GW_OWNER) == nullptr && IsWindowVisible(hwnd)) {
+        break;
+      }
+
+      hwnd = GetNextWindow(hwnd, GW_HWNDNEXT); // Move to the next top-level window
+    }
+  }
+
+  return hwnd;
+}
+
 float Config::RefreshDPI()
 {
   lastMonitor = (HMONITOR)-1;
@@ -463,6 +487,7 @@ void Config::Load()
   parse_config_shortcut(config, parsed, "select_chatalliance", GameFunction::SelectChatAlliance, "CTRL-2");
   parse_config_shortcut(config, parsed, "select_chatglobal", GameFunction::SelectChatGlobal, "CTRL-1");
   parse_config_shortcut(config, parsed, "select_chatprivate", GameFunction::SelectChatPrivate, "CTRL-3");
+  parse_config_shortcut(config, parsed, "quit", GameFunction::Quit, "F10");
 
   parse_config_shortcut(config, parsed, "select_ship1", GameFunction::SelectShip1, "1");
   parse_config_shortcut(config, parsed, "select_ship2", GameFunction::SelectShip2, "2");

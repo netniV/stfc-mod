@@ -87,7 +87,6 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
     spdlog::info("Using standard names");
   }
 
-  spdlog::info("Title: {}", File::Title());
   spdlog::info("Log: {}", File::Log());
   spdlog::info("Cfg: {}", File::Config());
   spdlog::info("Var: {}", File::Vars());

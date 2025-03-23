@@ -38,14 +38,14 @@
 class File
 {
 public:
-  static void        Init();
-  static const char* Default();
-  static const char* Config();
-  static const char* Vars();
-  static const char* Log();
-  static const char* Battles();
-  static const char* Title();
-  static bool        hasCustomNames();
+  static void         Init();
+  static std::wstring Title();
+  static const char*  Default();
+  static const char*  Config();
+  static const char*  Vars();
+  static const char*  Log();
+  static const char*  Battles();
+  static bool         hasCustomNames();
 
 #if _WIN32
   static std::string_view MakePath(std::string_view filename, bool create_dir = false);

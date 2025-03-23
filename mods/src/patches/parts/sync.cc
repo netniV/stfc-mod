@@ -1,6 +1,6 @@
-#include "file.h"
 #include "config.h"
 #include "errormsg.h"
+#include "file.h"
 #include "il2cpp-api-types.h"
 
 #include <il2cpp/il2cpp_helper.h>
@@ -162,8 +162,8 @@ static CURL* sync_init(std::string type, std::string url)
     process_curl_response(type, "set verifypeer", curl_easy_setopt(httpClient, CURLOPT_SSL_VERIFYPEER, false));
   }
 
-  //Setting thee HTTP/2 TLS option doesn't esem to work right now...
-  //process_curl_response(type, "set TLS", curl_easy_setopt(httpClient, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2TLS));
+  // Setting thee HTTP/2 TLS option doesn't esem to work right now...
+  // process_curl_response(type, "set TLS", curl_easy_setopt(httpClient, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2TLS));
 
   process_curl_response(type, "set UserAgent", curl_easy_setopt(httpClient, CURLOPT_USERAGENT, "stfc community patch"));
 
@@ -456,11 +456,12 @@ static std::unordered_map<uint64_t, ResourceState>                              
 static std::unordered_map<uint64_t, RankLevelState>                              officer_states;
 static std::unordered_map<uint64_t, RankLevelState>                              ft_states;
 static std::unordered_map<std::pair<int64_t, int64_t>, RankLevelState, pairhash> trait_states;
-static std::unordered_set<int64_t>                                               mission_states;
-static std::unordered_set<int64_t>                                               active_mission_states;
+static std::unordered_set<int64_t>                                               mission_completed;
+static std::unordered_set<int64_t>                                               mission_active;
 static std::unordered_set<uint64_t>                                              battlelog_states;
 
 static eastl::ring_buffer<uint64_t> previously_sent_battlelogs;
+static eastl::ring_buffer<uint64_t> previously_sent_missions;
 
 static void load_previously_sent_logs()
 {
@@ -490,33 +491,59 @@ static void save_previously_sent_logs()
   file.close();
 }
 
+void sync_active_missions()
+{
+  using json = nlohmann::json;
+
+  auto mission_array = json::array();
+
+  for (const auto id : mission_active) {
+    mission_array.push_back({{"type", "active_mission"}, {"mid", id}});
+  }
+
+  queue_data(mission_array.dump());
+}
+
 void HandleEntityGroup(EntityGroup* entity_group)
 {
   using json = nlohmann::json;
 
+  auto mission_sync = false;
+
   auto bytes = entity_group->Group;
   auto type  = entity_group->Type_;
+
   if (type == EntityGroup::Type::ActiveMissions) {
     auto response = Digit::PrimeServer::Models::ActiveMissionsResponse();
     if (response.ParseFromArray(bytes->bytes->m_Items, bytes->bytes->max_length)) {
-      auto mission_array = json::array();
-      for (const auto& mission : response.activemissions()) {
-        mission_array.push_back({{"type", "active_mission"}, {"mid", mission.id()}});
-      }
 
-      queue_data(mission_array.dump());
+      for (const auto& mission : response.activemissions()) {
+        auto mission_update = !mission_active.contains(mission.id());
+        if (!mission_update) {
+          mission_sync = true;
+          mission_active.insert(mission.id());
+        }
+      }
     }
   } else if (type == EntityGroup::Type::CompletedMissions) {
     auto response = Digit::PrimeServer::Models::CompletedMissionsResponse();
     if (response.ParseFromArray(bytes->bytes->m_Items, bytes->bytes->max_length)) {
-      auto mission_array = json::array();
+      auto mission_array  = json::array();
+      auto mission_update = false;
       for (const auto& mission : response.completedmissions()) {
-        if (!mission_states.contains(mission)) {
-          mission_states.insert(mission);
+        if (!mission_completed.contains(mission)) {
+          if (mission_active.contains(mission)) {
+            mission_sync = true;
+            mission_active.erase(mission);
+          }
+
+          mission_update = true;
+          mission_completed.insert(mission);
           mission_array.push_back({{"type", "mission"}, {"mid", mission}});
         }
       }
-      if (Config::Get().sync_missions) {
+
+      if (Config::Get().sync_missions && mission_update) {
         queue_data(mission_array.dump());
       }
     }
@@ -539,6 +566,7 @@ void HandleEntityGroup(EntityGroup* entity_group)
       for (const auto& research : response.researchprojectlevels()) {
         research_array.push_back({{"type", "research"}, {"rid", research.first}, {"level", research.second}});
       }
+
       if (Config::Get().sync_research) {
         queue_data(research_array.dump());
       }
@@ -608,7 +636,7 @@ void HandleEntityGroup(EntityGroup* entity_group)
       auto result = json::parse(text);
 
       if (result.contains("battle_result_headers")) {
-        auto headers = result["battle_result_headers"];
+        auto headers  = result["battle_result_headers"];
         auto loadData = battlelog_states.empty();
 
         if (Config::Get().sync_battlelogs) {
@@ -618,8 +646,8 @@ void HandleEntityGroup(EntityGroup* entity_group)
           }
 
           for (const auto header : headers) {
-            const auto id = header["id"].get<uint64_t>();
-            bool pushData = false;
+            const auto id       = header["id"].get<uint64_t>();
+            bool       pushData = false;
 
             if (loadData) {
               pushData = (eastl::find(previously_sent_battlelogs.begin(), previously_sent_battlelogs.end(), id)
@@ -698,6 +726,10 @@ void HandleEntityGroup(EntityGroup* entity_group)
       }
     } catch (json::exception e) {
     }
+  }
+
+  if (Config::Get().sync_missions && mission_sync) {
+    sync_active_missions();
   }
 }
 

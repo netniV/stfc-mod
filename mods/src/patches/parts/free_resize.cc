@@ -137,9 +137,10 @@ void AspectRatioConstraintHandler_Update(auto original, void* _this)
   }
 
 #if _WIN32
-  HWND hwnd = GetForegroundWindow();
-  if (hwnd != NULL && !set_title) {
-    set_title = SetWindowTextA(hwnd, File::Title());
+  HWND hwnd = Config::WindowHandle();
+  auto title = File::Title();
+  if (hwnd != nullptr && !set_title && !title.empty()) {
+    set_title = SetWindowTextW(hwnd, title.c_str());
   }
 #endif
 

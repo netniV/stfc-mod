@@ -5,6 +5,10 @@
 
 #include <toml++/toml.h>
 
+#if _WIN32
+#include <Windows.h>
+#endif
+
 class Config
 {
 public:
@@ -13,6 +17,10 @@ public:
   static Config& Get();
   static float   GetDPI();
   static float   RefreshDPI();
+
+#ifdef _WIN32
+  static HWND WindowHandle();
+#endif
 
   static void Save(toml::table config, std::string_view filename, bool apply_warning = true);
   void        Load();
@@ -74,18 +82,20 @@ public:
   bool always_skip_reveal_sequence;
 
   std::map<std::string, std::string> sync_targets;
+
   std::string sync_proxy;
   std::string sync_file;
-  bool        sync_logging;
-  bool        sync_resources;
-  bool        sync_battlelogs;
-  bool        sync_officer;
-  bool        sync_missions;
-  bool        sync_research;
-  bool        sync_tech;
-  bool        sync_traits;
-  bool        sync_buildings;
-  bool        sync_ships;
+
+  bool sync_logging;
+  bool sync_resources;
+  bool sync_battlelogs;
+  bool sync_officer;
+  bool sync_missions;
+  bool sync_research;
+  bool sync_tech;
+  bool sync_traits;
+  bool sync_buildings;
+  bool sync_ships;
 
   std::string config_settings_url;
   std::string config_assets_url_override;

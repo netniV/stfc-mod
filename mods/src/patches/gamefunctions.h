@@ -83,6 +83,7 @@ enum GameFunction {
   LogLevelDebug,
   LogLevelInfo,
   LogLevelTrace,
+  Quit,
 
   // Automatic max value
   Max

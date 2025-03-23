@@ -43,6 +43,10 @@
 #include <iostream>
 #include <span>
 
+#ifdef _WIN32
+#include <Windows.h>
+#endif
+
 static bool reset_focus_next_frame = false;
 static int  show_info_pending      = 0;
 
@@ -56,6 +60,18 @@ HullType GetHullTypeFromBattleTarget(BattleTargetData* context);
 void     GotoSection(SectionID sectionID, void* screen_data = nullptr);
 bool     CanHideViewers();
 bool     DidHideViewers();
+
+bool MoveOfficerCanvas(bool goLeft)
+{
+  // ScreenManager/CanvasRoot/MainFrame/ShipManagement_Canvas/Content/Pagination/
+  // ScreenManager/CanvasRoot/MainFrame/OfficerShowcase_Canvas/
+  // ScreenManager/CanvasRoot/MainFrame/LeftArrow and RightArrow
+
+  auto const canvas = ScreenManager::GetTopCanvas(true);
+  if (strcmp(((Il2CppObject*)(canvas))->klass->name, "OfficerShowcase_Canvas") == 0) {}
+
+  return false;
+}
 
 void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
 {
@@ -83,6 +99,12 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
 
   const auto is_in_chat = Hub::IsInChat();
   const auto config     = &Config::Get();
+
+#ifdef _WIN32
+  if (MapKey::IsDown(GameFunction::Quit)) {
+    TerminateProcess(GetCurrentProcess(), 1);
+  }
+#endif
 
   int32_t ship_select_request = -1;
   if (MapKey::IsDown(GameFunction::SelectShip1)) {

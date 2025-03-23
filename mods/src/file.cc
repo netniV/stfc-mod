@@ -43,7 +43,7 @@ std::filesystem::path File::Path()
 
       if (!argValue.empty()) {
         File::override = true;
-        configPath      = std::filesystem::path(ConvertWStringToString(argValue));
+        configPath     = std::filesystem::path(ConvertWStringToString(argValue));
       }
 
       // Clean up
@@ -56,7 +56,7 @@ std::filesystem::path File::Path()
     // support multiple configuration files
     if (configPath.empty()) {
       File::override = false;
-      configPath      = std::filesystem::path(File::Default());
+      configPath     = std::filesystem::path(File::Default());
     }
   }
 
@@ -133,18 +133,27 @@ const char* File::Battles()
   return cacheNameBattles.c_str();
 }
 
-const char* File::Title()
+std::wstring File::Title()
 {
-  static std::string cacheNameTitle = "";
+  static std::wstring cacheNameTitle = L"";
   if (cacheNameTitle.empty()) {
-    if (File::override) {
-      cacheNameTitle = File::Path().replace_extension().string().append(" - ").append(FILE_DEF_TITLE);
-    } else {
-      cacheNameTitle = std::string(FILE_DEF_TITLE);
+
+#ifdef _WIN32
+    HWND         hwnd = Config::WindowHandle();
+    std::wstring title;
+    title.reserve(GetWindowTextLength(hwnd) + 1);
+    title.resize(title.capacity());
+    GetWindowTextW(hwnd, const_cast<WCHAR*>(title.c_str()), title.capacity());
+#else
+    std::wstring title = std::wstring(FILE_DEF_TITLE);
+#endif
+
+    if (File::override && !title.empty()) {
+      cacheNameTitle = L"[" + File::Path().replace_extension().wstring() + L"] - " + title;
     }
   }
 
-  return cacheNameTitle.c_str();
+  return cacheNameTitle;
 }
 
 #if !_WIN32
@@ -170,7 +179,8 @@ std::string_view File::MakePath(std::string_view filename, bool create_dir)
 }
 #endif
 
-void File::Init() {
+void File::Init()
+{
   File::Path();
 }
 
