@@ -106,11 +106,13 @@ traits = false
 fix_unity_web_requests = true
 
 [ui]
+# Setting this to true currently generates crashes when opening chests
 # Skip the reveal box animation, and just open the damn boxes
-always_skip_reveal_sequence = true
+always_skip_reveal_sequence = false
 
+# Setting this to true currently generates crashes when opening chests
 # Stay in non-restricted bundles after collecting
-stay_in_bundle_after_summary = true
+stay_in_bundle_after_summary = false
 
 # Change 'false' to 'true' from the line below to remove Galaxy Chat from the game
 disable_galaxy_chat = false
