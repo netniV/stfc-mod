@@ -91,6 +91,20 @@ bool MapKey::IsPressed(GameFunction gameFunction)
   return false;
 }
 
+bool MapKey::IsDownUnsafe(GameFunction gameFunction)
+{
+  const auto &mapKeys = MapKey::mappedKeys[(int)gameFunction];
+  for (const MapKey &mapKey : mapKeys) {
+    if (mapKey.Key != KeyCode::None) {
+      if (Key::Down(mapKey.Key)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 bool MapKey::IsDown(GameFunction gameFunction)
 {
   const auto &mapKeys = MapKey::mappedKeys[(int)gameFunction];

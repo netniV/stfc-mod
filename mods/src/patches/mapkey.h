@@ -16,6 +16,7 @@ public:
   static MapKey Parse(std::string_view key);
   static void   AddMappedKey(GameFunction gameFunction, MapKey mappedKey);
   static bool   IsPressed(GameFunction gameFunction);
+  static bool   IsDownUnsafe(GameFunction gameFunction);
   static bool   IsDown(GameFunction gameFunction);
   static bool   HasCorrectModifiers(MapKey mapKey);
 

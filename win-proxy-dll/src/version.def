@@ -1,4 +1,4 @@
-LIBRARY "VERSION"
+LIBRARY "stfc-community-patch.dll"
 EXPORTS
 
 VerFindFileA

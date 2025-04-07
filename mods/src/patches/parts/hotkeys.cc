@@ -41,6 +41,11 @@
 #include <EASTL/vector.h>
 
 #include <iostream>
+#include <fstream>
+#include <string>
+#include <locale>
+#include <codecvt>
+#include <iomanip>
 #include <span>
 
 #ifdef _WIN32
@@ -99,6 +104,7 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
 
   const auto is_in_chat = Hub::IsInChat();
   const auto config     = &Config::Get();
+  const auto is_shift_pressed = Key::HasShift();
 
 #ifdef _WIN32
   if (MapKey::IsDown(GameFunction::Quit)) {
@@ -107,50 +113,54 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
 #endif
 
   int32_t ship_select_request = -1;
-  if (MapKey::IsDown(GameFunction::SelectShip1)) {
+  if (MapKey::IsDownUnsafe(GameFunction::SelectShip1)) {
     ship_select_request = 0;
-  } else if (MapKey::IsDown(GameFunction::SelectShip2)) {
+  } else if (MapKey::IsDownUnsafe(GameFunction::SelectShip2)) {
     ship_select_request = 1;
-  } else if (MapKey::IsDown(GameFunction::SelectShip3)) {
+  } else if (MapKey::IsDownUnsafe(GameFunction::SelectShip3)) {
     ship_select_request = 2;
-  } else if (MapKey::IsDown(GameFunction::SelectShip4)) {
+  } else if (MapKey::IsDownUnsafe(GameFunction::SelectShip4)) {
     ship_select_request = 3;
-  } else if (MapKey::IsDown(GameFunction::SelectShip5)) {
+  } else if (MapKey::IsDownUnsafe(GameFunction::SelectShip5)) {
     ship_select_request = 4;
-  } else if (MapKey::IsDown(GameFunction::SelectShip6)) {
+  } else if (MapKey::IsDownUnsafe(GameFunction::SelectShip6)) {
     ship_select_request = 5;
-  } else if (MapKey::IsDown(GameFunction::SelectShip7)) {
+  } else if (MapKey::IsDownUnsafe(GameFunction::SelectShip7)) {
     ship_select_request = 6;
-  } else if (MapKey::IsDown(GameFunction::SelectShip8)) {
+  } else if (MapKey::IsDownUnsafe(GameFunction::SelectShip8)) {
     ship_select_request = 7;
   }
 
   if (ship_select_request != -1 && !Key::IsInputFocused()) {
 
-    if (Key::HasShift()) {
-      FleetPlayerData* foundDisco = nullptr;
-      for (int discoIdx = 0; discoIdx < 10; ++discoIdx) {
-        auto fleetPlayerData = FleetsManager::Instance()->GetFleetPlayerData(discoIdx);
-        if (fleetPlayerData && fleetPlayerData->Hull && fleetPlayerData->Hull->Id == 1307832955) {
-          foundDisco = fleetPlayerData;
-          break;
-        }
-      }
+    // if (Key::HasShift()) {
+    //   FleetPlayerData* foundDisco = nullptr;
+    //   for (int discoIdx = 0; discoIdx < 10; ++discoIdx) {
+    //     auto fleetPlayerData = FleetsManager::Instance()->GetFleetPlayerData(discoIdx);
+    //     if (fleetPlayerData && fleetPlayerData->Hull && fleetPlayerData->Hull->Id == 1307832955) {
+    //       foundDisco = fleetPlayerData;
+    //       break;
+    //     }
+    //   }
 
-      if (foundDisco) {
-        auto towedFleetId = FleetsManager::Instance()->GetFleetPlayerData(ship_select_request)->Id;
-        auto plannedCourse =
-            DeploymentManger::Instance()->PlanCourse(FleetsManager::Instance()->GetFleetPlayerData(ship_select_request),
-                                                     foundDisco->Address, Vector3::zero(), nullptr, nullptr, nullptr);
-        while (plannedCourse->MoveNext()) {
-          ;
-        }
-        DeploymentManger::Instance()->SetTowRequest(towedFleetId, foundDisco->Id);
-      }
-    } else {
-      auto fleet_bar  = ObjectFinder<FleetBarViewController>::Get();
-      auto can_locate = !config->disable_preview_locate || !CanHideViewers();
-      if (fleet_bar) {
+    //   if (foundDisco) {
+    //     auto towedFleetId = FleetsManager::Instance()->GetFleetPlayerData(ship_select_request)->Id;
+    //     auto plannedCourse =
+    //         DeploymentManger::Instance()->PlanCourse(FleetsManager::Instance()->GetFleetPlayerData(ship_select_request),
+    //                                                  foundDisco->Address, Vector3::zero(), nullptr, nullptr, nullptr);
+    //     while (plannedCourse->MoveNext()) {
+    //       ;
+    //     }
+    //     DeploymentManger::Instance()->SetTowRequest(towedFleetId, foundDisco->Id);
+    //   }
+    // } else {
+    auto fleet_bar  = ObjectFinder<FleetBarViewController>::Get();
+    auto can_locate = !config->disable_preview_locate || !CanHideViewers();
+
+    if (fleet_bar) {
+      if (is_shift_pressed) {
+        fleet_bar->RequestSelect(ship_select_request);
+      } else {
         if (can_locate && fleet_bar->IsIndexSelected(ship_select_request)) {
           auto fleet = fleet_bar->_fleetPanelController->fleet;
           if (NavigationSectionManager::Instance() && NavigationSectionManager::Instance()->SNavigationManager) {
@@ -160,9 +170,32 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
         } else {
           fleet_bar->RequestSelect(ship_select_request);
         }
-        return;
       }
+
+      if (can_locate && fleet_bar->IsIndexSelected(ship_select_request)) {
+        auto cargoHold = fleet_bar->_fleetPanelController->fleet->CCargoHoldData;
+        if (cargoHold != 0 && cargoHold->UnprotectedCargoProgress != 0 && cargoHold->ProtectedCargoProgress != 0) {
+          std::ofstream cargo_file("community_patch_cargo.csv");
+
+          auto dock           = ship_select_request + 1;
+          auto currentCargo   = cargoHold->UnprotectedCargoProgress->CurrentValue;
+          auto protectedCargo = cargoHold->ProtectedCargoProgress->MaxValue;
+          auto totalCargo     = cargoHold->UnprotectedCargoProgress->MaxValue;
+
+          cargo_file << "dock;currentCargo;protectedCargo;totalCargo" << std::endl;
+          cargo_file << dock << ";";
+          cargo_file << std::fixed << std::setprecision(0) << currentCargo << ";";
+          cargo_file << std::fixed << std::setprecision(0) << protectedCargo << ";";
+          cargo_file << std::fixed << std::setprecision(0) << totalCargo;
+          cargo_file << std::endl;
+
+          cargo_file.close();
+        }
+      }
+
+      return;
     }
+    // }
   }
 
   if (MapKey::IsDown(GameFunction::SelectCurrent)) {
