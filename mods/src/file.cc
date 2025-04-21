@@ -149,7 +149,7 @@ std::wstring File::Title()
 #endif
 
     if (File::override && !title.empty()) {
-      cacheNameTitle = L"[" + File::Path().replace_extension().wstring() + L"] - " + title;
+      cacheNameTitle = L"[" + File::Path().replace_extension().wstring() + L"] " + title;
     }
   }
 
