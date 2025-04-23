@@ -9,8 +9,8 @@ sponsorships are greatly appreciated.
 First clone and initialize the repository:
 
 ```bash
-git clone https://github.com/netniv/bob.git
-cd bob
+git clone https://github.com/netniv/stfc-mod.git
+cd stfc-mod
 ```
 
 ## Installing
@@ -53,14 +53,14 @@ apply the changes to have the SDK downloaded and installed.  This will take arou
 
 #### Configure and building the project
 
-Once they are installed, either standalone or via Visual Studio, you can configure the `bob` project.
+Once they are installed, either standalone or via Visual Studio, you can configure the `stfc-mod` project.
 We are using [XMake](https://xmake.io/#/).
 To configure a Visual Studio solution, simple run the following on the Command Line.
 
 ```powershell
 xmake project -k vsxmake -m "debug,release"
 ```
-You will now find a `bob.sln` file inside `vsxmake2022`(or similarly named). You can simply open that in `Visual Studio`
+You will now find a `stfc-mod.sln` file inside `vsxmake2022`(or similarly named). You can simply open that in `Visual Studio`
 and Build the solution.
 
 **IMPORTANT**: To reset the build, you can remove the `build/` folder and all items beneath it.  Visual
@@ -73,7 +73,7 @@ Studio will then rebuild the project.
 If you want to use Visual Studio Code, you may still need to make sure the various SDK's and MSVC runtimes
 are available.
 
-Once they are installed, either standalone or via Visual Studio, you can open the `bob` folder inside
+Once they are installed, either standalone or via Visual Studio, you can open the `stfc-mod` folder inside
 Visual Studio or by right clicking in a Windows Explorer via and selecting `Open with Visual Studio Code`.
 When it first opens, it should ask you to install the XMake extension.  Once the extensions are
 installed, you can build the project by navigating to the XMake section in the Activity Bar and clicking `Build All` at the top.

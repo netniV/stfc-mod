@@ -54,10 +54,7 @@ public:
   float system_zoom_preset_3;
   float system_zoom_preset_4;
   float system_zoom_preset_5;
-
-  int32_t target_framerate;
-  int32_t vsync;
-  float   transition_time;
+  float transition_time;
 
   bool             borderless_fullscreen_f11;
   std::vector<int> disabled_banner_types;
@@ -71,7 +68,6 @@ public:
   bool disable_galaxy_chat;
   bool disable_first_popup;
   bool disable_toast_banners;
-  bool fix_unity_web_requests;
 
   bool show_cargo_default;
   bool show_player_cargo;

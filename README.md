@@ -98,7 +98,7 @@ names:
 - community_patch_settings.toml
 - version.dll
 
-The pre-compiled DLL can be downloaded from the official assets hosted on [GitHub Releases](https://github.com/netniv/bob/releases)
+The pre-compiled DLL can be downloaded from the official assets hosted on [GitHub Releases](https://github.com/netniv/stfc-mod/releases)
 
 ## Configuration
 

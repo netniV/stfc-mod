@@ -365,8 +365,6 @@ void Config::Load()
       get_config_or_default(config, parsed, "graphics", "system_pan_momentum_falloff", 0.8f);
   this->borderless_fullscreen_f11 =
       get_config_or_default(config, parsed, "graphics", "borderless_fullscreen_f11", true);
-  this->target_framerate     = get_config_or_default(config, parsed, "graphics", "target_framerate", 60);
-  this->vsync                = get_config_or_default(config, parsed, "graphics", "vsync", 1);
   this->transition_time      = get_config_or_default(config, parsed, "graphics", "transition_time", 0.01f);
   this->show_all_resolutions = get_config_or_default(config, parsed, "graphics", "show_all_resolutions", false);
   this->default_system_zoom  = get_config_or_default(config, parsed, "graphics", "default_system_zoom", 0.0f);
@@ -396,7 +394,6 @@ void Config::Load()
   this->show_armada_cargo      = get_config_or_default(config, parsed, "ui", "show_armada_cargo", true);
 
   this->always_skip_reveal_sequence = get_config_or_default(config, parsed, "ui", "always_skip_reveal_sequence", false);
-  this->fix_unity_web_requests      = get_config_or_default(config, parsed, "tech", "fix_unity_web_requests", true);
 
   this->sync_proxy      = get_config_or_default<std::string>(config, parsed, "sync", "proxy", "");
   this->sync_file       = get_config_or_default<std::string>(config, parsed, "sync", "file", "");
@@ -606,6 +603,6 @@ void Config::Load()
       << "Loaded beta version " << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_REVISION << " (Release)"
 #endif
 
-      << "\n\nPlease see https://github.com/netniv/bob for latest configuration help, examples and future releases\n"
+      << "\n\nPlease see https://github.com/netniv/stfc-mod for latest configuration help, examples and future releases\n"
       << "or visit the STFC Community Mod discord server at https://discord.gg/PrpHgs7Vjs\n\n";
 }
