@@ -157,7 +157,7 @@ std::wstring File::Title()
 }
 
 #if !_WIN32
-std::filesystem::path::u8string File::MakePath(auto filename, bool create_dir)
+std::u8string File::MakePath(std::string_view filename, bool create_dir)
 {
   auto ApplicationSupportPath =
       (char*)fm::FolderManager::pathForDirectory(fm::NSApplicationSupportDirectory, fm::NSUserDomainMask);

@@ -28,7 +28,7 @@
 #define FILE_DEF_VARS "community_path_runtime.vars"
 #define FILE_DEF_BL "patch_battlelogs_sent.json"
 #define FILE_DEF_PARSED "community_patch_settings_parsed.toml"
-#define FILE_DEF_TITLE "Star Trek Fleet Command"
+#define FILE_DEF_TITLE L"Star Trek Fleet Command"
 
 #define FILE_EXT_TOML ".toml"
 #define FILE_EXT_VARS ".vars"
@@ -50,7 +50,7 @@ public:
 #if _WIN32
   static std::string_view MakePath(std::string_view filename, bool create_dir = false);
 #else
-  static std::filesystem::path::u8string MakePath(std::string_view filename, bool create_dir = false);
+  static std::u8string MakePath(std::string_view filename, bool create_dir = false);
 #endif
 
 private:

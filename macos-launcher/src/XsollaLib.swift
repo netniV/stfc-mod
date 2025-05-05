@@ -159,7 +159,7 @@ struct XsollaUpdater {
     do {
       var gamePath = URL(fileURLWithPath: try self.gamePath())
       gamePath.appendPathComponent(".version")
-      let versionFile = try String(contentsOf: gamePath)
+      let versionFile = try String(contentsOf: gamePath, encoding: String.Encoding.utf8)
       let versionSegments = versionFile.split(separator: "=")
       return Int(versionSegments[1]) ?? 0
     } catch {

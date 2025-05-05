@@ -1,5 +1,7 @@
 #pragma once
 
+#include "str_utils.h"
+
 #include <spdlog/spdlog.h>
 
 #if _WIN32
@@ -27,7 +29,7 @@ public:
 
   static void SyncMsg(const char* section, const std::wstring& msg)
   {
-    spdlog::error("Failed to send {} sync data: {}", section, winrt::to_string(msg).c_str());
+    spdlog::error("Failed to send {} sync data: {}", section, to_string(msg).c_str());
   }
 
   static void SyncRuntime(const char* section, const std::runtime_error& e) {
