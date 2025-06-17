@@ -1,6 +1,7 @@
 .vscode/*
 !.vscode/extensions.json
 .vs/
+/.idea/
 /out/
 /build/
 *.code-workspace
