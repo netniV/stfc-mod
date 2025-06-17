@@ -991,6 +991,11 @@ Il2CppClass* il2cpp::vm::MetadataCache::GetParameterDeclaringType(Il2CppMetadata
     return il2cpp::vm::GlobalMetadata::GetParameterDeclaringType(handle);
 }
 
+const MethodInfo* il2cpp::vm::MetadataCache::GetParameterDeclaringMethod(Il2CppMetadataGenericParameterHandle handle)
+{
+    return il2cpp::vm::GlobalMetadata::GetParameterDeclaringMethod(handle);
+}
+
 Il2CppMetadataGenericParameterHandle il2cpp::vm::MetadataCache::GetGenericParameterFromIndex(Il2CppMetadataGenericContainerHandle handle, GenericContainerParameterIndex index)
 {
     return il2cpp::vm::GlobalMetadata::GetGenericParameterFromIndex(handle, index);
@@ -1214,6 +1219,11 @@ Il2CppMetadataPropertyInfo il2cpp::vm::MetadataCache::GetPropertyInfo(const Il2C
 Il2CppMetadataEventInfo il2cpp::vm::MetadataCache::GetEventInfo(const Il2CppClass* klass, TypeEventIndex index)
 {
     return il2cpp::vm::GlobalMetadata::GetEventInfo(klass, index);
+}
+
+uint32_t il2cpp::vm::MetadataCache::GetReturnParameterToken(Il2CppMetadataMethodDefinitionHandle handle)
+{
+    return il2cpp::vm::GlobalMetadata::GetReturnParameterToken(handle);
 }
 
 uint32_t il2cpp::vm::MetadataCache::GetGenericContainerCount(Il2CppMetadataGenericContainerHandle handle)

@@ -1,5 +1,5 @@
 #pragma once
-#include "../utils/NonCopyable.h"
+#include "utils/NonCopyable.h"
 
 namespace il2cpp
 {
