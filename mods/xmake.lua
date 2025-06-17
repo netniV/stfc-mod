@@ -5,7 +5,7 @@ do
     add_files("src/**.cc")
     add_headerfiles("src/**.h")
     add_includedirs("src", { public = true })
-    add_packages("spud", "nlohmann_json", "protobuf-cpp", "libil2cpp", "eastl", "toml++", "spdlog", "simdutf", "libcurl", "capstone")
+    add_packages("spud", "nlohmann_json", "protobuf", "libil2cpp", "eastl", "toml++", "spdlog", "simdutf", "libcurl", "capstone")
     add_rules("protobuf.cpp")
     add_files("src/prime/proto/*.proto")
     set_exceptions("cxx")
