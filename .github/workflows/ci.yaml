@@ -11,16 +11,13 @@ jobs:
   build-win:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           submodules: "recursive"
 
-      - uses: seanmiddleditch/gha-setup-ninja@master
-      - uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: amd64
-
-      - uses: xmake-io/github-action-setup-xmake@v1
+      - name: Setup
+        uses: xmake-io/github-action-setup-xmake@v1
         with:
           xmake-version: latest
           actions-cache-folder: ".xmake-cache"
@@ -36,31 +33,29 @@ jobs:
         run: |
           mv build/windows/x64/releasedbg/stfc-community-patch.dll version.dll
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload
+        uses: actions/upload-artifact@v4
         with:
           name: stfc-community-patch
           path: version.dll
 
   build-mac:
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           submodules: "recursive"
 
-      - uses: xmake-io/github-action-setup-xmake@v1
+      - name: Set up xmake
+        uses: xmake-io/github-action-setup-xmake@v1
         with:
           xmake-version: latest
           actions-cache-folder: ".xmake-cache"
           actions-cache-key: "mac-ci"
 
       - name: Set up Homebrew
-        id: set-up-homebrew
-        uses: Homebrew/actions/setup-homebrew@master
-
-      - name: Install protoc
-        id: install-protoc-c
-        run: brew install protobuf
+        uses: Homebrew/actions/setup-homebrew@main
 
       - name: Install brew things
         run: brew install create-dmg
@@ -68,7 +63,8 @@ jobs:
       - name: Create App Bundle
         run: scripts/create-mac-dmg.sh releasedbg
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload
+        uses: actions/upload-artifact@v4
         with:
           name: stfc-community-patch-installer
           path: stfc-community-patch-installer.dmg
