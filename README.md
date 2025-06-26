@@ -72,7 +72,9 @@ EQUALS | Zoom (default)
 BACKSPACE | Zoom (max)
 B | Bookmarks
 F | Factions
-Shift-F | reFinery
+Shift-F | Refinery
+Shift-I | Artifact Gallery
+U | Research
 I | Inventory
 M | Active Missions
 O | Command Center
