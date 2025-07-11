@@ -200,7 +200,7 @@ static void send_data(std::wstring post_data)
       const auto& url   = sync_target.first;
       const auto& token = sync_target.second;
 
-      CURL* httpClient = sync_init(CURL_TYPE_UPLOAD, url);
+      CURLClient httpClient(sync_init(CURL_TYPE_UPLOAD, url));
 
       struct curl_slist* list = NULL;
 
@@ -273,7 +273,7 @@ static std::wstring get_scopely_data(std::wstring session, std::wstring url, std
     url += path;
   }
 
-  CURL* httpClient = sync_init(CURL_TYPE_DOWNLOAD, to_string(url));
+  CURLClient httpClient(sync_init(CURL_TYPE_DOWNLOAD, to_string(url)));
 
   struct curl_slist* list = NULL;
 
