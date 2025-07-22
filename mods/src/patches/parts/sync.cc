@@ -224,8 +224,10 @@ static void send_data(std::wstring post_data)
       process_curl_response(CURL_TYPE_UPLOAD, "get response code",
                             curl_easy_getinfo(httpClient, CURLINFO_RESPONSE_CODE, &http_code));
 
-      if (http_code != 200) {
+      if (http_code < 200 || http_code >= 400) {
         process_curl_response(CURL_TYPE_UPLOAD, "communicate with server", http_code, true);
+      } else if (http_code != 200 && Config::Get().sync_debug) {
+        process_curl_response(CURL_TYPE_UPLOAD, "INFO:", http_code);
       }
 #if _WIN32
     } catch (winrt::hresult_error const& ex) {

@@ -32,7 +32,8 @@ public:
     spdlog::error("Failed to send {} sync data: {}", section, to_string(msg).c_str());
   }
 
-  static void SyncRuntime(const char* section, const std::runtime_error& e) {
+  static void SyncRuntime(const char* section, const std::runtime_error& e)
+  {
     spdlog::error("Runtime error sending {} sync data: {}", section, e.what());
   }
 

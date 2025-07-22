@@ -83,6 +83,7 @@ public:
   std::string sync_proxy;
   std::string sync_file;
 
+  bool sync_debug;
   bool sync_logging;
   bool sync_resources;
   bool sync_battlelogs;

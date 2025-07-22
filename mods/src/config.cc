@@ -398,6 +398,7 @@ void Config::Load()
 
   this->sync_proxy      = get_config_or_default<std::string>(config, parsed, "sync", "proxy", "");
   this->sync_file       = get_config_or_default<std::string>(config, parsed, "sync", "file", "");
+  this->sync_debug      = get_config_or_default(config, parsed, "sync", "debug", false);
   this->sync_logging    = get_config_or_default(config, parsed, "sync", "logging", false);
   this->sync_battlelogs = get_config_or_default(config, parsed, "sync", "battlelogs", false);
   this->sync_resources  = get_config_or_default(config, parsed, "sync", "resources", false);

@@ -273,6 +273,9 @@ buildings = true
 # Do you want to enable sync logging
 logging = false
 
+# Do you want to enable sync debug
+debug = false
+
 # Do you want to sync mission data?
 missions = true
 
