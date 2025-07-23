@@ -75,6 +75,10 @@ bool MoveOfficerCanvas(bool goLeft)
 
 void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
 {
+  // This function is called every frame to update the screen manager.
+  // Create a global clock to detect time elapsed 
+  static std::chrono::time_point<std::chrono::steady_clock> select_clock = std::chrono::steady_clock::now();
+
   Key::ResetCache();
 
   if (MapKey::IsDown(GameFunction::DisableHotKeys)) {
@@ -106,7 +110,7 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
   }
 #endif
 
-  int32_t ship_select_request = -1;
+  int32_t ship_select_request = 99;
   if (MapKey::IsDown(GameFunction::SelectShip1)) {
     ship_select_request = 0;
   } else if (MapKey::IsDown(GameFunction::SelectShip2)) {
@@ -151,7 +155,10 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
       auto fleet_bar  = ObjectFinder<FleetBarViewController>::Get();
       auto can_locate = !config->disable_preview_locate || !CanHideViewers();
       if (fleet_bar) {
-        if (can_locate && fleet_bar->IsIndexSelected(ship_select_request)) {
+        std::chrono::time_point<std::chrono::steady_clock> select_now = std::chrono::steady_clock::now();
+        std::chrono::milliseconds select_diff = std::chrono::duration_cast<std::chrono::milliseconds>(select_now - select_clock);
+        spdlog::info("DBG: select_diff was {}ms", select_diff.count());
+        if (can_locate && fleet_bar->IsIndexSelected(ship_select_request) && select_diff < std::chrono::milliseconds((int)Config::Get().select_timer)) {
           auto fleet = fleet_bar->_fleetPanelController->fleet;
           if (NavigationSectionManager::Instance() && NavigationSectionManager::Instance()->SNavigationManager) {
             NavigationSectionManager::Instance()->SNavigationManager->HideInteraction();
@@ -160,6 +167,8 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
         } else {
           fleet_bar->RequestSelect(ship_select_request);
         }
+
+        select_clock = select_now;
         return;
       }
     }
@@ -423,7 +432,7 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
 template <typename T> inline bool CanHideViewersOfType()
 {
   for (auto widget : ObjectFinder<T>::GetAll()) {
-    const auto visible = widget
+    const auto visible = widget && widget->_visibilityController != NULL
                          && (widget->_visibilityController->_state == VisibilityState::Visible
                              || widget->_visibilityController->_state == VisibilityState::Show);
     if (visible) {

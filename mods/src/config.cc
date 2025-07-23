@@ -345,6 +345,7 @@ void Config::Load()
   this->hotkeys_enabled     = get_config_or_default(config, parsed, "control", "hotkeys_enabled", true);
   this->hotkeys_extended    = get_config_or_default(config, parsed, "control", "hotkeys_extended", true);
   this->use_scopely_hotkeys = get_config_or_default(config, parsed, "control", "use_scopely_hotkeys", false);
+  this->select_timer        = get_config_or_default(config, parsed, "control", "select_timer", 200);
 #if DEBUG
   this->enable_experimental = get_config_or_default(config, parsed, "control", "enable_experimental", false);
 #else

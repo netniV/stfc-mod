@@ -41,6 +41,7 @@ public:
   float system_pan_momentum_falloff;
 
   float keyboard_zoom_speed;
+  int select_timer;
 
   bool  queue_enabled;
   bool  hotkeys_enabled;
