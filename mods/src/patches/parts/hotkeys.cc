@@ -110,7 +110,7 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
   }
 #endif
 
-  int32_t ship_select_request = 99;
+  int32_t ship_select_request = -1;
   if (MapKey::IsDown(GameFunction::SelectShip1)) {
     ship_select_request = 0;
   } else if (MapKey::IsDown(GameFunction::SelectShip2)) {
