@@ -578,7 +578,7 @@ void ExecuteSpaceAction(FleetBarViewController* fleet_bar)
 
   if (has_recall_cancel
       && (fleet->CurrentState == FleetState::WarpCharging || fleet->CurrentState == FleetState::Warping)) {
-    fleet_controller->CancelWarpClicked();
+    fleet_controller->CancelButtonClicked();
   } else if (has_queue) {
     auto fleets_manager = FleetsManager::Instance();
     if (fleets_manager != nullptr) {

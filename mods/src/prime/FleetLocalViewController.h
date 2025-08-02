@@ -12,15 +12,15 @@ public:
   __declspec(property(get = __get__shipBarItemLocalViewController))
       ShipBarItemLocalViewController* shipBarItemLocalViewController;
 
-  void CancelWarpClicked()
+  void CancelButtonClicked()
   {
-    static auto CancelWarpWarn   = true;
-    static auto CancelWarpMethod = get_class_helper().GetMethod<void(FleetLocalViewController*)>("CancelWarpClicked");
-    if (CancelWarpMethod) {
-      CancelWarpMethod(this);
-    } else if (CancelWarpWarn) {
-      CancelWarpWarn = false;
-      ErrorMsg::MissingMethod("FLeetLocalViewController", "CancelWarpClicked");
+    static auto CancelButtonWarn   = true;
+    static auto CancelButtonMethod = get_class_helper().GetMethod<void(FleetLocalViewController*)>("CancelButtonClicked");
+    if (CancelButtonMethod) {
+      CancelButtonMethod(this);
+    } else if (CancelButtonWarn) {
+      CancelButtonWarn = false;
+      ErrorMsg::MissingMethod("FLeetLocalViewController", "CancelButtonClicked");
     }
   }
 
