@@ -2,40 +2,35 @@
 
 #include <il2cpp/il2cpp_helper.h>
 
-#include "BattleTargetData.h"
+#include "GenericButtonContext.h"
+#include "SemaphoreButtonListener.h"
 #include "Widget.h"
 
-struct GenericButtonWidget : public Widget<BattleTargetData, GenericButtonWidget> {
+struct GenericButtonWidget : public Widget<GenericButtonContext, GenericButtonWidget> {
 public:
-  __declspec(property(get = __get__armadaButton)) void* _armadaButton;
+  __declspec(property(get = __get_isActiveAndEnabled)) bool                          isActiveAndEnabled;
+  __declspec(property(get = __get_SemaphoreButtonListener)) SemaphoreButtonListener* SemaphoreListener;
 
-  void OnEngageButtonClicked()
-  {
-    static auto OnEngageButtonClicked =
-        get_class_helper().GetMethod<void(ScanEngageButtonsWidget*)>("OnEngageButtonClicked");
-    OnEngageButtonClicked(this);
-  }
-  void OnScanButtonClicked()
-  {
-    static auto OnScanButtonClicked =
-        get_class_helper().GetMethod<void(ScanEngageButtonsWidget*)>("OnScanButtonClicked");
-    OnScanButtonClicked(this);
-  }
-
-private:
-  friend class ObjectFinder<ScanEngageButtonsWidget>;
-  friend struct Widget<BattleTargetData, ScanEngageButtonsWidget>;
   static IL2CppClassHelper& get_class_helper()
   {
-    static auto class_helper =
-        il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Combat", "ScanEngageButtonsWidget");
+    static auto class_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.UI", "GenericButtonWidget");
     return class_helper;
   }
 
+private:
+  friend class ObjectFinder<GenericButtonWidget>;
+  friend struct Widget<GenericButtonContext, GenericButtonWidget>;
+
 public:
-  void* __get__armadaButton()
+  SemaphoreButtonListener* __get_SemaphoreButtonListener()
   {
-    static auto field = get_class_helper().GetProperty("_armadaButton");
-    return field.GetRaw<void*>(this);
+    static auto field = get_class_helper().GetProperty("SemaphoreButtonListener");
+    return field.GetRaw<SemaphoreButtonListener>(this);
+  }
+
+  bool __get_isActiveAndEnabled()
+  {
+    static auto field = get_class_helper().GetProperty("isActiveAndEnabled");
+    return *field.Get<bool>(this);
   }
 };

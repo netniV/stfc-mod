@@ -3,6 +3,7 @@
 #include <il2cpp/il2cpp_helper.h>
 
 #include "BattleTargetData.h"
+#include "GenericButtonWidget.h"
 #include "NavigationInteractionUIContext.h"
 #include "RewardsButtonWidget.h"
 #include "Widget.h"
@@ -12,11 +13,17 @@ public:
   __declspec(property(get = __get__battleTargetData)) BattleTargetData* _battleTargetData;
   __declspec(property(get = __get__scanEngageButtonsWidget)) ScanEngageButtonsWidget* _scanEngageButtonsWidget;
   __declspec(property(get = __get__rewardsButtonWidget)) RewardsButtonWidget* _rewardsButtonWidget;
+  __declspec(property(get = __get__addToQueueButtonWidget)) GenericButtonWidget* _addToQueueButtonWidget;
+
+  void OnAddToQueueClickedEventHandler() {
+    static auto OnAddToQueueClickedEventHandlerMethod = get_class_helper().GetMethod<void(Widget*)>("OnAddToQueueClickedEventHandler");
+    OnAddToQueueClickedEventHandlerMethod(this);
+  }
 
   void OnInfoClick()
   {
-    auto OnInfoClick = get_class_helper().GetMethod<void(Widget*)>("OnInfoClick");
-    return OnInfoClick(this);
+    static auto OnInfoClickMethod = get_class_helper().GetMethod<void(Widget*)>("OnInfoClick");
+    return OnInfoClickMethod(this);
   }
 
 private:
@@ -35,6 +42,12 @@ public:
   {
     static auto field = get_class_helper().GetField("_battleTargetData").offset();
     return *(BattleTargetData**)((char*)this + field);
+  }
+
+  GenericButtonWidget* __get__addToQueueButtonWidget()
+  {
+    static auto field = get_class_helper().GetField("_addToQueueButtonWidget").offset();
+    return *(GenericButtonWidget**)((char*)this + field);
   }
 
   ScanEngageButtonsWidget* __get__scanEngageButtonsWidget()
