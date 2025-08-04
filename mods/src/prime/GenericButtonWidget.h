@@ -24,8 +24,8 @@ private:
 public:
   SemaphoreButtonListener* __get_SemaphoreButtonListener()
   {
-    static auto field = get_class_helper().GetProperty("SemaphoreButtonListener");
-    return field.GetRaw<SemaphoreButtonListener>(this);
+    static auto field = get_class_helper().GetField("_semaphoreButtonListener").offset();
+    return *(SemaphoreButtonListener**)((char*)this + field);
   }
 
   bool __get_isActiveAndEnabled()

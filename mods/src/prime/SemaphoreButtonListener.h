@@ -13,32 +13,29 @@ public:
   static IL2CppClassHelper& get_class_helper()
   {
     static auto class_helper =
-        il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.Client.UI", "SemaphoreButtonListener");
+        il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.UI", "SemaphoreButtonListener");
     return class_helper;
   }
 
   Button* __get_Button()
   {
-    auto field = get_class_helper().GetProperty("Button");
-    if (field.isValidHelper()) {
-      return *field.Get<Button*>(this);
-    }
-
-    return nullptr;
+    static auto field = get_class_helper().GetField("_button").offset();
+    return *(Button**)((char*)this + field);
   }
 
   bool __get_Interactable()
   {
-    auto field = get_class_helper().GetProperty("Interactable");
+    static auto field = get_class_helper().GetProperty("Interactable");
     if (field.isValidHelper()) {
       return *field.Get<bool>(this);
     }
 
     return false;
   }
+
   void __set_Interactable(bool v)
   {
-    auto field = get_class_helper().GetProperty("Interactable");
+    static auto field = get_class_helper().GetProperty("Interactable");
     if (field.isValidHelper()) {
       field.SetRaw<bool>(this, v);
     }

@@ -60,9 +60,7 @@ public:
   {
     if (IsQueueUnlocked()) {
       if (!IsQueueFull(playerData)) {
-        if (!IsFleetInQueue(playerData)) {
-          return true;
-        }
+        return true;
       }
     }
 

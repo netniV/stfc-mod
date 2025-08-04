@@ -610,6 +610,8 @@ void ExecuteSpaceAction(FleetBarViewController* fleet_bar)
                 auto button = listener->TheButton;
                 if (button) {
                   button->Press();
+                } else {
+                  spdlog::info("We have no button to press for the queue action");
                 }
               }
             } else if (type == HullType::Any) {

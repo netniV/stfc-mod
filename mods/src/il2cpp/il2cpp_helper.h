@@ -28,7 +28,11 @@ public:
 
   bool isValidHelper()
   {
+#if DEBUG
+    return true;
+#else
     return this->cls != nullptr && propInfo != nullptr;
+#endif
   }
 
   template <typename T> void SetRaw(void* _this, T& v)
@@ -93,7 +97,11 @@ public:
 
   bool isValidHelper()
   {
+#if DEBUG
+    return true;
+#else
     return this->cls != nullptr && fieldInfo != nullptr;
+#endif
   }
 
   inline ptrdiff_t offset() const
@@ -148,7 +156,11 @@ public:
 
   bool isValidHelper()
   {
+#if DEBUG
+    return true;
+#else
     return this->cls != nullptr;
+#endif
   }
 
   template <typename T = void> T* GetMethod(const char* name, int arg_count = -1)
