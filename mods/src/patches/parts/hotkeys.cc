@@ -597,8 +597,10 @@ void ExecuteSpaceAction(FleetBarViewController* fleet_bar)
           } else if (has_primary) {
             return mine_object_viewer_widget->MineClicked();
           }
-        } else if (has_queue && pre_scan_widget->_addToQueueButtonWidget && pre_scan_widget->_scanEngageButtonsWidget) {
-          /* if (pre_scan_widget->_addToQueueButtonWidget->SemaphoreListener->Interactable) { */
+        }
+
+        if (has_queue && pre_scan_widget->_addToQueueButtonWidget && pre_scan_widget->_scanEngageButtonsWidget) {
+          if (pre_scan_widget->_addToQueueButtonWidget->isActiveAndEnabled) {
             auto context = pre_scan_widget->_scanEngageButtonsWidget->Context;
             auto type    = GetHullTypeFromBattleTarget(context);
 
@@ -610,19 +612,24 @@ void ExecuteSpaceAction(FleetBarViewController* fleet_bar)
                 auto button = listener->TheButton;
                 if (button) {
                   button->Press();
-                } else {
-                  spdlog::info("We have no button to press for the queue action");
+                  return;
                 }
               }
-            } else if (type == HullType::Any) {
+            } 
+            
+            
+            if (type == HullType::Any) {
               force_space_action_next_frame = true;
+              return;
             }
+          }
+        }
 
-            return;
-          /*}*/
-        } else if (has_secondary) {
+        if (has_secondary) {
           return pre_scan_widget->_scanEngageButtonsWidget->OnScanButtonClicked();
-        } else if (has_primary) {
+        }
+
+        if (has_primary) {
           auto armada_object_viewer_widget = ObjectFinder<ArmadaObjectViewerWidget>::Get();
           auto armada_not_shown =
               !armada_object_viewer_widget
