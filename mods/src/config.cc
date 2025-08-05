@@ -502,6 +502,7 @@ void Config::Load()
   parse_config_shortcut(config, parsed, "action_primary", GameFunction::ActionPrimary, "SPACE");
   parse_config_shortcut(config, parsed, "action_secondary", GameFunction::ActionSecondary, "R");
   parse_config_shortcut(config, parsed, "action_queue", GameFunction::ActionQueue, "ALT-Q");
+  parse_config_shortcut(config, parsed, "action_queue_clear", GameFunction::ActionQueueClear, "CTRL-C");
   parse_config_shortcut(config, parsed, "action_view", GameFunction::ActionView, "V");
   parse_config_shortcut(config, parsed, "action_recall", GameFunction::ActionRecall, "R");
   parse_config_shortcut(config, parsed, "action_recall_cancel", GameFunction::ActionRecallCancel, "SPACE");

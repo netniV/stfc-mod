@@ -61,6 +61,7 @@ enum GameFunction {
   ActionPrimary,
   ActionSecondary,
   ActionQueue,
+  ActionQueueClear,
   ActionView,
   ActionRecall,
   ActionRecallCancel,

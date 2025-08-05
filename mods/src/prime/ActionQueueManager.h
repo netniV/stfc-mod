@@ -10,6 +10,19 @@ struct ActionQueueManager : MonoSingleton<ActionQueueManager> {
   friend struct MonoSingleton<ActionQueueManager>;
 
 public:
+  void ClearQueue(FleetPlayerData* playerData)
+  {
+    static auto ClearQueueMethod =
+        get_class_helper().GetMethod<void(ActionQueueManager*, FleetPlayerData*)>("ClearQueue");
+    static auto CLearQueueWarn = true;
+
+    if (ClearQueueMethod) {
+      ClearQueueMethod(this, playerData);
+    } else if (CLearQueueWarn) {
+      CLearQueueWarn = false;
+      ErrorMsg::MissingMethod("ActionQueueManager", "ClearQueue");
+    }
+  }
   bool IsQueueFull(FleetPlayerData* playerData)
   {
     static auto IsQueueFullMethod =

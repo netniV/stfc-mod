@@ -369,7 +369,8 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
 
     if (MapKey::IsDown(GameFunction::ActionPrimary) || MapKey::IsDown(GameFunction::ActionSecondary)
         || MapKey::IsDown(GameFunction::ActionRecall) || MapKey::IsDown(GameFunction::ActionRepair)
-        || MapKey::IsDown(GameFunction::ActionQueue) || force_space_action_next_frame) {
+        || MapKey::IsDown(GameFunction::ActionQueue) || MapKey::IsDown(GameFunction::ActionQueueClear)
+        || force_space_action_next_frame) {
       if (Hub::IsInSystemOrGalaxyOrStarbase() && !Hub::IsInChat() && !Key::IsInputFocused()) {
         auto fleet_bar = ObjectFinder<FleetBarViewController>::Get();
         if (fleet_bar) {
@@ -575,10 +576,13 @@ void ExecuteSpaceAction(FleetBarViewController* fleet_bar)
   auto has_recall_cancel = MapKey::IsDown(GameFunction::ActionRecallCancel);
   auto has_secondary     = MapKey::IsDown(GameFunction::ActionSecondary);
   auto has_queue         = MapKey::IsDown(GameFunction::ActionQueue) && action_queue->CanAddToQueue(fleet);
+  auto has_queue_clear   = MapKey::IsDown(GameFunction::ActionQueueClear);
   auto has_recall =
       MapKey::IsDown(GameFunction::ActionRecall) && (!Config::Get().disable_preview_recall || !CanHideViewers());
 
-  if (has_recall_cancel
+  if (has_queue_clear) {
+    action_queue->ClearQueue(fleet);
+  } else if (has_recall_cancel
       && (fleet->CurrentState == FleetState::WarpCharging || fleet->CurrentState == FleetState::Warping)) {
     fleet_controller->CancelButtonClicked();
   } else {
@@ -615,9 +619,8 @@ void ExecuteSpaceAction(FleetBarViewController* fleet_bar)
                   return;
                 }
               }
-            } 
-            
-            
+            }
+
             if (type == HullType::Any) {
               force_space_action_next_frame = true;
               return;
