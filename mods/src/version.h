@@ -4,7 +4,7 @@
 #define VERSION_MAJOR               0
 #define VERSION_MINOR               6
 #define VERSION_REVISION            1
-#define VERSION_PATCH               7
+#define VERSION_PATCH               8
 
 #define STRINGIFY_(s)               #s
 #define STRINGIFY(s)                STRINGIFY_(s)
@@ -15,12 +15,12 @@
 	#define VERSION_PATCH_STR ""
 #endif
 
-#define VER_FILE_DESCRIPTION_STR    "Star Trek Fleet Command: Community Patch" VERSION_PATCH_STR
+#define VER_FILE_DESCRIPTION_STR    "Star Trek Fleet Command: Community Mod" VERSION_PATCH_STR
 
 #define VER_FILE_VERSION            VERSION_MAJOR, VERSION_MINOR, VERSION_REVISION, VERSION_PATCH
 #define VER_FILE_VERSION_STR        STRINGIFY(VERSION_MAJOR) "." STRINGIFY(VERSION_MINOR) "." STRINGIFY(VERSION_REVISION) "." STRINGIFY(VERSION_PATCH)
 
-#define VER_PRODUCTNAME_STR         "STFC: Community Patch"
+#define VER_PRODUCTNAME_STR         "STFC: Community Mod"
 #define VER_PRODUCT_VERSION         VERSION_MAJOR, VERSION_MINOR, VERSION_REVISION
 #define VER_PRODUCT_VERSION_STR     VER_FILE_VERSION_STR
 #define VER_ORIGINAL_FILENAME_STR   "stfc-community-patch.dll"

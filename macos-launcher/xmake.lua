@@ -13,8 +13,8 @@ do
     add_files("src/*.cc")
     add_packages("7z", "lzma", "librsync")
     add_ldflags("-lc++")
-    add_values("xcode.bundle_identifier", "com.tashcan.startrekpatch")
+    add_values("xcode.bundle_identifier", "com.stfcmod.startrekpatch")
     add_scflags("-Xcc -fmodules", "-Xcc -fmodule-map-file=macos-launcher/src/module.modulemap", "-D SWIFT_PACKAGE",
         { force = true })
-    add_values("xcode.bundle_display_name", "Star Trek Fleet Command Community Patch")
+    add_values("xcode.bundle_display_name", "Star Trek Fleet Command Community Mod")
 end

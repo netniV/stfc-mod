@@ -1,15 +1,13 @@
-# Star Trek Fleet Command - Community Patch
+# Star Trek Fleet Command - Community Mod
 
 <p align="center">
   <img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="License: GPLv3">
+  <img src="https://img.shields.io/github/sponsors/netniv" alt="Sponsorship">
 </p>
 
 <p align="center">
-   A community patch that adds a couple of tweaks to the mobile game <b>Star Trek Fleet Command&#8482;</b>
+   A community mod (patch) that adds a couple of tweaks to the mobile game <b>Star Trek Fleet Command&#8482;</b>
 </p>
-
-> [!NOTE]
-> The code here is a bit of a mess right now, I will be gradually going through and cleaning it up over the next couple of weeks.
 
 ## Valid shortcut key strings
 
@@ -21,7 +19,7 @@ Value | Keys Required
 --: | :--
 "SHIFT-Q" | (Left Or Right) Shift + Q
 "ALT-LSHIFT-T" | (Left Or Right) Alt + Left Shift + T
-"Q" | Q (no Shift, Ctrl, etc) 
+"Q" | Q (no Shift, Ctrl, etc)
 
 ### Modifiers
 
@@ -48,7 +46,7 @@ Value | Key | Value | Key | Value | Key | Value | Key
 "PAUSE" | Pause | "PRINT" | Print | "SPACE" | Space | "RETURN" | Return
 "SCROLL" | ScrollLock | "SYSREQ" | SysReq | "TAB" | Tab | "SPACE" | Space
 "MOUSE0" | Mouse0 | "MOUSE1" | Mouse1 | "MOUSE2" | Mouse2 | "MOUSE3" | Mouse3
-"MOUSE4" | Mouse4 | "MOUSE5" | Mouse5 | "MOUSE6" | Mouse6 | "MINUS" | Minus | 
+"MOUSE4" | Mouse4 | "MOUSE5" | Mouse5 | "MOUSE6" | Mouse6 | "MINUS" | Minus |
 "'" | Quote | "_" | Underscore | "," | Comma | "." | Period
 ";" | Semicolon | ":" | Colon | "!" | Exclaim | "?" | Question
 "(" | LeftParen | ")" | RightParen | "[" | LeftBracket | "]" | RightBracket

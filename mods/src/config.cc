@@ -61,7 +61,7 @@ void Config::Save(toml::table config, std::string_view filename, bool apply_warn
     config_file << "#######################################################################\n";
     config_file << "####                                                               ####\n";
     config_file << "#### NOTE: This file is not the configuration file that is used    ####\n";
-    config_file << "####       by the STFC community patch.  It is provided to help    ####\n";
+    config_file << "####       by the STFC Community Mod.  It is provided to help      ####\n";
     config_file << "####       see what configuration is being used by the runtime     ####\n";
     config_file << "####       and any desired settings should be copied to the same   ####\n";
     config_file << "####       section in: " << defaultFile << "\n";

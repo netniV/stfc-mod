@@ -74,7 +74,7 @@ action_primary = 'SPACE|MOUSE1'
 action_recall = 'R|MOUSE3'
 
 # Cancel a recall operation (currently disabled due to crash)
-action_recall_cancel = 'SPACE'
+action_recall_cancel = 'SPACE|MOUSE1'
 
 # Repair ship action (R or Mouse Side Button 2)
 action_repair = 'R|MOUSE3'
@@ -84,6 +84,15 @@ action_secondary = 'TAB|MOUSE2'
 
 # Toggle rewards view
 action_view = 'V'
+
+# Toggle Kir'Shira queue
+toggle_queue = "CTRL-Q"
+
+# Add to Kir'Shira queue
+action_queue = "SPACE|MOUSE1"
+
+# Clear Kir'Shira queue
+action_queue_clear = "CTRL-C"
 
 # Disable all hotkeys when using mod hotkeys
 hotkeys_disble = 'CTRL-ALT-MINUS'

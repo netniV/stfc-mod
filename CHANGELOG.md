@@ -1,13 +1,47 @@
+# Star Trek Fleet Command - Community Mod
+
+<p align="center">
+  <img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="License: GPLv3">
+  <img src="https://img.shields.io/github/sponsors/netniv" alt="Sponsorship">
+</p>
+
+<p align="center">
+   A community mod (patch) that adds a couple of tweaks to the mobile game <b>Star Trek Fleet Command&#8482;</b>
+</p>
+
 # Change Log
 
 ## 0.6.1
 
+### Features
+- Added support for macOS
+- Added maximum donation for alliance sliders
+- Added `ui_scale_viewer` to scale the size of object viewers
+- Added `select_current` hotkey to locate currently selected ship in dock
+- Added `UiViewerScaleUp` and `UiViewerScaleDown` hotkeys to scale `ui_scale_viewer` in game
+- Added `toggle_queue`, `action_queue` and `action_queue_cancel` for Kir'Shira artifact handling
+- Added `action_quit` for instant game exit
+- Added prefix to title when using `-ccm` command line option to show which is being used [windows only]
+- Added `select_timer` to adjust period in which double tap ship selection works [default 500ms]
+- Added suppression of first message notification
+- Updated sync methods to:
+  - allow multi-targets
+  - better handle errors
+  - include missions
+  - include officer shard counts
+  - better handle battlelogs
+
+### Fixes:
+- Fixed `ui_scale` or `ui_scale_viewer` so when set to 0.0f disable those scaling features
+- Fixed `zoom_min` and `zoom_max` no longer set default system zoom (only presets can)
+- Fixed numerous method hooks to report when they are not found rather than crash
+- Fixed issue where a widget may not have a visibility controller for some reason causing a crash
+- Fixed warp cancellation so it works again
+
+### Dev stuff:
 - Switch to xmake
-- Add support for macOS
-- Add maximum donation for alliance sliders
-- Add ui_scale_viewer to scale the size of object viewers
-- Fix ui_scale or ui_scale_viewer so when set to 0.0f disable those scaling features
-- Fix zoom_min and zoom_max no longer set default system zoom (only presets can)
+- log names of log, configuration, vars and battlelog files
+- update github source to netniV's repo
 
 ## 0.6.0
 

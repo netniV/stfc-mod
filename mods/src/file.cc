@@ -163,7 +163,7 @@ std::u8string File::MakePath(std::string_view filename, bool create_dir)
       (char*)fm::FolderManager::pathForDirectory(fm::NSApplicationSupportDirectory, fm::NSUserDomainMask);
   auto LibraryPath = (char*)fm::FolderManager::pathForDirectory(fm::NSLibraryDirectory, fm::NSUserDomainMask);
 
-  const auto config_dir = std::filesystem::path(LibraryPath) / "Preferences" / "com.tashcan.startrekpatch";
+  const auto config_dir = std::filesystem::path(LibraryPath) / "Preferences" / "com.stfcmod.startrekpatch";
 
   if (create_dir) {
     std::error_code ec;

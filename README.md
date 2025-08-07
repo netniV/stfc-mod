@@ -1,4 +1,4 @@
-# Star Trek Fleet Command - Community Patch
+# Star Trek Fleet Command - Community Mod
 
 <p align="center">
   <img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="License: GPLv3">
@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-   A community patch that adds a couple of tweaks to the mobile game <b>Star Trek Fleet Command&#8482;</b>
+   A community mod (patch) that adds a couple of tweaks to the mobile game <b>Star Trek Fleet Command&#8482;</b>
 </p>
 
 ## Features
@@ -38,38 +38,59 @@
 
 ## Keyboard shortcuts
 
-The following are default shortcuts that can be modified (see [KEYMAPPING.md](KEYMAPPING.md))
+Most keyboard shortcuts can be modified by updated your TOML file.  If your
+file is empty, see the VARS file which has all the runtime settings that have
+been applied.  Valid values for any short can be found in [KEYMAPPING.md](KEYMAPPING.md)
+
+### UI shortcuts
 
 Key | Shortcut
 --: | ---
-SPACE | Perform default action
-1-8 | Ship select/focus
 F1-F5 | Zoom presets
 Q | Zoom Out
 E | Zoom In
+MINUS | Zoom (min)
+EQUALS | Zoom (default)
+BACKSPACE | Zoom (max)
+C | Open/Focus Chat - Full Screen
+Alt-C | Open/Focus Chat - Side of Screen
+` | Open/Focus Chat - Side of Screen
+PGUP | UI Scale Up
+PGDOWN | UI Scale Down
+SHIFT-PGUP | UI Viewer Scale Up
+SHIFT-PGDOWN | UI Viewer Scale Down
+
+### Combat/Navigation shorcuts
+Key | Shortcut
+--: | ---
+SPACE | Perform default action
+SPACE | Add to Kir'Shira queue (if owned) and already attacking
+1-8 | Ship select/focus
+R | When ship selected, recall ship
+R | When clicking on mine/player/enemy, perform non-default action (eg, scan)
+V | When clicking on mine/player/enemy, toggle view of cargo or default screen
+CTRL-Q | Enable/Disable Kir'Shira queue (if owned)
+CTRL-C | Clear Kir'Shira queue (if owned)
+
+NOTE: There are some common changes made to allow both mouse and keyboard to
+action items such as:
+
+- set action_queue, action_primary and action_recall_cancel to `SPACE|MOUSE1`
+  allowing both right mouse click and spacebar to action attacks on (or
+  queuing of) hostiles or cancel a warp.
+
+- set action_recall to `R|MOUSE3` to allow recalling using
+  both spacebar and the side mouse button
+
+### Section shortcuts
+
+Key | Shortcut
+--: | ---
 T | Events
 G | Galaxy
 H | System
 Shift-G | Exterior View
 Shfit-H | Interior View
-R | When ship selected, recall ship
-R | When clicking on mine/player/enemy, perform non-default action (eg, scan)
-V | When clicking on mine/player/enemy, toggle view of cargo or default screen
-C | Focus Chat (or Open Alliance Chat - Full Screen)
-Alt-C | Focus Chat (or Open Alliance Chat - Side of Screen)
-PGUP | UI Scale Up
-PGDOWN | UI Scale Down
-
-The following keybinds have recently been added:
-
-> [!NOTE]
-> Can be disabled via `hotkeys_extended` config option
-
-Key | Shortcut
---: | ---
-MINUS | Zoom (min)
-EQUALS | Zoom (default)
-BACKSPACE | Zoom (max)
 B | Bookmarks
 F | Factions
 Shift-F | Refinery
@@ -83,65 +104,20 @@ Shift-Q | Q-Trials
 Shift-T | Away Teams
 X | ExoComp
 Z | Daily Missions
-` | Open Alliance Chat - Side of Screen
-SHIFT-PGUP | UI Viewer Scale Up
-SHIFT-PGDOWN | UI Viewer Scale Down
+
+## Installing
+
+Please see the [INSTALL.md](INSTALL.md) instructions which has steps on how to use this mod with Star Trek Fleet Command.
+
+Please note, that whilst Mac support was added in this version, it's supported on an as-is basis due to lack of Mac development environemnts.
 
 ## Contributing / Building
 
 If you wish to contribute to the project, or simply compile the DLL yourself, please see [CONTRIBUTING.md](CONTRIBUTING.md)
 
-## Installation / Runtime
+There is a discord server with friendly, helpful people who will assist if you have issues (see the support section below).
 
-Both the DLL and the toml file must be placed in the STFC game folder which is always located
-at `C:\Games\Star Trek Fleet Command\Star Trek Fleet Command\default\game` as the following
-names:
-
-- community_patch_settings.toml
-- version.dll
-
-The pre-compiled DLL can be downloaded from the official assets hosted on [GitHub Releases](https://github.com/netniv/stfc-mod/releases)
-
-## Configuration
-
-An example configuration file is [example_community_patch_settings.toml](example_community_patch_settings.toml) and should be
-renamed to `community_patch_settings.toml`.  When running this file will be parsed (see `community_patch.log`) and the running
-values can be found in `community_patch_runtime.vars`.  If you have any problems with a setting, check the log and parsed
-file to verify that the setting was applied.
-
-## Problems?
-
-The most common problems getting the DLL to work are:
-
-1. Not installed in the correct location.  This must be:
-
-   ```console
-   C:\Games\Star Trek Fleet Command\Star Trek Fleet Command\default\game
-   ```
-
-2. Windows is blocking the DLL.  Right-click the file and select Properties.  On the `General` tab
-   there will be additional text at the bottom:
-
-   ```console
-   This file can from another
-   computer and might be blocked to
-   help protect this computer
-   ```
-
-   To the right of this, there will be a tick box called `Unblock`.  Tick the box and then click OK
-   to unblock the file.
-
-3. The configuration file has the wrong name (see above)
-
-4. The configuration file is not being parsed as you expect which is normally because:
-
-   - Your configuration isn't being parsed
-   - The configuration option name is spelt wrong
-   - The configuration option name is in the wrong section
-   - The configuration option value is not a true or false
-
-   You can verify your configuration by looking at `community_patch_runtime.vars` and/or the
-   log file `community_patch.log`.
+This project is maintained solely at my own cost of time, energy and money.  Any contributions and help are greatly welcomed.
 
 ## Support
 
