@@ -1,5 +1,6 @@
 .vscode/*
 !.vscode/extensions.json
+!.vscode/settings.json
 .vs/
 /.idea/
 /out/
