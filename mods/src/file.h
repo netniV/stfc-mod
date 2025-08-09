@@ -25,7 +25,8 @@
 // Original output file names
 #define FILE_DEF_CONFIG "community_patch_settings.toml"
 #define FILE_DEF_LOG "community_patch.log"
-#define FILE_DEF_VARS "community_path_runtime.vars"
+#define FILE_DEF_VARS "community_patch_runtime.vars"
+#define FILE_DEF_VARS_OLD "community_path_runtime.vars"
 #define FILE_DEF_BL "patch_battlelogs_sent.json"
 #define FILE_DEF_PARSED "community_patch_settings_parsed.toml"
 #define FILE_DEF_TITLE L"Star Trek Fleet Command"

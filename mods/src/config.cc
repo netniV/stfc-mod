@@ -369,6 +369,15 @@ void migrate_mac_config_if_needed(const char* filename)
 #endif
 }
 
+void delete_old_vars()
+{
+  namespace fs = std::filesystem;
+
+  fs::path        old_vars = fs::path(File::MakePath(File::Vars())).parent_path() / FILE_DEF_VARS_OLD;
+  std::error_code ignore;
+  fs::remove(old_vars, ignore);
+}
+
 void Config::Load()
 {
   auto filename = File::Config();
@@ -378,6 +387,7 @@ void Config::Load()
   spdlog::info("=-=-=-==-=-=-=-=-=-=-=-=-=-=");
 
   migrate_mac_config_if_needed(filename);
+  delete_old_vars();
 
   toml::table config;
   toml::table parsed;
