@@ -48,9 +48,9 @@ public:
   static bool         hasCustomNames();
 
 #if _WIN32
-  static std::string_view MakePath(std::string_view filename, bool create_dir = false);
+  static std::string_view MakePath(std::string_view filename, bool create_dir = false, bool old_path = false);
 #else
-  static std::u8string MakePath(std::string_view filename, bool create_dir = false);
+  static std::u8string MakePath(std::string_view filename, bool create_dir = false, bool old_path = false);
 #endif
 
 private:

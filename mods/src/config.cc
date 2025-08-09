@@ -321,17 +321,69 @@ void parse_config_shortcut(toml::table config, toml::table& new_config, std::str
   spdlog::info("shortcut value {}.{} value: {}", section, item, shortcut);
 }
 
+void migrate_mac_config_if_needed(const char* filename)
+{
+#if !_WIN32
+  namespace fs = std::filesystem;
+
+  fs::path file_path = File::MakePath(filename);
+  auto     new_dir   = file_path.parent_path();
+  if (fs::exists(file_path) || fs::exists(new_dir))
+    return;
+
+  spdlog::info("mac config migration: config dir does not exist, checking for migration...");
+
+  fs::path old_path = File::MakePath(filename, false, true);
+  if (!fs::exists(old_path)) {
+    spdlog::info("mac config migration: old config does not exist. nothing to migrate.");
+    return;
+  }
+
+  auto stat = fs::status(old_path);
+  if (stat.type() == fs::file_type::regular) {
+    spdlog::info("mac config migration: old config found. attempting to migrate...");
+
+    try {
+      // move
+      auto old_dir = old_path.parent_path();
+      fs::rename(old_dir, new_dir);
+
+      // re-create old dir, create symlink
+      fs::create_directories(old_dir);
+      fs::create_symlink(file_path, old_path);
+
+      // drop update-info.txt
+      std::ofstream info;
+      info.open(old_dir / "update-info.txt");
+      info << "Your config has been moved!\n\n";
+      info << "You can now find your config at " << file_path << "\n\n";
+      info << "A symlink has been placed for your convenience, but it is generally recommended, that you use the new "
+              "path and delete this directory going forward.";
+      info.close();
+
+      spdlog::info("mac config migration: config migration done.");
+    } catch (std::exception& ex) {
+      spdlog::warn("mac config migration: migration failed = {}", ex.what());
+    }
+  }
+#endif
+}
+
 void Config::Load()
 {
+  auto filename = File::Config();
+
   spdlog::info("=-=-=-==-=-=-=-=-=-=-=-=-=-=");
-  spdlog::info("Loading Config :: {}", File::Config());
+  spdlog::info("Loading Config :: {}", filename);
   spdlog::info("=-=-=-==-=-=-=-=-=-=-=-=-=-=");
+
+  migrate_mac_config_if_needed(filename);
 
   toml::table config;
   toml::table parsed;
   bool        write_config = false;
   try {
-    config       = std::move(toml::parse_file(File::MakePath(File::Config())));
+    config       = std::move(toml::parse_file(File::MakePath(filename)));
     write_config = true;
   } catch (const toml::parse_error& e) {
     spdlog::warn("Failed to load config file, falling back to default settings: {}", e.description());
@@ -596,18 +648,19 @@ void Config::Load()
 
   Config::Save(parsed, File::Vars());
 
-  std::cout
-      << message.str() << ":\n-----------------------------\n\n"
-      << parsed << "\n\n-----------------------------\nVersion "
+  std::cout << message.str() << ":\n-----------------------------\n\n"
+            << parsed << "\n\n-----------------------------\nVersion "
 
 #if VERSION_PATCH
-      << "Loaded beta version " << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_REVISION << " (Patch "
-      << VERSION_PATCH << ")\n\n"
-      << "NOTE: Beta versions may have unexpected bugs and issues.\n\n"
+            << "Loaded beta version " << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_REVISION << " (Patch "
+            << VERSION_PATCH << ")\n\n"
+            << "NOTE: Beta versions may have unexpected bugs and issues.\n\n"
 #else
-      << "Loaded beta version " << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_REVISION << " (Release)"
+            << "Loaded beta version " << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_REVISION
+            << " (Release)"
 #endif
 
-      << "\n\nPlease see https://github.com/netniv/stfc-mod for latest configuration help, examples and future releases\n"
-      << "or visit the STFC Community Mod discord server at https://discord.gg/PrpHgs7Vjs\n\n";
+            << "\n\nPlease see https://github.com/netniv/stfc-mod for latest configuration help, examples and future "
+               "releases\n"
+            << "or visit the STFC Community Mod discord server at https://discord.gg/PrpHgs7Vjs\n\n";
 }

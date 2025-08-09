@@ -157,13 +157,12 @@ std::wstring File::Title()
 }
 
 #if !_WIN32
-std::u8string File::MakePath(std::string_view filename, bool create_dir)
+std::u8string File::MakePath(std::string_view filename, bool create_dir, bool old_path)
 {
-  auto ApplicationSupportPath =
-      (char*)fm::FolderManager::pathForDirectory(fm::NSApplicationSupportDirectory, fm::NSUserDomainMask);
-  auto LibraryPath = (char*)fm::FolderManager::pathForDirectory(fm::NSLibraryDirectory, fm::NSUserDomainMask);
-
-  const auto config_dir = std::filesystem::path(LibraryPath) / "Preferences" / "com.stfcmod.startrekpatch";
+  const std::filesystem::path libraryPath =
+      fm::FolderManager::pathForDirectory(fm::NSLibraryDirectory, fm::NSUserDomainMask);
+  const auto packageName = old_path ? "com.tashcan.startrekpatch" : "com.stfcmod.startrekpatch";
+  const auto config_dir  = libraryPath / "Preferences" / packageName;
 
   if (create_dir) {
     std::error_code ec;
@@ -173,7 +172,7 @@ std::u8string File::MakePath(std::string_view filename, bool create_dir)
   return config_path.u8string();
 }
 #else
-std::string_view File::MakePath(std::string_view filename, bool create_dir)
+std::string_view File::MakePath(std::string_view filename, bool create_dir, bool old_path)
 {
   return filename;
 }
