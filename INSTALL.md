@@ -100,12 +100,10 @@ bar at the top and pressing Ctrl+V or right-click and paste.
 
 ### Mac Specific
 
-Apple likes to hide the preferences folder by default.  There are several ways to open the correct folder:
+Apple likes to hide the `Library` folder by default. There are several ways to open the correct folder:
 
-- Hold the Option key (or Alt on a PC keyboard) and click the Go to menu item and it’ll show you the Library folder
+- Hold the `⌥ option` key (or `Alt` on a PC keyboard) in the __Finder__ and click the __Go to__ menu item and it’ll show you the __Library__ folder
+- Press `⌘ cmd`+`⇧ shift`+`G` in the __Finder__ for the Goto box and enter `~/Library`
+- Use __Terminal__ and type: `open ~/Library`
 
-- Press Cmd+Shift+G in the Finder for the Goto box and enter `~/Library/Preferences/com.stfcmod.startrekpatch`
-
-- Use terminal and type: `open ~/Library/Preferences/com.tashcan.startrekpatch`
-
-Once you have the correct folder, you should find the file `community_patch_settings.toml` if you have run the mod at least once. See the [example_community_patch_settings.toml](example_community_patch_settings.toml) as a starting point.
+Once you have the correct folder, you should find the file `community_patch_settings.toml` if you have run the mod at least once. See the [`example_community_patch_settings.toml`](example_community_patch_settings.toml) as a starting point.
