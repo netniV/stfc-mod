@@ -544,8 +544,9 @@ void Config::Load()
     parse_config_shortcut(config, parsed, "move_up", GameFunction::MoveUp, "UP|W");
   }
 
-  parse_config_shortcut(config, parsed, "hotkeys_disble", GameFunction::DisableHotKeys, "CTRL-ALT-MINUS");
-  parse_config_shortcut(config, parsed, "hotkeys_enable", GameFunction::EnableHotKeys, "CTRL-ALT-=");
+  parse_config_shortcut(config, parsed, "action_hotkeys_disble", GameFunction::DisableHotKeys, "CTRL-ALT-MINUS");
+  parse_config_shortcut(config, parsed, "action_hotkeys_enable", GameFunction::EnableHotKeys, "CTRL-ALT-=");
+
   parse_config_shortcut(config, parsed, "select_chatalliance", GameFunction::SelectChatAlliance, "CTRL-2");
   parse_config_shortcut(config, parsed, "select_chatglobal", GameFunction::SelectChatGlobal, "CTRL-1");
   parse_config_shortcut(config, parsed, "select_chatprivate", GameFunction::SelectChatPrivate, "CTRL-3");
@@ -591,10 +592,28 @@ void Config::Load()
   parse_config_shortcut(config, parsed, "log_debug", GameFunction::LogLevelDebug, "F9");
   parse_config_shortcut(config, parsed, "log_trace", GameFunction::LogLevelTrace, "SHIFT-F9");
   parse_config_shortcut(config, parsed, "log_info", GameFunction::LogLevelInfo, "F11");
+  parse_config_shortcut(config, parsed, "show_awayteam", GameFunction::ShowAwayTeam, "SHIFT-T");
+  parse_config_shortcut(config, parsed, "show_gifts", GameFunction::ShowGifts, "/");
+
+  parse_config_shortcut(config, parsed, "show_artifacts", GameFunction::ShowArtifacts, "SHIFT-I");
+  parse_config_shortcut(config, parsed, "show_commander", GameFunction::ShowCommander, "O");
+  parse_config_shortcut(config, parsed, "show_daily", GameFunction::ShowDaily, "Z");
+  parse_config_shortcut(config, parsed, "show_events", GameFunction::ShowEvents, "T");
+  parse_config_shortcut(config, parsed, "show_exocomp", GameFunction::ShowExoComp, "X");
+  parse_config_shortcut(config, parsed, "show_factions", GameFunction::ShowFactions, "F");
+  parse_config_shortcut(config, parsed, "show_inventory", GameFunction::ShowInventory, "I");
+  parse_config_shortcut(config, parsed, "show_missions", GameFunction::ShowMissions, "M");
+  parse_config_shortcut(config, parsed, "show_research", GameFunction::ShowResearch, "U");
+  parse_config_shortcut(config, parsed, "show_officers", GameFunction::ShowOfficers, "SHIFT-O");
+  parse_config_shortcut(config, parsed, "show_qtrials", GameFunction::ShowQTrials, "SHIFT-Q");
+  parse_config_shortcut(config, parsed, "show_refinery", GameFunction::ShowRefinery, "SHIFT-F");
+  parse_config_shortcut(config, parsed, "show_ships", GameFunction::ShowShips, "N");
+  parse_config_shortcut(config, parsed, "show_stationexterior", GameFunction::ShoWStationExterior, "SHIFT-G");
+  parse_config_shortcut(config, parsed, "show_stationinterior", GameFunction::ShowStationInterior, "SHIFT-H");
+
+  parse_config_shortcut(config, parsed, "toggle_queue", GameFunction::ToggleQueue, "CTRL-Q");
 
   if (this->hotkeys_extended) {
-    parse_config_shortcut(config, parsed, "show_awayteam", GameFunction::ShowAwayTeam, "SHIFT-T");
-    parse_config_shortcut(config, parsed, "show_gifts", GameFunction::ShowGifts, "/");
     parse_config_shortcut(config, parsed, "show_alliance", GameFunction::ShowAlliance, "\\");
 
     if (this->enable_experimental) {
@@ -608,21 +627,6 @@ void Config::Load()
       parse_config_shortcut(config, parsed, "show_lookup", GameFunction::ShowLookup, "L");
     }
 
-    parse_config_shortcut(config, parsed, "show_artifacts", GameFunction::ShowArtifacts, "SHIFT-I");
-    parse_config_shortcut(config, parsed, "show_commander", GameFunction::ShowCommander, "O");
-    parse_config_shortcut(config, parsed, "show_daily", GameFunction::ShowDaily, "Z");
-    parse_config_shortcut(config, parsed, "show_events", GameFunction::ShowEvents, "T");
-    parse_config_shortcut(config, parsed, "show_exocomp", GameFunction::ShowExoComp, "X");
-    parse_config_shortcut(config, parsed, "show_factions", GameFunction::ShowFactions, "F");
-    parse_config_shortcut(config, parsed, "show_inventory", GameFunction::ShowInventory, "I");
-    parse_config_shortcut(config, parsed, "show_missions", GameFunction::ShowMissions, "M");
-    parse_config_shortcut(config, parsed, "show_research", GameFunction::ShowResearch, "U");
-    parse_config_shortcut(config, parsed, "show_officers", GameFunction::ShowOfficers, "SHIFT-O");
-    parse_config_shortcut(config, parsed, "show_qtrials", GameFunction::ShowQTrials, "SHIFT-Q");
-    parse_config_shortcut(config, parsed, "show_refinery", GameFunction::ShowRefinery, "SHIFT-F");
-    parse_config_shortcut(config, parsed, "show_ships", GameFunction::ShowShips, "N");
-    parse_config_shortcut(config, parsed, "show_stationexterior", GameFunction::ShoWStationExterior, "SHIFT-G");
-    parse_config_shortcut(config, parsed, "show_stationinterior", GameFunction::ShowStationInterior, "SHIFT-H");
     parse_config_shortcut(config, parsed, "set_zoom_preset1", GameFunction::SetZoomPreset1, "SHIFT-F1");
     parse_config_shortcut(config, parsed, "set_zoom_preset2", GameFunction::SetZoomPreset2, "SHIFT-F2");
     parse_config_shortcut(config, parsed, "set_zoom_preset3", GameFunction::SetZoomPreset3, "SHIFT-F3");
@@ -636,7 +640,6 @@ void Config::Load()
     parse_config_shortcut(config, parsed, "toggle_cargo_station", GameFunction::ToggleCargoStation, "ALT-3");
     parse_config_shortcut(config, parsed, "toggle_cargo_hostile", GameFunction::ToggleCargoHostile, "ALT-4");
     parse_config_shortcut(config, parsed, "toggle_cargo_armada", GameFunction::ToggleCargoArmada, "ALT-5");
-    parse_config_shortcut(config, parsed, "toggle_queue", GameFunction::ToggleQueue, "CTRL-Q");
   }
 
   if (!std::filesystem::exists(File::MakePath(File::Config()))) {
@@ -644,7 +647,7 @@ void Config::Load()
     message << "Creating " << File::Config() << " (default config file)";
     spdlog::warn(message.str());
 
-    Config::Save(config, File::Config(), false);
+    Config::Save(parsed, File::Config(), false);
   }
 
   message.str("");
