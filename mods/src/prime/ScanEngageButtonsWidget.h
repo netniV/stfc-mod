@@ -13,7 +13,7 @@ public:
   void OnArmadaButtonClicked()
   {
     static auto OnArmadaButtonClicked =
-        get_class_helper().GetMethod<void(ScanEngageButtonsWidget*)>("OnEngageButtonClicked");
+        get_class_helper().GetMethod<void(ScanEngageButtonsWidget*)>("OnArmadaButtonClicked");
     OnArmadaButtonClicked(this);
   }
   void OnEngageButtonClicked()

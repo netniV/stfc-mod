@@ -10,13 +10,22 @@
 
 struct PreScanTargetWidget : public ObjectViewerBaseWidget<PreScanTargetWidget> {
 public:
-  __declspec(property(get = __get__battleTargetData)) BattleTargetData* _battleTargetData;
+  __declspec(property(get = __get__battleTargetData)) BattleTargetData*               _battleTargetData;
   __declspec(property(get = __get__scanEngageButtonsWidget)) ScanEngageButtonsWidget* _scanEngageButtonsWidget;
-  __declspec(property(get = __get__rewardsButtonWidget)) RewardsButtonWidget* _rewardsButtonWidget;
-  __declspec(property(get = __get__addToQueueButtonWidget)) GenericButtonWidget* _addToQueueButtonWidget;
+  __declspec(property(get = __get__rewardsButtonWidget)) RewardsButtonWidget*         _rewardsButtonWidget;
+  __declspec(property(get = __get__addToQueueButtonWidget)) GenericButtonWidget*      _addToQueueButtonWidget;
+  __declspec(property(get = __get__armadaAttackButton)) GenericButtonWidget*          _armadaAttackButton;
 
-  void OnAddToQueueClickedEventHandler() {
-    static auto OnAddToQueueClickedEventHandlerMethod = get_class_helper().GetMethod<void(Widget*)>("OnAddToQueueClickedEventHandler");
+  void ValidateThenCreateArmada()
+  {
+    static auto method = get_class_helper().GetMethod<void(Widget*)>("ValidateThenCreateArmada");
+    method(this);
+  }
+
+  void OnAddToQueueClickedEventHandler()
+  {
+    static auto OnAddToQueueClickedEventHandlerMethod =
+        get_class_helper().GetMethod<void(Widget*)>("OnAddToQueueClickedEventHandler");
     OnAddToQueueClickedEventHandlerMethod(this);
   }
 
@@ -30,7 +39,7 @@ private:
   friend class ObjectFinder<PreScanTargetWidget>;
   friend class ObjectViewerBaseWidget<PreScanTargetWidget>;
 
- public:
+public:
   static IL2CppClassHelper& get_class_helper()
   {
     static auto class_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Combat", "PreScanTargetWidget");
@@ -47,6 +56,12 @@ public:
   GenericButtonWidget* __get__addToQueueButtonWidget()
   {
     static auto field = get_class_helper().GetField("_addToQueueButtonWidget").offset();
+    return *(GenericButtonWidget**)((char*)this + field);
+  }
+
+  GenericButtonWidget* __get__armadaAttackButton()
+  {
+    static auto field = get_class_helper().GetField("_armadaAttackButton").offset();
     return *(GenericButtonWidget**)((char*)this + field);
   }
 

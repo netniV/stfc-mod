@@ -608,8 +608,6 @@ void ExecuteSpaceAction(FleetBarViewController* fleet_bar)
           auto context = pre_scan_widget->_scanEngageButtonsWidget->Context;
           auto type    = GetHullTypeFromBattleTarget(context);
 
-          // Try once more in X frames if we get ANY
-          // in-case of failed to navgitate error?
           if (type != HullType::ArmadaTarget && (type != HullType::Any || force_space_action_next_frame)) {
             if (pre_scan_widget->_addToQueueButtonWidget->isActiveAndEnabled) {
               auto listener = pre_scan_widget->_addToQueueButtonWidget->SemaphoreListener;
@@ -641,8 +639,44 @@ void ExecuteSpaceAction(FleetBarViewController* fleet_bar)
 
           // Try once more in X frames if we get ANY
           // in-case of failed to navgitate error?
-          if (type != HullType::ArmadaTarget && (type != HullType::Any || force_space_action_next_frame)) {
-            pre_scan_widget->_scanEngageButtonsWidget->OnEngageButtonClicked();
+          auto armada_widget = ObjectFinder<ArmadaObjectViewerWidget>::Get();
+          auto armada_state  = VisibilityState::Unknown;
+
+          if (armada_widget) {
+            if (armada_widget->_visibilityController) {
+              armada_state = armada_widget->_visibilityController->State;
+            } else {
+              spdlog::warn("ArmadaWidget has no visibility controller, using default Visible state");
+              armada_state = VisibilityState::Visible;
+            }
+          }
+
+          auto canActionPrimary = type != HullType::Any;
+          if (type == HullType::ArmadaTarget
+              && (armada_state == VisibilityState::Visible || armada_state == VisibilityState::Show)) {
+            canActionPrimary = false;
+          } else if (force_space_action_next_frame) {
+            canActionPrimary = true;
+          }
+
+          // Try once more in X frames if we get ANY
+          // in-case of failed to navgitate error?
+          if (canActionPrimary) {
+            if (type == HullType::ArmadaTarget) {
+              if (pre_scan_widget->_armadaAttackButton && pre_scan_widget->_armadaAttackButton->isActiveAndEnabled) {
+                auto listener = pre_scan_widget->_armadaAttackButton->SemaphoreListener;
+                if (listener) {
+                  auto button = listener->TheButton;
+                  if (button) {
+                    button->Press();
+                  }
+                }
+                return;
+              }
+              pre_scan_widget->_scanEngageButtonsWidget->OnArmadaButtonClicked();
+            } else {
+              pre_scan_widget->_scanEngageButtonsWidget->OnEngageButtonClicked();
+            }
             return;
           } else if (type == HullType::Any) {
             force_space_action_next_frame = true;
@@ -678,17 +712,22 @@ void ExecuteSpaceAction(FleetBarViewController* fleet_bar)
       if (armada_widget) {
         if (armada_widget->_visibilityController) {
           armada_state = armada_widget->_visibilityController->State;
+        } else {
+          spdlog::warn("ArmadaWidget has no visibility controller, using default Visible state");
+          armada_state = VisibilityState::Visible;
         }
       }
 
-      spdlog::trace("have armada? {}, State {}", (armada_widget ? "Yes" : "No"), (int)armada_state);
+      spdlog::info("have armada? {}, State {}", (armada_widget ? "Yes" : "No"), (int)armada_state);
       if (armada_widget && (armada_state == VisibilityState::Visible || armada_state == VisibilityState::Show)) {
         auto button = armada_widget->__get__joinContext();
         if (button && button->Interactable) {
           armada_widget->ValidateThenJoinArmada();
+          return;
         }
       } else {
         navigation_ui_controller->OnSetCourseButtonClick();
+        return;
       }
     } else if (has_recall && DidExecuteRecall(fleet_bar)) {
       return;
