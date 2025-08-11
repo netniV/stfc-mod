@@ -2,6 +2,8 @@ set_project("stfc-community-patch")
 
 set_languages("c++20")
 
+set_runtimes("MT") -- Set the default build to multi-threaded static
+
 add_requires("eastl")
 add_requires("spdlog")
 add_requires("toml++")
