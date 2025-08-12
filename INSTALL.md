@@ -27,7 +27,7 @@ Note: There is no difference between the versioned and unversioned zip files, th
 
 ### Windows
 
-1) Download `stfc-community-patch.zip` file from a github release and extract the `version.dll` file.
+1) Download the `stfc-community-patch.zip` file from a github release and extract the `version.dll` file.
 
 2) The default folder for both the game and the settings file is
 `C:\Games\Star Trek Fleet Command\Star Trek Fleet Command\default\game`
