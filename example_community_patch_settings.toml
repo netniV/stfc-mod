@@ -85,13 +85,13 @@ action_secondary = 'TAB|MOUSE2'
 # Toggle rewards view
 action_view = 'V'
 
-# Toggle Kir'Shira queue
+# Toggle Kir'Shara queue
 toggle_queue = "CTRL-Q"
 
-# Add to Kir'Shira queue
+# Add to Kir'Shara queue
 action_queue = "SPACE|MOUSE1"
 
-# Clear Kir'Shira queue
+# Clear Kir'Shara queue
 action_queue_clear = "CTRL-C"
 
 # Disable all hotkeys when using mod hotkeys
@@ -215,6 +215,9 @@ show_refinery = 'SHIFT-F'
 
 # Go to the Research screen
 show_research = 'U'
+
+" Go to the Scrap Yard screen
+show_scrapyard = 'Y'
 
 # Go to the manage ship view
 show_ships = 'N'

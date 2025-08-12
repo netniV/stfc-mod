@@ -61,16 +61,17 @@ SHIFT-PGUP | UI Viewer Scale Up
 SHIFT-PGDOWN | UI Viewer Scale Down
 
 ### Combat/Navigation shorcuts
+
 Key | Shortcut
 --: | ---
 SPACE or MOUSE1 | Perform default action (MOUSE1 = right mouse click)
-SPACE or MOUSE1 | Add to Kir'Shira queue (if owned) and already attacking
+SPACE or MOUSE1 | Add to Kir'Shara queue (if owned) and already attacking
 1-8 | Ship select/focus
 R | When ship selected, recall ship
 R | When clicking on mine/player/enemy, perform non-default action (eg, scan)
 V | When clicking on mine/player/enemy, toggle view of cargo or default screen
-CTRL-Q | Enable/Disable Kir'Shira queue (if owned)
-CTRL-C | Clear Kir'Shira queue (if owned)
+CTRL-Q | Enable/Disable Kir'Shara queue (if owned)
+CTRL-C | Clear Kir'Shara queue (if owned)
 
 NOTE: There are some common changes made to allow both mouse and keyboard to
 action items such as:
@@ -90,12 +91,13 @@ T | Events
 G | Galaxy
 H | System
 Shift-G | Exterior View
-Shfit-H | Interior View
+Shift-H | Interior View
 B | Bookmarks
 F | Factions
 Shift-F | Refinery
 Shift-I | Artifact Gallery
 U | Research
+Y | Scrap Yard
 I | Inventory
 M | Active Missions
 O | Command Center
@@ -109,7 +111,7 @@ Z | Daily Missions
 
 Please see the [INSTALL.md](INSTALL.md) instructions which has steps on how to use this mod with Star Trek Fleet Command.
 
-Please note, that whilst Mac support was added in this version, it's supported on an as-is basis due to lack of Mac development environemnts.
+Please note, that whilst Mac support was added in this version, it's supported on an as-is basis due to lack of Mac development environments.
 
 ## Contributing / Building
 
@@ -127,7 +129,7 @@ Tashcan has now retired all things STFC from [Ripper's Corner](https://discord.g
 
 ## Disclaimer
 
-This is intended to give people insight and possiblity to add new things for QoL improvements.
+This is intended to give people insight and possibility to add new things for QoL improvements.
 
 There is no guarantee or promise that using this for features outside of what is officially offered via this repository will not result actions against your account.
 

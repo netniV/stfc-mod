@@ -14,12 +14,13 @@
 ## 0.6.1
 
 ### Features
+
 - Added support for macOS
 - Added maximum donation for alliance sliders
 - Added `ui_scale_viewer` to scale the size of object viewers
 - Added `select_current` hotkey to locate currently selected ship in dock
 - Added `UiViewerScaleUp` and `UiViewerScaleDown` hotkeys to scale `ui_scale_viewer` in game
-- Added `toggle_queue`, `action_queue` and `action_queue_cancel` for Kir'Shira artifact handling
+- Added `toggle_queue`, `action_queue` and `action_queue_cancel` for Kir'Shara artifact handling
 - Added `action_quit` for instant game exit
 - Added prefix to title when using `-ccm` command line option to show which is being used [windows only]
 - Added `select_timer` to adjust period in which double tap ship selection works [default 500ms]
@@ -30,15 +31,19 @@
   - include missions
   - include officer shard counts
   - better handle battlelogs
+- Added new key mappings:
+  - Y: Show Scrap Yard (`show_scrapyard`)
 
-### Fixes:
+### Fixes
+
 - Fixed `ui_scale` or `ui_scale_viewer` so when set to 0.0f disable those scaling features
 - Fixed `zoom_min` and `zoom_max` no longer set default system zoom (only presets can)
 - Fixed numerous method hooks to report when they are not found rather than crash
 - Fixed issue where a widget may not have a visibility controller for some reason causing a crash
 - Fixed warp cancellation so it works again
 
-### Dev stuff:
+### Dev stuff
+
 - Switch to xmake
 - log names of log, configuration, vars and battlelog files
 - update github source to netniV's repo

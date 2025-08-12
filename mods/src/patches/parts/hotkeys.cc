@@ -267,6 +267,8 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
         return GotoSection(SectionID::Missions_AcceptedList);
       } else if (MapKey::IsDown(GameFunction::ShowResearch)) {
         return GotoSection(SectionID::Research_LandingPage);
+      } else if (MapKey::IsDown(GameFunction::ShowScrapYard)) {
+        return GotoSection(SectionID::ShipScrapping_List);
       } else if (MapKey::IsDown(GameFunction::ShowOfficers)) {
         return GotoSection(SectionID::OfficerInventory);
       } else if (MapKey::IsDown(GameFunction::ShowCommander)) {

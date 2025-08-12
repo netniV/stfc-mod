@@ -600,6 +600,7 @@ void Config::Load()
   parse_config_shortcut(config, parsed, "show_inventory", GameFunction::ShowInventory, "I");
   parse_config_shortcut(config, parsed, "show_missions", GameFunction::ShowMissions, "M");
   parse_config_shortcut(config, parsed, "show_research", GameFunction::ShowResearch, "U");
+  parse_config_shortcut(config, parsed, "show_scrapyard", GameFunction::ShowScrapYard, "Y");
   parse_config_shortcut(config, parsed, "show_officers", GameFunction::ShowOfficers, "SHIFT-O");
   parse_config_shortcut(config, parsed, "show_qtrials", GameFunction::ShowQTrials, "SHIFT-Q");
   parse_config_shortcut(config, parsed, "show_refinery", GameFunction::ShowRefinery, "SHIFT-F");
