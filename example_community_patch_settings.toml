@@ -216,7 +216,7 @@ show_refinery = 'SHIFT-F'
 # Go to the Research screen
 show_research = 'U'
 
-" Go to the Scrap Yard screen
+# Go to the Scrap Yard screen
 show_scrapyard = 'Y'
 
 # Go to the manage ship view
