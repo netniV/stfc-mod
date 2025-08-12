@@ -66,8 +66,11 @@ struct ActionView: View, XSollaUpdaterDelegate {
         GridRow {
           if gameInstalled {
             Button {
+              withAnimation {
+                openSettings()
+              }
             } label: {
-              commonButton()
+              commonButton(text: "Open Settings")
                 .foregroundColor(.lcarViolet)
             }.buttonStyle(PlainButtonStyle())
             Button {
@@ -176,6 +179,21 @@ struct ActionView: View, XSollaUpdaterDelegate {
     (1...count)
       .map { _ in "\(Int.random(in: 0...9))" }
       .joined()
+  }
+
+  private func openSettings() {
+    let library = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask).first
+    if let library {
+      let preferences = library.appendingPathComponent("Preferences").appendingPathComponent(
+        "com.stfcmod.startrekpatch")
+      let settingsTomlPath = preferences.appendingPathComponent("community_patch_settings.toml")
+      if !FileManager.default.fileExists(atPath: settingsTomlPath.path) {
+        do {
+          try "".write(to: settingsTomlPath, atomically: true, encoding: .utf8)
+        } catch {}
+      }
+      NSWorkspace.shared.open(settingsTomlPath)
+    }
   }
 
   private func launchGame() {
