@@ -27,25 +27,26 @@ Note: There is no difference between the versioned and unversioned zip files, th
 
 ### Windows
 
-The default folder for both the game and the settings file is
+1) Download `stfc-community-patch.zip` file from a github release and extract the `version.dll` file.
+
+2) The default folder for both the game and the settings file is
 `C:\Games\Star Trek Fleet Command\Star Trek Fleet Command\default\game`
 (if this folder isn't present, see the [windows-specific](#windows-specific) section below.)  Open this folder in Explorer.
 
-Place the `version.dll` file from the downloaded .zip file in this folder.
+3) Place the `version.dll` file from the downloaded .zip file in this folder.
 
-If installing the mod for the first time, save the
+4) If installing the mod for the first time, save the
 [sample configuration file](example_community_patch_settings.toml)
 to this folder __and rename it__ to `community_patch_settings.toml`.
 
 ### Mac
 
-Open the downloaded .dmg file, then drag and drop the launcher to your Applications folder.
-This launcher will be used to start the game any time you want to have the mod loaded.
+1) Download the `stfc-community-patch-installer.dmg` file from a github release, then open it and drag and drop the launcher to your Applications folder.  This launcher will be used to start the game any time you want to have the mod loaded.
 
-The patch settings are stored in `~/Library/Preferences/com.stfcmod.startrekpatch`. If installing the mod for the first time, save the [sample configuration file](example_community_patch_settings.toml)
+2) The patch settings are stored in `~/Library/Preferences/com.stfcmod.startrekpatch`. If installing the mod for the first time, save the [sample configuration file](example_community_patch_settings.toml)
 to this folder __and rename it__ to `community_patch_settings.toml` (if your Library folder is not visible, see the [mac-specific](#mac-specific) section below).
 
-The STFC game itself is located in the `~/Library/Application Support/Star Trek Fleet Command/Games/Star Trek Fleet Command/Star Trek Fleet Command/default/game/` folder.  You should only need to access this folder if you need to view the `community_patch.log` file.
+The STFC game itself is located in the `~/Library/Application Support/Star Trek Fleet Command/Games/Star Trek Fleet Command/STFC/default/game` folder.  You should only need to access this folder if you need to view the `community_patch.log` file.
 
 ### Wine/Linux
 
