@@ -9,6 +9,7 @@ add_requires("spdlog")
 add_requires("toml++")
 add_requires("nlohmann_json")
 add_requires("libcurl", { configs = { zlib = true } })
+add_requires("boost", { configs = { url = true } })
 add_requires("protobuf-cpp")
 
 if is_plat("windows") then

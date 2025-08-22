@@ -14,6 +14,7 @@ struct System_Byte_array {
 struct ByteString {
 public:
   __declspec(property(get = __get_bytes)) System_Byte_array* bytes;
+  __declspec(property(get = __get_Length)) int32_t           Length;
 
 private:
   static IL2CppClassHelper& get_class_helper()
@@ -27,6 +28,12 @@ public:
   {
     static auto field = get_class_helper().GetField("bytes");
     return *(System_Byte_array**)((ptrdiff_t)this + field.offset());
+  }
+
+  int32_t __get_Length()
+  {
+    static auto prop = get_class_helper().GetProperty("Length");
+    return *prop.Get<int32_t>(this);
   }
 };
 
@@ -180,6 +187,36 @@ public:
     ForbiddenTechConfig               = 145, // 0x00000091
     ChallengeConfig                   = 146, // 0x00000092
     ForbiddenTechUpgradeCosts         = 147, // 0x00000093
+	HazardSpecs                       = 148, // 0x00000094
+    ActivatedShipAbilitiesConfigs     = 149, // 0x00000095
+    WaveDefenseStaticData             = 150, // 0x00000096
+    WaveDefensePartyData              = 151, // 0x00000097
+    WaveDefenseSyncData               = 152, // 0x00000098
+    WaveDefenseChallengeData          = 153, // 0x00000099
+    UserProfileSettings               = 154, // 0x0000009A
+    ActiveWormholes                   = 155, // 0x0000009B
+    MirrorUniversePortalData          = 156, // 0x0000009C
+    MirrorUniverseDuration            = 157, // 0x0000009D
+    CheckAccountResponse              = 158, // 0x0000009E
+    AllianceLoyaltyStaticData         = 159, // 0x0000009F
+    AllianceGetGameProperties         = 160, // 0x000000A0
+    LoyaltyTierRewards                = 161, // 0x000000A1
+    GameActivityRanksData             = 162, // 0x000000A2
+    GameActivity                      = 163, // 0x000000A3
+    GameActivitySpecs                 = 164, // 0x000000A4
+    GameActivityParticipantSpecs      = 165, // 0x000000A5
+    GameActivityDetailedSpec          = 166, // 0x000000A6
+    GameActivityScheduleSpec          = 167, // 0x000000A7
+    AllianceParties                   = 168, // 0x000000A8
+    PlayerParty                       = 169, // 0x000000A9
+    Party                             = 200, // 0x000000C8
+    CreatedParty                      = 201, // 0x000000C9
+    PartySpecs                        = 202, // 0x000000CA
+    ResourceAutoConvertSpecs          = 203, // 0x000000CB
+    VisitedSystems                    = 204, // 0x000000CC
+	AllianceTagSpecs 				  = 207, // 0x000000CF
+	GameActivityRewardsSpec 		  = 208, // 0x000000D0
+	GameActivityIndex 			      = 209, // 0x000000D1
   };
 
   __declspec(property(get = __get_Type)) Type Type_;

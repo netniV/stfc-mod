@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <string>
 #include <vector>
 
 #include <toml++/toml.h>
@@ -9,25 +10,56 @@
 #include <Windows.h>
 #endif
 
-class Config
+
+struct sync_config
+{
+  std::string proxy;
+
+  bool battlelogs = false;
+  bool buffs      = false;
+  bool buildings  = false;
+  bool inventory  = false;
+  bool jobs       = false;
+  bool missions   = false;
+  bool officer    = false;
+  bool research   = false;
+  bool resources  = false;
+  bool ships      = false;
+  bool slots      = false;
+  bool tech       = false;
+  bool traits     = false;
+};
+
+struct sync_target_config : sync_config
+{
+  std::string url;
+  std::string token;
+};
+
+class Config final
 {
 public:
   Config();
 
-  static Config& Get();
-  static float   GetDPI();
-  static float   RefreshDPI();
+  [[nodiscard]] static Config& Get();
+  [[nodiscard]] static float   GetDPI();
+  [[nodiscard]] static float   RefreshDPI();
 
 #ifdef _WIN32
-  static HWND WindowHandle();
+  [[nodiscard]] static HWND WindowHandle();
 #endif
 
-  static void Save(toml::table config, std::string_view filename, bool apply_warning = true);
+  static void Save(const toml::table& config, std::string_view filename, bool apply_warning = true);
   void        Load();
   void        AdjustUiScale(bool scaleUp);
   void        AdjustUiViewerScale(bool scaleUp);
 
-public:
+  // Disallow copying/moving to enforce singleton
+  Config(const Config&) = delete;
+  Config& operator=(const Config&) = delete;
+  Config(Config&&) = delete;
+  Config& operator=(Config&&) = delete;
+
   float ui_scale;
   float ui_scale_adjust;
   float ui_scale_viewer;
@@ -79,22 +111,11 @@ public:
 
   bool always_skip_reveal_sequence;
 
-  std::map<std::string, std::string> sync_targets;
-
-  std::string sync_proxy;
-  std::string sync_file;
-
-  bool sync_debug;
+  sync_config sync_defaults;
   bool sync_logging;
-  bool sync_resources;
-  bool sync_battlelogs;
-  bool sync_officer;
-  bool sync_missions;
-  bool sync_research;
-  bool sync_tech;
-  bool sync_traits;
-  bool sync_buildings;
-  bool sync_ships;
+  bool sync_debug;
+
+  std::map<std::string, sync_target_config> sync_targets;
 
   bool installUiScaleHooks;
   bool installZoomHooks;

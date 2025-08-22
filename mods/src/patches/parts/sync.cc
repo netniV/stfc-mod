@@ -8,8 +8,6 @@
 #include <Digit.PrimeServer.Models.pb.h>
 #include <prime/EntityGroup.h>
 #include <prime/HttpResponse.h>
-#include <prime/Hub.h>
-#include <prime/LanguageManager.h>
 #include <prime/ServiceResponse.h>
 #include <str_utils.h>
 
@@ -23,13 +21,18 @@
 #if _WIN32
 #include <winrt/Windows.Foundation.h>
 #include <winrt/Windows.Web.Http.Headers.h>
+#include <rpc.h>
+#else
+#include <uuid/uuid.h>
 #endif
 
 #include <curl/curl.h>
+#include <boost/url.hpp>
 
 #include <condition_variable>
 #include <format>
 #include <fstream>
+#include <future>
 #include <ostream>
 #include <queue>
 #include <string>
@@ -41,8 +44,19 @@
 namespace http
 {
 
+namespace headers
+{
+  static std::string gameServerUrl;
+  static std::string instanceSessionId;
+  static int32_t     instanceId;
+  static std::string unityVersion{"2021.3.44f1"};
+  static std::string primeVersion{"1.000.44068"};
+  static std::string apiKey{"meh"};
+  static constexpr char poweredBy[] = "stfc community patch " VER_FILE_VERSION_STR " (libcurl/" LIBCURL_VERSION ")";
+} // namespace headers
+
 struct CURLClient {
-  CURLClient(CURL* handle)
+  explicit CURLClient(CURL* handle)
       : handle_(handle)
   {
   }
@@ -61,16 +75,6 @@ private:
   CURL* handle_;
 };
 
-#ifdef WIN32
-#include <Rpc.h>
-#else
-#include <uuid/uuid.h>
-#endif
-
-static std::wstring instanceSessionId;
-static std::wstring gameServerUrl;
-static int32_t      instanceId;
-
 static std::string newUUID()
 {
 #ifdef WIN32
@@ -80,7 +84,7 @@ static std::string newUUID()
   unsigned char* str;
   UuidToStringA(&uuid, &str);
 
-  std::string s((char*)str);
+  std::string s(reinterpret_cast<char*>(str));
 
   RpcStringFreeA(&str);
 #else
@@ -120,8 +124,8 @@ static void sync_log_debug(std::string type, std::string text)
   }
 }
 
-static struct curl_slist* sync_slist_append(std::string type, struct curl_slist* list, std::string header,
-                                            std::string data, bool mask = false)
+static struct curl_slist* sync_slist_append(const std::string &type, struct curl_slist* list, const std::string& header,
+                                            const std::string& data, const bool mask = false)
 {
   auto combined = header + ": " + data;
   if (Config::Get().sync_logging) {
@@ -139,20 +143,23 @@ static struct curl_slist* sync_slist_append(std::string type, struct curl_slist*
   return curl_slist_append(list, combined.c_str());
 }
 
-static void process_curl_response(std::string type, std::string label, long code, bool throw_error = false)
+static void process_curl_response(const std::string& type, const std::string& label, const long code,
+                                  const bool throw_error = false)
 {
   if (code != CURLE_OK) {
-    auto text = "Failed to " + label + " - Code " + std::to_string((long)code);
-    text      = text;
-
+    const auto text = "Failed to " + label + " - Code " + std::to_string(code);
     sync_log_warn(type, text);
+
     if (throw_error) {
-      throw std::runtime_error("Failed to " + label);
+      throw std::runtime_error(text);
     }
   }
 }
 
-static CURL* sync_init(std::string type, std::string url)
+static const std::string CURL_TYPE_UPLOAD   = "UPLOAD";
+static const std::string CURL_TYPE_DOWNLOAD = "DOWNLOAD";
+
+static CURL* get_curl_client_sync(const std::string& target)
 {
   CURL* httpClient = curl_easy_init();
 
@@ -162,7 +169,7 @@ static CURL* sync_init(std::string type, std::string url)
     process_curl_response(type, "set verifypeer", curl_easy_setopt(httpClient, CURLOPT_SSL_VERIFYPEER, false));
   }
 
-  // Setting thee HTTP/2 TLS option doesn't esem to work right now...
+  // Setting the HTTP/2 TLS option doesn't seem to work right now...
   // process_curl_response(type, "set TLS", curl_easy_setopt(httpClient, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2TLS));
 
   process_curl_response(type, "set UserAgent", curl_easy_setopt(httpClient, CURLOPT_USERAGENT, "stfc community patch"));
@@ -178,13 +185,14 @@ static CURL* sync_init(std::string type, std::string url)
   return httpClient;
 }
 
-static const std::string CURL_TYPE_UPLOAD   = "UPLOAD";
-static const std::string CURL_TYPE_DOWNLOAD = "DOWNLOAD";
-static const std::string UNITY_VERSION      = "2020.3.18f1-digit-multiple-fixes-build";
-static const std::string PRIME_VERSION      = "1.000.33037";
-static const std::string PRIME_API_KEY      = "meh";
+static size_t curl_write_to_string(void* contents, size_t size, size_t nmemb, std::string* s)
+{
+  size_t newLength = size * nmemb;
+  s->append(static_cast<char*>(contents), newLength);
+  return newLength;
+}
 
-static void send_data(std::wstring post_data)
+static void send_data(const std::wstring& post_data)
 {
   static auto loggedUrl = false;
   if (Config::Get().sync_targets.empty()) {
@@ -200,11 +208,12 @@ static void send_data(std::wstring post_data)
       const auto& url   = sync_target.first;
       const auto& token = sync_target.second;
 
-      CURLClient httpClient(sync_init(CURL_TYPE_UPLOAD, url));
+      CURLClient httpClient(get_curl_client_sync(CURL_TYPE_UPLOAD, url));
 
-      struct curl_slist* list = NULL;
+      struct curl_slist* list = nullptr;
 
       list = sync_slist_append(CURL_TYPE_UPLOAD, list, "Content-Type", "application/json");
+      list = sync_slist_append(CURL_TYPE_UPLOAD, list, "X-Powered-By", headers::poweredBy);
 
       if (!token.empty()) {
         list = sync_slist_append(CURL_TYPE_UPLOAD, list, "stfc-sync-token", token, true);
@@ -248,61 +257,83 @@ static void send_data(std::wstring post_data)
   }
 }
 
-static size_t curl_write_to_string(void* contents, size_t size, size_t nmemb, std::string* s)
+static void send_data(const std::string& post_data)
 {
-  size_t newLength = size * nmemb;
-  s->append((char*)contents, newLength);
-  return newLength;
+  return send_data(to_wstring(post_data));
 }
 
-static std::wstring get_scopely_data(std::wstring session, std::wstring url, std::wstring path, std::wstring post_data)
+static void write_data(const std::string& file_data)
+{
+  const auto& file = Config::Get().sync_file;
+  if (file.empty()) {
+    return;
+  }
+
+  static std::mutex file_mutex;
+  std::lock_guard lock(file_mutex);
+
+  const auto& path = std::filesystem::path(file);
+  std::ofstream sync_file(path, std::ios::app);
+  if (!sync_file.is_open()) {
+    sync_log_error("FILE", "Failed to open sync_file for append: " + path.string());
+    return;
+  }
+
+  if (!file_data.empty()) {
+    sync_file << file_data << std::endl;
+  }
+
+  if (!sync_file.good()) {
+    sync_log_error("FILE", "Failed to write/flush to sync_file: " + path.string());
+  }
+}
+
+static CURL* get_curl_client_scopely()
+{
+
+}
+
+static std::wstring get_scopely_data(const std::string& path, const std::string& post_data)
 {
   static auto loggedUrl = false;
 
   if (Config::Get().sync_targets.empty() && Config::Get().sync_file.empty()) {
     if (!loggedUrl) {
       loggedUrl = true;
-      sync_log_warn(CURL_TYPE_DOWNLOAD, "Not retreiving data, no sync url or file");
+      sync_log_warn(CURL_TYPE_DOWNLOAD, "Not retrieving data, no sync url or file");
     }
     return {};
   }
 
-  std::wstring original_url = url;
-  if (url.ends_with(L"/")) {
-    url = url.substr(0, url.length() - 1);
-    url += path;
-  } else {
-    url += path;
-  }
+  boost::url url(headers::gameServerUrl);
+  url.set_path(path);
 
-  CURLClient httpClient(sync_init(CURL_TYPE_DOWNLOAD, to_string(url)));
+  CURLClient httpClient(get_curl_client_sync(url.buffer()));
+  process_curl_response(CURL_TYPE_DOWNLOAD, "set accept encoding", curl_easy_setopt(httpClient, CURLOPT_ACCEPT_ENCODING, ""));
 
-  struct curl_slist* list = NULL;
-
+  struct curl_slist* list = nullptr;
   list = sync_slist_append(CURL_TYPE_DOWNLOAD, list, "Content-Type", "application/json");
 
-  if (!session.empty()) {
-    auto session_id_header = to_string(session);
-    auto user_agent        = "UnityPlayer/" + UNITY_VERSION + " (UnityWebRequest / 1.0, libcurl / 7.75.0 - DEV)";
-
-    auto game_server_url = to_string(gameServerUrl);
-    game_server_url      = game_server_url.substr(8);
-
-    list = sync_slist_append(CURL_TYPE_DOWNLOAD, list, "Host", game_server_url.c_str());
-    list = sync_slist_append(CURL_TYPE_DOWNLOAD, list, "X-AUTH-SESSION-ID", session_id_header.c_str(), true);
-    list = sync_slist_append(CURL_TYPE_DOWNLOAD, list, "X-TRANSACTION-ID", newUUID().c_str(), true);
-    list = sync_slist_append(CURL_TYPE_DOWNLOAD, list, "X-Api-Key", PRIME_API_KEY);
-    list = sync_slist_append(CURL_TYPE_DOWNLOAD, list, "X-Unity-Version", UNITY_VERSION);
-    list = sync_slist_append(CURL_TYPE_DOWNLOAD, list, "X-PRIME-VERSION", PRIME_VERSION);
+  if (!headers::instanceSessionId.empty()) {
+    auto user_agent        = "UnityPlayer/" + headers::primeVersion + " (UnityWebRequest/1.0, libcurl/8.5.0-DEV)";
+    list = sync_slist_append(CURL_TYPE_DOWNLOAD, list, "Host", url.host());
+    list = sync_slist_append(CURL_TYPE_DOWNLOAD, list, "X-AUTH-SESSION-ID", headers::instanceSessionId, true);
+    list = sync_slist_append(CURL_TYPE_DOWNLOAD, list, "X-TRANSACTION-ID", newUUID(), true);
+    list = sync_slist_append(CURL_TYPE_DOWNLOAD, list, "X-Api-Key", headers::apiKey, true);
+    list = sync_slist_append(CURL_TYPE_DOWNLOAD, list, "X-Unity-Version", headers::unityVersion);
+    list = sync_slist_append(CURL_TYPE_DOWNLOAD, list, "X-PRIME-VERSION", headers::primeVersion);
 #if __cpp_lib_format
-    list = sync_slist_append(CURL_TYPE_DOWNLOAD, list, "X-Instance-ID", std::format("{:03}", instanceId));
+    list = sync_slist_append(CURL_TYPE_DOWNLOAD, list, "X-Instance-ID", std::format("{:03}", headers::instanceId));
 #else
     list = sync_slist_append(CURL_TYPE_DOWNLOAD, list, "X-Instance-ID", fmt::format("{:03}", instanceId));
 #endif
+    list = sync_slist_append(CURL_TYPE_DOWNLOAD, list, "User-Agent", user_agent);
     list = sync_slist_append(CURL_TYPE_DOWNLOAD, list, "X-PRIME-SYNC", "0");
     list = sync_slist_append(CURL_TYPE_DOWNLOAD, list, "X-Suppress-Codes", "1");
-    list = sync_slist_append(CURL_TYPE_DOWNLOAD, list, "User-Agent", user_agent);
+
   }
+
+  list = sync_slist_append(CURL_TYPE_DOWNLOAD, list, "X-Powered-By", "stfc community patch " VER_FILE_VERSION_STR " (libcurl/" LIBCURL_VERSION ")");
 
   if (list) {
     process_curl_response(CURL_TYPE_DOWNLOAD, "set headers", curl_easy_setopt(httpClient, CURLOPT_HTTPHEADER, list));
@@ -344,21 +375,7 @@ static std::wstring get_scopely_data(std::wstring session, std::wstring url, std
   return {};
 }
 
-static void send_data(std::string post_data)
-{
-  return send_data(to_wstring(post_data));
-}
 
-static void write_data(std::string file_data)
-{
-  if (!Config::Get().sync_file.empty()) {
-    std::ofstream sync_file;
-    sync_file.open(Config::Get().sync_file, std::ios_base::app);
-
-    sync_file << file_data << "\n\n";
-    sync_file.close();
-  }
-}
 
 } // namespace http
 
@@ -370,114 +387,126 @@ std::mutex              m2;
 std::condition_variable cv2;
 std::queue<uint64_t>    combat_log_data_queue;
 
-void queue_data(std::string data)
-{
-  if (data == "[]")
-    return;
+NLOHMANN_JSON_NAMESPACE_BEGIN
+template <typename T>
+struct adl_serializer<google::protobuf::RepeatedField<T>> {
+  static void to_json(json& j, const google::protobuf::RepeatedField<T>& proto) {
+    j = json::array();
 
+    for (const auto& v : proto) {
+      j.push_back(v);
+    }
+  }
+
+  static void from_json(const json& j, google::protobuf::RepeatedField<T>& proto) {
+    if (j.is_array()) {
+      for (const auto& v : j) {
+        proto.Add(v.get<T>());
+      }
+    }
+  }
+};
+NLOHMANN_JSON_NAMESPACE_END
+
+void queue_data(const std::string& data)
+{
   {
     std::lock_guard lk(m);
     sync_data_queue.push(data);
   }
+
   cv.notify_all();
 }
 
-void HandleEntityGroup(EntityGroup* entity_group);
-
-void MissionsDataContainer_ParseBinaryObject(auto original, void* _this, EntityGroup* group, bool isPlayerData)
-{
-  HandleEntityGroup(group);
-  return original(_this, group, isPlayerData);
-}
-
-void GameServerModelRegistry_ProcessResultInternal(auto original, void* _this, HttpResponse* http_response,
-                                                   ServiceResponse* service_response, void* callback,
-                                                   void* callback_error)
-{
-  auto entity_groups = service_response->EntityGroups;
-  for (int i = 0; i < entity_groups->Count; ++i) {
-    auto entity_group = entity_groups->get_Item(i);
-    HandleEntityGroup(entity_group);
-  }
-
-  return original(_this, http_response, service_response, callback, callback_error);
-}
-void GameServerModelRegistry_HandleBinaryObjects(auto original, void* _this, ServiceResponse* service_response)
-{
-  auto entity_groups = service_response->EntityGroups;
-  for (int i = 0; i < entity_groups->Count; ++i) {
-    auto entity_group = entity_groups->get_Item(i);
-    HandleEntityGroup(entity_group);
-  }
-
-  return original(_this, service_response);
-}
-
-struct ResourceState {
-  ResourceState(int64_t amount = -1)
-      : amount(amount)
-  {
-  }
-
-  inline operator int64_t() const
-  {
-    return amount;
-  }
-
-private:
-  int64_t amount = -1;
-};
-
 struct RankLevelState {
-  RankLevelState(int64_t a = -1, int64_t b = -1)
-      : a(a)
-      , b(b)
+  explicit RankLevelState(const int32_t r = -1, const int32_t l = -1)
+      : rank(r)
+      , level(l)
   {
   }
 
   bool operator==(const RankLevelState& other) const
   {
-    return this->a == other.a && this->b == other.b;
+    return this->rank == other.rank && this->level == other.level;
   }
 
 private:
-  int64_t a = -1;
-  int64_t b = -1;
+  int64_t rank = -1;
+  int64_t level = -1;
+};
+
+struct RankLevelShardsState {
+  explicit RankLevelShardsState(const int32_t r = -1, const int32_t l = -1, const int32_t s = -1)
+      : rank(l)
+      , level(r)
+      , shards(s)
+  {
+  }
+
+  bool operator==(const RankLevelShardsState& other) const
+  {
+    return this->rank == other.rank && this->level == other.level && this->shards == other.shards;
+  }
+
+private:
+  int32_t rank = -1;
+  int32_t level = -1;
+  int32_t shards = -1;
+};
+
+struct ShipState {
+  explicit ShipState(const int32_t t = -1, const int32_t l = -1, const double_t lp = -1.0, const std::vector<int64_t>& c = {})
+      : tier(t)
+      , level(l)
+      , level_percentage(lp)
+      , components(c)
+  {
+  }
+
+  bool operator==(const ShipState& other) const
+  {
+    return this->tier == other.tier && this->level == other.level && std::fabs(this->level_percentage - other.level_percentage) < 0.01 && this->components == other.components;
+  }
+
+private:
+  int32_t              tier = -1;
+  int32_t              level = -1;
+  double_t             level_percentage = -1.0;
+  std::vector<int64_t> components = {};
 };
 
 struct pairhash {
-public:
   template <typename T, typename U> std::size_t operator()(const std::pair<T, U>& x) const
   {
     return std::hash<T>()(x.first) ^ std::hash<U>()(x.second);
   }
 };
 
-static std::unordered_map<uint64_t, ResourceState>                               resource_states;
-static std::unordered_map<uint64_t, ResourceState>                               module_states;
-static std::unordered_map<uint64_t, RankLevelState>                              officer_states;
-static std::unordered_map<uint64_t, RankLevelState>                              ft_states;
-static std::unordered_map<std::pair<int64_t, int64_t>, RankLevelState, pairhash> trait_states;
-static std::unordered_set<int64_t>                                               mission_completed;
-static std::unordered_set<int64_t>                                               mission_active;
-static std::unordered_set<uint64_t>                                              battlelog_states;
-
 static eastl::ring_buffer<uint64_t> previously_sent_battlelogs;
-static eastl::ring_buffer<uint64_t> previously_sent_missions;
+static std::mutex                   previously_sent_battlelogs_mtx;
 
 static void load_previously_sent_logs()
 {
-  previously_sent_battlelogs.set_capacity(300);
   using json = nlohmann::json;
+  std::lock_guard lock(previously_sent_battlelogs_mtx);
+
+  previously_sent_battlelogs.set_capacity(300);
+
   try {
-    std::ifstream file(File::Battles());
-    std::string   battlelog_json;
-    file >> battlelog_json;
-    const auto battlelogs = json::parse(battlelog_json);
-    for (auto v : battlelogs) {
+    std::ifstream file(File::Battles(), std::ios::in | std::ios::binary);
+    if (!file.is_open()) {
+      spdlog::warn("Failed to open battles file (not found or not readable); starting with empty cache");
+      return;
+    }
+
+    const auto battlelogs = json::parse(file);
+    for (const auto& v : battlelogs) {
       previously_sent_battlelogs.push_back(v.get<uint64_t>());
     }
+  } catch (const std::exception& e) {
+    spdlog::error("Failed to parse battles file: {}", e.what());
   } catch (...) {
+    spdlog::error("Failed to parse battles file");
   }
 }
 
@@ -485,104 +514,191 @@ static void save_previously_sent_logs()
 {
   using json           = nlohmann::json;
   auto battlelog_array = json::array();
-  for (auto id : previously_sent_battlelogs) {
-    battlelog_array.push_back(id);
-  }
-  std::ofstream file(File::Battles());
-  file << battlelog_array.dump();
-  file.close();
-}
 
-void sync_active_missions()
-{
-  using json = nlohmann::json;
-
-  auto mission_array = json::array();
-
-  for (const auto id : mission_active) {
-    mission_array.push_back({{"type", "active_mission"}, {"mid", id}});
+  {
+    std::lock_guard lock(previously_sent_battlelogs_mtx);
+    for (auto id : previously_sent_battlelogs) {
+      battlelog_array.push_back(id);
+    }
   }
 
-  queue_data(mission_array.dump());
+  try {
+    std::ofstream file(File::Battles(), std::ios::out | std::ios::binary | std::ios::trunc);
+    if (!file.is_open()) {
+      spdlog::error("Failed to open battles file for writing");
+      return;
+    }
+
+    file << battlelog_array.dump();
+
+  } catch (const std::exception& e) {
+    spdlog::error("Failed to save battles JSON: {}", e.what());
+  } catch (...) {
+    spdlog::error( "Unknown error while saving battles JSON.");
+  }
 }
 
-void HandleEntityGroup(EntityGroup* entity_group)
+using pmsg_buff_t = std::unique_ptr<std::string>;
+
+void process_active_missions(pmsg_buff_t&& bytes)
 {
   using json = nlohmann::json;
+  static std::unordered_set<int64_t> active_mission_states;
+  static std::mutex active_mission_states_mtx;
 
-  auto mission_sync = false;
+  if (auto response = Digit::PrimeServer::Models::ActiveMissionsResponse();
+         response.ParseFromString(*bytes)) {
 
-  auto bytes = entity_group->Group;
-  auto type  = entity_group->Type_;
+    std::unordered_set<int64_t> active_missions;
+    for (const auto& mission : response.activemissions()) {
+      active_missions.insert(mission.id());
+    }
 
-  if (type == EntityGroup::Type::ActiveMissions) {
-    auto response = Digit::PrimeServer::Models::ActiveMissionsResponse();
-    if (response.ParseFromArray(bytes->bytes->m_Items, bytes->bytes->max_length)) {
-
-      for (const auto& mission : response.activemissions()) {
-        auto mission_update = !mission_active.contains(mission.id());
-        if (!mission_update) {
-          mission_sync = true;
-          mission_active.insert(mission.id());
-        }
+    bool changed = false;
+    {
+      std::lock_guard lock(active_mission_states_mtx);
+      if (active_mission_states != active_missions) {
+        changed = true;
+        active_mission_states = std::move(active_missions);
       }
     }
-  } else if (type == EntityGroup::Type::CompletedMissions) {
-    auto response = Digit::PrimeServer::Models::CompletedMissionsResponse();
-    if (response.ParseFromArray(bytes->bytes->m_Items, bytes->bytes->max_length)) {
-      auto mission_array  = json::array();
-      auto mission_update = false;
-      for (const auto& mission : response.completedmissions()) {
-        if (!mission_completed.contains(mission)) {
-          if (mission_active.contains(mission)) {
-            mission_sync = true;
-            mission_active.erase(mission);
-          }
 
-          mission_update = true;
-          mission_completed.insert(mission);
-          mission_array.push_back({{"type", "mission"}, {"mid", mission}});
-        }
+    if (changed) {
+      auto mission_array = json::array();
+      for (const auto& mission : active_missions) {
+        mission_array.push_back({{"type", "active_mission"}, {"mid", mission}});
       }
 
-      if (Config::Get().sync_missions && mission_update) {
+      if (!mission_array.empty()) {
         queue_data(mission_array.dump());
       }
     }
-  } else if (type == EntityGroup::Type::PlayerInventories) {
-    auto response = Digit::PrimeServer::Models::InventoryResponse();
-    if (response.ParseFromArray(bytes->bytes->m_Items, bytes->bytes->max_length)) {
-      auto inventory_object = json();
-      for (const auto& inventory : response.inventories()) {
-        for (const auto& item : inventory.second.items()) {
-          auto type = item.type();
-          if (type == Digit::PrimeServer::Models::INVENTORYITEMTYPE_INVENTORYRESOURCE)
-            inventory_object[std::to_string(item.commonparams().refid())] = item.count();
-        }
+  } else {
+    spdlog::error("Failed to parse active missions");
+  }
+}
+
+void process_completed_missions(pmsg_buff_t&& bytes)
+{
+  using json = nlohmann::json;
+  static std::vector<int64_t> completed_mission_states;
+  static std::mutex completed_mission_states_mtx;
+
+  if (auto response = Digit::PrimeServer::Models::CompletedMissionsResponse();
+      response.ParseFromString(*bytes)) {
+
+    const auto& missions = response.completedmissions();
+    std::vector<int64_t> completed_missions{missions.begin(), missions.end()};
+    std::vector<int64_t> diff;
+
+    // Assume the completed missions list is append-only: new entries may be added, but existing ones are never removed.
+    {
+      std::lock_guard lock(completed_mission_states_mtx);
+      std::ranges::set_difference(completed_missions, completed_mission_states, std::back_inserter(diff));
+
+      if (!diff.empty()) {
+        completed_mission_states = std::move(completed_missions);
       }
     }
-  } else if (type == EntityGroup::Type::ResearchTreesState) {
-    auto response = Digit::PrimeServer::Models::ResearchTreesState();
-    if (response.ParseFromArray(bytes->bytes->m_Items, bytes->bytes->max_length)) {
-      auto research_array = json::array();
-      for (const auto& research : response.researchprojectlevels()) {
-        research_array.push_back({{"type", "research"}, {"rid", research.first}, {"level", research.second}});
+
+    if (!diff.empty()) {
+      auto mission_array = json::array();
+
+      for (const auto mission : diff) {
+        mission_array.push_back({{"type", "mission"}, {"mid", mission}});
       }
 
-      if (Config::Get().sync_research) {
-        queue_data(research_array.dump());
+      queue_data(mission_array.dump());
+    }
+  } else {
+    spdlog::error("Failed to parse completed missions");
+  }
+}
+
+void process_player_inventories(pmsg_buff_t&& bytes)
+{
+  using json = nlohmann::json;
+  static std::unordered_map<std::pair<std::underlying_type_t<Digit::PrimeServer::Models::InventoryItemType>, int64_t>, int64_t, pairhash> inventory_states;
+  static std::mutex inventory_states_mtx;
+
+  if (auto response = Digit::PrimeServer::Models::InventoryResponse();
+      response.ParseFromString(*bytes)) {
+
+    auto inventory_items = json::array();
+    {
+      std::lock_guard lock(inventory_states_mtx);
+
+      for (const auto& inventory : response.inventories() | std::views::values) {
+        for (const auto& item : inventory.items()) {
+          if (item.has_commonparams()) {
+            const auto item_id = item.commonparams().refid();
+            const auto count   = item.count();
+            const auto key = std::make_pair(item.type(), item_id);
+
+            if (const auto& it = inventory_states.find(key); it == inventory_states.end() || it->second != count) {
+              inventory_states[key] = count;
+              inventory_items.push_back({{"type", "inventory"}, {"item_type", item.type()}, {"refid", item_id}, {"count", count}});
+            }
+          }
+        }
       }
     }
-  } else if (type == EntityGroup::Type::Officers) {
-    auto response = Digit::PrimeServer::Models::OfficersResponse();
-    if (response.ParseFromArray(bytes->bytes->m_Items, bytes->bytes->max_length)) {
-      auto officers_array = json::array();
-      for (const auto& officer : response.officers()) {
-        if (officer.rankindex() == 0) {
-          continue;
+
+    if (!inventory_items.empty()) {
+      queue_data(inventory_items.dump());
+    }
+  } else {
+    spdlog::error("Failed to parse player inventories");
+  }
+}
+
+void process_research_trees_state(pmsg_buff_t&& bytes)
+{
+  using json = nlohmann::json;
+  static std::unordered_map<int64_t, int32_t> research_states;
+  static std::mutex research_states_mtx;
+
+  if (auto response = Digit::PrimeServer::Models::ResearchTreesState();
+      response.ParseFromString(*bytes)) {
+
+    auto research_array = json::array();
+    {
+      std::lock_guard lock(research_states_mtx);
+
+      for (const auto& [id, level] : response.researchprojectlevels()) {
+        if (const auto& it = research_states.find(id); it == research_states.end() || it->second != level) {
+          research_states[id] = level;
+          research_array.push_back({{"type", "research"}, {"rid", id}, {"level", level}});
         }
-        if (officer_states[officer.id()] != RankLevelState{officer.rankindex(), officer.level()}) {
-          officer_states[officer.id()] = RankLevelState{officer.rankindex(), officer.level()};
+      }
+    }
+
+    if (!research_array.empty()) {
+      queue_data(research_array.dump());
+    }
+  } else {
+    spdlog::error("Failed to parse research trees state");
+  }
+}
+
+void process_officers(pmsg_buff_t&& bytes)
+{
+  using json = nlohmann::json;
+  static std::unordered_map<uint64_t, RankLevelShardsState> officer_states;
+  static std::mutex officer_states_mtx;
+
+  if (auto response = Digit::PrimeServer::Models::OfficersResponse();
+      response.ParseFromString(*bytes)) {
+
+    auto officers_array = json::array();
+    {
+      std::lock_guard lock(officer_states_mtx);
+
+      for (const auto& officer : response.officers()) {
+        const RankLevelShardsState officer_state{officer.rankindex(), officer.level(), officer.shardcount()};
+
+        if (const auto& it = officer_states.find(officer.id()); it == officer_states.end() || it->second != officer_state) {
+          officer_states[officer.id()] = officer_state;
           officers_array.push_back({{"type", "officer"},
                                     {"oid", officer.id()},
                                     {"rank", officer.rankindex()},
@@ -590,150 +706,426 @@ void HandleEntityGroup(EntityGroup* entity_group)
                                     {"shard_count", officer.shardcount()}});
         }
       }
-      if (Config::Get().sync_officer) {
-        queue_data(officers_array.dump());
-      }
     }
-  } else if (type == EntityGroup::Type::ForbiddenTechs) {
-    auto response = Digit::PrimeServer::Models::ForbiddenTechsResponse();
-    if (response.ParseFromArray(bytes->bytes->m_Items, bytes->bytes->max_length)) {
-      auto ft_array = json::array();
-      for (const auto& ft : response.forbiddentechs()) {
-        if (ft_states[ft.id()] != RankLevelState{ft.tier(), ft.level()}) {
-          ft_states[ft.id()] = RankLevelState{ft.tier(), ft.level()};
-          ft_array.push_back({{"type", "ft"},
-                              {"fid", ft.id()},
-                              {"tier", ft.tier()},
-                              {"level", ft.level()},
-                              {"shard_count", ft.shardcount()}});
+
+    if (!officers_array.empty()) {
+      queue_data(officers_array.dump());
+    }
+  } else {
+    spdlog::error("Failed to parse officers");
+  }
+}
+
+void process_forbidden_techs(pmsg_buff_t&& bytes)
+{
+  using json = nlohmann::json;
+  static std::unordered_map<uint64_t, RankLevelShardsState> tech_states;
+  static std::mutex tech_states_mtx;
+
+  if (auto response = Digit::PrimeServer::Models::ForbiddenTechsResponse();
+      response.ParseFromString(*bytes)) {
+
+    auto tech_array = json::array();
+    {
+      std::lock_guard lock(tech_states_mtx);
+
+      for (const auto& tech : response.forbiddentechs()) {
+        const RankLevelShardsState tech_state{tech.tier(), tech.level(), tech.shardcount()};
+
+        if (const auto& it = tech_states.find(tech.id()); it == tech_states.end() || it->second != tech_state) {
+          tech_states[tech.id()] = tech_state;
+          tech_array.push_back({{"type", "tech"},
+                                {"tid", tech.id()},
+                                {"tier", tech.tier()},
+                                {"level", tech.level()},
+                                {"shard_count", tech.shardcount()}});
         }
       }
-      if (Config::Get().sync_tech) {
-        queue_data(ft_array.dump());
-      }
     }
-  } else if (type == EntityGroup::Type::ActiveOfficerTraits) {
-    auto response = Digit::PrimeServer::Models::OfficerTraitsResponse();
-    if (response.ParseFromArray(bytes->bytes->m_Items, bytes->bytes->max_length)) {
-      auto trait_array = json::array();
-      for (const auto& trait_outer : response.activeofficertraits()) {
-        for (const auto& trait : trait_outer.second.activetraits()) {
-          const auto key = std::make_pair(trait_outer.first, trait.first);
-          if (trait_states[key] != trait.second.level()) {
-            trait_states[key] = trait.second.level();
-            trait_array.push_back(
-                {{"type", "trait"}, {"oid", trait_outer.first}, {"tid", trait.first}, {"level", trait.second.level()}});
+
+    if (!tech_array.empty()) {
+      queue_data(tech_array.dump());
+    }
+  } else {
+    spdlog::error("Failed to parse forbidden techs");
+  }
+}
+
+void process_active_officer_traits(pmsg_buff_t&& bytes)
+{
+  using json = nlohmann::json;
+  static std::unordered_map<std::pair<int64_t, int64_t>, int32_t, pairhash> trait_states;
+  static std::mutex trait_states_mtx;
+
+  if (auto response = Digit::PrimeServer::Models::OfficerTraitsResponse();
+      response.ParseFromString(*bytes)) {
+
+    auto trait_array = json::array();
+    {
+      std::lock_guard lock(trait_states_mtx);
+
+      for (const auto& [officer_id, officer_traits] : response.activeofficertraits()) {
+        for (const auto& trait : officer_traits.activetraits() | std::views::values) {
+          const auto& key = std::make_pair(officer_id, trait.traitid());
+
+          if (const auto& it = trait_states.find(key); it == trait_states.end() || it->second != trait.level()) {
+            trait_states[key] = trait.level();
+            trait_array.push_back({{"type", "trait"}, {"oid", officer_id}, {"tid", trait.traitid()}, {"level", trait.level()}});
           }
         }
       }
-      if (Config::Get().sync_traits) {
-        queue_data(trait_array.dump());
+    }
+
+    if (!trait_array.empty()) {
+      queue_data(trait_array.dump());
+    }
+  } else {
+    spdlog::error("Failed to parse active officer traits");
+  }
+}
+
+void process_global_active_buffs(pmsg_buff_t&& bytes)
+{
+  using json = nlohmann::json;
+  static std::unordered_map<int64_t, int32_t> buff_states;
+  static std::mutex buff_states_mtx;
+
+  if (auto response = Digit::PrimeServer::Models::GlobalActiveBuffsResponse();
+        response.ParseFromString(*bytes)) {
+
+    auto buff_array = json::array();
+    {
+      std::lock_guard lock(buff_states_mtx);
+
+      for (const auto& buff : response.globalactivebuffs()) {
+        if (const auto& it = buff_states.find(buff.buffid()); it == buff_states.end() || it->second != buff.level()) {
+          buff_states[buff.buffid()] = buff.level();
+          buff_array.push_back({{"type", "active_buff"}, {"bid", buff.buffid()}, {"level", buff.level()}});
+        }
       }
     }
-  } else if (type == EntityGroup::Type::Json) {
-    try {
-      using json = nlohmann::json;
 
-      auto text   = bytes->bytes->m_Items;
-      auto result = json::parse(text);
+    if (!buff_array.empty()) {
+      queue_data(buff_array.dump());
+    }
+  } else {
+    spdlog::error("Failed to parse global active buffs");
+  }
+}
 
-      if (result.contains("battle_result_headers")) {
-        auto headers  = result["battle_result_headers"];
-        auto loadData = battlelog_states.empty();
+void process_entity_slots(pmsg_buff_t&& bytes)
+{
+  using json = nlohmann::json;
+  static std::unordered_map<int64_t, int64_t> slot_states;
+  static std::mutex slot_states_mtx;
 
-        if (Config::Get().sync_battlelogs) {
-          std::lock_guard lk(m2);
-          if (loadData) {
-            load_previously_sent_logs();
-          }
+  if (auto response = Digit::PrimeServer::Models::EntitySlots();
+        response.ParseFromString(*bytes)) {
 
-          for (const auto header : headers) {
-            const auto id       = header["id"].get<uint64_t>();
-            bool       pushData = false;
+    auto slot_array = json::array();
+    {
+      std::lock_guard lock(slot_states_mtx);
 
-            if (loadData) {
-              pushData = (eastl::find(previously_sent_battlelogs.begin(), previously_sent_battlelogs.end(), id)
-                          == previously_sent_battlelogs.end());
-            } else {
-              pushData = !battlelog_states.contains(id);
+      for (const auto& slot : response.entityslots_()) {
+        json slot_params;
+
+        switch (slot.slottype()) {
+          case Digit::PrimeServer::Models::SLOTTYPE_CONSUMABLE:
+            if (slot.has_consumableslotparams()) {
+              slot_params["expiry_time"] = slot.consumableslotparams().expirytime().seconds();
             }
+            break;
+          case Digit::PrimeServer::Models::SLOTTYPE_OFFICERPRESET:
+            if (slot.has_officerpresetslotparams()) {
+              const auto& preset = slot.officerpresetslotparams();
 
-            if (pushData) {
-              battlelog_states.insert(id);
-              combat_log_data_queue.push(id);
-              previously_sent_battlelogs.push_back(id);
-              if (!loadData) {
-                save_previously_sent_logs();
+              slot_params = {
+                {"name", preset.name()},
+                {"order", preset.order()},
+                {"officer_ids", preset.officerids()}
+              };
+            }
+            break;
+          case Digit::PrimeServer::Models::SLOTTYPE_FLEETCOMMANDER:
+            if (slot.has_fleetcommanderslotparams()) {
+              slot_params["order"] = slot.fleetcommanderslotparams().order();
+            }
+            break;
+          case Digit::PrimeServer::Models::SLOTTYPE_SELECTABLESKILL:
+            if (slot.has_selectableskillslotparams()) {
+              slot_params["cooldown_expiration"] = slot.selectableskillslotparams().cooldownexpiration().seconds();
+            }
+            break;
+          case Digit::PrimeServer::Models::SLOTTYPE_FLEETPRESET:
+            if (slot.has_fleetpresetslotparams()) {
+              const auto& preset = slot.fleetpresetslotparams();
+              auto setup_json = json::array();
+
+              for (const auto& setup : preset.setups()) {
+                setup_json.push_back({
+                  {"drydock_id", setup.drydockid()},
+                  {"ship_id", setup.shipids()[0]},
+                  {"officer_ids", setup.officerids()}
+                });
               }
+
+              slot_params = {
+                {"name", preset.name()},
+                {"order", preset.order()},
+                {"setup", setup_json}
+              };
+            }
+          default:
+            continue;
+        }
+
+        if (const auto& it = slot_states.find(slot.id()); it == slot_states.end() || it->second != slot.slotitemid()) {
+          slot_states[slot.id()] = slot.slotitemid();
+          slot_array.push_back({
+            {"type", "slot"},
+            {"slot_type", slot.slottype()},
+            {"sid", slot.id()},
+            {"spec_id", slot.slotspecid()},
+            {"item_id", slot.has_slotitemid() ? json(slot.slotitemid()) : json(nullptr)},
+            {"params", slot_params}
+          });
+        }
+      }
+    }
+
+    if (!slot_array.empty()) {
+      queue_data(slot_array.dump());
+    }
+  } else {
+    spdlog::error("Failed to parse entity slots");
+  }
+}
+
+void process_jobs(pmsg_buff_t&& bytes)
+{
+  using json = nlohmann::json;
+  static std::unordered_set<std::string> jobs_active;
+  static std::mutex                      jobs_active_mtx;
+
+  if (auto response = Digit::PrimeServer::Models::JobResponse();
+    response.ParseFromString(*bytes)) {
+
+    std::unordered_set<std::string> uuids_in_response;
+    uuids_in_response.reserve(response.jobs_size());
+    auto job_array = json::array();
+
+    for (const auto& job : response.jobs()) {
+      const std::string& uuid = job.uuid();
+      uuids_in_response.insert(uuid);
+
+      bool emit = false;
+      {
+        std::lock_guard lock(jobs_active_mtx);
+        emit = jobs_active.insert(uuid).second;
+      }
+
+      if (!emit) {
+        continue;
+      }
+
+      json job_params;
+
+      switch (job.type()) {
+        case Digit::PrimeServer::Models::JOBTYPE_RESEARCH: {
+          const auto& research = job.researchparams();
+          job_params= {{"rid", research.projectid()}, {"level", research.level()}};
+        } break;
+        case Digit::PrimeServer::Models::JOBTYPE_STARBASECONSTRUCTION: {
+          const auto& construction = job.starbaseconstructionparams();
+          job_params= {{"bid", construction.moduleid()}, {"level", construction.level()}};
+        } break;
+        case Digit::PrimeServer::Models::JOBTYPE_SHIPTIERUP: {
+          const auto& upgrade = job.tierupshipparams();
+          job_params= {{"psid", upgrade.shipid()}, {"tier", upgrade.newtier()}};
+        } break;
+        case Digit::PrimeServer::Models::JOBTYPE_SHIPSCRAP: {
+          const auto& scrap = job.scrapyardparams();
+          job_params = {{"psid", scrap.shipid()}, {"hull_id", scrap.hullid()}, {"level", scrap.level()}};
+        } break;
+        default:
+          continue;
+      }
+
+      json job_data = json::object({{"type", "job"},
+                                    {"job_type", job.type()},
+                                    {"uuid", job.uuid()},
+                                    {"start_time", job.starttime().seconds()},
+                                    {"duration", job.duration()},
+                                    {"reduction", job.reductioninseconds()}});
+
+      job_data.update(job_params);
+      job_array.push_back(std::move(job_data));
+    }
+
+    // Prune entries that are no longer present to prevent unbounded growth
+    {
+      std::lock_guard lk(jobs_active_mtx);
+      for (auto it = jobs_active.begin(); it != jobs_active.end();) {
+        if (!uuids_in_response.contains(*it)) {
+          it = jobs_active.erase(it);
+        } else {
+          ++it;
+        }
+      }
+    }
+
+    if (!job_array.empty()) {
+      queue_data(job_array.dump());
+    }
+  } else {
+    spdlog::error("Failed to parse jobs");
+  }
+}
+
+void process_json(pmsg_buff_t&& bytes)
+{
+  using json = nlohmann::json;
+  static std::unordered_map<int64_t, int64_t> resource_states;
+  static std::unordered_map<int64_t, int32_t> module_states;
+  static std::unordered_map<int64_t, ShipState> ship_states;
+  static std::mutex resource_states_mtx;
+  static std::mutex module_states_mtx;
+  static std::mutex ship_states_mtx;
+
+  try {
+    const auto result = json::parse(bytes->begin(), bytes->end());
+
+    for (const auto& [key, section] : result.items()) {
+      if (key == "battle_result_headers") {
+        if (!Config::Get().sync_battlelogs) {
+          continue;
+        }
+
+        std::vector<uint64_t> battle_ids;
+        battle_ids.reserve(section.size());
+
+        for (const auto& battle : section) {
+          const auto id = battle["id"].get<uint64_t>();
+          battle_ids.push_back(id);
+        }
+
+        std::vector<uint64_t> to_enqueue;
+        {
+          std::lock_guard lock(previously_sent_battlelogs_mtx);
+
+          for (const auto id : battle_ids | std::views::reverse) {
+            if (eastl::find(previously_sent_battlelogs.begin(), previously_sent_battlelogs.end(), id) == previously_sent_battlelogs.end()) {
+              previously_sent_battlelogs.push_back(id);;
+              to_enqueue.push_back(id);
+            }
+          }
+        }
+
+        if (!to_enqueue.empty()) {
+          {
+            std::lock_guard lock(m2);
+            for (const auto id : to_enqueue) {
+              combat_log_data_queue.push(id);
             }
           }
 
-          if (loadData) {
-            save_previously_sent_logs();
-          }
+          save_previously_sent_logs();
+          cv2.notify_all();
         }
-        cv2.notify_all();
-      }
 
-      if (result.contains("resources")) {
+      } else if (key == "resources") {
+        if (!Config::Get().sync_resources) {
+          continue;
+        }
+
         auto resource_array = json::array();
-        for (const auto& resource : result["resources"].get<json::object_t>()) {
-          auto id     = std::stoll(resource.first);
-          auto amount = resource.second["current_amount"].get<int64_t>();
+        {
+          std::lock_guard lock(resource_states_mtx);
 
-          const auto prevResourceAmountIter = resource_states.find(id);
-          const auto hadResource =
-              (prevResourceAmountIter != resource_states.end() && prevResourceAmountIter->second != 0);
-          const auto amountChanged =
-              amount > 0
-              && (prevResourceAmountIter == resource_states.end() || prevResourceAmountIter->second != amount);
-          const auto resourceDepleted = hadResource && amount == 0;
+          for (const auto& [str_id, resource] : section.get<json::object_t>()) {
+            auto id = std::stoll(str_id);
+            auto amount = resource["current_amount"].get<int64_t>();
 
-          if (resourceDepleted || amountChanged) {
-            resource_states[id] = amount;
-            resource_array.push_back({{"type", "resource"}, {"rid", id}, {"amount", amount}});
+            const auto prevResourceAmountIter = resource_states.find(id);
+            const auto hadResource = (prevResourceAmountIter != resource_states.end() && prevResourceAmountIter->second != 0);
+            const auto amountChanged = amount > 0 && (prevResourceAmountIter == resource_states.end() || prevResourceAmountIter->second != amount);
+            const auto resourceDepleted = hadResource && amount == 0;
+
+            if (resourceDepleted || amountChanged) {
+              resource_states[id] = amount;
+              resource_array.push_back({{"type", "resource"}, {"rid", id}, {"amount", amount}});
+            }
           }
         }
-        if (Config::Get().sync_resources) {
+
+        if (!resource_array.empty()) {
           queue_data(resource_array.dump());
         }
-      }
-      if (result.contains("starbase_modules")) {
+
+      } else if (key == "starbase_modules") {
+        if (!Config::Get().sync_buildings) {
+          continue;
+        }
+
         auto starbase_array = json::array();
-        for (const auto& resource : result["starbase_modules"].get<json::object_t>()) {
-          auto id    = resource.second["id"].get<uint64_t>();
-          auto level = resource.second["level"].get<int64_t>();
-          if (module_states[id] != level) {
-            module_states[id] = level;
-            starbase_array.push_back({{"type", "module"}, {"bid", id}, {"level", level}});
+        {
+          std::lock_guard lock(module_states_mtx);
+
+          for (const auto& module : section.get<json::object_t>() | std::views::values) {
+            const auto id = module["id"].get<int64_t>();
+            const auto level = module["level"].get<int32_t>();
+
+            if (const auto &it = module_states.find(id); it == module_states.end() || it->second != level) {
+              module_states[id] = level;
+              starbase_array.push_back({{"type", "module"}, {"bid", id}, {"level", level}});
+            }
           }
         }
-        if (Config::Get().sync_buildings) {
+
+        if (!starbase_array.empty()) {
           queue_data(starbase_array.dump());
         }
-      }
-      if (result.contains("ships")) {
-        auto ship_array = json::array();
-        for (const auto& resource : result["ships"].get<json::object_t>()) {
-          ship_array.push_back({{"type", "ship"},
-                                {"psid", resource.second["id"]},
-                                {"level", resource.second["level"]},
-                                {"tier", resource.second["tier"]},
-                                {"hull_id", resource.second["hull_id"]},
-                                {"components", resource.second["components"]}});
+
+      } else if (key == "ships") {
+        if (!Config::Get().sync_ships) {
+          continue;
         }
-        if (Config::Get().sync_ships) {
+
+        auto ship_array = json::array();
+        {
+          std::lock_guard lock(ship_states_mtx);
+
+          for (const auto& ship : section.get<json::object_t>() | std::views::values) {
+            const auto id= ship["id"].get<int64_t>();
+            const auto tier = ship["tier"].get<int32_t>();
+            const auto level = ship["level"].get<int32_t>();
+            const auto level_percentage = ship["level_percentage"].get<double_t>();
+            const auto components = ship["components"].get<std::vector<int64_t>>();
+            const ShipState state{tier, level, level_percentage, components};
+
+            if (const auto& it = ship_states.find(id); it == ship_states.end() || it->second != state) {
+              ship_states[id] = state;
+              ship_array.push_back({{"type", "ship"},
+                                    {"psid", id},
+                                    {"level", level},
+                                    {"tier", tier},
+                                    {"hull_id", ship["hull_id"].get<int64_t>()},
+                                    {"components", components}});
+            }
+          }
+        }
+
+        if (!ship_array.empty()) {
           queue_data(ship_array.dump());
         }
       }
-    } catch (json::exception e) {
     }
-  }
-
-  if (Config::Get().sync_missions && mission_sync) {
-    sync_active_missions();
+  } catch (const json::exception& e) {
+    spdlog::error("Error parsing json: %s", e.what());
   }
 }
+
+
 
 void ship_sync_data()
 {
@@ -777,6 +1169,8 @@ void ship_sync_data()
 
 void ship_combat_log_data()
 {
+  using json = nlohmann::json;
+
 #if _WIN32
   winrt::init_apartment();
 #endif
@@ -784,58 +1178,51 @@ void ship_combat_log_data()
   for (;;) {
     {
       std::unique_lock lk(m2);
-      cv2.wait(lk, []() { return !combat_log_data_queue.empty(); });
+      cv2.wait(lk, [] { return !combat_log_data_queue.empty(); });
     }
 
     try {
-      const auto sync_data = ([&] {
+      const auto sync_data = [&] {
         std::lock_guard lk(m2);
-        auto            data = combat_log_data_queue.front();
+        const auto      data = combat_log_data_queue.front();
         combat_log_data_queue.pop();
         return data;
-      })();
+      }();
 
-      auto body       = L"{\"journal_id\":" + std::to_wstring(sync_data) + L"}";
-      auto battle_log = http::get_scopely_data(http::instanceSessionId, http::gameServerUrl, L"/journals/get", body);
+      const json journals_body{{"journal_id", sync_data}};
+      auto battle_log = http::get_scopely_data("/journals/get", journals_body.dump());
 
-      using json = nlohmann::json;
-
-      auto ship_array  = json::array();
       auto battle_json = json::parse(battle_log);
+      const auto& journal = battle_json["journal"];
+      const auto& target_fleet_data    = journal["target_fleet_data"];
+      const auto& initiator_fleet_data = journal["initiator_fleet_data"];
 
-      const auto journal = battle_json["journal"];
-
-      const auto target_fleet_data    = journal["target_fleet_data"];
-      const auto initiator_fleet_data = journal["initiator_fleet_data"];
-
-      std::vector<std::string> profiles_to_fetch;
+      json profiles_body{{"user_ids", json::array()}};
+      auto& user_ids = profiles_body["user_ids"];
 
       if (target_fleet_data["ref_ids"].is_null()) {
         for (const auto& fleet : target_fleet_data["deployed_fleets"]) {
-          const auto player_id = fleet["uid"].get<std::string>();
-          profiles_to_fetch.push_back(std::string("\"") + player_id + "\"");
+          const auto& player_id = fleet["uid"];
+          user_ids.push_back(player_id);
         }
       }
 
       if (initiator_fleet_data["ref_ids"].is_null()) {
         for (const auto& fleet : initiator_fleet_data["deployed_fleets"]) {
-          const auto player_id = fleet["uid"].get<std::string>();
-          profiles_to_fetch.push_back(std::string("\"") + player_id + "\"");
+          const auto& player_id = fleet["uid"];
+          user_ids.push_back(player_id);
         }
       }
 
-      std::string profiles_joined = std::accumulate(profiles_to_fetch.begin(), profiles_to_fetch.end(), std::string(),
-                                                    [](const std::string& a, const std::string& b) -> std::string {
-                                                      return a + (a.length() > 0 ? "," : "") + b;
-                                                    });
-      auto        profiles_body   = "{\"user_ids\":[" + profiles_joined + "]}";
-      auto profiles = http::get_scopely_data(http::instanceSessionId, http::gameServerUrl, L"/user_profile/profiles",
-                                             to_wstring(profiles_body));
+      auto profiles = http::get_scopely_data("/user_profile/profiles", profiles_body.dump());
       auto profiles_json = json::parse(profiles);
-      auto names         = json::object();
-      for (const auto& profile : profiles_json["user_profiles"].get<json::object_t>()) {
-        names[profile.first] = profile.second["name"];
+      auto names = json::object();
+
+      for (const auto& [player_id, profile] : profiles_json["user_profiles"].get<json::object_t>()) {
+        names[player_id] = profile["name"];
       }
+
+      auto ship_array  = json::array();
       ship_array.push_back({{"type", "battlelog"}, {"names", names}, {"journal", battle_json["journal"]}});
 
       try {
@@ -865,31 +1252,156 @@ void ship_combat_log_data()
 #endif
 }
 
+void HandleEntityGroup(EntityGroup* entity_group)
+{
+  if (entity_group == nullptr || entity_group->Group == nullptr || entity_group->Group->bytes == nullptr || entity_group->Group->Length <= 0) {
+    return;
+  }
+
+  const auto byteCount = static_cast<size_t>(entity_group->Group->Length);
+  auto bytesPtr = reinterpret_cast<const char*>(entity_group->Group->bytes->m_Items);
+
+  // Helper to run processing asynchronously with exception handling
+  auto submit_async = [bytesPtr, byteCount]<typename T>(T&& func) {
+    auto payload = std::make_unique<std::string>(bytesPtr, byteCount);
+
+    std::thread([f = std::forward<T>(func), p = std::move(payload)]() mutable {
+      try {
+        f(std::move(p));
+      } catch (const std::exception& e) {
+        spdlog::error("Exception in HandleEntityGroup: {}", e.what());
+      } catch (...) {
+        spdlog::error("Unknown exception in HandleEntityGroup");
+      }
+    }).detach();
+  };
+
+  switch (entity_group->Type_) {
+    case EntityGroup::Type::ActiveMissions:
+      if (Config::Get().sync_missions) {
+        submit_async(process_active_missions);
+      }
+      break;
+    case EntityGroup::Type::CompletedMissions:
+      if (Config::Get().sync_missions) {
+        submit_async(process_completed_missions);
+      }
+      break;
+    case EntityGroup::Type::PlayerInventories:
+      if (Config::Get().sync_inventory) {
+        submit_async(process_player_inventories);
+      }
+      break;
+    case EntityGroup::Type::ResearchTreesState:
+      if (Config::Get().sync_research) {
+        submit_async(process_research_trees_state);
+      }
+      break;
+    case EntityGroup::Type::Officers:
+      if (Config::Get().sync_officer) {
+        submit_async(process_officers);
+      }
+      break;
+    case EntityGroup::Type::ForbiddenTechs:
+      if (Config::Get().sync_tech) {
+        submit_async(process_forbidden_techs);
+      }
+      break;
+    case EntityGroup::Type::ActiveOfficerTraits:
+      if (Config::Get().sync_traits) {
+        submit_async(process_active_officer_traits);
+      }
+      break;
+    case EntityGroup::Type::Json:
+      if (const auto& c = Config::Get(); c.sync_battlelogs || c.sync_buildings || c.sync_resources || c.sync_ships) {
+        submit_async(process_json);
+      }
+      break;
+    case EntityGroup::Type::Jobs:
+      if (Config::Get().sync_jobs) {
+        submit_async(process_jobs);
+      }
+      break;
+    case EntityGroup::Type::GlobalActiveBuffs:
+      if (Config::Get().sync_buffs) {
+        submit_async(process_global_active_buffs);
+      }
+      break;
+    case EntityGroup::Type::EntitySlots:
+      if (Config::Get().sync_slots) {
+        submit_async(process_entity_slots);
+      }
+      break;
+    default:
+      break;
+  }
+}
+
+void MissionsDataContainer_ParseBinaryObject(auto original, void* _this, EntityGroup* group, bool isPlayerData)
+{
+  HandleEntityGroup(group);
+  return original(_this, group, isPlayerData);
+}
+
+void GameServerModelRegistry_ProcessResultInternal(auto original, void* _this, HttpResponse* http_response,
+                                                   ServiceResponse* service_response, void* callback,
+                                                   void* callback_error)
+{
+  const auto entity_groups = service_response->EntityGroups;
+  for (int i = 0; i < entity_groups->Count; ++i) {
+    const auto entity_group = entity_groups->get_Item(i);
+    HandleEntityGroup(entity_group);
+  }
+
+  return original(_this, http_response, service_response, callback, callback_error);
+}
+
+void GameServerModelRegistry_HandleBinaryObjects(auto original, void* _this, ServiceResponse* service_response)
+{
+  const auto entity_groups = service_response->EntityGroups;
+  for (int i = 0; i < entity_groups->Count; ++i) {
+    const auto entity_group = entity_groups->get_Item(i);
+    HandleEntityGroup(entity_group);
+  }
+
+  return original(_this, service_response);
+}
+
 void PrimeApp_InitPrimeServer(auto original, void* _this, Il2CppString* gameServerUrl, Il2CppString* gatewayServerUrl,
                               Il2CppString* sessionId)
 {
   original(_this, gameServerUrl, gatewayServerUrl, sessionId);
-  http::instanceSessionId = to_wstring(sessionId);
-  http::gameServerUrl     = to_wstring(gameServerUrl);
+  http::headers::instanceSessionId = to_string(to_wstring(sessionId));
+  http::headers::gameServerUrl     = to_string(to_wstring(gameServerUrl));
+}
+
+void GameServer_Initialise(auto original, void* _this, Il2CppString* sessionId, Il2CppString* gameVersion, bool encryptRequests)
+{
+  original(_this, sessionId, gameVersion, encryptRequests);
+  http::headers::primeVersion = to_string(to_wstring(gameVersion));
 }
 
 void GameServer_SetInstanceIdHeader(auto original, void* _this, int32_t instanceId)
 {
   original(_this, instanceId);
-  http::instanceId = instanceId;
+  http::headers::instanceId = instanceId;
+}
+
+void SetPlatformAPIKey(Il2CppString* platformApiKey)
+{
+  http::headers::apiKey = to_string(to_wstring(platformApiKey));
 }
 
 void InstallSyncPatches()
 {
   curl_global_init(CURL_GLOBAL_ALL);
+  load_previously_sent_logs();
 
-  auto missions_data_container =
-      il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Models", "MissionsDataContainer");
-  if (!missions_data_container.isValidHelper()) {
+  if (auto missions_data_container = il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Models", "MissionsDataContainer");
+    !missions_data_container.isValidHelper()) {
     ErrorMsg::MissingHelper("Models", "MissionsDataContainer");
   } else {
-    auto ptr = missions_data_container.GetMethod("ParseBinaryObject");
-    if (ptr == nullptr) {
+    if (const auto ptr = missions_data_container.GetMethod("ParseBinaryObject"); ptr == nullptr) {
       ErrorMsg::MissingMethod("MissionsDataContainer", "ParseBinaryObject");
     } else {
       SPUD_STATIC_DETOUR(ptr, MissionsDataContainer_ParseBinaryObject);
@@ -901,43 +1413,37 @@ void InstallSyncPatches()
   if (!inventory_data_container.isValidHelper()) {
     ErrorMsg::MissingHelper("Services", "InventoryDataContainer");
   } else {
-    auto ptr = inventory_data_container.GetMethod("ParseBinaryObject");
-    if (ptr == nullptr) {
+    if (const auto ptr = inventory_data_container.GetMethod("ParseBinaryObject"); ptr == nullptr) {
       ErrorMsg::MissingMethod("InventoryDataContainer", "ParseBinaryObject");
     } else {
       SPUD_STATIC_DETOUR(ptr, MissionsDataContainer_ParseBinaryObject);
     }
   }
 
-  auto research_data_container =
-      il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Services", "ResearchDataContainer");
-  if (!research_data_container.isValidHelper()) {
+  if (auto research_data_container = il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Services", "ResearchDataContainer");
+    !research_data_container.isValidHelper()) {
     ErrorMsg::MissingHelper("Services", "ResearchDataContainer");
   } else {
-    auto ptr = research_data_container.GetMethod("ParseBinaryObject");
-    if (ptr == nullptr) {
+    if (const auto ptr = research_data_container.GetMethod("ParseBinaryObject"); ptr == nullptr) {
       ErrorMsg::MissingHelper("ResearchDataContainer", "ParseBinaryObject");
     } else {
       SPUD_STATIC_DETOUR(ptr, MissionsDataContainer_ParseBinaryObject);
     }
   }
 
-  auto research_service =
-      il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Services", "ResearchService");
-  if (!research_service.isValidHelper()) {
+  if (auto research_service = il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Services", "ResearchService");
+      !research_service.isValidHelper()) {
     ErrorMsg::MissingHelper("Services", "ResearchService");
   } else {
-    auto ptr = research_service.GetMethod("ParseBinaryObject");
-    if (ptr == nullptr) {
+    if (const auto ptr = research_service.GetMethod("ParseBinaryObject"); ptr == nullptr) {
       ErrorMsg::MissingMethod("ResearchService", "ParseBinaryObject");
     } else {
       SPUD_STATIC_DETOUR(ptr, MissionsDataContainer_ParseBinaryObject);
     }
   }
 
-  auto game_server_model_registry =
-      il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Core", "GameServerModelRegistry");
-  if (!game_server_model_registry.isValidHelper()) {
+  if (auto game_server_model_registry = il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Core", "GameServerModelRegistry");
+      !game_server_model_registry.isValidHelper()) {
     ErrorMsg::MissingHelper("Core", "GameServerModelRegistry");
   } else {
     auto ptr = game_server_model_registry.GetMethod("ProcessResultInternal");
@@ -955,37 +1461,72 @@ void InstallSyncPatches()
     }
   }
 
-  auto platform_model_registry =
-      il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimePlatform.Core", "PlatformModelRegistry");
-  if (!platform_model_registry.isValidHelper()) {
+  if (auto platform_model_registry = il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimePlatform.Core", "PlatformModelRegistry");
+    !platform_model_registry.isValidHelper()) {
     ErrorMsg::MissingHelper("Core", "PlatformModelRegistry");
   } else {
-    auto ptr = platform_model_registry.GetMethod("ProcessResultInternal");
-    if (ptr == nullptr) {
+    if (const auto ptr = platform_model_registry.GetMethod("ProcessResultInternal"); ptr == nullptr) {
       ErrorMsg::MissingMethod("PlatformModelRegistry", "ProcessResultInterval");
     } else {
       SPUD_STATIC_DETOUR(ptr, GameServerModelRegistry_ProcessResultInternal);
     }
   }
 
-  auto authentication_service = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.Core", "PrimeApp");
-  if (!authentication_service.isValidHelper()) {
+  if (auto slot_data_container = il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Services", "SlotDataContainer");
+    !slot_data_container.isValidHelper()) {
+    ErrorMsg::MissingHelper("Services", "SlotDataContainer");
+  } else {
+    if (const auto ptr = slot_data_container.GetMethod("ParseBinaryObject"); ptr == nullptr) {
+      ErrorMsg::MissingMethod("SlotDataContainer", "ParseBinaryObject");
+    } else {
+      SPUD_STATIC_DETOUR(ptr, MissionsDataContainer_ParseBinaryObject);
+    }
+  }
+
+  if ( auto buff_service = il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Services", "BuffService");
+      !buff_service.isValidHelper()) {
+    ErrorMsg::MissingHelper("Services", "BuffService");
+  } else {
+    if (const auto ptr = buff_service.GetMethod("ParseBinaryObject"); ptr == nullptr) {
+      ErrorMsg::MissingMethod("BuffService", "ParseBinaryObject");
+    } else {
+      SPUD_STATIC_DETOUR(ptr, MissionsDataContainer_ParseBinaryObject);
+    }
+  }
+
+  if (auto job_service = il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Services", "JobService");
+      !job_service.isValidHelper()) {
+    ErrorMsg::MissingHelper("Services", "JobService");
+  } else {
+    if (const auto ptr = job_service.GetMethod("ParseBinaryObject"); ptr == nullptr) {
+      ErrorMsg::MissingMethod("JobService", "ParseBinaryObject");
+    } else {
+      SPUD_STATIC_DETOUR(ptr, MissionsDataContainer_ParseBinaryObject);
+    }
+  }
+
+  if (auto authentication_service = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.Core", "PrimeApp");
+      !authentication_service.isValidHelper()) {
     ErrorMsg::MissingHelper("Core", "PrimeApp");
   } else {
-    auto ptr = authentication_service.GetMethod("InitPrimeServer");
-    if (ptr == nullptr) {
+    if (const auto ptr = authentication_service.GetMethod("InitPrimeServer"); ptr == nullptr) {
       ErrorMsg::MissingMethod("PrimeApp", "InitPrimeServer");
     } else {
       SPUD_STATIC_DETOUR(ptr, PrimeApp_InitPrimeServer);
     }
   }
 
-  auto game_server = il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Core", "GameServer");
-  if (!game_server.isValidHelper()) {
+  if (auto game_server = il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Core", "GameServer");
+      !game_server.isValidHelper()) {
     ErrorMsg::MissingHelper("Core", "GameServer");
   } else {
-    auto ptr = game_server.GetMethod("SetInstanceIdHeader");
-    if (ptr == nullptr) {
+    if (const auto ptr = game_server.GetMethod("Initialise"); ptr == nullptr) {
+      ErrorMsg::MissingMethod("GameServer", "Initialise");
+    } else {
+      SPUD_STATIC_DETOUR(ptr, GameServer_Initialise);
+    }
+
+    if (const auto ptr = game_server.GetMethod("SetInstanceIdHeader"); ptr == nullptr) {
       ErrorMsg::MissingMethod("GameServer", "SetInstanceIdHeader");
     } else {
       SPUD_STATIC_DETOUR(ptr, GameServer_SetInstanceIdHeader);
