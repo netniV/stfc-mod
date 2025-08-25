@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <map>
 #include <string>
 #include <vector>
@@ -11,8 +12,33 @@
 #endif
 
 
-struct sync_config
+class SyncConfig
 {
+public:
+  enum class Type {
+    Battles,
+    Buffs,
+    Buildings,
+    Inventory,
+    Jobs,
+    MissionsActive,
+    MissionsCompleted,
+    Officer,
+    Research,
+    Resources,
+    Ships,
+    Slots,
+    Tech,
+    Traits
+  };
+
+  struct Option {
+    Type type;
+    std::string_view type_str;    // used in JSON body
+    std::string_view option_str;  // used in TOML file
+    bool SyncConfig::*option;
+  };
+
   std::string proxy;
 
   bool battlelogs = false;
@@ -28,10 +54,41 @@ struct sync_config
   bool slots      = false;
   bool tech       = false;
   bool traits     = false;
+
+  bool enabled(Type type) const;
 };
 
-struct sync_target_config : sync_config
+constexpr std::array SyncOptions {
+  SyncConfig::Option{SyncConfig::Type::Battles,           "battlelog",     "battlelogs", &SyncConfig::battlelogs},
+  SyncConfig::Option{SyncConfig::Type::Buffs,             "active_buff",   "buffs",      &SyncConfig::buffs},
+  SyncConfig::Option{SyncConfig::Type::Buildings,         "module",        "buildings",  &SyncConfig::buildings},
+  SyncConfig::Option{SyncConfig::Type::Inventory,         "inventory",     "inventory",  &SyncConfig::inventory},
+  SyncConfig::Option{SyncConfig::Type::Jobs,              "job",           "jobs",       &SyncConfig::jobs},
+  SyncConfig::Option{SyncConfig::Type::MissionsActive,    "active_mission","missions",   &SyncConfig::missions},
+  SyncConfig::Option{SyncConfig::Type::MissionsCompleted, "mission",       "missions",   &SyncConfig::missions},
+  SyncConfig::Option{SyncConfig::Type::Officer,           "officer",       "officer",    &SyncConfig::officer},
+  SyncConfig::Option{SyncConfig::Type::Research,          "research",      "research",   &SyncConfig::research},
+  SyncConfig::Option{SyncConfig::Type::Resources,         "resource",      "resources",  &SyncConfig::resources},
+  SyncConfig::Option{SyncConfig::Type::Ships,             "ship",          "ships",      &SyncConfig::ships},
+  SyncConfig::Option{SyncConfig::Type::Slots,             "slot",          "slots",      &SyncConfig::slots},
+  SyncConfig::Option{SyncConfig::Type::Tech,              "ft",            "tech",       &SyncConfig::tech},
+  SyncConfig::Option{SyncConfig::Type::Traits,            "trait",         "traits",     &SyncConfig::traits},
+};
+
+inline std::string to_string(SyncConfig::Type type)
 {
+  for (const auto &opt : SyncOptions) {
+    if (opt.type == type) {
+      return std::string(opt.type_str);
+    }
+  }
+
+  return {};
+}
+
+class SyncTargetConfig : public SyncConfig
+{
+public:
   std::string url;
   std::string token;
 };
@@ -111,11 +168,10 @@ public:
 
   bool always_skip_reveal_sequence;
 
-  sync_config sync_defaults;
   bool sync_logging;
   bool sync_debug;
-
-  std::map<std::string, sync_target_config> sync_targets;
+  SyncConfig sync_options;
+  std::map<std::string, SyncTargetConfig> sync_targets;
 
   bool installUiScaleHooks;
   bool installZoomHooks;

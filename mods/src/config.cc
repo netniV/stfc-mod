@@ -1,9 +1,10 @@
 #include "config.h"
+#include "file.h"
 #include "patches/mapkey.h"
 #include "prime/KeyCode.h"
 #include "str_utils.h"
 #include "version.h"
-#include <prime\Toast.h>
+#include <prime/Toast.h>
 
 #include <EASTL/tuple.h>
 #include <spdlog/spdlog.h>
@@ -11,10 +12,10 @@
 #include <algorithm>
 #include <cstdio>
 #include <iostream>
+#include <ranges>
 #include <string>
 #include <string_view>
 
-#include "file.h"
 
 static const eastl::tuple<const char*, int> bannerTypes[] = {
     {"Standard", ToastState::Standard},
@@ -39,6 +40,17 @@ static const eastl::tuple<const char*, int> bannerTypes[] = {
     {"TakeoverVictory", ToastState::TakeoverVictory},
     {"TakeoverDefeat", ToastState::TakeoverDefeat},
 };
+
+bool SyncConfig::enabled(SyncConfig::Type type) const
+{
+  for (const auto &opt : SyncOptions) {
+    if (opt.type == type) {
+      return this->*opt.option;
+    }
+  }
+
+  return false;
+}
 
 Config::Config()
 {
@@ -142,7 +154,7 @@ float Config::GetDPI()
     auto horizontalScale = ((double)cxPhysical / (double)cxLogical);
     auto verticalScale   = ((double)cyPhysical / (double)cyLogical);
 
-    spdlog::trace("Horizonzal scaling: {}", horizontalScale);
+    spdlog::trace("Horizontal scaling: {}", horizontalScale);
     spdlog::trace("Vertical scaling: {}", verticalScale);
 
     dpi         = horizontalScale;
@@ -219,8 +231,8 @@ std::string get_config_type_as_string(const toml::node_type type)
 }
 
 template <typename T>
-inline T get_config_or_default(toml::table& config, toml::table& new_config, std::string_view section,
-                               std::string_view item, T default_value)
+T get_config_or_default(toml::table& config, toml::table& new_config, std::string_view section,
+  std::string_view item, T default_value)
 {
   new_config.emplace<toml::table>(section, toml::table());
 
@@ -243,7 +255,7 @@ inline T get_config_or_default(toml::table& config, toml::table& new_config, std
   return (T)final_value;
 }
 
-void read_sync_targets(toml::table config, toml::table& new_config, Config& cfg)
+void read_sync_targets(toml::table& config, toml::table& new_config, std::map<std::string, SyncTargetConfig> &sync_targets, const SyncConfig& defaults)
 {
   if (!config.contains("sync")) {
     return;
@@ -264,45 +276,53 @@ void read_sync_targets(toml::table config, toml::table& new_config, Config& cfg)
       continue;
     }
 
+    const std::string target_section = "sync.targets." + std::string(target_key.str());
+
+    SyncTargetConfig target;
+    toml::table parsed_target;
+
     const auto& values = *target_config.as_table();
-    if (!values.contains("url") || !values.contains("token")) {
-      continue;
+    if (values.contains("url") && values.contains("token")) {
+      auto url   = values["url"].value<std::string>();
+      auto token = values["token"].value<std::string>();
+      auto proxy = values["proxy"].value<std::string>();
+
+      if (!url.has_value() || !token.has_value()) {
+        continue;
+      }
+
+      target.url = url.value();
+      target.token = token.value();
+      target.proxy = proxy.value_or(defaults.proxy);
+
+      parsed_target.insert("url", url.value());
+      parsed_target.insert("token", token.value());
+      parsed_target.insert("proxy", proxy.value_or(defaults.proxy));
+
+    } else if (values.contains("file")) {
+      auto file = values["file"].value<std::string>();
+
+      if (!file.has_value() || file.value().empty()) {
+        continue;
+      }
+
+      target.url = std::string("file://") + file.value();
+      parsed_target.insert("file", file.value());
     }
 
-    auto key   = target_key.str();
-    auto url   = values["url"].value<std::string>();
-    auto token = values["token"].value<std::string>();
-
-    if (!url.has_value() || !token.has_value()) {
-      continue;
+    for (const auto& opt : SyncOptions) {
+      target.*opt.option = values[opt.option_str].value<bool>().value_or(defaults.*opt.option);
+      parsed_target.insert(opt.option_str, target.*opt.option);
     }
 
-    sync_target_config target{.url = url.value(), .token = token.value()};
-    toml::table        parsed_target{{"url", url.value()}, {"token", token.value()}};
-
-    target.sync_proxy      = get_config_or_default<std::string>(*sync, parsed_target, target_key, "proxy", "");
-    target.sync_battlelogs = get_config_or_default(*sync, parsed_target, target_key, "battlelogs", cfg.sync_battlelogs);
-    target.sync_buffs      = get_config_or_default(*sync, parsed_target, target_key, "buffs", cfg.sync_buffs);
-    target.sync_buildings  = get_config_or_default(*sync, parsed_target, target_key, "buildings", cfg.sync_buildings);
-    target.sync_inventory  = get_config_or_default(*sync, parsed_target, target_key, "inventory", cfg.sync_inventory);
-    target.sync_jobs       = get_config_or_default(*sync, parsed_target, target_key, "jobs", cfg.sync_jobs);
-    target.sync_missions   = get_config_or_default(*sync, parsed_target, target_key, "missions", cfg.sync_missions);
-    target.sync_officer    = get_config_or_default(*sync, parsed_target, target_key, "officer", cfg.sync_officer);
-    target.sync_research   = get_config_or_default(*sync, parsed_target, target_key, "research", cfg.sync_research);
-    target.sync_resources  = get_config_or_default(*sync, parsed_target, target_key, "resources", cfg.sync_resources);
-    target.sync_ships      = get_config_or_default(*sync, parsed_target, target_key, "ships", cfg.sync_ships);
-    target.sync_slots      = get_config_or_default(*sync, parsed_target, target_key, "slots", cfg.sync_slots);
-    target.sync_tech       = get_config_or_default(*sync, parsed_target, target_key, "tech", cfg.sync_tech);
-    target.sync_traits     = get_config_or_default(*sync, parsed_target, target_key, "traits", cfg.sync_traits);
-
-    if (cfg.sync_targets.emplace(url.value(), target).second) {
-      new_config["sync"]["targets"].as_table()->emplace<toml::table>(key, parsed_target);
-      spdlog::debug("config value sync.targets.{} url: {}, token: {}", key, url.value(), token.value());
+    if (sync_targets.emplace(target_key.str(), target).second) {
+      new_config["sync"]["targets"].as_table()->emplace<toml::table>(target_key.str(), parsed_target);
+      spdlog::debug("config value {} url: {}, token: {}", target_section, target.url, target.token);
     }
   }
 }
 
-void parse_config_shortcut(toml::table config, toml::table& new_config, std::string_view item,
+void parse_config_shortcut(toml::table& config, toml::table& new_config, std::string_view item,
                            GameFunction gameFunction, std::string_view default_value)
 {
   auto section = "shortcuts";
@@ -419,42 +439,6 @@ void Config::Load()
     write_config = false;
   }
 
-#if _MODDBG
-  this->installUiScaleHooks     = get_config_or_default(config, parsed, "patches", "uiscalehooks", true);
-  this->installZoomHooks        = get_config_or_default(config, parsed, "patches", "zoomhooks", true);
-  this->installBuffFixHooks     = get_config_or_default(config, parsed, "patches", "bufffixhooks", true);
-  this->installToastBannerHooks = get_config_or_default(config, parsed, "patches", "toastbannerhooks", true);
-  this->installPanHooks         = get_config_or_default(config, parsed, "patches", "panhooks", true);
-  this->installImproveResponsivenessHooks =
-      get_config_or_default(config, parsed, "patches", "improveresponsivenesshooks", true);
-  this->installHotkeyHooks       = get_config_or_default(config, parsed, "patches", "hotkeyhooks", true);
-  this->installFreeResizeHooks   = get_config_or_default(config, parsed, "patches", "freeresizehooks", true);
-  this->installTempCrashFixes    = get_config_or_default(config, parsed, "patches", "tempcrashfixes", true);
-  this->installTestPatches       = get_config_or_default(config, parsed, "patches", "testpatches", true);
-  this->installMiscPatches       = get_config_or_default(config, parsed, "patches", "miscpatches", true);
-  this->installChatPatches       = get_config_or_default(config, parsed, "patches", "chatpatches", true);
-  this->installResolutionListFix = get_config_or_default(config, parsed, "patches", "resolutionlistfix", true);
-  this->installSyncPatches       = get_config_or_default(config, parsed, "patches", "syncpatches", true);
-  this->installObjectTracker     = get_config_or_default(config, parsed, "patches", "objecttracker", true);
-  spdlog::debug("");
-#else
-  this->installUiScaleHooks               = true;
-  this->installZoomHooks                  = true;
-  this->installBuffFixHooks               = true;
-  this->installToastBannerHooks           = true;
-  this->installPanHooks                   = true;
-  this->installImproveResponsivenessHooks = true;
-  this->installHotkeyHooks                = true;
-  this->installFreeResizeHooks            = true;
-  this->installTempCrashFixes             = true;
-  this->installTestPatches                = true;
-  this->installMiscPatches                = true;
-  this->installChatPatches                = true;
-  this->installResolutionListFix          = true;
-  this->installSyncPatches                = true;
-  this->installObjectTracker              = true;
-#endif
-
   this->queue_enabled       = get_config_or_default(config, parsed, "control", "queue_enabled", true);
   this->hotkeys_enabled     = get_config_or_default(config, parsed, "control", "hotkeys_enabled", true);
   this->hotkeys_extended    = get_config_or_default(config, parsed, "control", "hotkeys_extended", true);
@@ -519,30 +503,20 @@ void Config::Load()
 
   spdlog::debug("");
 
-  this->sync_file       = get_config_or_default<std::string>(config, parsed, "sync", "file", "");
-  this->sync_debug      = get_config_or_default(config, parsed, "sync", "debug", false);
-  this->sync_logging    = get_config_or_default(config, parsed, "sync", "logging", false);
+  this->sync_debug              = get_config_or_default(config, parsed, "sync", "debug", false);
+  this->sync_logging            = get_config_or_default(config, parsed, "sync", "logging", false);
 
-  this->sync_proxy      = get_config_or_default<std::string>(config, parsed, "sync", "proxy", "");
-  this->sync_battlelogs = get_config_or_default(config, parsed, "sync", "battlelogs", false);
-  this->sync_buffs      = get_config_or_default(config, parsed, "sync", "buffs", false);
-  this->sync_buildings  = get_config_or_default(config, parsed, "sync", "buildings", false);
-  this->sync_inventory  = get_config_or_default(config, parsed, "sync", "inventory", false);
-  this->sync_jobs       = get_config_or_default(config, parsed, "sync", "jobs", false);
-  this->sync_missions   = get_config_or_default(config, parsed, "sync", "missions", false);
-  this->sync_officer    = get_config_or_default(config, parsed, "sync", "officer", false);
-  this->sync_research   = get_config_or_default(config, parsed, "sync", "research", false);
-  this->sync_resources  = get_config_or_default(config, parsed, "sync", "resources", false);
-  this->sync_ships      = get_config_or_default(config, parsed, "sync", "ships", false);
-  this->sync_slots      = get_config_or_default(config, parsed, "sync", "slots", false);
-  this->sync_tech       = get_config_or_default(config, parsed, "sync", "tech", false);
-  this->sync_traits     = get_config_or_default(config, parsed, "sync", "traits", false);
+  SyncConfig sync_defaults;
+  sync_defaults.proxy      = get_config_or_default<std::string>(config, parsed, "sync", "proxy", "");
+
+  for (const auto& opt : SyncOptions) {
+    sync_defaults.*opt.option = get_config_or_default(config, parsed, "sync", opt.option_str, false);
+  }
 
   spdlog::debug("");
 
   parsed["sync"].as_table()->emplace<toml::table>("targets", toml::table());
-
-  read_sync_targets(config, parsed, *this);
+  read_sync_targets(config, parsed, this->sync_targets, sync_defaults);
 
   // handle legacy sync options
   auto sync_url   = config["sync"]["url"].value<std::string>();
@@ -552,24 +526,44 @@ void Config::Load()
     spdlog::warn("Depreciation Warning: Legacy config options 'sync_url' and 'sync_token' have been moved to "
                  "[sync.targets.<name>] sections and may be removed in a future version.");
 
-    sync_target_config converted_target;
-    converted_target.url   = sync_url.value();
-    converted_target.token = sync_token.value();
+    SyncTargetConfig converted_target{ .url = sync_url.value(), .token = sync_token.value() };
 
-    if (this->sync_targets.emplace(sync_url.value(), converted_target).second) {
-      parsed["sync"]["targets"].as_table()->emplace<toml::table>(
-          "default", toml::table{{"url", sync_url.value()}, {"token", sync_token.value()}});
-      spdlog::info(
-          "Legacy config options 'sync_url' and 'sync_token' were converted to sync.targets.default url: {}, token: {}",
-          sync_url.value(), sync_token.value());
+    if (this->sync_targets.emplace("default", converted_target).second) {
+      parsed["sync"]["targets"].as_table()->emplace<toml::table>("default",
+        toml::table{{"url", sync_url.value()}, {"token", sync_token.value()}});
+      spdlog::info("Legacy config options 'sync_url' and 'sync_token' were converted to sync.targets.default url: {}, token: {}",
+        sync_url.value(), sync_token.value());
     } else {
-      spdlog::error("Failed to convert legacy config options sync_url: {} and sync_token: {} as [sync.targets.default] "
-                    "was already specified.",
-                    sync_url.value(), sync_token.value());
+      spdlog::error("Failed to convert legacy config options sync_url: {} and sync_token: {} as [sync.targets.default] was already specified.",
+        sync_url.value(), sync_token.value());
     }
   }
 
+  auto sync_file = config["sync"]["file"].value<std::string>();
+  if (sync_file.has_value() && !sync_file.value().empty()) {
+    spdlog::warn("Depreciation Warning: Legacy config option 'sync_file' has been moved to [sync.targets.<name>] and may be "
+                 "removed in a future version.");
+
+    SyncTargetConfig converted_target;
+    converted_target.url = std::string("file://") + sync_file.value();
+
+    if (this->sync_targets.emplace("default-file", converted_target).second) {
+      parsed["sync"]["targets"].as_table()->emplace<toml::table>("default-file", toml::table{{"file", sync_file.value()}});
+      spdlog::info("Legacy config option 'sync_file' was converted to sync.targets.default-file file: {}", sync_file.value());
+    } else {
+      spdlog::error("Failed to convert legacy config option sync_file: {} as [sync.targets.default-file] was already specified.", sync_file.value());
+    }
+  }
+
+  // set global sync options to what's actually used in targets
+  const auto targets_view = this->sync_targets | std::views::values;
+
+  for (const auto& opt : SyncOptions) {
+    this->sync_options.*opt.option = std::ranges::any_of(targets_view, [opt](const auto& target) { return target.*opt.option; });
+  }
+
   spdlog::debug("");
+
   // must explicitly include std::string typing here, or we get back char * which fails us!
   auto disabled_banner_types_str =
       get_config_or_default<std::string>(config, parsed, "ui", "disabled_banner_types", "");
