@@ -16,7 +16,6 @@
 #include <string>
 #include <string_view>
 
-
 static const eastl::tuple<const char*, int> bannerTypes[] = {
     {"Standard", ToastState::Standard},
     {"FactionWarning", ToastState::FactionWarning},
@@ -39,11 +38,29 @@ static const eastl::tuple<const char*, int> bannerTypes[] = {
     {"AbandonedTerritory", ToastState::AbandonedTerritory},
     {"TakeoverVictory", ToastState::TakeoverVictory},
     {"TakeoverDefeat", ToastState::TakeoverDefeat},
+    {"TreasuryProgress", ToastState::TreasuryProgress},
+    {"TreasuryFull", ToastState::TreasuryFull},
+    {"Achievement", ToastState::Achievement},
+    {"AssaultVictory", ToastState::AssaultVictory},
+    {"AssaultDefeat", ToastState::AssaultDefeat},
+    {"ChallengeComplete", ToastState::ChallengeComplete},
+    {"ChallengeFailed", ToastState::ChallengeFailed},
+    {"StrikeHit", ToastState::StrikeHit},
+    {"StrikeDefeat", ToastState::StrikeDefeat},
+    {"WarchestProgress", ToastState::WarchestProgress},
+    {"WarchestFull", ToastState::WarchestFull},
+    {"PartialVictory", ToastState::PartialVictory},
+    {"ArenaTimeLeft", ToastState::ArenaTimeLeft},
+    {"ChainedEventScored", ToastState::ChainedEventScored},
+    {"FleetPresetApplied", ToastState::FleetPresetApplied},
+    {"SurgeWarmUpEnded", ToastState::SurgeWarmUpEnded},
+    {"SurgeHostileGroupDefeated", ToastState::SurgeHostileGroupDefeated},
+    {"SurgeTimeLeft", ToastState::SurgeTimeLeft},
 };
 
 bool SyncConfig::enabled(SyncConfig::Type type) const
 {
-  for (const auto &opt : SyncOptions) {
+  for (const auto& opt : SyncOptions) {
     if (opt.type == type) {
       return this->*opt.option;
     }
@@ -62,8 +79,8 @@ void Config::Save(const toml::table& config, const std::string_view filename, bo
   std::ofstream config_file;
 
   auto config_path = File::MakePath(filename, true);
-
   config_file.open(config_path);
+
   if (apply_warning) {
     char defaultFile[255], configFile[255];
     snprintf(defaultFile, 255, "%s", File::Default());
@@ -231,8 +248,8 @@ std::string get_config_type_as_string(const toml::node_type type)
 }
 
 template <typename T>
-T get_config_or_default(toml::table& config, toml::table& new_config, std::string_view section,
-  std::string_view item, T default_value)
+T get_config_or_default(toml::table& config, toml::table& new_config, std::string_view section, std::string_view item,
+                        T default_value)
 {
   new_config.emplace<toml::table>(section, toml::table());
 
@@ -255,7 +272,8 @@ T get_config_or_default(toml::table& config, toml::table& new_config, std::strin
   return (T)final_value;
 }
 
-void read_sync_targets(toml::table& config, toml::table& new_config, std::map<std::string, SyncTargetConfig> &sync_targets, const SyncConfig& defaults)
+void read_sync_targets(toml::table& config, toml::table& new_config,
+                       std::map<std::string, SyncTargetConfig>& sync_targets, const SyncConfig& defaults)
 {
   if (!config.contains("sync")) {
     return;
@@ -279,7 +297,7 @@ void read_sync_targets(toml::table& config, toml::table& new_config, std::map<st
     const std::string target_section = "sync.targets." + std::string(target_key.str());
 
     SyncTargetConfig target;
-    toml::table parsed_target;
+    toml::table      parsed_target;
 
     const auto& values = *target_config.as_table();
     if (values.contains("url") && values.contains("token")) {
@@ -291,7 +309,7 @@ void read_sync_targets(toml::table& config, toml::table& new_config, std::map<st
         continue;
       }
 
-      target.url = url.value();
+      target.url   = url.value();
       target.token = token.value();
       target.proxy = proxy.value_or(defaults.proxy);
 
@@ -539,8 +557,8 @@ void Config::Load()
 
   spdlog::debug("");
 
-  this->sync_debug = get_config_or_default(config, parsed, "sync", "debug", false);
-  this->sync_logging = get_config_or_default(config, parsed, "sync", "logging", false);
+  this->sync_debug              = get_config_or_default(config, parsed, "sync", "debug", false);
+  this->sync_logging            = get_config_or_default(config, parsed, "sync", "logging", false);
   this->sync_resolver_cache_ttl = get_config_or_default(config, parsed, "sync", "resolver_cache_ttl", 300);
 
   SyncConfig sync_defaults;
@@ -563,32 +581,39 @@ void Config::Load()
     spdlog::warn("Depreciation Warning: Legacy config options 'sync_url' and 'sync_token' have been moved to "
                  "[sync.targets.<name>] sections and may be removed in a future version.");
 
-    SyncTargetConfig converted_target{ .url = sync_url.value(), .token = sync_token.value() };
+    SyncTargetConfig converted_target{.url = sync_url.value(), .token = sync_token.value()};
 
     if (this->sync_targets.emplace("default", converted_target).second) {
-      parsed["sync"]["targets"].as_table()->emplace<toml::table>("default",
-        toml::table{{"url", sync_url.value()}, {"token", sync_token.value()}});
-      spdlog::info("Legacy config options 'sync_url' and 'sync_token' were converted to sync.targets.default url: {}, token: {}",
-        sync_url.value(), sync_token.value());
+      parsed["sync"]["targets"].as_table()->emplace<toml::table>(
+          "default", toml::table{{"url", sync_url.value()}, {"token", sync_token.value()}});
+      spdlog::info(
+          "Legacy config options 'sync_url' and 'sync_token' were converted to sync.targets.default url: {}, token: {}",
+          sync_url.value(), sync_token.value());
     } else {
-      spdlog::error("Failed to convert legacy config options sync_url: {} and sync_token: {} as [sync.targets.default] was already specified.",
-        sync_url.value(), sync_token.value());
+      spdlog::error("Failed to convert legacy config options sync_url: {} and sync_token: {} as [sync.targets.default] "
+                    "was already specified.",
+                    sync_url.value(), sync_token.value());
     }
   }
 
-  auto sync_file = config["sync"]["file"].value<std::string>();
-  if (sync_file.has_value() && !sync_file.value().empty()) {
-    spdlog::warn("Depreciation Warning: Legacy config option 'sync_file' has been moved to [sync.targets.<name>] and may be "
-                 "removed in a future version.");
+  if (auto sync_file = config["sync"]["file"].value<std::string>();
+      sync_file.has_value() && !sync_file.value().empty()) {
+    spdlog::warn(
+        "Depreciation Warning: Legacy config option 'sync_file' has been moved to [sync.targets.<name>] and may be "
+        "removed in a future version.");
 
     SyncTargetConfig converted_target;
     converted_target.url = std::string("file://") + sync_file.value();
 
     if (this->sync_targets.emplace("default-file", converted_target).second) {
-      parsed["sync"]["targets"].as_table()->emplace<toml::table>("default-file", toml::table{{"file", sync_file.value()}});
-      spdlog::info("Legacy config option 'sync_file' was converted to sync.targets.default-file file: {}", sync_file.value());
+      parsed["sync"]["targets"].as_table()->emplace<toml::table>("default-file",
+                                                                 toml::table{{"file", sync_file.value()}});
+      spdlog::info("Legacy config option 'sync_file' was converted to sync.targets.default-file file: {}",
+                   sync_file.value());
     } else {
-      spdlog::error("Failed to convert legacy config option sync_file: {} as [sync.targets.default-file] was already specified.", sync_file.value());
+      spdlog::error(
+          "Failed to convert legacy config option sync_file: {} as [sync.targets.default-file] was already specified.",
+          sync_file.value());
     }
   }
 
@@ -596,7 +621,8 @@ void Config::Load()
   const auto targets_view = this->sync_targets | std::views::values;
 
   for (const auto& opt : SyncOptions) {
-    this->sync_options.*opt.option = std::ranges::any_of(targets_view, [opt](const auto& target) { return target.*opt.option; });
+    this->sync_options.*opt.option =
+        std::ranges::any_of(targets_view, [opt](const auto& target) { return target.*opt.option; });
   }
 
   spdlog::debug("");
@@ -772,7 +798,6 @@ void Config::Load()
     std::filesystem::remove(FILE_DEF_PARSED);
   }
 
-
   Config::Save(parsed, File::Vars());
 
   std::cout << "\n\n-----------------------------\n\n"
@@ -790,5 +815,4 @@ void Config::Load()
             << "\n\nPlease see https://github.com/netniv/stfc-mod for latest configuration help, examples and future "
                "releases\n"
             << "or visit the STFC Community Mod discord server at https://discord.gg/PrpHgs7Vjs\n\n";
-
 }

@@ -11,7 +11,6 @@
 #include <Windows.h>
 #endif
 
-
 class SyncConfig
 {
 public:
@@ -34,10 +33,10 @@ public:
   };
 
   struct Option {
-    Type type;
-    std::string_view type_str;    // used in JSON body
-    std::string_view option_str;  // used in TOML file
-    bool SyncConfig::*option;
+    Type             type;
+    std::string_view type_str;   // used in JSON body
+    std::string_view option_str; // used in TOML file
+    bool SyncConfig::* option;
   };
 
   std::string proxy;
@@ -59,27 +58,27 @@ public:
   bool enabled(Type type) const;
 };
 
-constexpr std::array SyncOptions {
-  SyncConfig::Option{SyncConfig::Type::Battles,           "battlelog",     "battlelogs", &SyncConfig::battlelogs},
-  SyncConfig::Option{SyncConfig::Type::Buffs,             "active_buff",   "buffs",      &SyncConfig::buffs},
-  SyncConfig::Option{SyncConfig::Type::Buildings,         "module",        "buildings",  &SyncConfig::buildings},
-  SyncConfig::Option{SyncConfig::Type::EmeraldChain,      "emerald_chain", "buffs",      &SyncConfig::buffs},
-  SyncConfig::Option{SyncConfig::Type::Inventory,         "inventory",     "inventory",  &SyncConfig::inventory},
-  SyncConfig::Option{SyncConfig::Type::Jobs,              "job",           "jobs",       &SyncConfig::jobs},
-  SyncConfig::Option{SyncConfig::Type::MissionsActive,    "active_mission","missions",   &SyncConfig::missions},
-  SyncConfig::Option{SyncConfig::Type::MissionsCompleted, "mission",       "missions",   &SyncConfig::missions},
-  SyncConfig::Option{SyncConfig::Type::Officer,           "officer",       "officer",    &SyncConfig::officer},
-  SyncConfig::Option{SyncConfig::Type::Research,          "research",      "research",   &SyncConfig::research},
-  SyncConfig::Option{SyncConfig::Type::Resources,         "resource",      "resources",  &SyncConfig::resources},
-  SyncConfig::Option{SyncConfig::Type::Ships,             "ship",          "ships",      &SyncConfig::ships},
-  SyncConfig::Option{SyncConfig::Type::Slots,             "slot",          "slots",      &SyncConfig::slots},
-  SyncConfig::Option{SyncConfig::Type::Tech,              "ft",            "tech",       &SyncConfig::tech},
-  SyncConfig::Option{SyncConfig::Type::Traits,            "trait",         "traits",     &SyncConfig::traits},
+constexpr std::array SyncOptions{
+    SyncConfig::Option{SyncConfig::Type::Battles, "battlelog", "battlelogs", &SyncConfig::battlelogs},
+    SyncConfig::Option{SyncConfig::Type::Buffs, "active_buff", "buffs", &SyncConfig::buffs},
+    SyncConfig::Option{SyncConfig::Type::Buildings, "module", "buildings", &SyncConfig::buildings},
+    SyncConfig::Option{SyncConfig::Type::EmeraldChain, "emerald_chain", "buffs", &SyncConfig::buffs},
+    SyncConfig::Option{SyncConfig::Type::Inventory, "inventory", "inventory", &SyncConfig::inventory},
+    SyncConfig::Option{SyncConfig::Type::Jobs, "job", "jobs", &SyncConfig::jobs},
+    SyncConfig::Option{SyncConfig::Type::MissionsActive, "active_mission", "missions", &SyncConfig::missions},
+    SyncConfig::Option{SyncConfig::Type::MissionsCompleted, "mission", "missions", &SyncConfig::missions},
+    SyncConfig::Option{SyncConfig::Type::Officer, "officer", "officer", &SyncConfig::officer},
+    SyncConfig::Option{SyncConfig::Type::Research, "research", "research", &SyncConfig::research},
+    SyncConfig::Option{SyncConfig::Type::Resources, "resource", "resources", &SyncConfig::resources},
+    SyncConfig::Option{SyncConfig::Type::Ships, "ship", "ships", &SyncConfig::ships},
+    SyncConfig::Option{SyncConfig::Type::Slots, "slot", "slots", &SyncConfig::slots},
+    SyncConfig::Option{SyncConfig::Type::Tech, "ft", "tech", &SyncConfig::tech},
+    SyncConfig::Option{SyncConfig::Type::Traits, "trait", "traits", &SyncConfig::traits},
 };
 
 inline std::string to_string(SyncConfig::Type type)
 {
-  for (const auto &opt : SyncOptions) {
+  for (const auto& opt : SyncOptions) {
     if (opt.type == type) {
       return std::string(opt.type_str);
     }
@@ -100,12 +99,12 @@ class Config final
 public:
   Config();
 
-  [[nodiscard]] static Config& Get();
-  [[nodiscard]] static float   GetDPI();
-  [[nodiscard]] static float   RefreshDPI();
+  static Config& Get();
+  static float   GetDPI();
+  static float   RefreshDPI();
 
 #ifdef _WIN32
-  [[nodiscard]] static HWND WindowHandle();
+  static HWND WindowHandle();
 #endif
 
   static void Save(const toml::table& config, std::string_view filename, bool apply_warning = true);
@@ -114,10 +113,10 @@ public:
   void        AdjustUiViewerScale(bool scaleUp);
 
   // Disallow copying/moving to enforce singleton
-  Config(const Config&) = delete;
+  Config(const Config&)            = delete;
   Config& operator=(const Config&) = delete;
-  Config(Config&&) = delete;
-  Config& operator=(Config&&) = delete;
+  Config(Config&&)                 = delete;
+  Config& operator=(Config&&)      = delete;
 
   float ui_scale;
   float ui_scale_adjust;
@@ -170,10 +169,11 @@ public:
 
   bool always_skip_reveal_sequence;
 
-  bool sync_logging;
-  bool sync_debug;
-  int  sync_resolver_cache_ttl;
+  bool       sync_logging;
+  bool       sync_debug;
+  int        sync_resolver_cache_ttl;
   SyncConfig sync_options;
+
   std::map<std::string, SyncTargetConfig> sync_targets;
 
   bool installUiScaleHooks;
@@ -191,7 +191,7 @@ public:
   bool installResolutionListFix;
   bool installSyncPatches;
   bool installObjectTracker;
-  
+
   std::string config_settings_url;
   std::string config_assets_url_override;
 };
