@@ -18,8 +18,6 @@
 #include <mach-o/dyld.h>
 #endif
 
-#include <array>
-
 void InstallUiScaleHooks();
 void InstallZoomHooks();
 void InstallBuffFixHooks();

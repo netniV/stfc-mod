@@ -137,7 +137,7 @@ static std::shared_ptr<cpr::Session> get_curl_client_sync(const std::string& tar
       session->SetUrl(target_config.url);
       session->SetUserAgent("stfc community patch " VER_FILE_VERSION_STR " (libcurl/" LIBCURL_VERSION ")");
       session->SetAcceptEncoding(cpr::AcceptEncoding{});
-      session->SetHttpVersion(cpr::HttpVersion{cpr::HttpVersionCode::VERSION_2_0});
+      session->SetHttpVersion(cpr::HttpVersion{cpr::HttpVersionCode::VERSION_2_0_TLS});
       session->SetRedirect(cpr::Redirect{3, true, false, cpr::PostRedirectFlags::POST_ALL});
 
       if (!target_config.proxy.empty()) {
@@ -204,15 +204,16 @@ static void send_data(SyncConfig::Type type, const std::string& post_data)
       target_mutex = it->second;
     }
 
+    const auto target_identifier = STR_FORMAT("{} ({})", target, to_string(type));
+
     try {
       // Serialize per-target HTTP operations.
       std::lock_guard lk(*target_mutex);
 
       auto httpClient = get_curl_client_sync(target);
-      sync_log_debug(CURL_TYPE_UPLOAD, target, "Sending data to " + httpClient->GetFullRequestUrl());
+      sync_log_debug(CURL_TYPE_UPLOAD, target_identifier, "Sending data to " + httpClient->GetFullRequestUrl());
 
       httpClient->SetBody(post_data);
-      const auto target_identifier = STR_FORMAT("{} ({})", target, to_string(type));
 
       if (const auto response = httpClient->Post(); response.status_code == 0) {
         sync_log_error(CURL_TYPE_UPLOAD, target_identifier, "Failed to send request: " + response.error.message);
@@ -223,19 +224,19 @@ static void send_data(SyncConfig::Type type, const std::string& post_data)
       }
 #if _WIN32
     } catch (winrt::hresult_error const& ex) {
-      ErrorMsg::SyncWinRT(target.c_str(), ex);
+      ErrorMsg::SyncWinRT(target_identifier.c_str(), ex);
     } catch (const std::wstring& sz) {
-      ErrorMsg::SyncMsg(target.c_str(), sz);
+      ErrorMsg::SyncMsg(target_identifier.c_str(), sz);
     }
 #else
     } catch (const std::wstring& sz) {
-      ErrorMsg::SyncMsg(target.c_str(), sz);
+      ErrorMsg::SyncMsg(target_identifier.c_str(), sz);
     }
 #endif
     catch (const std::runtime_error& e) {
-      ErrorMsg::SyncRuntime(target.c_str(), e);
+      ErrorMsg::SyncRuntime(target_identifier.c_str(), e);
     } catch (...) {
-      ErrorMsg::SyncMsg(target.c_str(), L"Unknown error");
+      ErrorMsg::SyncMsg(target_identifier.c_str(), L"Unknown error");
     }
   }
 }
@@ -297,6 +298,7 @@ static std::string get_scopely_data(const std::string& path, const std::string& 
 
     auto& headers = httpClient->GetHeader();
     headers.insert_or_assign("X-TRANSACTION-ID", newUUID());
+    headers.insert_or_assign("X-AUTH-SESSION-ID", headers::instanceSessionId);
     headers.insert_or_assign("X-Instance-ID", STR_FORMAT("{:03}", headers::instanceId));
 
     httpClient->SetBody(post_data);
@@ -385,8 +387,6 @@ std::queue<std::pair<SyncConfig::Type, std::string>> sync_data_queue;
 std::mutex              combat_log_data_mtx;
 std::condition_variable combat_log_data_cv;
 std::queue<uint64_t>    combat_log_data_queue;
-
-static constexpr auto name_resolver_cache_ttl = std::chrono::minutes(5);
 
 struct CachedPlayerData
 {
@@ -754,7 +754,7 @@ void process_forbidden_techs(std::unique_ptr<std::string>&& bytes)
         if (const auto& it = tech_states.find(tech.id()); it == tech_states.end() || it->second != tech_state) {
           tech_states[tech.id()] = tech_state;
           tech_array.push_back({{"type", SyncConfig::Type::Tech},
-                                {"tid", tech.id()},
+                                {"fid", tech.id()},
                                 {"tier", tech.tier()},
                                 {"level", tech.level()},
                                 {"shard_count", tech.shardcount()}});
@@ -821,11 +821,16 @@ void process_global_active_buffs(std::unique_ptr<std::string>&& bytes)
       std::lock_guard lk(buff_states_mtx);
 
       for (const auto& buff : response.globalactivebuffs()) {
-        const auto state = std::make_pair(buff.level(), (buff.has_activebuff() && buff.activebuff().has_expirytime())? buff.activebuff().expirytime().seconds() : -1);
+        const bool expires = buff.has_activebuff() && buff.activebuff().has_expirytime();
+        const auto state = std::make_pair(buff.level(), expires ? buff.activebuff().expirytime().seconds() : -1);
 
         if (const auto& it = buff_states.find(buff.buffid()); it == buff_states.end() || it->second != state) {
           buff_states[buff.buffid()] = state;
-          buff_array.push_back({{"type", SyncConfig::Type::Buffs}, {"bid", buff.buffid()}, {"level", state.first}, {"expiry_time", state.second}});
+          buff_array.push_back({
+            {"type", SyncConfig::Type::Buffs},
+            {"bid", buff.buffid()}, {"level", state.first},
+            {"expiry_time", expires ? json(state.second) : json(nullptr)}
+          });
         }
       }
     }
@@ -855,11 +860,13 @@ void process_entity_slots(std::unique_ptr<std::string>&& bytes)
 
       for (const auto& slot : response.entityslots_()) {
         json slot_params;
+        int64_t state_value = slot.has_slotitemid() ? slot.slotitemid() : -1;
 
         switch (slot.slottype()) {
           case Digit::PrimeServer::Models::SLOTTYPE_CONSUMABLE:
             if (slot.has_consumableslotparams()) {
-              slot_params["expiry_time"] = slot.consumableslotparams().expirytime().seconds();
+              const auto& consumable = slot.consumableslotparams();
+              slot_params["expiry_time"] = consumable.has_expirytime() ? json(consumable.expirytime().seconds()) : json(nullptr);
             }
             break;
           case Digit::PrimeServer::Models::SLOTTYPE_OFFICERPRESET:
@@ -871,6 +878,8 @@ void process_entity_slots(std::unique_ptr<std::string>&& bytes)
                 {"order", preset.order()},
                 {"officer_ids", preset.officerids()}
               };
+
+              state_value = static_cast<int64_t>(std::hash<json>{}(slot_params));
             }
             break;
           case Digit::PrimeServer::Models::SLOTTYPE_FLEETCOMMANDER:
@@ -880,7 +889,8 @@ void process_entity_slots(std::unique_ptr<std::string>&& bytes)
             break;
           case Digit::PrimeServer::Models::SLOTTYPE_SELECTABLESKILL:
             if (slot.has_selectableskillslotparams()) {
-              slot_params["cooldown_expiration"] = slot.selectableskillslotparams().cooldownexpiration().seconds();
+              const auto& skill = slot.selectableskillslotparams();
+              slot_params["cooldown_expiration"] = skill.has_cooldownexpiration() ? json(skill.cooldownexpiration().seconds()) : json(nullptr);
             }
             break;
           case Digit::PrimeServer::Models::SLOTTYPE_FLEETPRESET:
@@ -901,13 +911,15 @@ void process_entity_slots(std::unique_ptr<std::string>&& bytes)
                 {"order", preset.order()},
                 {"setup", setup_json}
               };
+
+              state_value = static_cast<int64_t>(std::hash<json>{}(slot_params));
             }
           default:
             continue;
         }
 
-        if (const auto& it = slot_states.find(slot.id()); it == slot_states.end() || it->second != slot.slotitemid()) {
-          slot_states[slot.id()] = slot.slotitemid();
+        if (const auto& it = slot_states.find(slot.id()); it == slot_states.end() || it->second != state_value) {
+          slot_states[slot.id()] = state_value;
           slot_array.push_back({
             {"type", SyncConfig::Type::Slots},
             {"slot_type", slot.slottype()},
@@ -1210,7 +1222,7 @@ void process_json(std::unique_ptr<std::string>&& bytes)
       }
     }
   } catch (const json::exception& e) {
-    spdlog::error("Error parsing json: %s", e.what());
+    spdlog::error("Error parsing json: {}", e.what());
   }
 }
 
@@ -1220,7 +1232,7 @@ void cache_player_names(std::unique_ptr<std::string>&& bytes)
         response.ParseFromString(*bytes)) {
 
     std::unordered_map<std::string, CachedPlayerData> names;
-    const auto expires_at = std::chrono::steady_clock::now() + name_resolver_cache_ttl;
+    const auto expires_at = std::chrono::steady_clock::now() + std::chrono::seconds(Config::Get().sync_resolver_cache_ttl);
 
     for (const auto& profile : response.userprofiles()) {
       names.insert_or_assign(profile.userid(), CachedPlayerData{profile.name(), profile.allianceid(), expires_at});
@@ -1241,7 +1253,7 @@ void cache_alliance_names(std::unique_ptr<std::string>&& bytes)
         response.ParseFromString(*bytes)) {
 
     std::unordered_map<int64_t, CachedAllianceData> names;
-    const auto expires_at = std::chrono::steady_clock::now() + name_resolver_cache_ttl;
+    const auto expires_at = std::chrono::steady_clock::now() + std::chrono::seconds(Config::Get().sync_resolver_cache_ttl);
 
     for (const auto& alliance : response.allianceprofiles()) {
       if (alliance.id() > 0) {
@@ -1379,7 +1391,7 @@ void ship_combat_log_data()
 #endif
 
   for (;;) {
-    int64_t journal_id;
+    uint64_t journal_id;
     {
       std::unique_lock lock(combat_log_data_mtx);
       combat_log_data_cv.wait(lock, [] { return !combat_log_data_queue.empty(); });
@@ -1392,15 +1404,23 @@ void ship_combat_log_data()
       http::sync_log_trace("PROCESS", "combat log", STR_FORMAT("Fetching combat log for battle {}", journal_id));
 
       const json journals_body{{"journal_id", journal_id}};
-      auto battle_log = http::get_scopely_data("/journals/get", journals_body.dump());
+      auto       battle_log = http::get_scopely_data("/journals/get", journals_body.dump());
+      json       battle_json;
 
-      auto battle_json = json::parse(battle_log);
-      const auto& journal = battle_json["journal"];
+      try {
+        battle_json = std::move(json::parse(battle_log));
+      } catch (const json::exception& e) {
+        spdlog::error("Error parsing journal response from game server: {}", e.what());
+        continue;
+      }
+
+      const auto& journal              = battle_json["journal"];
       const auto& target_fleet_data    = journal["target_fleet_data"];
       const auto& initiator_fleet_data = journal["initiator_fleet_data"];
 
-      auto names = json::object();
-      const auto now = std::chrono::steady_clock::now();
+      auto       names      = json::object();
+      const auto now        = std::chrono::steady_clock::now();
+      const auto expires_at = now + std::chrono::seconds(Config::Get().sync_resolver_cache_ttl);
 
       {
         std::unordered_set<std::string> user_ids;
@@ -1421,11 +1441,12 @@ void ship_combat_log_data()
 
           try {
             for (const auto& [player_id, profile] : profiles_json["user_profiles"].get<json::object_t>()) {
-              const auto& name = profile["name"].get<std::string>();
+              const auto& name        = profile["name"].get<std::string>();
               const auto& alliance_id = profile["alliance_id"].get<int64_t>();
 
-              names[player_id] = {{"name", name}, {"alliance_id", alliance_id}, {"alliance_name", nullptr}, {"alliance_tag", nullptr}};
-              player_data_cache[player_id] = {name, alliance_id, now + name_resolver_cache_ttl};
+              names[player_id] = {
+                  {"name", name}, {"alliance_id", alliance_id}, {"alliance_name", nullptr}, {"alliance_tag", nullptr}};
+              player_data_cache[player_id] = {name, alliance_id, expires_at};
             }
           } catch (const json::exception& e) {
             spdlog::error("Failed to parse user profiles: {}", e.what());
@@ -1435,27 +1456,27 @@ void ship_combat_log_data()
 
       {
         std::unordered_set<int64_t> alliance_ids;
-        json alliance_profiles_request{{"user_current_rank", 0}, {"alliance_id", 0}, {"alliance_ids", json::array()}};
+        json alliances_request{{"user_current_rank", 0}, {"alliance_id", 0}, {"alliance_ids", json::array()}};
 
         collect_alliance_ids(names, alliance_ids);
-        resolve_alliance_names(alliance_ids, names, alliance_profiles_request["alliance_ids"], now);
+        resolve_alliance_names(alliance_ids, names, alliances_request["alliance_ids"], now);
 
-        const auto fetch_count = alliance_profiles_request["alliance_ids"].size();
+        const auto fetch_count = alliances_request["alliance_ids"].size();
         if (fetch_count > 0) {
           http::sync_log_trace("PROCESS", "combat log", STR_FORMAT("Fetching {} alliance profiles", fetch_count));
 
-          auto profiles = http::get_scopely_data("/alliance/get_alliances_public_info", alliance_profiles_request.dump());
+          auto profiles = http::get_scopely_data("/alliance/get_alliances_public_info", alliances_request.dump());
           auto profiles_json = json::parse(profiles);
 
           std::lock_guard lk(alliance_data_cache_mtx);
 
           try {
             for (const auto& [alliance_id_str, profile] : profiles_json["alliances_info"].get<json::object_t>()) {
-              const auto id = profile["id"].get<int64_t>();
+              const auto  id      = profile["id"].get<int64_t>();
               const auto& name = profile["name"].get<std::string>();
-              const auto& tag = profile["tag"].get<std::string>();
+              const auto& tag  = profile["tag"].get<std::string>();
 
-              alliance_data_cache[id] = {name, tag, now + name_resolver_cache_ttl};
+              alliance_data_cache[id] = {name, tag, expires_at};
             }
           } catch (json::exception& e) {
             spdlog::error("Failed to parse alliance profiles: {}", e.what());
@@ -1465,10 +1486,10 @@ void ship_combat_log_data()
             try {
               if (entry.contains("alliance_id")) {
                 const auto alliance_id = entry["alliance_id"].get<int64_t>();
-                const auto it = alliance_data_cache.find(alliance_id);
+                const auto it          = alliance_data_cache.find(alliance_id);
                 if (it != alliance_data_cache.end()) {
                   entry["alliance_name"] = it->second.name;
-                  entry["alliance_tag"] = it->second.tag;
+                  entry["alliance_tag"]  = it->second.tag;
                   entry.erase("alliance_id");
                 }
               }
@@ -1479,7 +1500,7 @@ void ship_combat_log_data()
         }
       }
 
-      auto battle_array  = json::array();
+      auto battle_array = json::array();
       battle_array.push_back({{"type", SyncConfig::Type::Battles}, {"names", names}, {"journal", battle_json["journal"]}});
 
       try {
@@ -1490,7 +1511,7 @@ void ship_combat_log_data()
       } catch (const std::wstring& sz) {
         ErrorMsg::SyncMsg("combat", sz);
 #if _WIN32
-      }  catch (winrt::hresult_error const& ex) {
+      } catch (winrt::hresult_error const& ex) {
         ErrorMsg::SyncWinRT("combat", ex);
 #endif
       } catch (...) {
@@ -1498,8 +1519,8 @@ void ship_combat_log_data()
       }
 
     } catch (json::exception& e) {
-      spdlog::error("Error parsing journal/profile json: {}", e.what());
-    } catch (std::exception &e) {
+      spdlog::error("Error parsing combat log or profiles: {}", e.what());
+    } catch (std::exception& e) {
       spdlog::error("Error processing combat log: {}", e.what());
     } catch (...) {
       spdlog::error("Unknown error during processing of combat log data");
@@ -1609,7 +1630,7 @@ void HandleEntityGroup(EntityGroup* entity_group)
   }
 }
 
-void MissionsDataContainer_ParseBinaryObject(auto original, void* _this, EntityGroup* group, bool isPlayerData)
+void DataContainer_ParseBinaryObject(auto original, void* _this, EntityGroup* group, bool isPlayerData)
 {
   HandleEntityGroup(group);
   return original(_this, group, isPlayerData);
@@ -1661,55 +1682,10 @@ void GameServer_SetInstanceIdHeader(auto original, void* _this, int32_t instance
 
 void InstallSyncPatches()
 {
-  curl_global_init(CURL_GLOBAL_ALL);
   load_previously_sent_logs();
 
-  if (auto missions_data_container = il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Models", "MissionsDataContainer");
-    !missions_data_container.isValidHelper()) {
-    ErrorMsg::MissingHelper("Models", "MissionsDataContainer");
-  } else {
-    if (const auto ptr = missions_data_container.GetMethod("ParseBinaryObject"); ptr == nullptr) {
-      ErrorMsg::MissingMethod("MissionsDataContainer", "ParseBinaryObject");
-    } else {
-      SPUD_STATIC_DETOUR(ptr, MissionsDataContainer_ParseBinaryObject);
-    }
-  }
-
-  auto inventory_data_container =
-      il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Services", "InventoryDataContainer");
-  if (!inventory_data_container.isValidHelper()) {
-    ErrorMsg::MissingHelper("Services", "InventoryDataContainer");
-  } else {
-    if (const auto ptr = inventory_data_container.GetMethod("ParseBinaryObject"); ptr == nullptr) {
-      ErrorMsg::MissingMethod("InventoryDataContainer", "ParseBinaryObject");
-    } else {
-      SPUD_STATIC_DETOUR(ptr, MissionsDataContainer_ParseBinaryObject);
-    }
-  }
-
-  if (auto research_data_container = il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Services", "ResearchDataContainer");
-    !research_data_container.isValidHelper()) {
-    ErrorMsg::MissingHelper("Services", "ResearchDataContainer");
-  } else {
-    if (const auto ptr = research_data_container.GetMethod("ParseBinaryObject"); ptr == nullptr) {
-      ErrorMsg::MissingHelper("ResearchDataContainer", "ParseBinaryObject");
-    } else {
-      SPUD_STATIC_DETOUR(ptr, MissionsDataContainer_ParseBinaryObject);
-    }
-  }
-
-  if (auto research_service = il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Services", "ResearchService");
-      !research_service.isValidHelper()) {
-    ErrorMsg::MissingHelper("Services", "ResearchService");
-  } else {
-    if (const auto ptr = research_service.GetMethod("ParseBinaryObject"); ptr == nullptr) {
-      ErrorMsg::MissingMethod("ResearchService", "ParseBinaryObject");
-    } else {
-      SPUD_STATIC_DETOUR(ptr, MissionsDataContainer_ParseBinaryObject);
-    }
-  }
-
-  if (auto game_server_model_registry = il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Core", "GameServerModelRegistry");
+  if (auto game_server_model_registry =
+          il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Core", "GameServerModelRegistry");
       !game_server_model_registry.isValidHelper()) {
     ErrorMsg::MissingHelper("Core", "GameServerModelRegistry");
   } else {
@@ -1728,8 +1704,9 @@ void InstallSyncPatches()
     }
   }
 
-  if (auto platform_model_registry = il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimePlatform.Core", "PlatformModelRegistry");
-    !platform_model_registry.isValidHelper()) {
+  if (auto platform_model_registry =
+          il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimePlatform.Core", "PlatformModelRegistry");
+      !platform_model_registry.isValidHelper()) {
     ErrorMsg::MissingHelper("Core", "PlatformModelRegistry");
   } else {
     if (const auto ptr = platform_model_registry.GetMethod("ProcessResultInternal"); ptr == nullptr) {
@@ -1739,36 +1716,111 @@ void InstallSyncPatches()
     }
   }
 
-  if (auto slot_data_container = il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Services", "SlotDataContainer");
-    !slot_data_container.isValidHelper()) {
-    ErrorMsg::MissingHelper("Services", "SlotDataContainer");
+  if (auto buff_data_container =
+          il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Services", "BuffDataContainer");
+      !buff_data_container.isValidHelper()) {
+    ErrorMsg::MissingHelper("Services", "BuffDataContainer");
   } else {
-    if (const auto ptr = slot_data_container.GetMethod("ParseBinaryObject"); ptr == nullptr) {
-      ErrorMsg::MissingMethod("SlotDataContainer", "ParseBinaryObject");
+    if (const auto ptr = buff_data_container.GetMethod("ParseBinaryObject"); ptr == nullptr) {
+      ErrorMsg::MissingMethod("BuffDataContainer", "ParseBinaryObject");
     } else {
-      SPUD_STATIC_DETOUR(ptr, MissionsDataContainer_ParseBinaryObject);
+      SPUD_STATIC_DETOUR(ptr, DataContainer_ParseBinaryObject);
     }
   }
 
-  if ( auto buff_service = il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Services", "BuffService");
+  if (auto buff_service =
+          il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Services", "BuffService");
       !buff_service.isValidHelper()) {
     ErrorMsg::MissingHelper("Services", "BuffService");
   } else {
     if (const auto ptr = buff_service.GetMethod("ParseBinaryObject"); ptr == nullptr) {
       ErrorMsg::MissingMethod("BuffService", "ParseBinaryObject");
     } else {
-      SPUD_STATIC_DETOUR(ptr, MissionsDataContainer_ParseBinaryObject);
+      SPUD_STATIC_DETOUR(ptr, DataContainer_ParseBinaryObject);
     }
   }
 
-  if (auto job_service = il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Services", "JobService");
+  if (auto inventory_data_container = il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime",
+                                                              "Digit.PrimeServer.Services", "InventoryDataContainer");
+      !inventory_data_container.isValidHelper()) {
+    ErrorMsg::MissingHelper("Services", "InventoryDataContainer");
+  } else {
+    if (const auto ptr = inventory_data_container.GetMethod("ParseBinaryObject"); ptr == nullptr) {
+      ErrorMsg::MissingMethod("InventoryDataContainer", "ParseBinaryObject");
+    } else {
+      SPUD_STATIC_DETOUR(ptr, DataContainer_ParseBinaryObject);
+    }
+  }
+
+  if (auto job_service =
+          il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Services", "JobService");
       !job_service.isValidHelper()) {
     ErrorMsg::MissingHelper("Services", "JobService");
   } else {
     if (const auto ptr = job_service.GetMethod("ParseBinaryObject"); ptr == nullptr) {
       ErrorMsg::MissingMethod("JobService", "ParseBinaryObject");
     } else {
-      SPUD_STATIC_DETOUR(ptr, MissionsDataContainer_ParseBinaryObject);
+      SPUD_STATIC_DETOUR(ptr, DataContainer_ParseBinaryObject);
+    }
+  }
+
+  if (auto job_service_data_container = il2cpp_get_class_helper(
+          "Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Services", "JobServiceDataContainer");
+      !job_service_data_container.isValidHelper()) {
+    ErrorMsg::MissingHelper("Services", "JobServiceDataContainer");
+  } else {
+    if (const auto ptr = job_service_data_container.GetMethod("ParseBinaryObject"); ptr == nullptr) {
+      ErrorMsg::MissingMethod("JobServiceDataContainer", "ParseBinaryObject");
+    } else {
+      SPUD_STATIC_DETOUR(ptr, DataContainer_ParseBinaryObject);
+    }
+  }
+
+  if (auto missions_data_container =
+          il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Models", "MissionsDataContainer");
+      !missions_data_container.isValidHelper()) {
+    ErrorMsg::MissingHelper("Models", "MissionsDataContainer");
+  } else {
+    if (const auto ptr = missions_data_container.GetMethod("ParseBinaryObject"); ptr == nullptr) {
+      ErrorMsg::MissingMethod("MissionsDataContainer", "ParseBinaryObject");
+    } else {
+      SPUD_STATIC_DETOUR(ptr, DataContainer_ParseBinaryObject);
+    }
+  }
+
+  if (auto research_data_container = il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime",
+                                                             "Digit.PrimeServer.Services", "ResearchDataContainer");
+      !research_data_container.isValidHelper()) {
+    ErrorMsg::MissingHelper("Services", "ResearchDataContainer");
+  } else {
+    if (const auto ptr = research_data_container.GetMethod("ParseBinaryObject"); ptr == nullptr) {
+      ErrorMsg::MissingHelper("ResearchDataContainer", "ParseBinaryObject");
+    } else {
+      SPUD_STATIC_DETOUR(ptr, DataContainer_ParseBinaryObject);
+    }
+  }
+
+  if (auto research_service =
+          il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Services", "ResearchService");
+      !research_service.isValidHelper()) {
+    ErrorMsg::MissingHelper("Services", "ResearchService");
+  } else {
+    if (const auto ptr = research_service.GetMethod("ParseBinaryObject"); ptr == nullptr) {
+      ErrorMsg::MissingMethod("ResearchService", "ParseBinaryObject");
+    } else {
+      SPUD_STATIC_DETOUR(ptr, DataContainer_ParseBinaryObject);
+    }
+  }
+
+  if (auto slot_data_container =
+          il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Services", "SlotDataContainer");
+      !slot_data_container.isValidHelper()) {
+    ErrorMsg::MissingHelper("Services", "SlotDataContainer");
+  } else {
+    if (const auto ptr = slot_data_container.GetMethod("ParseBinaryObject"); ptr == nullptr) {
+      ErrorMsg::MissingMethod("SlotDataContainer", "ParseBinaryObject");
+    } else {
+      SPUD_STATIC_DETOUR(ptr, DataContainer_ParseBinaryObject);
     }
   }
 
@@ -1783,7 +1835,8 @@ void InstallSyncPatches()
     }
   }
 
-  if (auto game_server = il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Core", "GameServer");
+  if (auto game_server =
+          il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Core", "GameServer");
       !game_server.isValidHelper()) {
     ErrorMsg::MissingHelper("Core", "GameServer");
   } else {

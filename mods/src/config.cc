@@ -541,6 +541,7 @@ void Config::Load()
 
   this->sync_debug = get_config_or_default(config, parsed, "sync", "debug", false);
   this->sync_logging = get_config_or_default(config, parsed, "sync", "logging", false);
+  this->sync_resolver_cache_ttl = get_config_or_default(config, parsed, "sync", "resolver_cache_ttl", 300);
 
   SyncConfig sync_defaults;
   sync_defaults.proxy = get_config_or_default<std::string>(config, parsed, "sync", "proxy", "");

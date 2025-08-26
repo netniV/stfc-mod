@@ -172,6 +172,7 @@ public:
 
   bool sync_logging;
   bool sync_debug;
+  int  sync_resolver_cache_ttl;
   SyncConfig sync_options;
   std::map<std::string, SyncTargetConfig> sync_targets;
 
