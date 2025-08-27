@@ -313,19 +313,12 @@ void read_sync_targets(toml::table& config, toml::table& new_config,
       target.token = token.value();
       target.proxy = proxy.value_or(defaults.proxy);
 
-      parsed_target.insert("url", url.value());
-      parsed_target.insert("token", token.value());
-      parsed_target.insert("proxy", proxy.value_or(defaults.proxy));
-
-    } else if (values.contains("file")) {
-      auto file = values["file"].value<std::string>();
-
-      if (!file.has_value() || file.value().empty()) {
-        continue;
-      }
-
-      target.url = std::string("file://") + file.value();
-      parsed_target.insert("file", file.value());
+      parsed_target.insert("url", target.url);
+      parsed_target.insert("token", target.token);
+      parsed_target.insert("proxy", target.proxy);
+    } else {
+      spdlog::warn("Skipping invalid target [{}]. Missing url or token.", target_section);
+      continue;
     }
 
     for (const auto& opt : SyncOptions) {
@@ -578,7 +571,7 @@ void Config::Load()
   auto sync_token = config["sync"]["token"].value<std::string>();
 
   if (sync_url.has_value() && sync_token.has_value()) {
-    spdlog::warn("Depreciation Warning: Legacy config options 'sync_url' and 'sync_token' have been moved to "
+    spdlog::warn("Deprecation Warning: Legacy config options 'sync_url' and 'sync_token' have been moved to "
                  "[sync.targets.<name>] sections and may be removed in a future version.");
 
     SyncTargetConfig converted_target{.url = sync_url.value(), .token = sync_token.value()};
@@ -598,23 +591,8 @@ void Config::Load()
 
   if (auto sync_file = config["sync"]["file"].value<std::string>();
       sync_file.has_value() && !sync_file.value().empty()) {
-    spdlog::warn(
-        "Depreciation Warning: Legacy config option 'sync_file' has been moved to [sync.targets.<name>] and may be "
-        "removed in a future version.");
-
-    SyncTargetConfig converted_target;
-    converted_target.url = std::string("file://") + sync_file.value();
-
-    if (this->sync_targets.emplace("default-file", converted_target).second) {
-      parsed["sync"]["targets"].as_table()->emplace<toml::table>("default-file",
-                                                                 toml::table{{"file", sync_file.value()}});
-      spdlog::info("Legacy config option 'sync_file' was converted to sync.targets.default-file file: {}",
-                   sync_file.value());
-    } else {
-      spdlog::error(
-          "Failed to convert legacy config option sync_file: {} as [sync.targets.default-file] was already specified.",
-          sync_file.value());
-    }
+    spdlog::error("Deprecation Notice: The 'sync_file' config option has been deprecated and removed. "
+                  "For capturing sync output, please use a local HTTP server instead.");
   }
 
   // set global sync options to what's actually used in targets
