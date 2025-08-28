@@ -9,7 +9,7 @@
 enum class ChatChannelCategory // TypeDefIndex: 11600
 {
   None            = -1,
-  Cadet           = 0,
+  Newbie          = 0,
   Global          = 1,
   Alliance        = 2,
   Private         = 3,
