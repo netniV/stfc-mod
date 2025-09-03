@@ -2,6 +2,8 @@ package("protobuf")
 add_urls("https://github.com/protocolbuffers/protobuf/releases/download/v$(version)/protobuf-$(version).tar.gz")
 add_versions("29.3", "008a11cc56f9b96679b4c285fd05f46d317d685be3ab524b2a310be0fbad987e")
 add_versions("31.1", "12bfd76d27b9ac3d65c00966901609e020481b9474ef75c7ff4601ac06fa0b82")
+add_versions("32.0", "9dfdf08129f025a6c5802613b8ee1395044fecb71d38210ca59ecad283ef68bb")
+add_versions("32.1", "3feeabd077a112b56af52519bc4ece90e28b4583f4fc2549c95d765985e0fd3c")
 
 add_configs("zlib", {description = "Enable zlib", default = false, type = "boolean"})
 
