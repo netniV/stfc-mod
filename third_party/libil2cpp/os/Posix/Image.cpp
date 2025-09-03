@@ -1,8 +1,7 @@
 #include "il2cpp-config.h"
 #include "utils/Memory.h"
 
-#if (IL2CPP_TARGET_JAVASCRIPT || IL2CPP_TARGET_LINUX || IL2CPP_TARGET_LUMIN && !RUNTIME_TINY) || IL2CPP_TARGET_ANDROID
-
+#if (IL2CPP_TARGET_JAVASCRIPT || IL2CPP_TARGET_LINUX || IL2CPP_TARGET_QNX) || IL2CPP_TARGET_ANDROID
 #include "os/Image.h"
 
 #if IL2CPP_TARGET_JAVASCRIPT
@@ -11,7 +10,7 @@
 #include <dlfcn.h>
 #endif
 
-#if IL2CPP_ENABLE_NATIVE_INSTRUCTION_POINTER_EMISSION && (IL2CPP_TARGET_ANDROID || IL2CPP_TARGET_LINUX)
+#if IL2CPP_ENABLE_NATIVE_INSTRUCTION_POINTER_EMISSION && (IL2CPP_TARGET_ANDROID || IL2CPP_TARGET_LINUX || IL2CPP_TARGET_QNX)
 #include <elf.h>
 
 #if __x86_64__ || __aarch64__
@@ -33,23 +32,36 @@ namespace os
 {
 namespace Image
 {
+    static void* s_ImageBase = NULL;
+
     void* GetImageBase()
     {
 #if IL2CPP_TARGET_JAVASCRIPT
         emscripten_log(EM_LOG_NO_PATHS | EM_LOG_CONSOLE | EM_LOG_ERROR | EM_LOG_JS_STACK, "Warning: libil2cpp/os/Posix/Image.cpp: GetImageBase() called, but dynamic libraries are not available.");
         return NULL;
 #else
-        Dl_info info;
-        void* const anySymbol = reinterpret_cast<void*>(&GetImageBase);
-        if (dladdr(anySymbol, &info))
-            return info.dli_fbase;
-        else
-            return NULL;
+        return s_ImageBase;
 #endif
     }
 
     static IL2CPP_METHOD_ATTR void NoGeneratedCodeWorkaround()
     {
+    }
+
+    static void InitializeImageBase()
+    {
+#if !IL2CPP_TARGET_JAVASCRIPT
+        // Gets info about the image containing InitializeImageBase
+        Dl_info info;
+        memset(&info, 0, sizeof(info));
+        int error = dladdr((void*)&InitializeImageBase, &info);
+
+        IL2CPP_ASSERT(error != 0);
+        if (error == 0)
+            return;
+
+        s_ImageBase = info.dli_fbase;
+#endif
     }
 
     void InitializeManagedSection()
@@ -67,6 +79,7 @@ namespace Image
 
     void Initialize()
     {
+        InitializeImageBase();
         InitializeManagedSection();
     }
 

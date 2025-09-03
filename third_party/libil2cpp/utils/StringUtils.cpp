@@ -4,7 +4,7 @@
 #include "utils/Functional.h"
 #include "utils/Memory.h"
 #include "utils/StringUtils.h"
-#include "utils/utf8-cpp/source/utf8/unchecked.h"
+#include "External/utfcpp/source/utf8.h"
 #include <stdarg.h>
 
 namespace il2cpp
@@ -175,6 +175,11 @@ namespace utils
         memcpy(utf16name, strSource, byteLengthWithNullTerminator);
 
         return utf16name;
+    }
+
+    void StringUtils::StringDelete(const char* str)
+    {
+        IL2CPP_FREE((void*)str);
     }
 
     bool StringUtils::EndsWith(const std::string& string, const std::string& suffix)

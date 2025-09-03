@@ -1,6 +1,6 @@
 #include "il2cpp-config.h"
 
-#if IL2CPP_TARGET_POSIX
+#if IL2CPP_TARGET_POSIX && !IL2CPP_USE_PLATFORM_SPECIFIC_LOCALE
 
 #include <clocale>
 #include <locale.h>
@@ -115,7 +115,11 @@ namespace os
             posix_locale = getenv("LANG");
             if (posix_locale == 0)
             {
+#ifdef SETLOCALE_NULL_NOT_SUPPORTED
+                posix_locale = setlocale(LC_ALL, "C");
+#else
                 posix_locale = setlocale(LC_ALL, NULL);
+#endif
             }
         }
 
