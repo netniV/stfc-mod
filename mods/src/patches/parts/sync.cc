@@ -4,22 +4,17 @@
 #include "str_utils.h"
 
 #include <il2cpp-api-types.h>
-#include <il2cpp/il2cpp_helper.h>
-
 #include <Digit.PrimeServer.Models.pb.h>
+#include <il2cpp/il2cpp_helper.h>
 #include <prime/EntityGroup.h>
 #include <prime/HttpResponse.h>
 #include <prime/ServiceResponse.h>
+#include <spud/detour.h>
 
-#include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 #if !__cpp_lib_format
 #include <spdlog/fmt/fmt.h>
 #endif
-#include <spud/detour.h>
-
-#include <EASTL/algorithm.h>
-#include <EASTL/bonus/ring_buffer.h>
 
 #if _WIN32
 #include <rpc.h>
@@ -29,15 +24,17 @@
 #include <uuid/uuid.h>
 #endif
 
+#include <EASTL/algorithm.h>
+#include <EASTL/bonus/ring_buffer.h>
 #include <boost/url.hpp>
 #include <cpr/cpr.h>
+#include <nlohmann/json.hpp>
 
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <format>
 #include <fstream>
-#include <future>
 #include <ostream>
 #include <queue>
 #include <semaphore>
@@ -134,8 +131,9 @@ static const std::string CURL_TYPE_DOWNLOAD = "DOWNLOAD";
 
 std::mutex http_responses_mtx;
 std::condition_variable http_responses_cv;
-using response_queue_item_t = std::tuple<std::string, cpr::AsyncResponse, std::shared_ptr<std::counting_semaphore<1>>>;
+using response_queue_item_t = std::tuple<std::string, cpr::Response>;
 std::queue<response_queue_item_t> http_responses_queue;
+
 
 static std::shared_ptr<cpr::Session> get_curl_client_sync(const std::string& target)
 {
@@ -195,7 +193,6 @@ static void send_data(SyncConfig::Type type, const std::string& post_data)
       sync_log_warn(CURL_TYPE_UPLOAD, "GLOBAL", "No target found, will not attempt to send");
     } else {
       client_semaphores.reserve(targets.size());
-
       for (const auto& target : targets | std::views::keys) {
         client_semaphores.emplace(target, std::make_shared<std::counting_semaphore<1>>(1));
       }
@@ -207,7 +204,7 @@ static void send_data(SyncConfig::Type type, const std::string& post_data)
     sem_ptr target_sem;
     {
       std::lock_guard guard(client_sync_map_guard);
-      auto it = client_semaphores.find(target);
+      auto            it = client_semaphores.find(target);
       if (it == client_semaphores.end()) {
         it = client_semaphores.emplace(target, std::make_shared<std::counting_semaphore<1>>(1)).first;
       }
@@ -225,12 +222,29 @@ static void send_data(SyncConfig::Type type, const std::string& post_data)
       httpClient->SetBody(cpr::Body{post_data});
       auto asyncResponse = httpClient->PostAsync();
 
-      {
-        std::lock_guard lk(http_responses_mtx);
-        http_responses_queue.emplace(target_identifier, std::move(asyncResponse), target_sem);
-      }
-
-      http_responses_cv.notify_all();
+      // Detach a waiter that enqueues the completed response and releases the semaphore.
+      std::thread([target_identifier, target_sem, ar = std::move(asyncResponse)]() mutable {
+        try {
+          auto response = ar.get();
+          {
+            std::lock_guard lk(http_responses_mtx);
+            http_responses_queue.emplace(target_identifier, std::move(response));
+          }
+          http_responses_cv.notify_all();
+        } catch (const std::runtime_error& e) {
+          ErrorMsg::SyncRuntime(target_identifier.c_str(), e);
+        } catch (const std::exception& e) {
+          ErrorMsg::SyncException(target_identifier.c_str(), e);
+#if _WIN32
+        } catch (winrt::hresult_error const& ex) {
+          ErrorMsg::SyncWinRT(target_identifier.c_str(), ex);
+#endif
+        } catch (...) {
+          ErrorMsg::SyncMsg(target_identifier.c_str(), "Unknown error occurred");
+        }
+        // Always release to allow the next send for this target.
+        try { target_sem->release(); } catch (...) {}
+      }).detach();
 
     } catch (const std::runtime_error& e) {
       spdlog::error("Failed to send sync data to target '{}' - Runtime error: {}", target_identifier, e.what());
@@ -341,57 +355,26 @@ static void handle_response_data()
 #endif
 
   for (;;) {
-    std::string                                  target_identifier;
-    std::optional<cpr::AsyncResponse>            async_response;
-    std::shared_ptr<std::counting_semaphore<1>>  target_sem;
+    std::string   target_identifier;
+    cpr::Response response;
 
     {
       std::unique_lock lk(http_responses_mtx);
       http_responses_cv.wait(lk, []() { return !http_responses_queue.empty(); });
 
-      // Move the item out while holding the lock to avoid races/UB
       auto& tuple       = http_responses_queue.front();
       target_identifier = std::move(std::get<0>(tuple));
-      async_response    = std::move(std::get<1>(tuple));
-      target_sem        = std::move(std::get<2>(tuple));
-
+      response          = std::move(std::get<1>(tuple));
       http_responses_queue.pop();
     }
 
-    if (!async_response.has_value()) {
-      // If we somehow have no response, make sure to release the semaphore to prevent blocking future sends.
-      if (target_sem) {
-        try { target_sem->release(); } catch (...) {}
-      }
-      continue;
-    }
-
-
-    try {
-      auto response = async_response->get();
-
-      if (response.status_code == 0) {
-        sync_log_error(CURL_TYPE_DOWNLOAD, target_identifier, "Failed to send request: " + response.error.message);
-      } else if (response.status_code >= 400) {
-        sync_log_error(CURL_TYPE_DOWNLOAD, target_identifier, "Failed to communicate with server: " + response.status_line);
-      } else {
-        sync_log_debug(CURL_TYPE_DOWNLOAD, target_identifier, STR_FORMAT("Response: {} ({:.1f}s elapsed)", response.status_line, response.elapsed));
-      }
-    } catch (const std::runtime_error& e) {
-      ErrorMsg::SyncRuntime(target_identifier.c_str(), e);
-    } catch (const std::exception& e) {
-      ErrorMsg::SyncException(target_identifier.c_str(), e);
-#if _WIN32
-    } catch (winrt::hresult_error const& ex) {
-      ErrorMsg::SyncWinRT(target_identifier.c_str(), ex);
-#endif
-    } catch (...) {
-      ErrorMsg::SyncMsg(target_identifier.c_str(), "Unknown error occurred");
-    }
-
-    // Allow the next send for this target to proceed.
-    if (target_sem) {
-      try { target_sem->release(); } catch (...) {}
+    // Process a completed response
+    if (response.status_code == 0) {
+      sync_log_error(CURL_TYPE_DOWNLOAD, target_identifier, "Failed to send request: " + response.error.message);
+    } else if (response.status_code >= 400) {
+      sync_log_error(CURL_TYPE_DOWNLOAD, target_identifier, "Failed to communicate with server: " + response.status_line);
+    } else {
+      sync_log_debug(CURL_TYPE_DOWNLOAD, target_identifier, STR_FORMAT("Response: {} ({:.1f}s elapsed)", response.status_line, response.elapsed));
     }
   }
 }
