@@ -49,6 +49,15 @@
 #endif
 #endif
 
+#if _WIN32
+// Introduce RAII guard for COM apartments
+struct WinRtApartmentGuard {
+  WinRtApartmentGuard() { winrt::init_apartment(); }
+  ~WinRtApartmentGuard() { winrt::uninit_apartment(); }
+};
+#endif
+
+
 namespace http
 {
 
@@ -57,8 +66,8 @@ namespace headers
   static std::string    gameServerUrl;
   static std::string    instanceSessionId;
   static int32_t        instanceId;
-  static std::string    unityVersion{"2021.3.44f1"};
-  static std::string    primeVersion{"1.000.44068"};
+  static std::string    unityVersion{"6000.0.52f1"};
+  static std::string    primeVersion{"1.000.44468"};
   static constexpr char poweredBy[] = "stfc community patch/" VER_FILE_VERSION_STR;
 } // namespace headers
 
@@ -137,14 +146,17 @@ static std::shared_ptr<cpr::Session> get_curl_client_sync(const std::string& tar
       session->SetUrl(target_config.url);
       session->SetUserAgent("stfc community patch " VER_FILE_VERSION_STR " (libcurl/" LIBCURL_VERSION ")");
       session->SetAcceptEncoding(cpr::AcceptEncoding{});
-      session->SetHttpVersion(cpr::HttpVersion{cpr::HttpVersionCode::VERSION_2_0_TLS});
+      session->SetHttpVersion(cpr::HttpVersion{cpr::HttpVersionCode::VERSION_1_1});
       session->SetRedirect(cpr::Redirect{3, true, false, cpr::PostRedirectFlags::POST_ALL});
 
       if (!target_config.proxy.empty()) {
         session->SetProxies({{"http", target_config.proxy}, {"https", target_config.proxy}});
 
-        session->SetSslOptions(cpr::Ssl(cpr::ssl::VerifyHost{false}, cpr::ssl::VerifyPeer{false},
-                                        cpr::ssl::VerifyStatus{false}, cpr::ssl::NoRevoke{true}));
+        session->SetSslOptions(cpr::Ssl(
+          cpr::ssl::VerifyHost{false},
+          cpr::ssl::VerifyPeer{false},
+          cpr::ssl::NoRevoke{true})
+        );
       }
 
       session->SetHeader({
@@ -252,13 +264,14 @@ static std::shared_ptr<cpr::Session> get_curl_client_scopely()
 
     if (!Config::Get().sync_options.proxy.empty()) {
       session->SetProxies({{"https", Config::Get().sync_options.proxy}});
-      session->SetSslOptions(cpr::Ssl(cpr::ssl::VerifyHost{false}, cpr::ssl::VerifyPeer{false},
-                                      cpr::ssl::VerifyStatus{false}, cpr::ssl::NoRevoke{true}));
-    } else {
-      session->SetVerifySsl(true);
+      session->SetSslOptions(cpr::Ssl(
+        cpr::ssl::VerifyHost{false},
+        cpr::ssl::VerifyPeer{false},
+        cpr::ssl::NoRevoke{true}
+      ));
     }
 
-    session->SetUserAgent("UnityPlayer/" + headers::unityVersion + " (UnityWebRequest/1.0, libcurl/8.5.0-DEV)");
+    session->SetUserAgent("UnityPlayer/" + headers::unityVersion + " (UnityWebRequest/1.0, libcurl/8.10.1-DEV)");
     session->SetHeader({
         {"Accept", "application/json"},
         {"Content-Type", "application/json"},
@@ -277,20 +290,17 @@ static std::shared_ptr<cpr::Session> get_curl_client_scopely()
 
 static std::string get_scopely_data(const std::string& path, const std::string& post_data)
 {
-  static auto loggedTarget = false;
-  if (Config::Get().sync_targets.empty()) {
-    if (!loggedTarget) {
-      loggedTarget = true;
-      sync_log_warn(CURL_TYPE_DOWNLOAD, "GLOBAL", "No target found, will not attempt to retrieve data");
+  static std::once_flag init_once;
+  std::call_once(init_once, []() {
+    if (Config::Get().sync_targets.empty()) {
+      sync_log_warn(CURL_TYPE_UPLOAD, "GLOBAL", "No target found, will not attempt to retrieve data");
     }
-
-    return {};
-  }
+  });
 
   boost::url url(headers::gameServerUrl);
   url.set_path(path);
 
-  auto              httpClient = get_curl_client_scopely();
+  const auto        httpClient = get_curl_client_scopely();
   static std::mutex client_mutex;
 
   {
@@ -547,7 +557,7 @@ static void save_previously_sent_logs()
     }
 
     file << battlelog_array.dump();
-    spdlog::debug("Saved {} previously sent battle logs", battlelog_array.size());
+    spdlog::trace("Saved {} previously sent battle logs", battlelog_array.size());
 
   } catch (const std::exception& e) {
     spdlog::error("Failed to save battles JSON: {}", e.what());
@@ -1275,8 +1285,9 @@ void cache_alliance_names(std::unique_ptr<std::string>&& bytes)
 void ship_sync_data()
 {
 #if _WIN32
-  winrt::init_apartment();
+  WinRtApartmentGuard apartmentGuard;
 #endif
+
 
   for (;;) {
     std::pair<SyncConfig::Type, std::string> sync_data;
@@ -1290,27 +1301,23 @@ void ship_sync_data()
 
     try {
       http::send_data(sync_data.first, sync_data.second);
+    } catch (const std::runtime_error& e) {
+      ErrorMsg::SyncRuntime("ship", e);
+    } catch (const std::exception& e) {
+      ErrorMsg::SyncMsg("ship", e.what());
+    } catch (const std::wstring& sz) {
+      ErrorMsg::SyncMsg("ship", sz);
 #if _WIN32
     } catch (winrt::hresult_error const& ex) {
       ErrorMsg::SyncWinRT("ship", ex);
-    } catch (const std::wstring& sz) {
-      ErrorMsg::SyncMsg("ship", sz);
-    }
-#else
-    } catch (const std::wstring& sz) {
-      ErrorMsg::SyncMsg("ship", sz);
-    }
 #endif
-    catch (const std::runtime_error& e) {
-      ErrorMsg::SyncRuntime("ship", e);
+    } catch (...) {
+      ErrorMsg::SyncMsg("ship", "Unknown error during sending of sync data");
     }
   }
-#if _WIN32
-  winrt::uninit_apartment();
-#endif
 }
 
-void collect_user_ids_from_fleet(const nlohmann::json& fleet_data, std::unordered_set<std::string>& user_ids)
+inline void collect_user_ids_from_fleet(const nlohmann::json& fleet_data, std::unordered_set<std::string>& user_ids)
 {
   if (!fleet_data.contains("ref_ids") || fleet_data["ref_ids"].is_null()) {
     for (const auto& fleet : fleet_data["deployed_fleets"]) {
@@ -1320,7 +1327,7 @@ void collect_user_ids_from_fleet(const nlohmann::json& fleet_data, std::unordere
   }
 }
 
-void collect_alliance_ids(const nlohmann::json& names, std::unordered_set<int64_t>& alliance_ids)
+inline void collect_alliance_ids(const nlohmann::json& names, std::unordered_set<int64_t>& alliance_ids)
 {
   for (const auto& [player_id, entry] : names.items()) {
     try {
@@ -1390,8 +1397,9 @@ void ship_combat_log_data()
   using json = nlohmann::json;
 
 #if _WIN32
-  winrt::init_apartment();
+  WinRtApartmentGuard apartmentGuard;
 #endif
+
 
   for (;;) {
     uint64_t journal_id;
@@ -1512,6 +1520,8 @@ void ship_combat_log_data()
         http::send_data(SyncConfig::Type::Battles, ship_data);
       } catch (const std::runtime_error& e) {
         ErrorMsg::SyncRuntime("combat", e);
+      } catch (const std::exception& e) {
+        ErrorMsg::SyncException("combat", e);
       } catch (const std::wstring& sz) {
         ErrorMsg::SyncMsg("combat", sz);
 #if _WIN32
@@ -1519,7 +1529,7 @@ void ship_combat_log_data()
         ErrorMsg::SyncWinRT("combat", ex);
 #endif
       } catch (...) {
-        spdlog::error("Unknown error during sending of combat log data");
+        ErrorMsg::SyncMsg("combat", "Unknown error during sending of sync data");
       }
 
     } catch (json::exception& e) {
@@ -1530,10 +1540,6 @@ void ship_combat_log_data()
       spdlog::error("Unknown error during processing of combat log data");
     }
   }
-
-#if _WIN32
-  winrt::uninit_apartment();
-#endif
 }
 
 void HandleEntityGroup(EntityGroup* entity_group)
