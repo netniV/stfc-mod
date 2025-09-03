@@ -37,8 +37,10 @@
 #include <condition_variable>
 #include <format>
 #include <fstream>
+#include <future>
 #include <ostream>
 #include <queue>
+#include <semaphore>
 #include <string>
 
 #ifndef STR_FORMAT
@@ -73,7 +75,7 @@ namespace headers
 
 static std::string newUUID()
 {
-#ifdef WIN32
+#ifdef _WIN32
   UUID uuid;
   UuidCreate(&uuid);
 
@@ -130,6 +132,11 @@ static void sync_log_trace(const std::string& type, const std::string& target, c
 static const std::string CURL_TYPE_UPLOAD   = "UPLOAD";
 static const std::string CURL_TYPE_DOWNLOAD = "DOWNLOAD";
 
+std::mutex http_responses_mtx;
+std::condition_variable http_responses_cv;
+using response_queue_item_t = std::tuple<std::string, cpr::AsyncResponse, std::shared_ptr<std::counting_semaphore<1>>>;
+std::queue<response_queue_item_t> http_responses_queue;
+
 static std::shared_ptr<cpr::Session> get_curl_client_sync(const std::string& target)
 {
   static std::unordered_map<std::string, std::shared_ptr<cpr::Session>> sessions_map;
@@ -152,6 +159,7 @@ static std::shared_ptr<cpr::Session> get_curl_client_sync(const std::string& tar
       if (!target_config.proxy.empty()) {
         session->SetProxies({{"http", target_config.proxy}, {"https", target_config.proxy}});
 
+        // TODO: Is this too permissive?
         session->SetSslOptions(cpr::Ssl(
           cpr::ssl::VerifyHost{false},
           cpr::ssl::VerifyPeer{false},
@@ -176,79 +184,63 @@ static std::shared_ptr<cpr::Session> get_curl_client_sync(const std::string& tar
 
 static void send_data(SyncConfig::Type type, const std::string& post_data)
 {
-  static std::atomic_bool loggedTarget{false};
-  const auto&             sync_targets = Config::Get().sync_targets;
+  using sem_ptr = std::shared_ptr<std::counting_semaphore<1>>;
+  static std::unordered_map<std::string, sem_ptr> client_semaphores;
+  static std::mutex                               client_sync_map_guard;
+  static std::once_flag                           init_once;
 
-  if (sync_targets.empty()) {
-    if (!loggedTarget.exchange(true)) {
+  std::call_once(init_once, []() {
+    const auto& targets = Config::Get().sync_targets;
+    if (targets.empty()) {
       sync_log_warn(CURL_TYPE_UPLOAD, "GLOBAL", "No target found, will not attempt to send");
-    }
-    return;
-  }
+    } else {
+      client_semaphores.reserve(targets.size());
 
-  static std::unordered_map<std::string, std::shared_ptr<std::recursive_mutex>> client_mutex;
-  static std::mutex                                                             client_mutex_map_guard;
-  static std::once_flag                                                         init_mutexes_once;
-
-  std::call_once(init_mutexes_once, [sync_targets] {
-    // Pre-seed the mutex map for the current set of targets to avoid rehashing during use.
-    const auto& targets = sync_targets;
-    client_mutex.reserve(targets.size());
-
-    for (const auto& target : targets | std::views::keys) {
-      client_mutex.emplace(target, std::make_shared<std::recursive_mutex>());
+      for (const auto& target : targets | std::views::keys) {
+        client_semaphores.emplace(target, std::make_shared<std::counting_semaphore<1>>(1));
+      }
     }
   });
 
-  for (const auto& target :
-       sync_targets | std::views::filter([type](const auto& t) { return t.second.enabled(type); }) | std::views::keys) {
-    // Get the per-target mutex in a thread-safe manner, creating it if missing.
-    std::shared_ptr<std::recursive_mutex> target_mutex;
+  for (const auto& target : Config::Get().sync_targets | std::views::filter([type](const auto& t) { return t.second.enabled(type); }) | std::views::keys) {
+    // Get/create the per-target semaphore in a thread-safe manner.
+    sem_ptr target_sem;
     {
-      std::lock_guard guard(client_mutex_map_guard);
-      auto            it = client_mutex.find(target);
-      if (it == client_mutex.end()) {
-        it = client_mutex.emplace(target, std::make_shared<std::recursive_mutex>()).first;
+      std::lock_guard guard(client_sync_map_guard);
+      auto it = client_semaphores.find(target);
+      if (it == client_semaphores.end()) {
+        it = client_semaphores.emplace(target, std::make_shared<std::counting_semaphore<1>>(1)).first;
       }
-
-      target_mutex = it->second;
+      target_sem = it->second;
     }
 
     const auto target_identifier = STR_FORMAT("{} ({})", target, to_string(type));
 
     try {
-      // Serialize per-target HTTP operations.
-      std::lock_guard lk(*target_mutex);
+      // Ensure only one in-flight operation per target.
+      target_sem->acquire();
 
-      auto httpClient = get_curl_client_sync(target);
+      const auto httpClient = get_curl_client_sync(target);
       sync_log_debug(CURL_TYPE_UPLOAD, target_identifier, "Sending data to " + httpClient->GetFullRequestUrl());
+      httpClient->SetBody(cpr::Body{post_data});
+      auto asyncResponse = httpClient->PostAsync();
 
-      httpClient->SetBody(post_data);
-
-      if (const auto response = httpClient->Post(); response.status_code == 0) {
-        sync_log_error(CURL_TYPE_UPLOAD, target_identifier, "Failed to send request: " + response.error.message);
-      } else if (response.status_code >= 400) {
-        sync_log_error(CURL_TYPE_UPLOAD, target_identifier,
-                       "Failed to communicate with server: " + response.status_line);
-      } else {
-        sync_log_debug(CURL_TYPE_UPLOAD, target_identifier,
-                       STR_FORMAT("Response: {} ({:.1f}s elapsed)", response.status_line, response.elapsed));
+      {
+        std::lock_guard lk(http_responses_mtx);
+        http_responses_queue.emplace(target_identifier, std::move(asyncResponse), target_sem);
       }
-#if _WIN32
-    } catch (winrt::hresult_error const& ex) {
-      ErrorMsg::SyncWinRT(target_identifier.c_str(), ex);
-    } catch (const std::wstring& sz) {
-      ErrorMsg::SyncMsg(target_identifier.c_str(), sz);
-    }
-#else
-    } catch (const std::wstring& sz) {
-      ErrorMsg::SyncMsg(target_identifier.c_str(), sz);
-    }
-#endif
-    catch (const std::runtime_error& e) {
-      ErrorMsg::SyncRuntime(target_identifier.c_str(), e);
+
+      http_responses_cv.notify_all();
+
+    } catch (const std::runtime_error& e) {
+      spdlog::error("Failed to send sync data to target '{}' - Runtime error: {}", target_identifier, e.what());
+      try { target_sem->release(); } catch (...) {}
+    } catch (const std::exception& e) {
+      spdlog::error("Failed to send sync data to target '{}' - Exception: {}", target_identifier, e.what());
+      try { target_sem->release(); } catch (...) {}
     } catch (...) {
-      ErrorMsg::SyncMsg(target_identifier.c_str(), L"Unknown error");
+      spdlog::error("Failed to send sync data to target '{}' - Unknown error occurred", target_identifier);
+      try { target_sem->release(); } catch (...) {}
     }
   }
 }
@@ -341,6 +333,68 @@ static std::string get_scopely_data(const std::string& path, const std::string& 
 
   return {};
 }
+
+static void handle_response_data()
+{
+#if _WIN32
+  WinRtApartmentGuard apartmentGuard;
+#endif
+
+  for (;;) {
+    std::string                                  target_identifier;
+    std::optional<cpr::AsyncResponse>            async_response;
+    std::shared_ptr<std::counting_semaphore<1>>  target_sem;
+
+    {
+      std::unique_lock lk(http_responses_mtx);
+      http_responses_cv.wait(lk, []() { return !http_responses_queue.empty(); });
+
+      // Move the item out while holding the lock to avoid races/UB
+      auto& tuple       = http_responses_queue.front();
+      target_identifier = std::move(std::get<0>(tuple));
+      async_response    = std::move(std::get<1>(tuple));
+      target_sem        = std::move(std::get<2>(tuple));
+
+      http_responses_queue.pop();
+    }
+
+    if (!async_response.has_value()) {
+      // If we somehow have no response, make sure to release the semaphore to prevent blocking future sends.
+      if (target_sem) {
+        try { target_sem->release(); } catch (...) {}
+      }
+      continue;
+    }
+
+
+    try {
+      auto response = async_response->get();
+
+      if (response.status_code == 0) {
+        sync_log_error(CURL_TYPE_DOWNLOAD, target_identifier, "Failed to send request: " + response.error.message);
+      } else if (response.status_code >= 400) {
+        sync_log_error(CURL_TYPE_DOWNLOAD, target_identifier, "Failed to communicate with server: " + response.status_line);
+      } else {
+        sync_log_debug(CURL_TYPE_DOWNLOAD, target_identifier, STR_FORMAT("Response: {} ({:.1f}s elapsed)", response.status_line, response.elapsed));
+      }
+    } catch (const std::runtime_error& e) {
+      ErrorMsg::SyncRuntime(target_identifier.c_str(), e);
+    } catch (const std::exception& e) {
+      ErrorMsg::SyncException(target_identifier.c_str(), e);
+#if _WIN32
+    } catch (winrt::hresult_error const& ex) {
+      ErrorMsg::SyncWinRT(target_identifier.c_str(), ex);
+#endif
+    } catch (...) {
+      ErrorMsg::SyncMsg(target_identifier.c_str(), "Unknown error occurred");
+    }
+
+    // Allow the next send for this target to proceed.
+    if (target_sem) {
+      try { target_sem->release(); } catch (...) {}
+    }
+  }
+}
 } // namespace http
 
 NLOHMANN_JSON_NAMESPACE_BEGIN
@@ -377,7 +431,7 @@ template <> struct adl_serializer<SyncConfig::Type> {
     j = nullptr;
   }
 
-  static void from_json(const json& j, SyncConfig::Type t)
+  static void from_json(const json& j, SyncConfig::Type& t)
   {
     if (j.is_string()) {
       const auto& s = j.get_ref<const std::string&>();
@@ -460,8 +514,8 @@ private:
 
 struct RankLevelShardsState {
   explicit RankLevelShardsState(const int32_t r = -1, const int32_t l = -1, const int32_t s = -1)
-      : rank(l)
-      , level(r)
+      : rank(r)
+      , level(l)
       , shards(s)
   {
   }
@@ -1016,6 +1070,7 @@ void process_jobs(std::unique_ptr<std::string>&& bytes)
       std::lock_guard lk(jobs_active_mtx);
       for (auto it = jobs_active.begin(); it != jobs_active.end();) {
         if (!uuids_in_response.contains(*it)) {
+          job_array.push_back({{"type", "job_completed"}, {"uuid", *it}});
           it = jobs_active.erase(it);
         } else {
           ++it;
@@ -1867,4 +1922,5 @@ void InstallSyncPatches()
 
   std::thread(ship_sync_data).detach();
   std::thread(ship_combat_log_data).detach();
+  std::thread(http::handle_response_data).detach();
 }

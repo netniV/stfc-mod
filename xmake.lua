@@ -1,6 +1,6 @@
 set_project("stfc-community-patch")
 
-set_languages("c++20")
+set_languages("c++23")
 
 set_runtimes("MT") -- Set the default build to multi-threaded static
 
