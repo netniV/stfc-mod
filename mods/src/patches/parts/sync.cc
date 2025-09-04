@@ -628,8 +628,13 @@ void process_active_missions(std::unique_ptr<std::string>&& bytes)
       }
     }
 
-    if (changed && !active_missions.empty()) {
-      const auto mission_array = json{{"type", "active_" + SyncConfig::Type::Missions}, {"mid", active_missions}};
+    if (changed && !active_mission_states.empty()) {
+      auto mission_array = json::array();
+
+      for (const auto mission : active_mission_states) {
+        mission_array.push_back({{"type", "active_" + SyncConfig::Type::Missions}, {"mid", mission}});
+      }
+
       queue_data(SyncConfig::Type::Missions, mission_array);
     }
   } else {
@@ -947,9 +952,7 @@ void process_entity_slots(std::unique_ptr<std::string>&& bytes)
           case Digit::PrimeServer::Models::SLOTTYPE_OFFICERPRESET:
             if (slot.has_officerpresetslotparams()) {
               const auto& preset = slot.officerpresetslotparams();
-
               slot_params = {{"name", preset.name()}, {"order", preset.order()}, {"officer_ids", preset.officerids()}};
-
               state_value = static_cast<int64_t>(std::hash<json>{}(slot_params));
             }
             break;
@@ -977,7 +980,6 @@ void process_entity_slots(std::unique_ptr<std::string>&& bytes)
               }
 
               slot_params = {{"name", preset.name()}, {"order", preset.order()}, {"setup", setup_json}};
-
               state_value = static_cast<int64_t>(std::hash<json>{}(slot_params));
             }
           default:
@@ -987,8 +989,8 @@ void process_entity_slots(std::unique_ptr<std::string>&& bytes)
         if (const auto& it = slot_states.find(slot.id()); it == slot_states.end() || it->second != state_value) {
           slot_states[slot.id()] = state_value;
           slot_array.push_back({{"type", SyncConfig::Type::Slots},
-                                {"slot_type", slot.slottype()},
                                 {"sid", slot.id()},
+                                {"slot_type", slot.slottype()},
                                 {"spec_id", slot.slotspecid()},
                                 {"item_id", slot.has_slotitemid() ? json(slot.slotitemid()) : json(nullptr)},
                                 {"params", slot_params}});
