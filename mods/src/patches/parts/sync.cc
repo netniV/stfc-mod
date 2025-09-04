@@ -1105,7 +1105,7 @@ void process_alliance_games_props(std::unique_ptr<std::string>&& bytes)
         const auto ec_level = max_element != claimed_ec_levels.end() ? std::stoi(*max_element) : -1;
 
         int32_t current_level = emerald_chain_level.load();
-        if (ec_level > current_level && emerald_chain_level.compare_exchange_strong(current_level, ec_level)) {
+        if (ec_level != current_level && emerald_chain_level.compare_exchange_strong(current_level, ec_level)) {
           auto ag_array = json::array();
           ag_array.push_back({{"type", SyncConfig::Type::EmeraldChain}, {"level", ec_level}});
           queue_data(SyncConfig::Type::EmeraldChain, ag_array);
