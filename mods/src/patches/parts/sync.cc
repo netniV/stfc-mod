@@ -372,7 +372,7 @@ static void handle_response_data()
     if (response.status_code == 0) {
       sync_log_error(CURL_TYPE_UPLOAD, target_identifier, "Failed to send request: " + response.error.message);
     } else if (response.status_code >= 400) {
-      sync_log_error(CURL_TYPE_UPLOAD, target_identifier, STR_FORMAT("Failed to communicate with server ({}) [after {:.1f}s]: {}", response.status_line, response.elapsed, response.text));
+      sync_log_error(CURL_TYPE_UPLOAD, target_identifier, STR_FORMAT("Failed to communicate with server: {} (after {:.1f}s)", response.status_line, response.elapsed));
     } else {
       sync_log_debug(CURL_TYPE_UPLOAD, target_identifier, STR_FORMAT("Response: {} ({:.1f}s elapsed)", response.status_line, response.elapsed));
     }
