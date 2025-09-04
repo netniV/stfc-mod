@@ -370,11 +370,11 @@ static void handle_response_data()
 
     // Process a completed response
     if (response.status_code == 0) {
-      sync_log_error(CURL_TYPE_DOWNLOAD, target_identifier, "Failed to send request: " + response.error.message);
+      sync_log_error(CURL_TYPE_UPLOAD, target_identifier, "Failed to send request: " + response.error.message);
     } else if (response.status_code >= 400) {
-      sync_log_error(CURL_TYPE_DOWNLOAD, target_identifier, "Failed to communicate with server: " + response.status_line);
+      sync_log_error(CURL_TYPE_UPLOAD, target_identifier, STR_FORMAT("Failed to communicate with server ({}) [after {:.1f}s]: {}", response.status_line, response.elapsed, response.text));
     } else {
-      sync_log_debug(CURL_TYPE_DOWNLOAD, target_identifier, STR_FORMAT("Response: {} ({:.1f}s elapsed)", response.status_line, response.elapsed));
+      sync_log_debug(CURL_TYPE_UPLOAD, target_identifier, STR_FORMAT("Response: {} ({:.1f}s elapsed)", response.status_line, response.elapsed));
     }
   }
 }
@@ -629,8 +629,8 @@ void process_active_missions(std::unique_ptr<std::string>&& bytes)
     }
 
     if (changed && !active_missions.empty()) {
-      const auto mission_array = json{{"type", SyncConfig::Type::MissionsActive}, {"mid", active_missions}};
-      queue_data(SyncConfig::Type::MissionsActive, mission_array);
+      const auto mission_array = json{{"type", "active_" + SyncConfig::Type::Missions}, {"mid", active_missions}};
+      queue_data(SyncConfig::Type::Missions, mission_array);
     }
   } else {
     spdlog::error("Failed to parse active missions");
@@ -666,10 +666,10 @@ void process_completed_missions(std::unique_ptr<std::string>&& bytes)
       auto mission_array = json::array();
 
       for (const auto mission : diff) {
-        mission_array.push_back({{"type", SyncConfig::Type::MissionsCompleted}, {"mid", mission}});
+        mission_array.push_back({{"type", SyncConfig::Type::Missions}, {"mid", mission}});
       }
 
-      queue_data(SyncConfig::Type::MissionsCompleted, mission_array);
+      queue_data(SyncConfig::Type::Missions, mission_array);
     }
   } else {
     spdlog::error("Failed to parse completed missions");
@@ -878,7 +878,12 @@ void process_global_active_buffs(std::unique_ptr<std::string>&& bytes)
     {
       std::lock_guard lk(buff_states_mtx);
 
+      // Track all buff ids present in the response to detect removals.
+      std::unordered_set<int64_t> present_ids;
+      present_ids.reserve(static_cast<size_t>(response.globalactivebuffs_size()));
+
       for (const auto& buff : response.globalactivebuffs()) {
+        present_ids.insert(buff.buffid());
         const bool expires = buff.has_activebuff() && buff.activebuff().has_expirytime();
         const auto state   = std::make_pair(buff.level(), expires ? buff.activebuff().expirytime().seconds() : -1);
 
@@ -888,6 +893,19 @@ void process_global_active_buffs(std::unique_ptr<std::string>&& bytes)
                                 {"bid", buff.buffid()},
                                 {"level", state.first},
                                 {"expiry_time", expires ? json(state.second) : json(nullptr)}});
+        }
+      }
+
+      // Remove buffs that are no longer present and record each removal.
+      for (auto it = buff_states.begin(); it != buff_states.end(); ) {
+        if (!present_ids.contains(it->first)) {
+          buff_array.push_back({
+            {"type", "expired_" + SyncConfig::Type::Buffs},
+            {"bid", it->first},
+          });
+          it = buff_states.erase(it);
+        } else {
+          ++it;
         }
       }
     }
@@ -1053,7 +1071,10 @@ void process_jobs(std::unique_ptr<std::string>&& bytes)
       std::lock_guard lk(jobs_active_mtx);
       for (auto it = jobs_active.begin(); it != jobs_active.end();) {
         if (!uuids_in_response.contains(*it)) {
-          job_array.push_back({{"type", "job_completed"}, {"uuid", *it}});
+          job_array.push_back({
+            {"type", "completed_" + SyncConfig::Type::Jobs},
+            {"uuid", *it}
+          });
           it = jobs_active.erase(it);
         } else {
           ++it;

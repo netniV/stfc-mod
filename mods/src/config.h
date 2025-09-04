@@ -21,8 +21,7 @@ public:
     EmeraldChain,
     Inventory,
     Jobs,
-    MissionsActive,
-    MissionsCompleted,
+    Missions,
     Officer,
     Research,
     Resources,
@@ -60,13 +59,12 @@ public:
 
 constexpr std::array SyncOptions{
     SyncConfig::Option{SyncConfig::Type::Battles, "battlelog", "battlelogs", &SyncConfig::battlelogs},
-    SyncConfig::Option{SyncConfig::Type::Buffs, "active_buff", "buffs", &SyncConfig::buffs},
+    SyncConfig::Option{SyncConfig::Type::Buffs, "buff", "buffs", &SyncConfig::buffs},
     SyncConfig::Option{SyncConfig::Type::Buildings, "module", "buildings", &SyncConfig::buildings},
     SyncConfig::Option{SyncConfig::Type::EmeraldChain, "emerald_chain", "buffs", &SyncConfig::buffs},
     SyncConfig::Option{SyncConfig::Type::Inventory, "inventory", "inventory", &SyncConfig::inventory},
     SyncConfig::Option{SyncConfig::Type::Jobs, "job", "jobs", &SyncConfig::jobs},
-    SyncConfig::Option{SyncConfig::Type::MissionsActive, "active_mission", "missions", &SyncConfig::missions},
-    SyncConfig::Option{SyncConfig::Type::MissionsCompleted, "mission", "missions", &SyncConfig::missions},
+    SyncConfig::Option{SyncConfig::Type::Missions, "mission", "missions", &SyncConfig::missions},
     SyncConfig::Option{SyncConfig::Type::Officer, "officer", "officer", &SyncConfig::officer},
     SyncConfig::Option{SyncConfig::Type::Research, "research", "research", &SyncConfig::research},
     SyncConfig::Option{SyncConfig::Type::Resources, "resource", "resources", &SyncConfig::resources},
@@ -76,7 +74,7 @@ constexpr std::array SyncOptions{
     SyncConfig::Option{SyncConfig::Type::Traits, "trait", "traits", &SyncConfig::traits},
 };
 
-inline std::string to_string(SyncConfig::Type type)
+constexpr auto to_string(const SyncConfig::Type type) -> std::string
 {
   for (const auto& opt : SyncOptions) {
     if (opt.type == type) {
@@ -85,6 +83,16 @@ inline std::string to_string(SyncConfig::Type type)
   }
 
   return {};
+}
+
+constexpr auto operator+(const std::string& prefix, const SyncConfig::Type type) -> std::string
+{
+  return prefix + to_string(type);
+}
+
+constexpr auto operator+(const SyncConfig::Type type, const std::string& suffix) -> std::string
+{
+  return to_string(type) + suffix;
 }
 
 class SyncTargetConfig : public SyncConfig
