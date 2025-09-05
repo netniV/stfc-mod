@@ -49,6 +49,10 @@
 #endif
 #endif
 
+#ifndef _WIN32
+#include <time.h>
+#endif
+
 #if _WIN32
 // Introduce RAII guard for COM apartments
 struct WinRtApartmentGuard {
@@ -213,14 +217,21 @@ static void send_data(SyncConfig::Type type, const std::string& post_data)
     }
 
     const auto target_identifier = STR_FORMAT("{} ({})", target, to_string(type));
+    bool acquired = false;
 
     try {
       // Ensure only one in-flight operation per target.
       target_sem->acquire();
+      acquired = true;
 
       const auto httpClient = get_curl_client_sync(target);
-      sync_log_debug(CURL_TYPE_UPLOAD, target_identifier, "Sending data to " + httpClient->GetFullRequestUrl());
+#ifndef _MODDBG
+      httpClient->SetConnectTimeout(cpr::ConnectTimeout{3000});
+      httpClient->SetTimeout(cpr::Timeout{10000});
+#endif
       httpClient->SetBody(cpr::Body{post_data});
+
+      sync_log_debug(CURL_TYPE_UPLOAD, target_identifier, "Sending data to " + httpClient->GetFullRequestUrl());
       auto asyncResponse = httpClient->PostAsync();
 
       // Detach a waiter that enqueues the completed response and releases the semaphore.
@@ -249,13 +260,13 @@ static void send_data(SyncConfig::Type type, const std::string& post_data)
 
     } catch (const std::runtime_error& e) {
       spdlog::error("Failed to send sync data to target '{}' - Runtime error: {}", target_identifier, e.what());
-      try { target_sem->release(); } catch (...) {}
+      if (acquired) { try { target_sem->release(); } catch (...) {} }
     } catch (const std::exception& e) {
       spdlog::error("Failed to send sync data to target '{}' - Exception: {}", target_identifier, e.what());
-      try { target_sem->release(); } catch (...) {}
+      if (acquired) { try { target_sem->release(); } catch (...) {} }
     } catch (...) {
       spdlog::error("Failed to send sync data to target '{}' - Unknown error occurred", target_identifier);
-      try { target_sem->release(); } catch (...) {}
+      if (acquired) { try { target_sem->release(); } catch (...) {} }
     }
   }
 }
@@ -271,6 +282,8 @@ static std::shared_ptr<cpr::Session> get_curl_client_scopely()
 
     if (!Config::Get().sync_options.proxy.empty()) {
       session->SetProxies({{"https", Config::Get().sync_options.proxy}});
+
+      // TODO: Is this too permissive?
       session->SetSslOptions(cpr::Ssl(
         cpr::ssl::VerifyHost{false},
         cpr::ssl::VerifyPeer{false},
@@ -929,10 +942,17 @@ static std::mutex                           slot_states_mtx;
 
 inline std::chrono::time_point<std::chrono::system_clock> parse_timestamp(const std::string& timestamp)
 {
+#ifdef _WIN32
   std::istringstream ss(timestamp);
   std::chrono::system_clock::time_point time_point;
-  std::chrono::from_stream(ss, "%Y-%m-%dT%H:%M:%S",time_point);
+  std::chrono::from_stream(ss, "%Y-%m-%dT%H:%M:%S", time_point);
   return time_point;
+#else
+  std::tm tm = {};
+  strptime(timestamp.c_str(), "%Y-%m-%dT%H:%M:%S", &tm);
+  auto time_point = std::chrono::system_clock::from_time_t(std::mktime(&tm));
+  return time_point;
+#endif
 }
 
 void process_entity_slots(std::unique_ptr<std::string>&& bytes)
