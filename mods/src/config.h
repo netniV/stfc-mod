@@ -54,7 +54,7 @@ public:
   bool tech       = false;
   bool traits     = false;
 
-  bool enabled(Type type) const;
+  [[nodiscard]] bool enabled(Type type) const;
 };
 
 constexpr std::array SyncOptions{
@@ -74,7 +74,7 @@ constexpr std::array SyncOptions{
     SyncConfig::Option{SyncConfig::Type::Traits, "trait", "traits", &SyncConfig::traits},
 };
 
-constexpr auto to_string(const SyncConfig::Type type) -> std::string
+constexpr std::string to_string(const SyncConfig::Type type)
 {
   for (const auto& opt : SyncOptions) {
     if (opt.type == type) {
@@ -85,12 +85,12 @@ constexpr auto to_string(const SyncConfig::Type type) -> std::string
   return {};
 }
 
-constexpr auto operator+(const std::string& prefix, const SyncConfig::Type type) -> std::string
+constexpr std::string operator+(const std::string& prefix, const SyncConfig::Type type)
 {
   return prefix + to_string(type);
 }
 
-constexpr auto operator+(const SyncConfig::Type type, const std::string& suffix) -> std::string
+constexpr std::string operator+(const SyncConfig::Type type, const std::string& suffix)
 {
   return to_string(type) + suffix;
 }
@@ -107,12 +107,12 @@ class Config final
 public:
   Config();
 
-  static Config& Get();
-  static float   GetDPI();
-  static float   RefreshDPI();
+  [[nodiscard]] static Config& Get();
+  [[nodiscard]] static float   GetDPI();
+  static float                 RefreshDPI();
 
 #ifdef _WIN32
-  static HWND WindowHandle();
+  [[nodiscard]] static HWND WindowHandle();
 #endif
 
   static void Save(const toml::table& config, std::string_view filename, bool apply_warning = true);

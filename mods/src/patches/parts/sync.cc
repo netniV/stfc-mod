@@ -9,6 +9,7 @@
 #include <prime/EntityGroup.h>
 #include <prime/HttpResponse.h>
 #include <prime/ServiceResponse.h>
+#include <prime/RealtimeDataPayload.h>
 #include <spud/detour.h>
 
 #include <spdlog/spdlog.h>
@@ -923,11 +924,21 @@ void process_global_active_buffs(std::unique_ptr<std::string>&& bytes)
   }
 }
 
+static std::unordered_map<int64_t, int64_t> slot_states;
+static std::mutex                           slot_states_mtx;
+
+inline std::chrono::time_point<std::chrono::utc_clock> parse_timestamp(const std::string& timestamp)
+{
+  std::istringstream ss(timestamp);
+  std::chrono::utc_clock::time_point time_point;
+  // 2025-09-05T07:02:08
+  std::chrono::from_stream(ss, "%Y-%m-%dT%H:%M:%S",time_point);
+  return time_point;
+}
+
 void process_entity_slots(std::unique_ptr<std::string>&& bytes)
 {
   using json = nlohmann::json;
-  static std::unordered_map<int64_t, int64_t> slot_states;
-  static std::mutex                           slot_states_mtx;
 
   if (auto response = Digit::PrimeServer::Models::EntitySlots(); response.ParseFromString(*bytes)) {
 
@@ -939,7 +950,7 @@ void process_entity_slots(std::unique_ptr<std::string>&& bytes)
 
       for (const auto& slot : response.entityslots_()) {
         json    slot_params;
-        int64_t state_value = slot.has_slotitemid() ? slot.slotitemid() : -1;
+        int64_t state_value = slot.has_slotitemid() ? slot.slotitemid().value() : -1;
 
         switch (slot.slottype()) {
           case Digit::PrimeServer::Models::SLOTTYPE_CONSUMABLE:
@@ -992,7 +1003,7 @@ void process_entity_slots(std::unique_ptr<std::string>&& bytes)
                                 {"sid", slot.id()},
                                 {"slot_type", slot.slottype()},
                                 {"spec_id", slot.slotspecid()},
-                                {"item_id", slot.has_slotitemid() ? json(slot.slotitemid()) : json(nullptr)},
+                                {"item_id", slot.has_slotitemid() ? json(slot.slotitemid().value()) : json(nullptr)},
                                 {"params", slot_params}});
         }
       }
@@ -1003,6 +1014,89 @@ void process_entity_slots(std::unique_ptr<std::string>&& bytes)
     }
   } else {
     spdlog::error("Failed to parse entity slots");
+  }
+}
+
+void process_entity_slots_rtc(std::unique_ptr<std::string>&& json_payload)
+{
+  using json = nlohmann::json;
+
+  try {
+    auto data = json::parse(*json_payload);
+    http::sync_log_trace("PROCESS", "entity slots (RTC)", "Processing entity slot update");
+
+    const auto item = data["item_id"];
+    const auto item_id = item.is_null() ? -1 : item.get<int64_t>();
+
+    json    slot_params;
+    int64_t state_value = item_id;
+
+    const auto type = data["slot_type"].get<int32_t>();
+    switch (type) {
+      case Digit::PrimeServer::Models::SLOTTYPE_CONSUMABLE:
+        if (const auto& expiry_time = data["consumable_slot_params"]["expiry_time"]; expiry_time.is_null()) {
+          slot_params["expiry_time"] = nullptr;
+        } else {
+          const auto timestamp = parse_timestamp(data["consumable_slot_params"]["expiry_time"].get_ref<const std::string&>());
+          slot_params["expiry_time"] = timestamp.time_since_epoch().count();
+        }
+        break;
+      case Digit::PrimeServer::Models::SLOTTYPE_OFFICERPRESET:
+        if (const auto& preset = data["officer_preset_slot_params"]; !preset.is_null()) {
+          slot_params = preset;
+          state_value = static_cast<int64_t>(std::hash<json>{}(slot_params));
+        }
+        break;
+      case Digit::PrimeServer::Models::SLOTTYPE_FLEETCOMMANDER:
+        if (const auto& params = data["fleet_commander_slot_params"]; !params.is_null()) {
+          slot_params["order"] = params["order"];
+        }
+        break;
+      case Digit::PrimeServer::Models::SLOTTYPE_SELECTABLESKILL:
+        if (const auto& params = data["selectable_skill_slot_params"]; !params.is_null()) {
+          if (const auto& expiry_time = params["cooldown_expiration"]; expiry_time.is_null()) {
+            slot_params["cooldown_expiration"] = nullptr;
+          } else {
+            const auto timestamp = parse_timestamp(params["cooldown_expiration"].get_ref<const std::string&>());
+            slot_params["cooldown_expiration"] = timestamp.time_since_epoch().count();
+          }
+        }
+        break;
+      case Digit::PrimeServer::Models::SLOTTYPE_FLEETPRESET:
+        if (const auto& params = data["fleet_preset_slot_params"]; !params.is_null()) {
+          auto setup_json = json::array();
+          for (const auto& setup : params["setups"]) {
+            setup_json.push_back({{"drydock_id", setup["d"]}, {"ship_id", setup["s"][0]}, {"officer_ids", setup["o"]}});
+          }
+
+          slot_params = {{"name", params["name"]}, {"order", params["order"]}, {"setup", setup_json}};
+          state_value = static_cast<int64_t>(std::hash<json>{}(slot_params));
+        }
+        break;
+      default:
+        return;
+    }
+
+    const auto id = data["slot_id"].get<int64_t>();
+    {
+      std::lock_guard lk(slot_states_mtx);
+
+      if (const auto& it = slot_states.find(id); it == slot_states.end() || it->second != state_value) {
+        slot_states[id] = state_value;
+
+        auto slot_array = json::array();
+        slot_array.push_back({{"type", SyncConfig::Type::Slots},
+                              {"sid", id},
+                              {"slot_type", type},
+                              {"spec_id", data["slot_spec_id"]},
+                              {"item_id", item},
+                              {"params", slot_params}});
+
+        queue_data(SyncConfig::Type::Slots, slot_array);
+      }
+    }
+  } catch (json::exception& e) {
+    spdlog::error("Failed to parse slots JSON: {}", e.what());
   }
 }
 
@@ -1708,6 +1802,38 @@ void DataContainer_ParseBinaryObject(auto original, void* _this, EntityGroup* gr
   return original(_this, group, isPlayerData);
 }
 
+void DataContainer_ParseRtcPayload(auto original, void* _this, bool incrementalJsonParsing, RealtimeDataPayload* data)
+{
+  original(_this, incrementalJsonParsing, data);
+
+  if (data == nullptr || data->Target == nullptr || data->DataType == nullptr || data->Data == nullptr) {
+    return;
+  }
+
+  const auto target = to_string(data->Target);
+  if (target != "slot:assign" && target != "slot:clear") {
+    return;
+  }
+
+  const auto type_string = to_string(data->DataType);
+  if (std::stoi(type_string) != DataType::JSON) {
+    return;
+  }
+
+  const auto rtcData = to_string(data->Data);
+  auto payload = std::make_unique<std::string>(rtcData);
+
+  std::thread([p = std::move(payload)]() mutable {
+    try {
+      process_entity_slots_rtc(std::move(p));
+    } catch (const std::exception& e) {
+      spdlog::error("Exception in ParseRtcPayload: {}", e.what());
+    } catch (...) {
+      spdlog::error("Unknown exception in ParseRtcPayload");
+    }
+  }).detach();
+}
+
 void GameServerModelRegistry_ProcessResultInternal(auto original, void* _this, HttpResponse* http_response,
                                                    ServiceResponse* service_response, void* callback,
                                                    void* callback_error)
@@ -1894,6 +2020,18 @@ void InstallSyncPatches()
       ErrorMsg::MissingMethod("SlotDataContainer", "ParseBinaryObject");
     } else {
       SPUD_STATIC_DETOUR(ptr, DataContainer_ParseBinaryObject);
+    }
+
+    if (const auto ptr = slot_data_container.GetMethod("ParseSlotUpdatedJson"); ptr == nullptr) {
+      ErrorMsg::MissingMethod("SlotDataContainer", "ParseSlotUpdatedJson");
+    } else {
+      SPUD_STATIC_DETOUR(ptr, DataContainer_ParseRtcPayload);
+    }
+
+    if (const auto ptr = slot_data_container.GetMethod("ParseSlotRemovedJson"); ptr == nullptr) {
+      ErrorMsg::MissingMethod("SlotDataContainer", "ParseSlotRemovedJson");
+    } else {
+      SPUD_STATIC_DETOUR(ptr, DataContainer_ParseRtcPayload);
     }
   }
 
