@@ -927,11 +927,10 @@ void process_global_active_buffs(std::unique_ptr<std::string>&& bytes)
 static std::unordered_map<int64_t, int64_t> slot_states;
 static std::mutex                           slot_states_mtx;
 
-inline std::chrono::time_point<std::chrono::utc_clock> parse_timestamp(const std::string& timestamp)
+inline std::chrono::time_point<std::chrono::system_clock> parse_timestamp(const std::string& timestamp)
 {
   std::istringstream ss(timestamp);
-  std::chrono::utc_clock::time_point time_point;
-  // 2025-09-05T07:02:08
+  std::chrono::system_clock::time_point time_point;
   std::chrono::from_stream(ss, "%Y-%m-%dT%H:%M:%S",time_point);
   return time_point;
 }
