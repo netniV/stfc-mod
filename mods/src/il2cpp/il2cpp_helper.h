@@ -26,6 +26,15 @@ public:
     this->propInfo = propInfo;
   }
 
+  bool isValidHelper()
+  {
+#if DEBUG
+    return true;
+#else
+    return this->cls != nullptr && propInfo != nullptr;
+#endif
+  }
+
   template <typename T> void SetRaw(void* _this, T& v)
   {
     if (!this->propInfo) {
@@ -86,6 +95,15 @@ public:
     this->fieldInfo = fieldInfo;
   }
 
+  bool isValidHelper()
+  {
+#if DEBUG
+    return true;
+#else
+    return this->cls != nullptr && fieldInfo != nullptr;
+#endif
+  }
+
   inline ptrdiff_t offset() const
   {
     return this->fieldInfo->offset;
@@ -136,8 +154,13 @@ public:
     return obj;
   }
 
-  bool HasClass() {
+  bool isValidHelper()
+  {
+#if DEBUG
+    return true;
+#else
     return this->cls != nullptr;
+#endif
   }
 
   template <typename T = void> T* GetMethod(const char* name, int arg_count = -1)
