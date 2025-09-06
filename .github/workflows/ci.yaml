@@ -40,35 +40,3 @@ jobs:
         with:
           name: stfc-community-patch
           path: version.dll
-
-  build-mac:
-    runs-on: macos-14
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: "recursive"
-
-      - uses: xmake-io/github-action-setup-xmake@v1
-        with:
-          xmake-version: latest
-          actions-cache-folder: ".xmake-cache"
-          actions-cache-key: "mac-ci"
-
-      - name: Set up Homebrew
-        id: set-up-homebrew
-        uses: Homebrew/actions/setup-homebrew@master
-
-      - name: Install protoc
-        id: install-protoc-c
-        run: brew install protobuf
-
-      - name: Install brew things
-        run: brew install create-dmg
-
-      - name: Create App Bundle
-        run: scripts/create-mac-dmg.sh releasedbg
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: stfc-community-patch-installer
-          path: stfc-community-patch-installer.dmg

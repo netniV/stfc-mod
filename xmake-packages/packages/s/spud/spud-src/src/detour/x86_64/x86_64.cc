@@ -154,9 +154,7 @@ std::tuple<relocation_info, size_t> collect_relocations(uintptr_t address,
                        instruction, operands)) {
       const auto entry = relocation_entry{
           decoder_offset, instruction,
-          std::array{operands[0], operands[1], operands[2], operands[3],
-                     operands[4], operands[5], operands[6], operands[7],
-                     operands[8], operands[9]}};
+          std::to_array(operands)};
 
       /*const auto relocation_meta_info = relo_meta.find(entry.instruction);
       if (relocation_meta_info == relo_meta.end()) {

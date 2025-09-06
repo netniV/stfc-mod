@@ -113,11 +113,9 @@
 #define IL2CPP_PLATFORM_SUPPORTS_SYSTEM_CERTIFICATES 1
 #define IL2CPP_PLATFORM_SUPPORTS_CPU_INFO 1
 // Windows 7 is the min OS we support, so we cannot link newer APIs
-#ifndef NTDDI_VERSION
 #define NTDDI_VERSION    0x06010000
 #define _WIN32_WINNT     0x0601
 #define WINVER           0x0601
-#endif
 #endif
 #define _UNICODE 1
 #define UNICODE 1

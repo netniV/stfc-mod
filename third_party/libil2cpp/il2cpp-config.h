@@ -335,7 +335,7 @@ static const uint16_t kInvalidIl2CppMethodSlot = 65535;
 
 /* set by platforms that require special handling of SIGPIPE signalling during socket sends */
 #ifndef IL2CPP_USE_SEND_NOSIGNAL
-    #define IL2CPP_USE_SEND_NOSIGNAL 0
+    #define IL2CPP_USE_SEND_NOSIGNAL IL2CPP_TARGET_LINUX
 #endif
 
 #ifndef IL2CPP_USE_GENERIC_ENVIRONMENT

@@ -44,7 +44,7 @@ if(SPUD_AARCH64_SUPPORT)
         FetchContent_Declare(
             capstone
             GIT_REPOSITORY https://github.com/capstone-engine/capstone.git
-            GIT_TAG 6.0.0-Alpha1
+            GIT_TAG 6.0.0-Alpha4
         )
         FetchContent_MakeAvailable(capstone)
     endif()

@@ -33,7 +33,7 @@ jobs:
           prerelease: ${{ steps.check-prerelease.outputs.prerelease == 'true' }}
 
       - name: Download artifact
-        uses: dawidd6/action-download-artifact@v3
+        uses: dawidd6/action-download-artifact@v6
         with:
           commit: ${{env.GITHUB_SHA}}
           workflow: ci.yaml
@@ -64,13 +64,3 @@ jobs:
           asset_path: ./stfc-community-patch.zip
           asset_name: stfc-community-patch-${{ github.ref_name }}.zip
           asset_content_type: application/zip
-
-      - name: Upload Community Patch Mac Installer
-        id: upload-patch-macos
-        uses: shogo82148/actions-upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./stfc-community-patch-installer/stfc-community-patch-installer.dmg
-          asset_name: stfc-community-patch-installer.dmg

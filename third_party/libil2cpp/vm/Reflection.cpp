@@ -459,10 +459,6 @@ namespace vm
         if (method->method->parameters == NULL)
             return NULL;
 
-        IL2CPP_NOT_IMPLEMENTED_NO_ASSERT(Reflection::GetCustomAttributesCacheFor, "-1 represents the return value. Need to emit custom attribute information for that.")
-        if (parameter->PositionImpl == -1)
-            return NULL;
-
         const MethodInfo* methodWithParameterAttributeInformation = method->method;
         if (method->method->is_inflated)
             methodWithParameterAttributeInformation = method->method->genericMethod->methodDefinition;
@@ -500,10 +496,6 @@ namespace vm
         Il2CppReflectionMethod* method = (Il2CppReflectionMethod*)parameter->MemberImpl;
 
         if (method->method->parameters == NULL)
-            return std::make_tuple<void*, void*>(NULL, NULL);
-
-        IL2CPP_NOT_IMPLEMENTED_NO_ASSERT(Reflection::GetCustomAttributesDataRangeFor, "-1 represents the return value. Need to emit custom attribute information for that.")
-        if (parameter->PositionImpl == -1)
             return std::make_tuple<void*, void*>(NULL, NULL);
 
         const MethodInfo* methodWithParameterAttributeInformation = method->method;
@@ -818,6 +810,27 @@ namespace vm
 
     void Reflection::ClearStatics()
     {
+        delete s_AssemblyMap;
+        s_AssemblyMap = NULL;
+        delete s_FieldMap;
+        s_FieldMap = NULL;
+        delete s_PropertyMap;
+        s_PropertyMap = NULL;
+        delete s_EventMap;
+        s_EventMap = NULL;
+        delete s_MethodMap;
+        s_MethodMap = NULL;
+        delete s_ModuleMap;
+        s_ModuleMap = NULL;
+        delete s_ParametersMap;
+        s_ParametersMap = NULL;
+        delete s_TypeMap;
+        s_TypeMap = NULL;
+        delete s_MonoGenericParamterMap;
+        s_MonoGenericParamterMap = NULL;
+        delete s_MonoAssemblyNameMap;
+        s_MonoAssemblyNameMap = NULL;
+
         s_System_Reflection_Assembly = NULL;
         s_System_Reflection_RuntimeFieldInfoKlass = NULL;
         s_System_Reflection_Module = NULL;

@@ -2174,21 +2174,18 @@ namespace os
                         *system_name = IP_OPTIONS;
                         break;
         #endif
-        #ifdef IP_HDRINCL
                     case kSocketOptionNameHeaderIncluded:
                         *system_name = IP_HDRINCL;
                         break;
-        #endif
-        #ifdef IP_TOS
+
                     case kSocketOptionNameTypeOfService:
                         *system_name = IP_TOS;
                         break;
-        #endif
-        #ifdef IP_TTL
+
                     case kSocketOptionNameIpTimeToLive:
                         *system_name = IP_TTL;
                         break;
-        #endif
+
                     case kSocketOptionNameMulticastInterface:
                         *system_name = IP_MULTICAST_IF;
                         break;
