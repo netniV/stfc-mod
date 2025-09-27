@@ -41,6 +41,7 @@ message Bundle {
   BundleStyle bundleStyle = 18;
   int32 pityCap = 19;
   int32 pityCount = 20;
+  string popupAssetFilename = 21;
 }
 
 message TranslationsContainer {

@@ -4,30 +4,10 @@ syntax="proto3";
 option optimize_for = LITE_RUNTIME;
 
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
 
 import "stfc.proto";
-
 package Digit.PrimeServer.Models;
-
-enum EntityType {
-  ENTITYTYPE_INVALID = 0;
-  ENTITYTYPE_PLAYER = 859804212;
-  ENTITYTYPE_ALLIANCE = 1794481137;
-  ENTITYTYPE_DEPLOYEDFLEET = 2129559302;
-  ENTITYTYPE_NPC = 2100681965;
-  ENTITYTYPE_OFFICERS = 1211023646;
-  ENTITYTYPE_SHIP = 73015892;
-  ENTITYTYPE_SYSTEM = 232004982;
-  ENTITYTYPE_PARTY = 2028949976;
-  ENTITYTYPE_GAMEWORLD = 1025095082;
-}
-
-message EntityRef {
-  int64 entityId = 1;
-  string entityIdStr = 2;
-  EntityType entityType = 3;
-  EntityRef parentEntity = 4;
-}
 
 enum FleetSkillsType {
   FLEETSKILLSTYPE_NONE = 0;
@@ -36,6 +16,28 @@ enum FleetSkillsType {
   FLEETSKILLSTYPE_CLOAKING = 3;
   FLEETSKILLSTYPE_SUPPORT = 4;
   FLEETSKILLSTYPE_DISRUPT = 5;
+}
+
+enum RarityState {
+  RARITYSTATE_BASE = 0;
+  RARITYSTATE_COMMON = 1;
+  RARITYSTATE_UNCOMMON = 2;
+  RARITYSTATE_RARE = 3;
+  RARITYSTATE_EPIC = 4;
+  RARITYSTATE_LEGENDARY = 5;
+  RARITYSTATE_NONE = -1;
+}
+
+enum BuildStatus {
+  BUILDSTATUS_NONE = 0;
+  BUILDSTATUS_INVALID = -1;
+  BUILDSTATUS_BUILDAVAILABLE_REQUIREMENTS_NOT_MET = -196463803;
+  BUILDSTATUS_READYTOBUILD = -437444176;
+  BUILDSTATUS_UPGRADEAVAILABLE_REQUIREMENTS_NOT_MET = 1632201331;
+  BUILDSTATUS_UPGRADEAVAILABLE_REQUIREMENTS_MET = 309998463;
+  BUILDSTATUS_UPGRADEINPROGRESS = 2047869326;
+  BUILDSTATUS_UPGRADECOMPLETE = 1093471061;
+  BUILDSTATUS_MAXUPGRADEREACHED = -1300075014;
 }
 
 enum PartyType {
@@ -52,15 +54,6 @@ enum PartyState {
   PARTYSTATE_READY = 2;
   PARTYSTATE_INMATCHMAKING = 3;
   PARTYSTATE_INGAMEACTIVITY = 4;
-}
-
-enum RarityState {
-  RARITYSTATE_BASE = 0;
-  RARITYSTATE_COMMON = 1;
-  RARITYSTATE_UNCOMMON = 2;
-  RARITYSTATE_RARE = 3;
-  RARITYSTATE_EPIC = 4;
-  RARITYSTATE_NONE = -1;
 }
 
 enum ActionType {
@@ -145,6 +138,7 @@ enum HazardType {
   HAZARDTYPE_TYPEC = 3;
   HAZARDTYPE_TYPED = 4;
   HAZARDTYPE_TYPEE = 5;
+  HAZARDTYPE_TYPEF = 6;
 }
 
 enum HazardEffect {
@@ -157,34 +151,6 @@ enum StatusCounterType {
   STATUSCOUNTERTYPE_NONE = 0;
   STATUSCOUNTERTYPE_UNKNOWNSTATUSCOUNTER = -1;
   STATUSCOUNTERTYPE_ASSIMILATIONPOINTS = 1;
-}
-
-enum BuildStatus {
-  BUILDSTATUS_NONE = 0;
-  BUILDSTATUS_INVALID = -1;
-  BUILDSTATUS_BUILDAVAILABLE_REQUIREMENTS_NOT_MET = -196463803;
-  BUILDSTATUS_READYTOBUILD = -437444176;
-  BUILDSTATUS_UPGRADEAVAILABLE_REQUIREMENTS_NOT_MET = 1632201331;
-  BUILDSTATUS_UPGRADEAVAILABLE_REQUIREMENTS_MET = 309998463;
-  BUILDSTATUS_UPGRADEINPROGRESS = 2047869326;
-  BUILDSTATUS_UPGRADECOMPLETE = 1093471061;
-  BUILDSTATUS_MAXUPGRADEREACHED = -1300075014;
-}
-
-enum AccountState {
-  ACCOUNTSTATE_CONSISTENT = 0;
-  ACCOUNTSTATE_INCONSISTENT = 1;
-  ACCOUNTSTATE_UNKNOWN = 2;
-}
-
-enum AllianceDiplomacyStatus {
-  ALLIANCEDIPLOMACYSTATUS_NEUTRAL = 0;
-  ALLIANCEDIPLOMACYSTATUS_ENEMY = 1;
-  ALLIANCEDIPLOMACYSTATUS_FRIENDLY = 2;
-  ALLIANCEDIPLOMACYSTATUS_ALLY = 3;
-  ALLIANCEDIPLOMACYSTATUS_UNFRIENDLY = 4;
-  ALLIANCEDIPLOMACYSTATUS_CAUTION = 5;
-  ALLIANCEDIPLOMACYSTATUS_CIVIL = 6;
 }
 
 enum ArmadaAttackState {
@@ -204,26 +170,13 @@ enum ArmadaAttackState {
   ARMADAATTACKSTATE_BATTLEFINISHEDLOSS = 13;
 }
 
-enum ArmadaTargetType {
-  ARMADATARGETTYPE_NONE = 0;
-  ARMADATARGETTYPE_STATION = 1;
-  ARMADATARGETTYPE_FLEET = 2;
-  ARMADATARGETTYPE_ALLIANCESTATION = 3;
-}
-
-enum FleetArmadaCategory {
-  FLEETARMADACATEGORY_REGULAR = 0;
-  FLEETARMADACATEGORY_SOLO = 1;
-  FLEETARMADACATEGORY_SOLOBOSS = 2;
-  FLEETARMADACATEGORY_SQUADARMADA = 3;
-}
-
 enum Rarity {
   RARITY_BASE = 0;
   RARITY_COMMON = 1;
   RARITY_UNCOMMON = 2;
   RARITY_RARE = 3;
   RARITY_EPIC = 4;
+  RARITY_LEGENDARY = 5;
 }
 
 enum OfficerCoreStatType {
@@ -247,28 +200,6 @@ enum AwayAssignmentOutcome {
   AWAYASSIGNMENTOUTCOME_FAIL = 1;
   AWAYASSIGNMENTOUTCOME_SUCCESS = 2;
   AWAYASSIGNMENTOUTCOME_CRITICALSUCCESS = 3;
-}
-
-enum BuffSource {
-  BUFFSOURCE_OFFICER = 0;
-  BUFFSOURCE_CAPTUREOBJECT = 1;
-  BUFFSOURCE_CONSUMABLE = 2;
-  BUFFSOURCE_SHIPBONUS = 3;
-  BUFFSOURCE_SHIPTIERBONUS = 4;
-  BUFFSOURCE_SHIPLEVELBONUS = 5;
-  BUFFSOURCE_STARBASEMODULE = 6;
-  BUFFSOURCE_RESEARCH = 7;
-  BUFFSOURCE_FORBIDDENTECH = 8;
-}
-
-enum HullType {
-  HULLTYPE_DESTROYER = 0;
-  HULLTYPE_SURVEY = 1;
-  HULLTYPE_EXPLORER = 2;
-  HULLTYPE_BATTLESHIP = 3;
-  HULLTYPE_DEFENSE = 4;
-  HULLTYPE_ARMADATARGET = 5;
-  HULLTYPE_ANY = -1;
 }
 
 enum GraphNodeConnectionRequirementType {
@@ -427,6 +358,7 @@ enum ClientModifierType {
   CLIENTMODIFIERTYPE_MODHAZARDTYPEDMITIGATION = 813;
   CLIENTMODIFIERTYPE_MODHAZARDBASEMITIGATION = 814;
   CLIENTMODIFIERTYPE_MODHAZARDTYPEEMITIGATION = 815;
+  CLIENTMODIFIERTYPE_MODHAZARDTYPEFMITIGATION = 80001;
   CLIENTMODIFIERTYPE_MODRESOURCEPROTECTION = 100;
   CLIENTMODIFIERTYPE_MODCOMBATRESOURCEREWARD = 101;
   CLIENTMODIFIERTYPE_MODMISSIONRESOURCEREWARD = 102;
@@ -557,6 +489,13 @@ enum ClientModifierType {
   CLIENTMODIFIERTYPE_MODSYNERGYSYMBIOSISPROMOTIONSHARDCOST = 79004;
   CLIENTMODIFIERTYPE_MODSYNERGYRETALIATIONSQUADSPROMOTIONSHARDCOST = 79005;
   CLIENTMODIFIERTYPE_MODSYNERGYENTERPRISENX01PROMOTIONSHARDCOST = 79006;
+  CLIENTMODIFIERTYPE_MODXINDISCRAPSREWARDS = 242;
+  CLIENTMODIFIERTYPE_MODHIROGENRELICSEXOTICBIOTOXINSREWARDS = 244;
+  CLIENTMODIFIERTYPE_MODPVECHESTLOOTMULTIPLIERLIMITEDRESOURCES = 75004;
+  CLIENTMODIFIERTYPE_MODWOKAUGMENTALLLOOTREWARDS = 78010;
+  CLIENTMODIFIERTYPE_MODPVECHESTLOOTMULTIPLIERWOKTOKEN = 78016;
+  CLIENTMODIFIERTYPE_MODM80TRANSOGENLOOT = 80002;
+  CLIENTMODIFIERTYPE_MODM80TRANSOGENEPICLOOT = 80003;
   CLIENTMODIFIERTYPE_MODNONE = -1000;
   CLIENTMODIFIERTYPE_SHIPDAMAGEPERROUND = -1;
   CLIENTMODIFIERTYPE_SHIPABSORPTION = -2;
@@ -578,19 +517,6 @@ enum ClientModifierType {
   CLIENTMODIFIERTYPE_FLEETFORBIDDENTECHRATING = -18;
 }
 
-enum ForbiddenTechUpgradeChanceType {
-  FORBIDDENTECHUPGRADECHANCETYPE_FORBIDDENTECHCHANCENONE = 0;
-  FORBIDDENTECHUPGRADECHANCETYPE_FORBIDDENTECHCHANCEQTRIAL = 1;
-  FORBIDDENTECHUPGRADECHANCETYPE_FORBIDDENTECHCHANCESTREAK = 2;
-  FORBIDDENTECHUPGRADECHANCETYPE_FORBIDDENTECHCHANCECONSUMABLE = 3;
-}
-
-enum ForbiddenTechOutcome {
-  FORBIDDENTECHOUTCOME_UNKNOWN = 0;
-  FORBIDDENTECHOUTCOME_FAIL = 1;
-  FORBIDDENTECHOUTCOME_SUCCESS = 2;
-}
-
 enum GameActivityResult {
   GAMEACTIVITYRESULT_UNKNOWNACTIVITYRESULTTYPE = 0;
   GAMEACTIVITYRESULT_WIN = 1;
@@ -601,6 +527,7 @@ enum GameActivityResult {
 enum ServerInstanceType {
   SERVERINSTANCETYPE_GAMEWORLD = 0;
   SERVERINSTANCETYPE_MUGATEST = 1;
+  SERVERINSTANCETYPE_REGIONAL = 2;
   SERVERINSTANCETYPE_ARENA = 1676718364;
 }
 
@@ -655,18 +582,6 @@ enum MissionType {
   MISSIONTYPE_DAILYGOAL = 1001;
 }
 
-enum MissionRequirementType {
-  MISSIONREQUIREMENTTYPE_SALLOFFICERSCORESTATTOTAL = 0;
-  MISSIONREQUIREMENTTYPE_SATLEASTONEOFFICERWITHCORESTAT = 1;
-  MISSIONREQUIREMENTTYPE_SSTARBASEMODULELEVEL = 2;
-  MISSIONREQUIREMENTTYPE_SPREVIOUSLYCOMPLETEDMISSION = 3;
-  MISSIONREQUIREMENTTYPE_SHULLTYPE = 4;
-  MISSIONREQUIREMENTTYPE_SHULLGRADE = 5;
-  MISSIONREQUIREMENTTYPE_SCOMPONENTVALUE = 6;
-  MISSIONREQUIREMENTTYPE_SPLAYERLEVELRANGE = 7;
-  MISSIONREQUIREMENTTYPE_SFACTIONSTANDING = 8;
-}
-
 enum MissionRewardAnimation {
   MISSIONREWARDANIMATION_FLYBY = 0;
   MISSIONREWARDANIMATION_POPUP = 1;
@@ -714,26 +629,26 @@ enum ObjectiveType {
   OBJECTIVETYPE_VISITSECTION = 26;
 }
 
-enum ObjectiveEventTrigger {
-  OBJECTIVEEVENTTRIGGER_COURSECOMPLETE = 0;
-  OBJECTIVEEVENTTRIGGER_STARBASEMODULEBUILT = 1;
-  OBJECTIVEEVENTTRIGGER_NPCDEFEATED = 2;
-  OBJECTIVEEVENTTRIGGER_BATTLEWON = 3;
-  OBJECTIVEEVENTTRIGGER_MININGSTARTED = 4;
-  OBJECTIVEEVENTTRIGGER_RESOURCESMINED = 5;
-  OBJECTIVEEVENTTRIGGER_FLEETRETURNEDTOSTATION = 6;
-  OBJECTIVEEVENTTRIGGER_BUILTFROMBLUEPRINT = 7;
-  OBJECTIVEEVENTTRIGGER_NEWOFFICERRECRUITED = 8;
-  OBJECTIVEEVENTTRIGGER_JOINEDALLIANCE = 9;
-  OBJECTIVEEVENTTRIGGER_STARBASEATTACKED = 10;
-  OBJECTIVEEVENTTRIGGER_RESOURCESDONATED = 11;
-  OBJECTIVEEVENTTRIGGER_MISSIONCOMPLETED = 12;
-  OBJECTIVEEVENTTRIGGER_SHIPTIEREDUP = 13;
-  OBJECTIVEEVENTTRIGGER_RESOURCESSTOCKPILED = 14;
-  OBJECTIVEEVENTTRIGGER_OFFICERUPDATED = 15;
-  OBJECTIVEEVENTTRIGGER_OFFICERASSIGNED = 16;
-  OBJECTIVEEVENTTRIGGER_STARBASEMOVED = 17;
-  OBJECTIVEEVENTTRIGGER_MINIGAMESTAGECOMPLETED = 18;
+enum HullType {
+  HULLTYPE_DESTROYER = 0;
+  HULLTYPE_SURVEY = 1;
+  HULLTYPE_EXPLORER = 2;
+  HULLTYPE_BATTLESHIP = 3;
+  HULLTYPE_DEFENSE = 4;
+  HULLTYPE_ARMADATARGET = 5;
+  HULLTYPE_ANY = -1;
+}
+
+enum MissionRequirementType {
+  MISSIONREQUIREMENTTYPE_SALLOFFICERSCORESTATTOTAL = 0;
+  MISSIONREQUIREMENTTYPE_SATLEASTONEOFFICERWITHCORESTAT = 1;
+  MISSIONREQUIREMENTTYPE_SSTARBASEMODULELEVEL = 2;
+  MISSIONREQUIREMENTTYPE_SPREVIOUSLYCOMPLETEDMISSION = 3;
+  MISSIONREQUIREMENTTYPE_SHULLTYPE = 4;
+  MISSIONREQUIREMENTTYPE_SHULLGRADE = 5;
+  MISSIONREQUIREMENTTYPE_SCOMPONENTVALUE = 6;
+  MISSIONREQUIREMENTTYPE_SPLAYERLEVELRANGE = 7;
+  MISSIONREQUIREMENTTYPE_SFACTIONSTANDING = 8;
 }
 
 enum BlueprintOutputType {
@@ -749,6 +664,13 @@ enum BlueprintOutputType {
   BLUEPRINTOUTPUTTYPE_BLUEPRINTOUTPUTSPECIAL = 9;
   BLUEPRINTOUTPUTTYPE_BLUEPRINTOUTPUTSTATIONWEAPON = 10;
   BLUEPRINTOUTPUTTYPE_BLUEPRINTOUTPUTUNDEFINED = -1;
+}
+
+enum NotificationIncomingAttackTargetType {
+  NOTIFICATIONINCOMINGATTACKTARGETTYPE_NONE = 0;
+  NOTIFICATIONINCOMINGATTACKTARGETTYPE_FLEET = 1;
+  NOTIFICATIONINCOMINGATTACKTARGETTYPE_DOCKINGPOINT = 2;
+  NOTIFICATIONINCOMINGATTACKTARGETTYPE_STATION = 3;
 }
 
 enum NotificationMissionType {
@@ -796,11 +718,14 @@ enum NotificationAllianceType {
   NOTIFICATIONALLIANCETYPE_CONTRIBUTIONMADE = 105;
 }
 
-enum NotificationIncomingAttackTargetType {
-  NOTIFICATIONINCOMINGATTACKTARGETTYPE_NONE = 0;
-  NOTIFICATIONINCOMINGATTACKTARGETTYPE_FLEET = 1;
-  NOTIFICATIONINCOMINGATTACKTARGETTYPE_DOCKINGPOINT = 2;
-  NOTIFICATIONINCOMINGATTACKTARGETTYPE_STATION = 3;
+enum AllianceDiplomacyStatus {
+  ALLIANCEDIPLOMACYSTATUS_NEUTRAL = 0;
+  ALLIANCEDIPLOMACYSTATUS_ENEMY = 1;
+  ALLIANCEDIPLOMACYSTATUS_FRIENDLY = 2;
+  ALLIANCEDIPLOMACYSTATUS_ALLY = 3;
+  ALLIANCEDIPLOMACYSTATUS_UNFRIENDLY = 4;
+  ALLIANCEDIPLOMACYSTATUS_CAUTION = 5;
+  ALLIANCEDIPLOMACYSTATUS_CIVIL = 6;
 }
 
 enum FleetInterceptInterruptionCause {
@@ -840,27 +765,6 @@ enum NotificationProducerType {
   NOTIFICATIONPRODUCERTYPE_SHIPABILITY = 16;
 }
 
-enum InventoryId {
-  INVENTORYID_COMPONENTS = 0;
-  INVENTORYID_BLUEPRINTS = 1;
-  INVENTORYID_CHESTS = 2;
-  INVENTORYID_RESOURCES = 3;
-  INVENTORYID_BATTLECONSUMABLES = 4;
-  INVENTORYID_MISSIONS = 5;
-  INVENTORYID_GALAXYTRANSITIONS = 7;
-  INVENTORYID_CONSUMABLES = 8;
-  INVENTORYID_ALLIANCE = 9;
-  INVENTORYID_OFFICERSHARD = 11;
-  INVENTORYID_COSMETICS = 12;
-  INVENTORYID_WORKERS = 13;
-  INVENTORYID_FORBIDDENTECHSHARD = 14;
-  INVENTORYID_OFFICERS = 1000;
-  INVENTORYID_STACKS = 1001;
-  INVENTORYID_COMMANDERS = 1002;
-  INVENTORYID_FORBIDDENTECH = 1003;
-  INVENTORYID_UNDEFINED = -1;
-}
-
 enum InventoryItemType {
   INVENTORYITEMTYPE_INVENTORYCOMPONENT = 0;
   INVENTORYITEMTYPE_INVENTORYBLUEPRINT = 1;
@@ -885,12 +789,38 @@ enum InventoryItemType {
   INVENTORYITEMTYPE_INVENTORYUNDEFINED = -1;
 }
 
-enum ChestSourceType {
-  CHESTSOURCETYPE_NOTPROVIDED = 0;
-  CHESTSOURCETYPE_ALLIANCEGIFT = 1;
-  CHESTSOURCETYPE_DROPPVE = 2;
-  CHESTSOURCETYPE_DROPPVP = 3;
-  CHESTSOURCETYPE_DROPSCRAP = 4;
+enum InventoryId {
+  INVENTORYID_COMPONENTS = 0;
+  INVENTORYID_BLUEPRINTS = 1;
+  INVENTORYID_CHESTS = 2;
+  INVENTORYID_RESOURCES = 3;
+  INVENTORYID_BATTLECONSUMABLES = 4;
+  INVENTORYID_MISSIONS = 5;
+  INVENTORYID_GALAXYTRANSITIONS = 7;
+  INVENTORYID_CONSUMABLES = 8;
+  INVENTORYID_ALLIANCE = 9;
+  INVENTORYID_OFFICERSHARD = 11;
+  INVENTORYID_COSMETICS = 12;
+  INVENTORYID_WORKERS = 13;
+  INVENTORYID_FORBIDDENTECHSHARD = 14;
+  INVENTORYID_OFFICERS = 1000;
+  INVENTORYID_STACKS = 1001;
+  INVENTORYID_COMMANDERS = 1002;
+  INVENTORYID_FORBIDDENTECH = 1003;
+  INVENTORYID_UNDEFINED = -1;
+}
+
+enum EntityType {
+  ENTITYTYPE_INVALID = 0;
+  ENTITYTYPE_PLAYER = 859804212;
+  ENTITYTYPE_ALLIANCE = 1794481137;
+  ENTITYTYPE_DEPLOYEDFLEET = 2129559302;
+  ENTITYTYPE_NPC = 2100681965;
+  ENTITYTYPE_OFFICERS = 1211023646;
+  ENTITYTYPE_SHIP = 73015892;
+  ENTITYTYPE_SYSTEM = 232004982;
+  ENTITYTYPE_PARTY = 2028949976;
+  ENTITYTYPE_GAMEWORLD = 1025095082;
 }
 
 enum SlotType {
@@ -901,6 +831,7 @@ enum SlotType {
   SLOTTYPE_SELECTABLESKILL = 4;
   SLOTTYPE_CHALLENGELADDER = 5;
   SLOTTYPE_FORBIDDENTECH = 6;
+  SLOTTYPE_FLEETPRESET = 7;
 }
 
 enum BattleUnitState {
@@ -980,6 +911,109 @@ enum GameActivityRuleType {
   GAMEACTIVITYRULETYPE_REPAIR = 1631870816;
   GAMEACTIVITYRULETYPE_RELOCATEENTRY = 605766716;
   GAMEACTIVITYRULETYPE_RELOCATEEXIT = 2018890572;
+}
+
+enum Faction {
+  FACTION_UNDEFINED = 0;
+  FACTION_FEDERATION = 1;
+  FACTION_KLINGON = 2;
+  FACTION_ROMULAN = 3;
+  FACTION_NONE = -1;
+}
+
+enum FleetArmadaCategory {
+  FLEETARMADACATEGORY_REGULAR = 0;
+  FLEETARMADACATEGORY_SOLO = 1;
+  FLEETARMADACATEGORY_SOLOBOSS = 2;
+  FLEETARMADACATEGORY_SQUADARMADA = 3;
+}
+
+enum OfficerType {
+  OFFICERTYPE_UNKNOWN = 0;
+  OFFICERTYPE_REGULAROFFICER = 1;
+  OFFICERTYPE_COMMANDER = 2;
+}
+
+enum RequirementType {
+  REQUIREMENTTYPE_NONE = 0;
+  REQUIREMENTTYPE_MODULELEVEL = 1;
+  REQUIREMENTTYPE_RESEARCHLEVEL = 2;
+  REQUIREMENTTYPE_FACTIONRANK = 3;
+  REQUIREMENTTYPE_ALLIANCELEVEL = 4;
+  REQUIREMENTTYPE_OFFICERRANK = 5;
+  REQUIREMENTTYPE_OFFICERLEVEL = 6;
+  REQUIREMENTTYPE_TOTALOFFICERLEVEL = 7;
+  REQUIREMENTTYPE_SHIPTIER = 8;
+  REQUIREMENTTYPE_NUMOFFICERATGIVENTIERS = 9;
+  REQUIREMENTTYPE_NUMARTIFACTSATGIVENLEVEL = 10;
+}
+
+enum AccountState {
+  ACCOUNTSTATE_CONSISTENT = 0;
+  ACCOUNTSTATE_INCONSISTENT = 1;
+  ACCOUNTSTATE_UNKNOWN = 2;
+}
+
+enum ArmadaTargetType {
+  ARMADATARGETTYPE_NONE = 0;
+  ARMADATARGETTYPE_STATION = 1;
+  ARMADATARGETTYPE_FLEET = 2;
+  ARMADATARGETTYPE_ALLIANCESTATION = 3;
+}
+
+enum BuffSource {
+  BUFFSOURCE_OFFICER = 0;
+  BUFFSOURCE_CAPTUREOBJECT = 1;
+  BUFFSOURCE_CONSUMABLE = 2;
+  BUFFSOURCE_SHIPBONUS = 3;
+  BUFFSOURCE_SHIPTIERBONUS = 4;
+  BUFFSOURCE_SHIPLEVELBONUS = 5;
+  BUFFSOURCE_STARBASEMODULE = 6;
+  BUFFSOURCE_RESEARCH = 7;
+  BUFFSOURCE_FORBIDDENTECH = 8;
+}
+
+enum ForbiddenTechUpgradeChanceType {
+  FORBIDDENTECHUPGRADECHANCETYPE_FORBIDDENTECHCHANCENONE = 0;
+  FORBIDDENTECHUPGRADECHANCETYPE_FORBIDDENTECHCHANCEQTRIAL = 1;
+  FORBIDDENTECHUPGRADECHANCETYPE_FORBIDDENTECHCHANCESTREAK = 2;
+  FORBIDDENTECHUPGRADECHANCETYPE_FORBIDDENTECHCHANCECONSUMABLE = 3;
+}
+
+enum ForbiddenTechOutcome {
+  FORBIDDENTECHOUTCOME_UNKNOWN = 0;
+  FORBIDDENTECHOUTCOME_FAIL = 1;
+  FORBIDDENTECHOUTCOME_SUCCESS = 2;
+}
+
+enum ObjectiveEventTrigger {
+  OBJECTIVEEVENTTRIGGER_COURSECOMPLETE = 0;
+  OBJECTIVEEVENTTRIGGER_STARBASEMODULEBUILT = 1;
+  OBJECTIVEEVENTTRIGGER_NPCDEFEATED = 2;
+  OBJECTIVEEVENTTRIGGER_BATTLEWON = 3;
+  OBJECTIVEEVENTTRIGGER_MININGSTARTED = 4;
+  OBJECTIVEEVENTTRIGGER_RESOURCESMINED = 5;
+  OBJECTIVEEVENTTRIGGER_FLEETRETURNEDTOSTATION = 6;
+  OBJECTIVEEVENTTRIGGER_BUILTFROMBLUEPRINT = 7;
+  OBJECTIVEEVENTTRIGGER_NEWOFFICERRECRUITED = 8;
+  OBJECTIVEEVENTTRIGGER_JOINEDALLIANCE = 9;
+  OBJECTIVEEVENTTRIGGER_STARBASEATTACKED = 10;
+  OBJECTIVEEVENTTRIGGER_RESOURCESDONATED = 11;
+  OBJECTIVEEVENTTRIGGER_MISSIONCOMPLETED = 12;
+  OBJECTIVEEVENTTRIGGER_SHIPTIEREDUP = 13;
+  OBJECTIVEEVENTTRIGGER_RESOURCESSTOCKPILED = 14;
+  OBJECTIVEEVENTTRIGGER_OFFICERUPDATED = 15;
+  OBJECTIVEEVENTTRIGGER_OFFICERASSIGNED = 16;
+  OBJECTIVEEVENTTRIGGER_STARBASEMOVED = 17;
+  OBJECTIVEEVENTTRIGGER_MINIGAMESTAGECOMPLETED = 18;
+}
+
+enum ChestSourceType {
+  CHESTSOURCETYPE_NOTPROVIDED = 0;
+  CHESTSOURCETYPE_ALLIANCEGIFT = 1;
+  CHESTSOURCETYPE_DROPPVE = 2;
+  CHESTSOURCETYPE_DROPPVP = 3;
+  CHESTSOURCETYPE_DROPSCRAP = 4;
 }
 
 enum ActionBehaviours {
@@ -1068,33 +1102,6 @@ enum ComponentSlotAction {
   COMPONENTSLOTACTION_WARPDISTANCE = 12;
 }
 
-enum Faction {
-  FACTION_UNDEFINED = 0;
-  FACTION_FEDERATION = 1;
-  FACTION_KLINGON = 2;
-  FACTION_ROMULAN = 3;
-  FACTION_NONE = -1;
-}
-
-enum OfficerType {
-  OFFICERTYPE_UNKNOWN = 0;
-  OFFICERTYPE_REGULAROFFICER = 1;
-  OFFICERTYPE_COMMANDER = 2;
-}
-
-enum RequirementType {
-  REQUIREMENTTYPE_NONE = 0;
-  REQUIREMENTTYPE_MODULELEVEL = 1;
-  REQUIREMENTTYPE_RESEARCHLEVEL = 2;
-  REQUIREMENTTYPE_FACTIONRANK = 3;
-  REQUIREMENTTYPE_ALLIANCELEVEL = 4;
-  REQUIREMENTTYPE_OFFICERRANK = 5;
-  REQUIREMENTTYPE_OFFICERLEVEL = 6;
-  REQUIREMENTTYPE_TOTALOFFICERLEVEL = 7;
-  REQUIREMENTTYPE_SHIPTIER = 8;
-  REQUIREMENTTYPE_NUMOFFICERATGIVENTIERS = 9;
-}
-
 enum ResourceConversionType {
   RESOURCECONVERSIONTYPE_RESOURCES = 0;
   RESOURCECONVERSIONTYPE_TIME = 1;
@@ -1142,6 +1149,1376 @@ enum PeaceShieldType {
   PEACESHIELDTYPE_MINE = 3;
 }
 
+message AllianceProfile {
+  int64 id = 1;
+  string name = 2;
+  string tag = 3;
+  int32 emblem = 4;
+  bool public = 5;
+  int32 level = 6;
+  AllianceMetadata metadata = 7;
+  int32 gameworldId = 8;
+  int32 league = 9;
+  repeated int32 profileTags = 10;
+}
+
+message ArmadaAttack {
+  int64 id = 1;
+  string ownerId = 2;
+  google.protobuf.Timestamp createdAt = 3;
+  google.protobuf.Timestamp attacksAt = 4;
+  Point location = 5;
+  ArmadaTargetInfo target = 6;
+  NodeAddress nodeAddress = 7;
+  repeated int64 memberFleetIds = 8;
+  ArmadaAttackState state = 9;
+  int32 fleetCapacity = 10;
+  map<string, int64> guaranteedSlots = 11;
+  int32 serverInstanceId = 12;
+  int64 multiTargetArmadaAttackId = 13;
+}
+
+message AwayAssignmentInstance {
+  int64 id = 1;
+  IdRefs idRefs = 2;
+  Rarity rarity = 3;
+  OfficerCoreStatType keyStat = 4;
+  int64 subtype = 5;
+  int64 awayAssignmentTemplateId = 6;
+  int64 requiredOfficerSpecId = 7;
+  Resource cost = 8;
+  AwayAssignmentState state = 9;
+  map<int64, int64> officerIds = 10;
+  AwayAssignmentParameters parameters = 11;
+  string jobUuid = 12;
+  AwayAssignmentOutcome outcome = 13;
+  int32 maxAssignableOfficersCount = 14;
+  bool prepareInstance = 15;
+  repeated TraitWithMaxLevelSpec officerTraits = 16;
+  int32 maxCriticalSuccessChance = 17;
+  int32 priority = 18;
+  int32 generation = 19;
+  int32 frameType = 20;
+  float attackWeight = 21;
+  float defenseWeight = 22;
+  float healthWeight = 23;
+}
+
+message AwayAssignmentParameters {
+  int64 id = 1;
+  int32 successChance = 2;
+  int32 criticalSuccessChance = 3;
+  float rewardMultiplier = 4;
+  int64 duration = 5;
+  int32 totalOfficersAttack = 6;
+  int32 totalOfficersDefense = 7;
+  int32 totalOfficersHealth = 8;
+  repeated InventoryItem rewards = 9;
+  repeated InventoryItem criticalRewards = 10;
+  map<int64, int32> criticalTraitScores = 11;
+}
+
+message ActiveBuff {
+  int64 buffId = 1;
+  int64 activatorId = 2;
+  google.protobuf.Timestamp activationTime = 3;
+  google.protobuf.Timestamp expiryTime = 4;
+  repeated int64 ranks = 5;
+}
+
+message PlanetSlotsConfig {
+message Slot {
+  float x = 1;
+  float y = 2;
+}
+
+  repeated Slot slots = 1;
+}
+
+message ServerTransferConfig {
+  repeated ServerTransferCost costs = 1;
+}
+
+message ServerTransferCost {
+  int64 resourceId = 1;
+  int64 resourceAmt = 2;
+  int32 maxLevel = 3;
+}
+
+message OptimisedGalaxy {
+  repeated int32 factionInfluences = 1;
+  repeated GraphNodeConnectionRequirementType unlockReqTypes = 2;
+  repeated int32 xCoords = 3;
+  repeated int64 nodeIds = 4;
+  repeated int64 sourceIds = 5;
+  repeated int32 connectionsOffset = 6;
+  repeated int32 priorities = 7;
+  repeated int32 unlockOffset = 8;
+  repeated int32 levels = 9;
+  repeated int32 distances = 10;
+  repeated int32 yCoords = 11;
+  repeated int64 transIds = 12;
+  repeated int32 connectionsCount = 13;
+  repeated int64 factions = 14;
+  repeated int64 unlockReqSources = 15;
+  repeated int64 unlockReqQuantities = 21;
+  repeated int32 unlockReqCount = 16;
+  repeated int64 destIds = 17;
+  repeated int64 assetIds = 18;
+  repeated GalaxyNodeMineSetups mines = 19;
+  repeated bool isDeepSpace = 20;
+  repeated int32 superHighwaysIndices = 22;
+  repeated GalaxyNodeMarauderInfo marauders = 23;
+  repeated bool hazardsEnabled = 27;
+  repeated int64 hazardId = 28;
+  repeated int32 hazardsLevel = 29;
+  repeated bool isWaveDefense = 30;
+  repeated int64 waveDefenseChallenge = 31;
+  repeated bool isMirrorUniverse = 32;
+  repeated bool isGameActivity = 33;
+  repeated int64 gameActivity = 34;
+  repeated int64 destGalaxyIds = 35;
+  int64 galaxyId = 36;
+  IdRefs galaxyIdRefs = 37;
+}
+
+message DeployedFleet {
+  string uid = 1;
+  DeployedFleetState state = 2;
+  int64 courseId = 3;
+  int64 nodeId = 4;
+  NodeAddress nodeAddress = 5;
+  DeployedFleetType fleetType = 6;
+  int64 fleetId = 7;
+  int32 pursuedByNum = 8;
+  int64 pursuitTargetId = 9;
+  bool isActive = 10;
+  repeated int64 shipIds = 11;
+  repeated int64 hullIds = 12;
+  google.protobuf.Timestamp warpTime = 13;
+  WarpData warpData = 14;
+  float latestCourseVectorX = 15;
+  float latestCourseVectorY = 16;
+  google.protobuf.Timestamp lastUpdateTime = 17;
+  map<int32, float> attributes = 18;
+  map<int32, float> stats = 19;
+  map<int64, ShipAttributes> shipAttributes = 20;
+  map<int64, ShipAttributes> shipStats = 21;
+  repeated ActiveBuff activeBuffs = 22;
+  map<int64, int32> shipTiers = 23;
+  map<int64, int32> shipLevels = 24;
+  map<int64, float> shipLevelPercentages = 25;
+  int64 battleOpponentFleetId = 26;
+  bool battleWon = 27;
+  google.protobuf.Timestamp battleStartTime = 28;
+  map<int64, DeployedShip> deployedShips = 29;
+  int64 armadaAttackId = 30;
+  bool isArmadaAttackable = 31;
+  map<int32, int64> shipCosmetics = 32;
+  map<int32, int64> statusEffects = 33;
+  repeated int64 detectedByAllianceIds = 34;
+  int64 multiTargetArmadaId = 35;
+  repeated ForbiddenTechData forbiddenTechs = 36;
+  DamageSources causeOfDestruction = 37;
+  repeated StatusCounter statusCounters = 38;
+}
+
+message WarpData {
+  repeated int64 nodeIds = 1;
+  int32 endX = 2;
+  int32 endY = 3;
+  TargetAction targetAction = 4;
+  int64 destinationNodeId = 5;
+}
+
+message ShipAttributes {
+  map<int32, float> shipAttributes_ = 1;
+}
+
+message DeployedShip {
+  repeated int64 componentIds = 1;
+}
+
+message ForbiddenTechData {
+  int64 id = 1;
+  int32 level = 2;
+  int32 tier = 3;
+}
+
+message FactionSpec {
+message Tier {
+  int64 lowerBound = 1;
+  int64 upperBound = 3;
+  string tierName = 4;
+  IdRefs idRefs = 2;
+}
+
+  int64 id = 1;
+  string idStr = 2;
+  string name = 3;
+  int64 resourceId = 4;
+  int32 sortingIndex = 5;
+  bool isPrimary = 6;
+  int64 parentFactionId = 7;
+  string parentFactionName = 8;
+  repeated Tier tiers = 9;
+  IdRefs idRefs = 10;
+  int64 researchTreeId = 11;
+  repeated int64 researchTreeIds = 12;
+}
+
+message ForbiddenTech {
+  int32 level = 1;
+  int32 tier = 2;
+  int64 id = 3;
+  int32 shardCount = 4;
+}
+
+message ForbiddenTechChances {
+  ForbiddenTechUpgradeType type = 1;
+  repeated ForbiddenTechChance chances = 2;
+  map<int64, int64> upgradeCost = 3;
+  bool meetMinimumChance = 4;
+}
+
+message ForbiddenTechSpec {
+  int64 id = 1;
+  ForbiddenTechType type = 2;
+  ForbiddenTechSubType subtype = 3;
+  int32 sortIndex = 4;
+  Rarity rarity = 5;
+  repeated ForbiddenTechTier tiers = 6;
+  repeated int64 levelupCosts = 7;
+  repeated int64 tierupCosts = 8;
+  IdRefs idRefs = 9;
+  int32 shardsToUnlock = 10;
+  int32 tierMax = 11;
+  map<uint32, uint32> maxLevelTier = 12;
+  int64 removePatternId = 13;
+  int64 upgradePatternId = 14;
+  int64 requiredSlotSpecId = 15;
+  ClientModifierType modCostEfficiencyUnslot = 16;
+  ClientModifierType modCostEfficiencyTierUp = 17;
+  ClientModifierType modCostEfficiencyLevelUp = 18;
+  bool guaranteedUpgrade = 19;
+}
+
+message IdRefs {
+  string artFileReference = 1;
+  int64 locaId = 2;
+  int64 artId = 3;
+}
+
+message NodeAddress {
+  int64 galaxy = 1;
+  int64 system = 2;
+  int64 planet = 3;
+  int32 instance = 4;
+}
+
+message GameActivityParticipantResult {
+  EntityRef entityRef = 1;
+  GameActivityResult result = 2;
+}
+
+message GameActivityPhase {
+  int64 phaseSpecId = 1;
+  google.protobuf.Timestamp startAt = 2;
+}
+
+message GameActivityTracker {
+  EntityRef entityRef = 1;
+  int32 score = 2;
+}
+
+message ServerInstanceInfo {
+  ServerInstanceType type = 1;
+  int32 id = 2;
+  int32 galaxyId = 3;
+}
+
+message Job {
+oneof Params {
+  RefinementParams refinementParams = 8;
+  RepairFleetParams repairFleetParams = 9;
+  StarbaseConstructionParams starbaseConstructionParams = 10;
+  ShipConstructionParams shipConstructionParams = 11;
+  StarbaseRepairParams starbaseRepairParams = 12;
+  TierUpShipParams tierUpShipParams = 13;
+  AllianceContributionCooldownParams allianceContributionCooldownParams = 14;
+  ResearchParams researchParams = 15;
+  ScrapyardParams scrapyardParams = 16;
+  AwayAssignmentParams awayAssignmentParams = 17;
+}
+
+  google.protobuf.Timestamp startTime = 4;
+  JobType type = 1;
+  string uuid = 2;
+  int32 duration = 3;
+  int32 reductionInSeconds = 5;
+  float jobSpeedupMod = 6;
+  string userId = 7;
+  EntityRef entityRef = 18;
+  int32 tier = 19;
+}
+
+message StarbaseConstructionParams {
+  int64 moduleId = 1;
+  int32 level = 2;
+}
+
+message ActiveMission {
+  MissionObjective activeObjective = 5;
+  int64 id = 1;
+  int64 missionId = 2;
+  int64 assignedFleetId = 3;
+  repeated int64 objectiveHistory = 4;
+  MissionState state = 6;
+  google.protobuf.Timestamp created = 7;
+}
+
+message ActiveObjective {
+  int64 id = 1;
+  ObjectiveState state = 2;
+  MissionObjective.MissionAttributes overrideAttributes = 3;
+  int64 currentCounterValue = 4;
+}
+
+message DialogueChunk {
+  int64 factionId = 1;
+  int64 characterId = 2;
+  IdRefs characterIdRefs = 3;
+  OfficerCoreStatType characterType = 4;
+  DialogueSide characterPosition = 5;
+  repeated int64 transIds = 6;
+}
+
+message Mission {
+  repeated MissionObjective objectives = 2;
+  repeated MissionRequirement acceptanceRequirements = 4;
+  int64 id = 1;
+  int64 firstObjectiveId = 3;
+  bool fleetRequired = 5;
+  MissionType type = 6;
+  MissionMetaData metadata = 7;
+  google.protobuf.Timestamp lastModified = 8;
+}
+
+message MissionMetaData {
+  repeated DialogueChunk dialogueEndSuccess = 1;
+  repeated DialogueChunk dialogueStart = 2;
+  repeated DialogueChunk dialogueEndFailure = 3;
+  IdRefs characterIdRefs = 4;
+  IdRefs missionIdRefs = 5;
+  int64 backgroundId = 7;
+  int64 foregroundActorId = 8;
+  int64 foregroundPropId = 9;
+  int64 foregroundNodeId = 10;
+  int64 foregroundSystemId = 11;
+  int64 foregroundShipId = 12;
+  int64 foregroundModuleId = 13;
+  int64 factionId = 14;
+  MissionRewardAnimation rewardAnimation = 15;
+  int32 priority = 16;
+  bool preventArchiving = 17;
+  bool isSecondaryTutorial = 18;
+}
+
+message MissionObjective {
+message MissionAttributes {
+oneof Attributes {
+  MissionObjective.TargetDestinationAttributes targetDestinationAttributes = 1;
+  MissionObjective.PlanetDestinationAttributes planetDestinationAttributes = 2;
+  MissionObjective.StarbaseModuleLevelAttributes starbaseModuleLevelAttribues = 3;
+  MissionObjective.DefeatNPCInstantiatedAttributes defeatNpcInstantiatedAttribues = 4;
+  MissionObjective.DefeatNPCGlobalAttributes defeatNpcGlobalAttribues = 5;
+  MissionObjective.StartMiningAttributes startMiningAttribues = 6;
+  MissionObjective.MineResourcesAttributes mineResourcesAttribues = 7;
+  MissionObjective.ReturnFleetToStationAttributes returnFleetToStationAttribues = 8;
+  MissionObjective.BuildFromBlueprintAttributes buildFromBlueprintAttribues = 9;
+  MissionObjective.DummyObjectiveAttributes dummyObjectiveAttribues = 10;
+  MissionObjective.DilemmaObjectiveAttributes dilemmaObjectiveAttribues = 11;
+  MissionObjective.RecruitNewOfficerAttributes recruitNewOfficerAttribues = 12;
+  MissionObjective.JoinAllianceAttributes joinAllianceAttribues = 13;
+  MissionObjective.AttackStarbaseAttributes attackStarbaseAttribues = 14;
+  MissionObjective.DonateResourcesAttributes donateResourcesAttributes = 15;
+  MissionObjective.StockpileResourcesAttributes stockpileResourcesAttributes = 16;
+  MissionObjective.CompleteFactionMissionsAttributes completeFactionMissionsAttributes = 17;
+  MissionObjective.UpgradeShipAttributes upgradeShipAttributes = 18;
+  MissionObjective.OfficerLevelAndRankAttributes officerLevelAndRankAttributes = 19;
+  MissionObjective.DefeatFactionShipsAttributes defeatFactionShipsAttributes = 20;
+  MissionObjective.AssignOfficerToDrydockAttributes assignOfficerToDrydockAttributes = 21;
+  MissionObjective.MoveStarbaseAttributes moveStarbaseAttributes = 22;
+  MissionObjective.DefeatChallengeNPCInstantiatedAttributes defeatChallengeNpcInstantiatedAttributes = 23;
+  MissionObjective.VisitSectionAttributes visitSectionAttributes = 24;
+}
+
+}
+
+message TargetDestinationAttributes {
+  int64 targetSystem = 1;
+  float targetX = 2;
+  float targetY = 3;
+  int32 objectiveRadius = 4;
+}
+
+message PlanetDestinationAttributes {
+  int64 targetSystem = 1;
+  int64 targetPlanet = 2;
+  float targetX = 3;
+  float targetY = 4;
+  int32 objectiveRadius = 5;
+}
+
+message StarbaseModuleLevelAttributes {
+  int64 moduleId = 1;
+  int32 level = 2;
+}
+
+message DefeatNPCInstantiatedAttributes {
+  int64 npcId = 1;
+  int64 targetSystem = 2;
+  float targetX = 3;
+  float targetY = 4;
+  int32 objectiveRadius = 5;
+}
+
+message DefeatChallengeNPCInstantiatedAttributes {
+  int64 targetSystem = 1;
+  float targetX = 2;
+  float targetY = 3;
+  int32 objectiveRadius = 4;
+  int64 fleetId = 5;
+}
+
+message DefeatNPCGlobalAttributes {
+  PveType npcType = 1;
+  int32 count = 2;
+  int64 targetSystem = 3;
+  int32 level = 4;
+}
+
+message StartMiningAttributes {
+  int64 targetSystem = 1;
+  int64 targetNode = 2;
+  int64 resourceId = 3;
+}
+
+message MineResourcesAttributes {
+  int64 targetSystem = 1;
+  int64 targetNode = 2;
+  int64 resourceId = 3;
+  int64 resourceAmount = 4;
+}
+
+message ReturnFleetToStationAttributes {
+}
+
+message BuildFromBlueprintAttributes {
+  int64 blueprintId = 1;
+}
+
+message DummyObjectiveAttributes {
+}
+
+message DilemmaObjectiveAttributes {
+}
+
+message RecruitNewOfficerAttributes {
+  int64 officerId = 1;
+}
+
+message JoinAllianceAttributes {
+  int64 allianceId = 1;
+}
+
+message AttackStarbaseAttributes {
+  int32 attackCount = 1;
+  string targetUserId = 2;
+  ExpectedBattleOutcome expectedOutcome = 3;
+  int64 targetNode = 4;
+}
+
+message DonateResourcesAttributes {
+  int64 resourceId = 3;
+  int64 resourceAmount = 4;
+}
+
+message CompleteFactionMissionsAttributes {
+  int64 factionId = 1;
+  int32 missionCount = 2;
+}
+
+message UpgradeShipAttributes {
+  int32 shipTier = 1;
+  int32 shipGrade = 2;
+}
+
+message StockpileResourcesAttributes {
+  int64 resourceId = 1;
+  int64 resourceAmount = 2;
+}
+
+message OfficerLevelAndRankAttributes {
+  int64 officerLevel = 1;
+  int64 officerRank = 2;
+  int64 officerId = 3;
+}
+
+message DefeatFactionShipsAttributes {
+  int64 factionId = 1;
+  int64 count = 2;
+}
+
+message AssignOfficerToDrydockAttributes {
+  repeated int64 drydockIndices = 1;
+  int64 officerId = 2;
+}
+
+message MoveStarbaseAttributes {
+  int32 minimumSystemLevel = 1;
+}
+
+message VisitSectionAttributes {
+  int64 sectionId = 1;
+}
+
+  MissionAttributes attributes = 7;
+  int64 id = 1;
+  ObjectiveType type = 2;
+  int64 objectiveSpecId = 3;
+  int64 objectiveFaction = 4;
+  repeated int64 completionOptions = 5;
+  bool autoComplete = 6;
+  int32 difficulty = 9;
+  repeated Inventory rewards = 10;
+  MissionObjectiveMetaData metadata = 11;
+  bool isDynamic = 12;
+  int64 targetCounterValue = 13;
+}
+
+message MissionObjectiveMetaData {
+  repeated DialogueChunk dialogueEnd = 1;
+  repeated DialogueChunk dialogueStart = 2;
+  repeated DialogueChunk dialogueDilemma = 3;
+  int64 actionSpecId = 4;
+  int64 transId = 5;
+  int64 sectionId = 6;
+  repeated ActionFlow actionFlow = 7;
+  bool hasStickyToast = 8;
+}
+
+message MissionRequirement {
+message AllOfficersCoreStatTotalParams {
+  OfficerCoreStatType type = 1;
+  int32 value = 2;
+}
+
+message AtLeastOneOfficerWithCoreStatParams {
+  OfficerCoreStatType type = 1;
+  int32 value = 2;
+}
+
+message StarbaseModuleLevelParams {
+  int32 type = 1;
+  int32 value = 2;
+}
+
+message PreviouslyCompletedMissionParams {
+  int64 value = 1;
+}
+
+message HullTypeParams {
+  HullType type = 1;
+  int32 value = 2;
+}
+
+message HullGradeParams {
+  int32 grade = 1;
+  int32 value = 2;
+}
+
+message ComponentValueParams {
+  string type = 1;
+  float value = 2;
+}
+
+message PlayerLevelRangeParams {
+  int32 minValue = 1;
+  int32 maxValue = 2;
+}
+
+message FactionStandingParams {
+  int64 id = 1;
+  int64 amount = 2;
+}
+
+oneof Params {
+  AllOfficersCoreStatTotalParams allOfficersCoreStatTotalParams = 2;
+  AtLeastOneOfficerWithCoreStatParams atLeastOneOfficerWithCoreStatParams = 3;
+  StarbaseModuleLevelParams starbaseModuleLevelParams = 4;
+  PreviouslyCompletedMissionParams previouslyCompletedMissionParams = 5;
+  HullTypeParams hullTypeParams = 6;
+  HullGradeParams hullGradeParams = 7;
+  ComponentValueParams componentValueParams = 8;
+  PlayerLevelRangeParams playerLevelRangeParams = 9;
+  FactionStandingParams factionStandingParams = 10;
+}
+
+  MissionRequirementType type = 1;
+}
+
+message BlueprintSpec {
+  int64 id = 1;
+  string idStr = 2;
+  string name = 3;
+  string type = 4;
+  int32 grade = 5;
+  int64 craftModuleId = 6;
+  int32 partsNeeded = 7;
+  int64 faction = 8;
+  int64 consumable = 9;
+  Rarity rarity = 10;
+  int64 unlockModuleId = 11;
+  int64 unlockModuleLevel = 12;
+  BlueprintOutputType outputType = 13;
+  int64 outputReference = 14;
+  int32 craftLevel = 15;
+  int32 craftTime = 16;
+  map<int64, int64> craftCosts = 17;
+  int32 refitTime = 18;
+  map<int64, int64> refitCosts = 19;
+  int32 repairTime = 20;
+  map<int64, int64> repairCosts = 21;
+  IdRefs idRefs = 22;
+  int32 sortingIndex = 23;
+  repeated Requirement requirements = 24;
+  int64 viewLevel = 25;
+  int32 scrapLevel = 26;
+  map<int64, int64> scrapEarnings = 27;
+}
+
+message Notification {
+message IncomingFleetParams {
+oneof Params {
+  string targetUserId = 3;
+  int64 targetFleetId = 4;
+}
+
+  NotificationIncomingAttackTargetType targetType = 1;
+  QuickScanFleetData quickScanResult = 2;
+}
+
+message ChestContent {
+  repeated InventoryItem inventoryItems = 1;
+}
+
+message MissionParams {
+  int64 missionId = 1;
+  int64 objectiveId = 2;
+  int64 completionOption = 3;
+  NotificationMissionType missionNotificationType = 4;
+  int64 currentCounterValue = 5;
+}
+
+message TerritoryParams {
+  int64 territoryId = 1;
+  NotificationTerritoryType territoryNotificationType = 2;
+}
+
+message UserProfileParams {
+  int32 level = 1;
+  NotificationUserProfileType userProfileNotificationType = 2;
+}
+
+message ArmadaParams {
+  ArmadaAttack armadaAttack = 1;
+  NotificationArmadaType armadaNotificationType = 2;
+}
+
+message PlatformChestParams {
+  repeated Notification.ChestContent chestsContents = 1;
+  int32 numChests = 2;
+}
+
+message FactionParams {
+  int64 factionId = 1;
+  NotificationFactionType factionNotificationType = 2;
+  int64 targetFleetId = 3;
+}
+
+message AllianceParams {
+  int64 allianceId = 1;
+  NotificationAllianceType allianceNotificationType = 2;
+  string requestingUserId = 3;
+  JobType jobType = 4;
+  int64 oldRankId = 5;
+  int64 newRankId = 6;
+  string helperId = 7;
+  string jobId = 8;
+  int64 remainingTime = 9;
+  string contributorUserId = 10;
+  map<int64, int64> contributedResources = 11;
+  string changedUserId = 12;
+}
+
+message AllianceDiplomacyParams {
+  AllianceDiplomacyStatus status = 1;
+  int64 targetAllianceId = 2;
+  string changedByUserId = 3;
+  int64 allianceId = 4;
+}
+
+message AllianceChestParams {
+  string allianceChestBuyer = 1;
+  repeated Notification.ChestContent chestsContents = 2;
+}
+
+message CargoCollectParams {
+  map<int64, int64> resourceDelta = 1;
+  map<int64, int64> updatedResources = 2;
+}
+
+message TargetLostParams {
+  int64 targetFleetId = 1;
+  FleetInterceptInterruptionCause targetLostReason = 2;
+  QuickScanFleetData quickScanResult = 3;
+}
+
+message StarbaseModuleRewardsParams {
+  repeated InventoryItem inventoryItems = 1;
+}
+
+message CourseParams {
+  int64 fleetId = 1;
+  NotificationCourseType courseNotificationType = 2;
+}
+
+message ShipAbilityParams {
+  string userId = 1;
+  int64 targetFleetId = 2;
+  int64 duration = 3;
+  NotificationShipAbilityType abilityType = 4;
+}
+
+oneof Params {
+  MissionParams missionParams = 5;
+  UserProfileParams userProfileParams = 6;
+  PlatformChestParams platformChestParams = 7;
+  FactionParams factionParams = 8;
+  AllianceParams allianceParams = 9;
+  IncomingFleetParams incomingFleetParams = 10;
+  AllianceChestParams allianceChestParams = 11;
+  CargoCollectParams cargoCollectParams = 12;
+  TargetLostParams targetLostParams = 13;
+  StarbaseModuleRewardsParams starbaseModuleRewardsParams = 14;
+  ArmadaParams armadaParams = 15;
+  CourseParams courseParams = 16;
+  AllianceDiplomacyParams diplomacyParams = 17;
+  TerritoryParams territoryParams = 18;
+  ShipAbilityParams shipAbilityParams = 19;
+}
+
+  string uuid = 1;
+  google.protobuf.Timestamp createdTimestamp = 2;
+  google.protobuf.Timestamp expiryTimestamp = 3;
+  NotificationProducerType producerType = 4;
+}
+
+message Officer {
+  int64 assignedFleetId = 1;
+  int32 level = 2;
+  int32 rankIndex = 3;
+  int64 id = 4;
+  int32 shardCount = 5;
+  int64 awayAssignmentInstanceId = 6;
+}
+
+message Party {
+oneof Params {
+  InstancedPvPPartyParams instancedPvpParams = 9;
+}
+
+  string createdAt = 1;
+  int64 id = 2;
+  EntityRef leader = 3;
+  int32 maxPlayers = 4;
+  repeated EntityRef members = 5;
+  PartyType partyType = 6;
+  PartyState state = 7;
+  int64 partySpecId = 8;
+  map<string, bool> memberReadyStatus = 10;
+}
+
+message InventoryItem {
+oneof Params {
+  ChestInventoryItemParams chestParams = 11;
+  ResourceInventoryItemParams resourceParams = 12;
+}
+
+  InventoryItemType type = 1;
+  int64 count = 2;
+  google.protobuf.Timestamp expiryTime = 9;
+  CommonInventoryItemParams commonParams = 10;
+  int64 quantity = 13;
+  MetadataInventoryItemParams metadataParams = 14;
+}
+
+message Inventory {
+  InventoryId id = 1;
+  repeated InventoryItem items = 2;
+  repeated InventoryItemType allowedTypes = 3;
+  int32 numExtensions = 4;
+}
+
+message ResearchTreeSpec {
+  int64 id = 1;
+  IdRefs idRefs = 2;
+  repeated int64 projects = 3;
+  int32 type = 4;
+  int64 viewLevel = 5;
+  int64 factionId = 6;
+  EntityType entityType = 7;
+  int64 entityId = 8;
+}
+
+message QuickScanFleetData {
+message FleetCrewData {
+  int64 officerId = 1;
+  int32 level = 2;
+  int64 rank = 3;
+}
+
+  DeployedFleetType fleetType = 1;
+  string targetId = 2;
+  int64 targetFleetId = 3;
+  IdRefs idRefs = 4;
+  float offenseRating = 5;
+  float defenseRating = 6;
+  IdRefs chestIdRefs = 7;
+  Rarity chestRarity = 8;
+  int64 cargoSpace = 9;
+  map<int32, FleetCrewData> bridgeOfficers = 10;
+  float officerRating = 11;
+  int64 factionId = 12;
+  map<int64, int64> resources = 13;
+  map<int64, int32> shipLevels = 14;
+  map<int32, FleetCrewData> fleetOfficers = 15;
+  IdRefs chestMtaIdRefs = 16;
+  Rarity chestMtaRarity = 17;
+  IdRefs secondaryChestIdRefs = 18;
+  Rarity secondaryChestRarity = 19;
+}
+
+message StarbaseDetailedScan {
+  string ownerUserId = 1;
+  IdRefs chestIdRefs = 2;
+  Rarity chestRarity = 3;
+  map<int64, int64> resources = 4;
+  int32 numDrydocks = 5;
+  int32 numDefencePlatforms = 6;
+  float currentShieldHp = 7;
+  float maxShieldHp = 8;
+  float currentHp = 9;
+  float maxHp = 10;
+  float shieldRegenerationDuration = 11;
+  StarbaseShield playerShield = 12;
+  map<int64, DeployedFleet> defensiveFleets = 13;
+  DeployedFleet defensePlatformFleet = 14;
+  google.protobuf.Timestamp lastUpdateTime = 15;
+  map<int64, CrewData> fleetsOfficers = 16;
+  google.protobuf.Timestamp ceasefireBrokenAt = 17;
+  string ownerId = 18;
+  int32 allianceStarbaseLevel = 19;
+}
+
+message OfficerData {
+  int64 officerId = 1;
+  int32 officerLevel = 2;
+  int64 officerRank = 3;
+}
+
+message EntitySlot {
+oneof Params {
+  ConsumableSlotParams consumableSlotParams = 5;
+  OfficerPresetSlotParams officerPresetSlotParams = 6;
+  WorkerSlotParams workerSlotParams = 7;
+  FleetCommanderSlotParams fleetCommanderSlotParams = 8;
+  SelectableSkillSlotParams selectableSkillSlotParams = 9;
+  ChallengeLadderSlotParams challengeLadderSlotParams = 10;
+  ForbiddenTechSlotParams forbiddenTechSlotParams = 11;
+  FleetPresetSlotParams fleetPresetSlotParams = 12;
+}
+
+  int64 id = 1;
+  int64 slotSpecId = 2;
+  google.protobuf.Int64Value slotItemId = 3;
+  SlotType slotType = 4;
+}
+
+message OfficerPresetSlotParams {
+  string name = 1;
+  repeated int64 officerIds = 2;
+  int32 order = 3;
+}
+
+message FleetPresetSlotParams {
+  string name = 1;
+  int32 order = 2;
+  repeated FleetSetup setups = 3;
+}
+
+message ConsumableSlotParams {
+  string activatorPlayerId = 1;
+  google.protobuf.Timestamp expiryTime = 2;
+}
+
+message FleetCommanderSlotParams {
+  google.protobuf.Timestamp cooldownExpiration = 1;
+  map<int64, int64> activatedAbilityDurationExpiration = 2;
+  map<int64, int64> activatedAbilityCooldownExpiration = 3;
+  int32 order = 4;
+}
+
+message SelectableSkillSlotParams {
+  google.protobuf.Timestamp cooldownExpiration = 1;
+}
+
+message ForbiddenTechSlotParams {
+  int64 ownerId = 1;
+  int32 level = 2;
+  int32 tier = 3;
+}
+
+message ChallengeLadderSlotParams {
+  int64 ladderId = 1;
+  int64 challengesCompleted = 2;
+  int64 powerDifficulty = 3;
+  int64 missionId = 4;
+  int64 currentChallengeTries = 5;
+  google.protobuf.Timestamp startTime = 6;
+  int64 durationSeconds = 7;
+  GeneratedShip generatedShip = 8;
+  int32 lastClaimedMilestoneRewardIndex = 9;
+  DeployedFleet deployedFleet = 10;
+  int64 lastPowerDelta = 11;
+  int64 minPowerIncrease = 12;
+  int64 maxPowerIncrease = 13;
+  google.protobuf.Timestamp completeTime = 14;
+  float performanceRatio = 15;
+}
+
+message GeneratedShip {
+  int64 hullId = 1;
+  repeated int64 componentIds = 2;
+  int64 power = 3;
+  int64 seed = 4;
+  IdRefs officerIdRefs = 5;
+}
+
+message WorkerSlotParams {
+  string jobId = 1;
+  Job job = 2;
+}
+
+message BuffSpec {
+message Attributes {
+  int32 requiredRound = 1;
+  int32 numRounds = 2;
+  int32 durationSeconds = 3;
+  BattleUnitState state = 4;
+  OfficerCoreStatType officerStat = 5;
+  float percentage = 6;
+  int32 count = 7;
+  int64 factionId = 8;
+  int32 charges = 9;
+  repeated string lootFilterKeys = 10;
+  repeated int64 resources = 11;
+  int32 grade = 12;
+  int64 moduleId = 13;
+}
+
+  int64 buffId = 1;
+  int32 targetCode = 7;
+  int32 triggerCode = 8;
+  BuffOperation op = 12;
+  repeated float rankedChances = 13;
+  repeated float rankedValues = 14;
+  IdRefs idRefs = 15;
+  Attributes attributes = 16;
+  repeated int64 conditionCodes = 17;
+  int64 modifierCode = 18;
+  BuffRankedValueType rankedValueType = 19;
+  bool showPercentage = 20;
+  repeated double rankedBuffValues = 21;
+}
+
+message ComponentSpec {
+  ComponentType type = 1;
+  int64 id = 2;
+  int64 recipeType = 3;
+  string name = 4;
+  string faction = 5;
+  int32 grade = 6;
+  Rarity rarity = 7;
+  ComponentSubType subtype = 8;
+  repeated HullType shipTypes = 9;
+  IdRefs idRefs = 10;
+  ArmorSpec armorSpec = 11;
+  CargoSpec cargoSpec = 12;
+  DeflectorSpec deflectorSpec = 13;
+  ImpulseSpec impulseSpec = 14;
+  SensorSpec sensorSpec = 15;
+  ShieldSpec shieldSpec = 16;
+  SpecialSpec specialSpec = 17;
+  WarpSpec warpSpec = 18;
+  WeaponSpec weaponSpec = 19;
+  int32 tier = 20;
+  repeated int64 upgradeIds = 21;
+  float jobRepairCostModifier = 22;
+  int64 factionId = 23;
+}
+
+message ConsumableSpec {
+oneof Params {
+  ConsumableBuffSpecParams consumableBuffSpecParams = 10;
+  ConsumableUnlockSpecParams consumableUnlockSpecParams = 11;
+}
+
+  int64 id = 1;
+  IdRefs idRefs = 2;
+  ConsumableType consumableType = 3;
+  int64 category = 4;
+  Rarity rarity = 5;
+  bool requiresSlot = 6;
+  bool automaticActivation = 7;
+  string name = 8;
+  int32 grade = 9;
+  EntityType targetType = 12;
+  ShowInInventoryRule showInInventoryRule = 13;
+}
+
+message Cosmetic {
+  int64 id = 1;
+  string name = 2;
+  IdRefs idRefs = 3;
+  CosmeticType type = 4;
+  int32 rarity = 5;
+  int32 sorting = 6;
+  bool inventoryRequired = 7;
+  map<string, int64> data = 8;
+}
+
+message GameActivityPhaseSpec {
+  int64 id = 1;
+  string idStr = 2;
+  repeated InflectionPointSpec endConditions = 3;
+  repeated GameActivityRuleSpec rules = 4;
+  GameActivityPhaseType phaseType = 5;
+}
+
+message GameActivityRuleSpec {
+oneof Attributes {
+  ActivityGoalRuleAttributes goal = 3;
+  ActiveShipRuleAttributes activeShip = 4;
+  RelocateRuleAttributes relocate = 5;
+  RepairRuleAttributes repair = 6;
+}
+
+  GameActivityRuleType ruleType = 1;
+  string ruleTypeStr = 2;
+}
+
+message GameActivityScheduleSpec {
+  int64 gameActivitySpecId = 1;
+  map<int32, ActivityDayScheduleSpec> byWeekday = 2;
+}
+
+message HullSpec {
+message Component {
+  repeated ComponentSlotModifier modifiers = 1;
+}
+
+message OfficerSlotBonus {
+  string stat = 1;
+  float modifier = 2;
+}
+
+message OfficerSlots {
+  repeated HullSpec.OfficerSlotBonus slotBonuses = 1;
+  OfficerCoreStatType requiredType = 2;
+}
+
+message CrewSlot {
+  int32 index = 1;
+  int32 unlockLevel = 2;
+}
+
+message CoreStatModifier {
+  OfficerCoreStatType type = 1;
+  float bonus = 2;
+  float threshold = 3;
+}
+
+  int64 id = 1;
+  string idStr = 2;
+  string name = 3;
+  HullType type = 4;
+  Faction faction = 5;
+  int32 grade = 6;
+  int32 numOfficerSlots = 7;
+  int32 xpAmount = 8;
+  int32 hullHp = 10;
+  int32 ratingMax = 11;
+  IdRefs idRefs = 12;
+  repeated int64 componentDefaults = 13;
+  repeated int32 componentIndices = 14;
+  map<int32, Component> components = 15;
+  repeated OfficerSlots officerSlots = 16;
+  repeated CrewSlot crewSlots = 17;
+  float replotTimeMax = 18;
+  float jobRepairCostModifier = 19;
+  repeated CoreStatModifier coreStatModifiers = 20;
+  int32 initiative = 21;
+  int32 sortOrder = 22;
+  int32 tierMax = 23;
+  string craftingId = 24;
+  Rarity rarity = 25;
+  int64 factionId = 26;
+  FleetArmadaCategory category = 27;
+  repeated int64 activatedAbilitiesIds = 28;
+  map<int64, int64> abilityUnlockResearchIds = 29;
+  int64 forbiddenTechSlot1SpecId = 30;
+  int32 forbiddenTechSlot1TierReq = 31;
+  map<int64, int32> forbiddenTechSlot1Cost = 32;
+  bool peaceShieldDownWhenAttacked = 33;
+  int32 generation = 34;
+  repeated int64 shipBonuses = 35;
+  int64 forbiddenTechSlot2SpecId = 36;
+  int32 forbiddenTechSlot2TierReq = 37;
+  map<int64, int32> forbiddenTechSlot2Cost = 38;
+}
+
+message JobSpeedupResourceSpec {
+message Cost {
+  float modifier = 1;
+  int64 resourceId = 2;
+}
+
+message Costs {
+  EntityType entityType = 1;
+  repeated JobSpeedupResourceSpec.Cost costs_ = 2;
+}
+
+  int32 jobType = 1;
+  repeated Cost costs = 2;
+  repeated Costs costsByEntity = 3;
+}
+
+message OfficerCoreStatThresholdsSpec {
+message Threshold {
+  int32 statTotal = 1;
+  float statBonus = 2;
+}
+
+  repeated Threshold thresholds = 1;
+}
+
+message OfficerSpec {
+message Level {
+  repeated InventoryItem rewards = 1;
+}
+
+  int64 id = 1;
+  int64 synergyId = 5;
+  int64 synergyLocaId = 6;
+  int64 synergyArtId = 7;
+  OfficerCoreStatType officerClassType = 9;
+  Faction faction = 10;
+  Rarity rarity = 11;
+  IdRefs idRefs = 13;
+  google.protobuf.Timestamp validFrom = 14;
+  int32 attack = 15;
+  int32 defense = 16;
+  int32 health = 17;
+  int64 captainManeuverId = 18;
+  int64 officerAbilityId = 19;
+  int32 sortIndex = 20;
+  int64 promotionMaterial1Id = 21;
+  int64 promotionMaterial2Id = 22;
+  int64 factionId = 23;
+  int32 shardsToUnlock = 24;
+  repeated OfficerRank ranks = 25;
+  int64 belowDecksAbilityId = 26;
+  OfficerType officerType = 27;
+  int64 progressRewardType = 28;
+  int64 intelType = 29;
+  int64 progressRewardSchema = 30;
+  repeated int64 progressRewardSchemas = 31;
+  repeated Level levels = 32;
+  int32 modFcCooldownPercent = 33;
+  repeated int64 activatedAbilitiesIds = 34;
+  map<int64, int64> abilityUnlockResearchIds = 35;
+}
+
+message PvPBandingLevel {
+  int32 lowerBand = 1;
+  int32 upperBand = 2;
+}
+
+message Requirement {
+  RequirementType type = 1;
+  int64 targetId = 2;
+  int64 level = 3;
+  RequirementParam params = 4;
+}
+
+message StarbaseSpec {
+message Attribute {
+  int64 resourceType = 1;
+  int32 drydockFleetCountLimit = 2;
+}
+
+message Level {
+oneof Attribute {
+  int64 resourceType = 11;
+}
+
+  int64 buildTimeInSeconds = 1;
+  int64 playerXp = 2;
+  int64 hardCurrencyCost = 3;
+  repeated InventoryItem rewards = 5;
+  repeated Requirement requirements = 6;
+  repeated Resource resources = 7;
+  int64 militaryMight = 8;
+  int32 generation = 10;
+}
+
+  int64 id = 1;
+  string name = 2;
+  string type = 3;
+  int32 startingModule = 4;
+  int32 section = 5;
+  Attribute attribute = 7;
+  repeated Level levels = 8;
+  repeated int64 buffIds = 9;
+}
+
+message StaticSyncAwayAssignmentsResponse {
+  repeated int64 refreshTimePeriods = 1;
+  Resource refreshCost = 2;
+}
+
+message StaticSyncPvPBandingResponse {
+  repeated PvPBandingLevel pvpBandingLevels = 1;
+  repeated PvPBandingLevel pvpBandingMiningLevels = 2;
+  int32 miningUnlock = 3;
+  int32 shipUnlock = 4;
+  int32 stationUnlock = 5;
+}
+
+message TraitCostsPerLevelSpec {
+  int64 traitId = 1;
+  map<int32, TraitCostsSpec> costsPerLevel = 2;
+}
+
+message AllianceAssignedTerritorySlot {
+enum TerritorySlotState {
+  TERRITORYSLOTSTATE_TAKEOVER = 0;
+  TERRITORYSLOTSTATE_OWNED = 1;
+}
+
+  int64 territoryId = 1;
+  TerritorySlotState state = 2;
+}
+
+message AllianceTerritorySlots {
+  int64 allianceId = 1;
+  int64 slotSize = 2;
+  map<int64, AllianceAssignedTerritorySlot> assignedSlots = 3;
+}
+
+message Territory {
+  int64 territoryId = 1;
+  repeated int64 nodeIds = 2;
+  int32 tier = 3;
+  repeated TerritoryTakeoverPeriod takeoverPeriods = 4;
+  repeated int64 neighbors = 5;
+  map<int64, int64> metadata = 9;
+}
+
+message TerritoryOwner {
+  int64 territoryId = 1;
+  int64 ownerId = 2;
+  TerritoryOwnerVisualData visuals = 3;
+}
+
+message TerritoryOwnerVisualData {
+  int64 ownerId = 1;
+  int32 floorColour = 2;
+  int32 wallColour = 3;
+}
+
+message TerritoryTakeover {
+  int64 territoryId = 1;
+  google.protobuf.Timestamp startTime = 3;
+  google.protobuf.Timestamp endTime = 4;
+  map<int64, int32> scores = 5;
+}
+
+message ActiveTerritoryService {
+  int64 territoryId = 1;
+  repeated ActiveTerritoryServiceItem services = 2;
+}
+
+message ThreatConfig {
+  map<string, string> equations = 1;
+  map<string, float> static = 2;
+  repeated ShipTypeModifier shipTypeModifier = 3;
+  map<string, double> staticDouble = 4;
+}
+
+message UserProfile {
+  string userId = 1;
+  string name = 2;
+  int32 level = 3;
+  int32 levelLastAwarded = 4;
+  uint64 xp = 5;
+  int64 allianceId = 6;
+  int32 ftueStage = 7;
+  uint64 militaryMight = 8;
+  uint64 battleRating = 9;
+  map<int64, int64> cosmetics = 10;
+  int32 gameworldId = 11;
+  bool isMentor = 12;
+  uint64 maxWarpRange = 13;
+}
+
+message WaveDefenseChallenge {
+  int64 id = 1;
+  int64 challengeId = 2;
+  int64 systemId = 3;
+  int32 totalWaves = 4;
+  int32 currentWave = 5;
+  int32 status = 6;
+  int32 centralEntityHp = 7;
+  google.protobuf.Timestamp startTime = 8;
+  map<string, PlayerFleetList> playerFleetsMap = 9;
+  string leader = 10;
+}
+
+message Wormhole {
+  int64 allianceId = 1;
+  int64 systemId = 2;
+  string ownerId = 3;
+  int32 usageCount = 4;
+  int32 maxUsages = 5;
+  google.protobuf.Timestamp expirationTimestamp = 6;
+  int32 minLevel = 7;
+  int32 instanceId = 8;
+  map<int64, int32> travelCost = 9;
+}
+
 message UserTemplateHeader {
   string templateName = 1;
   string userId = 2;
@@ -1156,18 +2533,7 @@ message CheckAccountResponse {
   AccountState accountState = 1;
   int32 gameworldId = 2;
   ServerInstanceInfo currentInstance = 3;
-}
-
-message AllianceProfile {
-  int64 id = 1;
-  string name = 2;
-  string tag = 3;
-  int32 emblem = 4;
-  bool public = 5;
-  int32 level = 6;
-  AllianceMetadata metadata = 7;
-  int32 gameworldId = 8;
-  int32 league = 9;
+  repeated ServerInstanceInfo instances = 4;
 }
 
 message AllianceMembersStarbasesLocations {
@@ -1223,20 +2589,13 @@ message AllianceGamePropertiesResponse {
   repeated AllianceGameProperty properties = 1;
 }
 
-message ArmadaAttack {
-  int64 id = 1;
-  string ownerId = 2;
-  google.protobuf.Timestamp createdAt = 3;
-  google.protobuf.Timestamp attacksAt = 4;
-  Point location = 5;
-  ArmadaTargetInfo target = 6;
-  NodeAddress nodeAddress = 7;
-  repeated int64 memberFleetIds = 8;
-  ArmadaAttackState state = 9;
-  int32 fleetCapacity = 10;
-  map<string, int64> guaranteedSlots = 11;
-  int32 serverInstanceId = 12;
-  int64 multiTargetArmadaAttackId = 13;
+message AllianceTagSpecsResponse {
+  repeated AllianceTagSpec specs = 1;
+}
+
+message AllianceTagSpec {
+  int32 id = 1;
+  int32 category = 2;
 }
 
 message ArmadaTargetInfo {
@@ -1290,56 +2649,8 @@ message ArmadaPvpSpec {
   int32 attackDuration = 4;
 }
 
-message AwayAssignmentInstance {
-  int64 id = 1;
-  IdRefs idRefs = 2;
-  Rarity rarity = 3;
-  OfficerCoreStatType keyStat = 4;
-  int64 subtype = 5;
-  int64 awayAssignmentTemplateId = 6;
-  int64 requiredOfficerSpecId = 7;
-  Resource cost = 8;
-  AwayAssignmentState state = 9;
-  map<int64, int64> officerIds = 10;
-  AwayAssignmentParameters parameters = 11;
-  string jobUuid = 12;
-  AwayAssignmentOutcome outcome = 13;
-  int32 maxAssignableOfficersCount = 14;
-  bool prepareInstance = 15;
-  repeated TraitWithMaxLevelSpec officerTraits = 16;
-  int32 maxCriticalSuccessChance = 17;
-  int32 priority = 18;
-  int32 generation = 19;
-  int32 frameType = 20;
-  float attackWeight = 21;
-  float defenseWeight = 22;
-  float healthWeight = 23;
-}
-
-message AwayAssignmentParameters {
-  int64 id = 1;
-  int32 successChance = 2;
-  int32 criticalSuccessChance = 3;
-  float rewardMultiplier = 4;
-  int64 duration = 5;
-  int32 totalOfficersAttack = 6;
-  int32 totalOfficersDefense = 7;
-  int32 totalOfficersHealth = 8;
-  repeated InventoryItem rewards = 9;
-  repeated InventoryItem criticalRewards = 10;
-  map<int64, int32> criticalTraitScores = 11;
-}
-
 message AwayAssignmentUserListResponse {
   repeated AwayAssignmentInstance instances = 1;
-}
-
-message ActiveBuff {
-  int64 buffId = 1;
-  int64 activatorId = 2;
-  google.protobuf.Timestamp activationTime = 3;
-  google.protobuf.Timestamp expiryTime = 4;
-  repeated int64 ranks = 5;
 }
 
 message Buff {
@@ -1360,6 +2671,10 @@ message GlobalActiveBuff {
 
 message GlobalActiveBuffsResponse {
   repeated GlobalActiveBuff globalActiveBuffs = 1;
+}
+
+message AttributeResult {
+  double value = 1;
 }
 
 message Ceasefire {
@@ -1424,6 +2739,7 @@ message AllianceConfig {
   int32 creationMinimumLevel = 17;
   int32 maximumDiplomaticRelationshipSlots = 18;
   int64 allianceFactionId = 19;
+  int32 profileTagsSizeLimit = 20;
 }
 
 message AllianceStarbaseConfig {
@@ -1524,25 +2840,6 @@ message DialogueSides {
   DialogueSides dialogSides = 2;
 }
 
-message PlanetSlotsConfig {
-message Slot {
-  float x = 1;
-  float y = 2;
-}
-
-  repeated Slot slots = 1;
-}
-
-message ServerTransferConfig {
-  repeated ServerTransferCost costs = 1;
-}
-
-message ServerTransferCost {
-  int64 resourceId = 1;
-  int64 resourceAmt = 2;
-  int32 maxLevel = 3;
-}
-
 message FactionConfig {
   repeated int64 factionIdToIndexMapping = 1;
   int32 interceptTimeSeconds = 2;
@@ -1560,16 +2857,6 @@ message FleetConfig {
   int32 bridgeCrewSize = 9;
   int64 xpResourceId = 10;
   int32 hailingFrequenciesCooldownSeconds = 11;
-}
-
-message FleetIconConfig {
-message Icon {
-  int32 grade = 1;
-  int32 massMax = 2;
-  int32 massMin = 3;
-}
-
-  repeated Icon icons = 1;
 }
 
 message FleetRepairCosts {
@@ -1611,13 +2898,6 @@ message GlobalDamageReductionConfig {
 message HailingFrequenciesConfig {
   int32 minimumLevelRequired = 1;
   int32 ceiling = 2;
-}
-
-message NodeAddress {
-  int64 galaxy = 1;
-  int64 system = 2;
-  int64 planet = 3;
-  int32 instance = 4;
 }
 
 message Point {
@@ -1664,40 +2944,6 @@ message FtueFleetPosition {
 
 message OfficerConfig {
   map<int32, int32> statMaxima = 1;
-}
-
-message OptimisedGalaxy {
-  repeated int32 factionInfluences = 1;
-  repeated GraphNodeConnectionRequirementType unlockReqTypes = 2;
-  repeated int32 xCoords = 3;
-  repeated int64 nodeIds = 4;
-  repeated int64 sourceIds = 5;
-  repeated int32 connectionsOffset = 6;
-  repeated int32 priorities = 7;
-  repeated int32 unlockOffset = 8;
-  repeated int32 levels = 9;
-  repeated int32 distances = 10;
-  repeated int32 yCoords = 11;
-  repeated int64 transIds = 12;
-  repeated int32 connectionsCount = 13;
-  repeated int64 factions = 14;
-  repeated int64 unlockReqSources = 15;
-  repeated int64 unlockReqQuantities = 21;
-  repeated int32 unlockReqCount = 16;
-  repeated int64 destIds = 17;
-  repeated int64 assetIds = 18;
-  repeated GalaxyNodeMineSetups mines = 19;
-  repeated bool isDeepSpace = 20;
-  repeated int32 superHighwaysIndices = 22;
-  repeated GalaxyNodeMarauderInfo marauders = 23;
-  repeated bool hazardsEnabled = 27;
-  repeated int64 hazardId = 28;
-  repeated int32 hazardsLevel = 29;
-  repeated bool isWaveDefense = 30;
-  repeated int64 waveDefenseChallenge = 31;
-  repeated bool isMirrorUniverse = 32;
-  repeated bool isGameActivity = 33;
-  repeated int64 gameActivity = 34;
 }
 
 message PeaceShieldRulesConfig {
@@ -1889,6 +3135,9 @@ enum Type {
   TYPE_PARTY = 200;
   TYPE_CREATEDPARTY = 201;
   TYPE_PARTYSPECS = 202;
+  TYPE_RESOURCEAUTOCONVERTSPECS = 203;
+  TYPE_VISITEDSYSTEMS = 204;
+  TYPE_ALLIANCETAGSPECS = 207;
 }
 
   Type type = 1;
@@ -1925,13 +3174,6 @@ message ShipTypeModifier {
   map<int32, float> opponentHullModifiers = 2;
 }
 
-message ThreatConfig {
-  map<string, string> equations = 1;
-  map<string, float> static = 2;
-  repeated ShipTypeModifier shipTypeModifier = 3;
-  map<string, double> staticDouble = 4;
-}
-
 message SimulateMarauderLootRollToolingResponse {
   string lookupKey = 1;
   int64 lootRollType = 2;
@@ -1940,69 +3182,6 @@ message SimulateMarauderLootRollToolingResponse {
 
 message RespawnMarauderTimersToolingResponse {
   google.protobuf.Timestamp timeToRespawn = 1;
-}
-
-message DeployedFleet {
-  string uid = 1;
-  DeployedFleetState state = 2;
-  int64 courseId = 3;
-  int64 nodeId = 4;
-  NodeAddress nodeAddress = 5;
-  DeployedFleetType fleetType = 6;
-  int64 fleetId = 7;
-  int32 pursuedByNum = 8;
-  int64 pursuitTargetId = 9;
-  bool isActive = 10;
-  repeated int64 shipIds = 11;
-  repeated int64 hullIds = 12;
-  google.protobuf.Timestamp warpTime = 13;
-  WarpData warpData = 14;
-  float latestCourseVectorX = 15;
-  float latestCourseVectorY = 16;
-  google.protobuf.Timestamp lastUpdateTime = 17;
-  map<int32, float> attributes = 18;
-  map<int32, float> stats = 19;
-  map<int64, ShipAttributes> shipAttributes = 20;
-  map<int64, ShipAttributes> shipStats = 21;
-  repeated ActiveBuff activeBuffs = 22;
-  map<int64, int32> shipTiers = 23;
-  map<int64, int32> shipLevels = 24;
-  map<int64, float> shipLevelPercentages = 25;
-  int64 battleOpponentFleetId = 26;
-  bool battleWon = 27;
-  google.protobuf.Timestamp battleStartTime = 28;
-  map<int64, DeployedShip> deployedShips = 29;
-  int64 armadaAttackId = 30;
-  bool isArmadaAttackable = 31;
-  map<int32, int64> shipCosmetics = 32;
-  map<int32, int64> statusEffects = 33;
-  repeated int64 detectedByAllianceIds = 34;
-  int64 multiTargetArmadaId = 35;
-  repeated ForbiddenTechData forbiddenTechs = 36;
-  DamageSources causeOfDestruction = 37;
-  repeated StatusCounter statusCounters = 38;
-}
-
-message WarpData {
-  repeated int64 nodeIds = 1;
-  int32 endX = 2;
-  int32 endY = 3;
-  TargetAction targetAction = 4;
-  int64 destinationNodeId = 5;
-}
-
-message ShipAttributes {
-  map<int32, float> shipAttributes_ = 1;
-}
-
-message DeployedShip {
-  repeated int64 componentIds = 1;
-}
-
-message ForbiddenTechData {
-  int64 id = 1;
-  int32 level = 2;
-  int32 tier = 3;
 }
 
 message StatusCounter {
@@ -2014,64 +3193,6 @@ message Error {
   int32 code = 1;
   string type = 2;
   string error_ = 3;
-}
-
-message FactionSpec {
-message Tier {
-  int64 lowerBound = 1;
-  int64 upperBound = 3;
-  string tierName = 4;
-  IdRefs idRefs = 2;
-}
-
-  int64 id = 1;
-  string idStr = 2;
-  string name = 3;
-  int64 resourceId = 4;
-  int32 sortingIndex = 5;
-  bool isPrimary = 6;
-  int64 parentFactionId = 7;
-  string parentFactionName = 8;
-  repeated Tier tiers = 9;
-  IdRefs idRefs = 10;
-  int64 researchTreeId = 11;
-  repeated int64 researchTreeIds = 12;
-}
-
-message ForbiddenTech {
-  int32 level = 1;
-  int32 tier = 2;
-  int64 id = 3;
-  int32 shardCount = 4;
-}
-
-message ForbiddenTechChances {
-  ForbiddenTechUpgradeType type = 1;
-  repeated ForbiddenTechChance chances = 2;
-  map<int64, int64> upgradeCost = 3;
-  bool meetMinimumChance = 4;
-}
-
-message ForbiddenTechSpec {
-  int64 id = 1;
-  ForbiddenTechType type = 2;
-  ForbiddenTechSubType subtype = 3;
-  int32 sortIndex = 4;
-  Rarity rarity = 5;
-  repeated ForbiddenTechTier tiers = 6;
-  repeated int64 levelupCosts = 7;
-  repeated int64 tierupCosts = 8;
-  IdRefs idRefs = 9;
-  int32 shardsToUnlock = 10;
-  int32 tierMax = 11;
-  map<uint32, uint32> maxLevelTier = 12;
-  int64 removePatternId = 13;
-  int64 upgradePatternId = 14;
-  int64 requiredSlotSpecId = 15;
-  ClientModifierType modCostEfficiencyUnslot = 16;
-  ClientModifierType modCostEfficiencyTierUp = 17;
-  ClientModifierType modCostEfficiencyLevelUp = 18;
-  bool guaranteedUpgrade = 19;
 }
 
 message ForbiddenTechChance {
@@ -2088,25 +3209,9 @@ message ForbiddenTechsResponse {
   repeated ForbiddenTech forbiddenTechs = 1;
 }
 
-message IdRefs {
-  string artFileReference = 1;
-  int64 locaId = 2;
-  int64 artId = 3;
-}
-
-message GameActivityParticipantResult {
-  EntityRef entityRef = 1;
-  GameActivityResult result = 2;
-}
-
-message GameActivityPhase {
-  int64 phaseSpecId = 1;
-  google.protobuf.Timestamp startAt = 2;
-}
-
-message GameActivityTracker {
-  EntityRef entityRef = 1;
-  int32 score = 2;
+message HailingFrequency {
+  int64 hfId = 1;
+  int64 targetId = 2;
 }
 
 message GameActivity {
@@ -2124,42 +3229,6 @@ message GameActivityResultsResponse {
   repeated GameActivityParticipantResult results = 2;
 }
 
-message HailingFrequency {
-  int64 hfId = 1;
-  int64 targetId = 2;
-}
-
-message ServerInstanceInfo {
-  ServerInstanceType type = 1;
-  int32 id = 2;
-  int32 galaxyId = 3;
-}
-
-message Job {
-oneof Params {
-  RefinementParams refinementParams = 8;
-  RepairFleetParams repairFleetParams = 9;
-  StarbaseConstructionParams starbaseConstructionParams = 10;
-  ShipConstructionParams shipConstructionParams = 11;
-  StarbaseRepairParams starbaseRepairParams = 12;
-  TierUpShipParams tierUpShipParams = 13;
-  AllianceContributionCooldownParams allianceContributionCooldownParams = 14;
-  ResearchParams researchParams = 15;
-  ScrapyardParams scrapyardParams = 16;
-  AwayAssignmentParams awayAssignmentParams = 17;
-}
-
-  JobType type = 1;
-  string uuid = 2;
-  int32 duration = 3;
-  int32 reductionInSeconds = 5;
-  float jobSpeedupMod = 6;
-  string userId = 7;
-  EntityRef entityRef = 18;
-  int32 tier = 19;
-  google.protobuf.Timestamp startTime = 4;
-}
-
 message RefinementParams {
   int64 refinementId = 1;
   int64 amount = 2;
@@ -2167,11 +3236,6 @@ message RefinementParams {
 
 message RepairFleetParams {
   int64 fleetId = 1;
-}
-
-message StarbaseConstructionParams {
-  int64 moduleId = 1;
-  int32 level = 2;
 }
 
 message ShipConstructionParams {
@@ -2235,307 +3299,6 @@ message MirrorUniverseDurationResponse {
   MirrorUniverseDuration duration = 1;
 }
 
-message ActiveMission {
-  MissionObjective activeObjective = 5;
-  int64 id = 1;
-  int64 missionId = 2;
-  int64 assignedFleetId = 3;
-  repeated int64 objectiveHistory = 4;
-  MissionState state = 6;
-  google.protobuf.Timestamp created = 7;
-}
-
-message ActiveObjective {
-  int64 id = 1;
-  ObjectiveState state = 2;
-  MissionObjective.MissionAttributes overrideAttributes = 3;
-  int64 currentCounterValue = 4;
-}
-
-message DialogueChunk {
-  int64 factionId = 1;
-  int64 characterId = 2;
-  IdRefs characterIdRefs = 3;
-  OfficerCoreStatType characterType = 4;
-  DialogueSide characterPosition = 5;
-  repeated int64 transIds = 6;
-}
-
-message Mission {
-  int64 id = 1;
-  int64 firstObjectiveId = 3;
-  bool fleetRequired = 5;
-  MissionType type = 6;
-  MissionMetaData metadata = 7;
-  google.protobuf.Timestamp lastModified = 8;
-  repeated MissionObjective objectives = 2;
-  repeated MissionRequirement acceptanceRequirements = 4;
-}
-
-message MissionRequirement {
-message AllOfficersCoreStatTotalParams {
-  OfficerCoreStatType type = 1;
-  int32 value = 2;
-}
-
-message AtLeastOneOfficerWithCoreStatParams {
-  OfficerCoreStatType type = 1;
-  int32 value = 2;
-}
-
-message StarbaseModuleLevelParams {
-  int32 type = 1;
-  int32 value = 2;
-}
-
-message PreviouslyCompletedMissionParams {
-  int64 value = 1;
-}
-
-message HullTypeParams {
-  HullType type = 1;
-  int32 value = 2;
-}
-
-message HullGradeParams {
-  int32 grade = 1;
-  int32 value = 2;
-}
-
-message ComponentValueParams {
-  string type = 1;
-  float value = 2;
-}
-
-message PlayerLevelRangeParams {
-  int32 minValue = 1;
-  int32 maxValue = 2;
-}
-
-message FactionStandingParams {
-  int64 id = 1;
-  int64 amount = 2;
-}
-
-oneof Params {
-  AllOfficersCoreStatTotalParams allOfficersCoreStatTotalParams = 2;
-  AtLeastOneOfficerWithCoreStatParams atLeastOneOfficerWithCoreStatParams = 3;
-  StarbaseModuleLevelParams starbaseModuleLevelParams = 4;
-  PreviouslyCompletedMissionParams previouslyCompletedMissionParams = 5;
-  HullTypeParams hullTypeParams = 6;
-  HullGradeParams hullGradeParams = 7;
-  ComponentValueParams componentValueParams = 8;
-  PlayerLevelRangeParams playerLevelRangeParams = 9;
-  FactionStandingParams factionStandingParams = 10;
-}
-
-  MissionRequirementType type = 1;
-}
-
-message MissionMetaData {
-  repeated DialogueChunk dialogueEndSuccess = 1;
-  repeated DialogueChunk dialogueStart = 2;
-  repeated DialogueChunk dialogueEndFailure = 3;
-  IdRefs characterIdRefs = 4;
-  IdRefs missionIdRefs = 5;
-  int64 backgroundId = 7;
-  int64 foregroundActorId = 8;
-  int64 foregroundPropId = 9;
-  int64 foregroundNodeId = 10;
-  int64 foregroundSystemId = 11;
-  int64 foregroundShipId = 12;
-  int64 foregroundModuleId = 13;
-  int64 factionId = 14;
-  MissionRewardAnimation rewardAnimation = 15;
-  int32 priority = 16;
-  bool preventArchiving = 17;
-  bool isSecondaryTutorial = 18;
-}
-
-message MissionObjective {
-message MissionAttributes {
-oneof Attributes {
-  MissionObjective.TargetDestinationAttributes targetDestinationAttributes = 1;
-  MissionObjective.PlanetDestinationAttributes planetDestinationAttributes = 2;
-  MissionObjective.StarbaseModuleLevelAttributes starbaseModuleLevelAttribues = 3;
-  MissionObjective.DefeatNPCInstantiatedAttributes defeatNpcInstantiatedAttribues = 4;
-  MissionObjective.DefeatNPCGlobalAttributes defeatNpcGlobalAttribues = 5;
-  MissionObjective.StartMiningAttributes startMiningAttribues = 6;
-  MissionObjective.MineResourcesAttributes mineResourcesAttribues = 7;
-  MissionObjective.ReturnFleetToStationAttributes returnFleetToStationAttribues = 8;
-  MissionObjective.BuildFromBlueprintAttributes buildFromBlueprintAttribues = 9;
-  MissionObjective.DummyObjectiveAttributes dummyObjectiveAttribues = 10;
-  MissionObjective.DilemmaObjectiveAttributes dilemmaObjectiveAttribues = 11;
-  MissionObjective.RecruitNewOfficerAttributes recruitNewOfficerAttribues = 12;
-  MissionObjective.JoinAllianceAttributes joinAllianceAttribues = 13;
-  MissionObjective.AttackStarbaseAttributes attackStarbaseAttribues = 14;
-  MissionObjective.DonateResourcesAttributes donateResourcesAttributes = 15;
-  MissionObjective.StockpileResourcesAttributes stockpileResourcesAttributes = 16;
-  MissionObjective.CompleteFactionMissionsAttributes completeFactionMissionsAttributes = 17;
-  MissionObjective.UpgradeShipAttributes upgradeShipAttributes = 18;
-  MissionObjective.OfficerLevelAndRankAttributes officerLevelAndRankAttributes = 19;
-  MissionObjective.DefeatFactionShipsAttributes defeatFactionShipsAttributes = 20;
-  MissionObjective.AssignOfficerToDrydockAttributes assignOfficerToDrydockAttributes = 21;
-  MissionObjective.MoveStarbaseAttributes moveStarbaseAttributes = 22;
-  MissionObjective.DefeatChallengeNPCInstantiatedAttributes defeatChallengeNpcInstantiatedAttributes = 23;
-  MissionObjective.VisitSectionAttributes visitSectionAttributes = 24;
-}
-
-}
-
-message TargetDestinationAttributes {
-  int64 targetSystem = 1;
-  float targetX = 2;
-  float targetY = 3;
-  int32 objectiveRadius = 4;
-}
-
-message PlanetDestinationAttributes {
-  int64 targetSystem = 1;
-  int64 targetPlanet = 2;
-  float targetX = 3;
-  float targetY = 4;
-  int32 objectiveRadius = 5;
-}
-
-message StarbaseModuleLevelAttributes {
-  int64 moduleId = 1;
-  int32 level = 2;
-}
-
-message DefeatNPCInstantiatedAttributes {
-  int64 npcId = 1;
-  int64 targetSystem = 2;
-  float targetX = 3;
-  float targetY = 4;
-  int32 objectiveRadius = 5;
-}
-
-message DefeatChallengeNPCInstantiatedAttributes {
-  int64 targetSystem = 1;
-  float targetX = 2;
-  float targetY = 3;
-  int32 objectiveRadius = 4;
-  int64 fleetId = 5;
-}
-
-message DefeatNPCGlobalAttributes {
-  PveType npcType = 1;
-  int32 count = 2;
-  int64 targetSystem = 3;
-  int32 level = 4;
-}
-
-message StartMiningAttributes {
-  int64 targetSystem = 1;
-  int64 targetNode = 2;
-  int64 resourceId = 3;
-}
-
-message MineResourcesAttributes {
-  int64 targetSystem = 1;
-  int64 targetNode = 2;
-  int64 resourceId = 3;
-  int64 resourceAmount = 4;
-}
-
-message ReturnFleetToStationAttributes {
-}
-
-message BuildFromBlueprintAttributes {
-  int64 blueprintId = 1;
-}
-
-message DummyObjectiveAttributes {
-}
-
-message DilemmaObjectiveAttributes {
-}
-
-message RecruitNewOfficerAttributes {
-  int64 officerId = 1;
-}
-
-message JoinAllianceAttributes {
-  int64 allianceId = 1;
-}
-
-message AttackStarbaseAttributes {
-  int32 attackCount = 1;
-  string targetUserId = 2;
-  ExpectedBattleOutcome expectedOutcome = 3;
-  int64 targetNode = 4;
-}
-
-message DonateResourcesAttributes {
-  int64 resourceId = 3;
-  int64 resourceAmount = 4;
-}
-
-message CompleteFactionMissionsAttributes {
-  int64 factionId = 1;
-  int32 missionCount = 2;
-}
-
-message UpgradeShipAttributes {
-  int32 shipTier = 1;
-  int32 shipGrade = 2;
-}
-
-message StockpileResourcesAttributes {
-  int64 resourceId = 1;
-  int64 resourceAmount = 2;
-}
-
-message OfficerLevelAndRankAttributes {
-  int64 officerLevel = 1;
-  int64 officerRank = 2;
-  int64 officerId = 3;
-}
-
-message DefeatFactionShipsAttributes {
-  int64 factionId = 1;
-  int64 count = 2;
-}
-
-message AssignOfficerToDrydockAttributes {
-  repeated int64 drydockIndices = 1;
-  int64 officerId = 2;
-}
-
-message MoveStarbaseAttributes {
-  int32 minimumSystemLevel = 1;
-}
-
-message VisitSectionAttributes {
-  int64 sectionId = 1;
-}
-
-  int64 id = 1;
-  ObjectiveType type = 2;
-  int64 objectiveSpecId = 3;
-  int64 objectiveFaction = 4;
-  repeated int64 completionOptions = 5;
-  bool autoComplete = 6;
-  int32 difficulty = 9;
-  repeated Inventory rewards = 10;
-  MissionObjectiveMetaData metadata = 11;
-  bool isDynamic = 12;
-  int64 targetCounterValue = 13;
-  MissionAttributes attributes = 7;
-}
-
-message MissionObjectiveMetaData {
-  repeated DialogueChunk dialogueEnd = 1;
-  repeated DialogueChunk dialogueStart = 2;
-  repeated DialogueChunk dialogueDilemma = 3;
-  int64 actionSpecId = 4;
-  int64 transId = 5;
-  int64 sectionId = 6;
-  repeated ActionFlow actionFlow = 7;
-  bool hasStickyToast = 8;
-}
-
 message ActionFlow {
   int64 type = 1;
   int64 actionId = 2;
@@ -2566,178 +3329,12 @@ message RequiredAttribute {
   repeated RequiredAttribute requiredAttributes = 5;
 }
 
-message BlueprintSpec {
-  int64 id = 1;
-  string idStr = 2;
-  string name = 3;
-  string type = 4;
-  int32 grade = 5;
-  int64 craftModuleId = 6;
-  int32 partsNeeded = 7;
-  int64 faction = 8;
-  int64 consumable = 9;
-  Rarity rarity = 10;
-  int64 unlockModuleId = 11;
-  int64 unlockModuleLevel = 12;
-  BlueprintOutputType outputType = 13;
-  int64 outputReference = 14;
-  int32 craftLevel = 15;
-  int32 craftTime = 16;
-  map<int64, int64> craftCosts = 17;
-  int32 refitTime = 18;
-  map<int64, int64> refitCosts = 19;
-  int32 repairTime = 20;
-  map<int64, int64> repairCosts = 21;
-  IdRefs idRefs = 22;
-  int32 sortingIndex = 23;
-  repeated Requirement requirements = 24;
-  int64 viewLevel = 25;
-  int32 scrapLevel = 26;
-  map<int64, int64> scrapEarnings = 27;
-}
-
 message JobResponse {
   repeated Job jobs = 1;
 }
 
-message Notification {
-message ChestContent {
-  repeated InventoryItem inventoryItems = 1;
-}
-
-message MissionParams {
-  int64 missionId = 1;
-  int64 objectiveId = 2;
-  int64 completionOption = 3;
-  NotificationMissionType missionNotificationType = 4;
-  int64 currentCounterValue = 5;
-}
-
-message TerritoryParams {
-  int64 territoryId = 1;
-  NotificationTerritoryType territoryNotificationType = 2;
-}
-
-message UserProfileParams {
-  int32 level = 1;
-  NotificationUserProfileType userProfileNotificationType = 2;
-}
-
-message ArmadaParams {
-  ArmadaAttack armadaAttack = 1;
-  NotificationArmadaType armadaNotificationType = 2;
-}
-
-message PlatformChestParams {
-  repeated Notification.ChestContent chestsContents = 1;
-  int32 numChests = 2;
-}
-
-message FactionParams {
-  int64 factionId = 1;
-  NotificationFactionType factionNotificationType = 2;
-  int64 targetFleetId = 3;
-}
-
-message AllianceParams {
-  int64 allianceId = 1;
-  NotificationAllianceType allianceNotificationType = 2;
-  string requestingUserId = 3;
-  JobType jobType = 4;
-  int64 oldRankId = 5;
-  int64 newRankId = 6;
-  string helperId = 7;
-  string jobId = 8;
-  int64 remainingTime = 9;
-  string contributorUserId = 10;
-  map<int64, int64> contributedResources = 11;
-  string changedUserId = 12;
-}
-
-message AllianceDiplomacyParams {
-  AllianceDiplomacyStatus status = 1;
-  int64 targetAllianceId = 2;
-  string changedByUserId = 3;
-  int64 allianceId = 4;
-}
-
-message IncomingFleetParams {
-oneof Params {
-  string targetUserId = 3;
-  int64 targetFleetId = 4;
-}
-
-  NotificationIncomingAttackTargetType targetType = 1;
-  QuickScanFleetData quickScanResult = 2;
-}
-
-message AllianceChestParams {
-  string allianceChestBuyer = 1;
-  repeated Notification.ChestContent chestsContents = 2;
-}
-
-message CargoCollectParams {
-  map<int64, int64> resourceDelta = 1;
-  map<int64, int64> updatedResources = 2;
-}
-
-message TargetLostParams {
-  int64 targetFleetId = 1;
-  FleetInterceptInterruptionCause targetLostReason = 2;
-  QuickScanFleetData quickScanResult = 3;
-}
-
-message StarbaseModuleRewardsParams {
-  repeated InventoryItem inventoryItems = 1;
-}
-
-message CourseParams {
-  int64 fleetId = 1;
-  NotificationCourseType courseNotificationType = 2;
-}
-
-message ShipAbilityParams {
-  string userId = 1;
-  int64 targetFleetId = 2;
-  int64 duration = 3;
-  NotificationShipAbilityType abilityType = 4;
-}
-
-oneof Params {
-  MissionParams missionParams = 5;
-  UserProfileParams userProfileParams = 6;
-  PlatformChestParams platformChestParams = 7;
-  FactionParams factionParams = 8;
-  AllianceParams allianceParams = 9;
-  IncomingFleetParams incomingFleetParams = 10;
-  AllianceChestParams allianceChestParams = 11;
-  CargoCollectParams cargoCollectParams = 12;
-  TargetLostParams targetLostParams = 13;
-  StarbaseModuleRewardsParams starbaseModuleRewardsParams = 14;
-  ArmadaParams armadaParams = 15;
-  CourseParams courseParams = 16;
-  AllianceDiplomacyParams diplomacyParams = 17;
-  TerritoryParams territoryParams = 18;
-  ShipAbilityParams shipAbilityParams = 19;
-}
-
-  string uuid = 1;
-  google.protobuf.Timestamp createdTimestamp = 2;
-  google.protobuf.Timestamp expiryTimestamp = 3;
-  NotificationProducerType producerType = 4;
-}
-
 message NotificationsResponse {
   repeated Notification notifications = 1;
-}
-
-message Officer {
-  int64 assignedFleetId = 1;
-  int32 level = 2;
-  int32 rankIndex = 3;
-  int64 id = 4;
-  int32 shardCount = 5;
-  int64 awayAssignmentInstanceId = 6;
 }
 
 message OfficersResponse {
@@ -2751,22 +3348,6 @@ message InstancedPvPPartyParams {
   int64 gameActivityId = 4;
   int64 instanceId = 5;
   int64 allianceId = 6;
-}
-
-message Party {
-oneof Params {
-  InstancedPvPPartyParams instancedPvpParams = 9;
-}
-
-  string createdAt = 1;
-  int64 id = 2;
-  EntityRef leader = 3;
-  int32 maxPlayers = 4;
-  repeated EntityRef members = 5;
-  PartyType partyType = 6;
-  PartyState state = 7;
-  int64 partySpecId = 8;
-  map<string, bool> memberReadyStatus = 10;
 }
 
 message InstancedPvPPartySpecAttributes {
@@ -2797,13 +3378,6 @@ message PartyResponse {
   int64 partyId = 2;
 }
 
-message Inventory {
-  InventoryId id = 1;
-  repeated InventoryItem items = 2;
-  repeated InventoryItemType allowedTypes = 3;
-  int32 numExtensions = 4;
-}
-
 message CommonInventoryItemParams {
   int64 refId = 1;
   int64 id = 2;
@@ -2827,20 +3401,6 @@ message MetadataInventoryItemParams {
   InventoryItem sourceItem = 3;
 }
 
-message InventoryItem {
-oneof Params {
-  ChestInventoryItemParams chestParams = 11;
-  ResourceInventoryItemParams resourceParams = 12;
-}
-
-  InventoryItemType type = 1;
-  int64 count = 2;
-  google.protobuf.Timestamp expiryTime = 9;
-  CommonInventoryItemParams commonParams = 10;
-  int64 quantity = 13;
-  MetadataInventoryItemParams metadataParams = 14;
-}
-
 message InventoryResponse {
   map<int32, Inventory> inventories = 1;
 }
@@ -2853,73 +3413,8 @@ message PrestigeData {
   map<int64, PrestigeResearchIds> prestigeData_ = 1;
 }
 
-message QuickScanFleetData {
-message FleetCrewData {
-  int64 officerId = 1;
-  int32 level = 2;
-  int64 rank = 3;
-}
-
-  DeployedFleetType fleetType = 1;
-  string targetId = 2;
-  int64 targetFleetId = 3;
-  IdRefs idRefs = 4;
-  float offenseRating = 5;
-  float defenseRating = 6;
-  IdRefs chestIdRefs = 7;
-  Rarity chestRarity = 8;
-  int64 cargoSpace = 9;
-  map<int32, FleetCrewData> bridgeOfficers = 10;
-  float officerRating = 11;
-  int64 factionId = 12;
-  map<int64, int64> resources = 13;
-  map<int64, int32> shipLevels = 14;
-  map<int32, FleetCrewData> fleetOfficers = 15;
-  IdRefs chestMtaIdRefs = 16;
-  Rarity chestMtaRarity = 17;
-}
-
-message ResearchTreeSpec {
-  int64 id = 1;
-  IdRefs idRefs = 2;
-  repeated int64 projects = 3;
-  int32 type = 4;
-  int64 viewLevel = 5;
-  int64 factionId = 6;
-  EntityType entityType = 7;
-  int64 entityId = 8;
-}
-
-message StarbaseDetailedScan {
-  string ownerUserId = 1;
-  IdRefs chestIdRefs = 2;
-  Rarity chestRarity = 3;
-  map<int64, int64> resources = 4;
-  int32 numDrydocks = 5;
-  int32 numDefencePlatforms = 6;
-  float currentShieldHp = 7;
-  float maxShieldHp = 8;
-  float currentHp = 9;
-  float maxHp = 10;
-  float shieldRegenerationDuration = 11;
-  StarbaseShield playerShield = 12;
-  map<int64, DeployedFleet> defensiveFleets = 13;
-  DeployedFleet defensePlatformFleet = 14;
-  google.protobuf.Timestamp lastUpdateTime = 15;
-  map<int64, CrewData> fleetsOfficers = 16;
-  google.protobuf.Timestamp ceasefireBrokenAt = 17;
-  string ownerId = 18;
-  int32 allianceStarbaseLevel = 19;
-}
-
 message CrewData {
   map<int32, OfficerData> officers = 2;
-}
-
-message OfficerData {
-  int64 officerId = 1;
-  int32 officerLevel = 2;
-  int64 officerRank = 3;
 }
 
 message StarbaseShield {
@@ -2931,80 +3426,11 @@ message StarbaseDetailedScanResponse {
   StarbaseDetailedScan starbaseDetailedScan = 1;
 }
 
-message EntitySlot {
-oneof Params {
-  ConsumableSlotParams consumableSlotParams = 5;
-  OfficerPresetSlotParams officerPresetSlotParams = 6;
-  WorkerSlotParams workerSlotParams = 7;
-  FleetCommanderSlotParams fleetCommanderSlotParams = 8;
-  SelectableSkillSlotParams selectableSkillSlotParams = 9;
-  ChallengeLadderSlotParams challengeLadderSlotParams = 10;
-  ForbiddenTechSlotParams forbiddenTechSlotParams = 11;
-}
-
-  int64 id = 1;
-  int64 slotSpecId = 2;
-  optional int64 slotItemId = 3;
-  SlotType slotType = 4;
-}
-
-message OfficerPresetSlotParams {
-  string name = 1;
-  repeated int64 officerIds = 2;
-  int32 order = 3;
-}
-
-message ConsumableSlotParams {
-  string activatorPlayerId = 1;
-  google.protobuf.Timestamp expiryTime = 2;
-}
-
-message FleetCommanderSlotParams {
-  google.protobuf.Timestamp cooldownExpiration = 1;
-  map<int64, int64> activatedAbilityDurationExpiration = 2;
-  map<int64, int64> activatedAbilityCooldownExpiration = 3;
-  int32 order = 4;
-}
-
-message SelectableSkillSlotParams {
-  google.protobuf.Timestamp cooldownExpiration = 1;
-}
-
-message ForbiddenTechSlotParams {
-  int64 ownerId = 1;
-  int32 level = 2;
-  int32 tier = 3;
-}
-
-message ChallengeLadderSlotParams {
-  int64 ladderId = 1;
-  int64 challengesCompleted = 2;
-  int64 powerDifficulty = 3;
-  int64 missionId = 4;
-  int64 currentChallengeTries = 5;
-  google.protobuf.Timestamp startTime = 6;
-  int64 durationSeconds = 7;
-  GeneratedShip generatedShip = 8;
-  int32 lastClaimedMilestoneRewardIndex = 9;
-  DeployedFleet deployedFleet = 10;
-  int64 lastPowerDelta = 11;
-  int64 minPowerIncrease = 12;
-  int64 maxPowerIncrease = 13;
-  google.protobuf.Timestamp completeTime = 14;
-  float performanceRatio = 15;
-}
-
-message GeneratedShip {
-  int64 hullId = 1;
-  repeated int64 componentIds = 2;
-  int64 power = 3;
-  int64 seed = 4;
-  IdRefs officerIdRefs = 5;
-}
-
-message WorkerSlotParams {
-  string jobId = 1;
-  Job job = 2;
+message FleetSetup {
+  int64 fleetId = 1;
+  int32 drydockId = 2;
+  repeated int64 shipIds = 3;
+  repeated int64 officerIds = 4;
 }
 
 message EntitySlots {
@@ -3019,119 +3445,6 @@ message EntitySlots {
 
   repeated EntitySlots entitySlots = 1;
   repeated SlotType requestedSlotTypes = 2;
-}
-
-message BuffSpec {
-message Attributes {
-  int32 requiredRound = 1;
-  int32 numRounds = 2;
-  int32 durationSeconds = 3;
-  BattleUnitState state = 4;
-  OfficerCoreStatType officerStat = 5;
-  float percentage = 6;
-  int32 count = 7;
-  int64 factionId = 8;
-  int32 charges = 9;
-  repeated string lootFilterKeys = 10;
-  repeated int64 resources = 11;
-  int32 grade = 12;
-  int64 moduleId = 13;
-}
-
-  int64 buffId = 1;
-  int32 targetCode = 7;
-  int32 triggerCode = 8;
-  BuffOperation op = 12;
-  repeated float rankedChances = 13;
-  repeated float rankedValues = 14;
-  IdRefs idRefs = 15;
-  Attributes attributes = 16;
-  repeated int64 conditionCodes = 17;
-  int64 modifierCode = 18;
-  BuffRankedValueType rankedValueType = 19;
-  bool showPercentage = 20;
-  repeated double rankedBuffValues = 21;
-}
-
-message ComponentSpec {
-  ComponentType type = 1;
-  int64 id = 2;
-  int64 recipeType = 3;
-  string name = 4;
-  string faction = 5;
-  int32 grade = 6;
-  Rarity rarity = 7;
-  ComponentSubType subtype = 8;
-  repeated HullType shipTypes = 9;
-  IdRefs idRefs = 10;
-  ArmorSpec armorSpec = 11;
-  CargoSpec cargoSpec = 12;
-  DeflectorSpec deflectorSpec = 13;
-  ImpulseSpec impulseSpec = 14;
-  SensorSpec sensorSpec = 15;
-  ShieldSpec shieldSpec = 16;
-  SpecialSpec specialSpec = 17;
-  WarpSpec warpSpec = 18;
-  WeaponSpec weaponSpec = 19;
-  int32 tier = 20;
-  repeated int64 upgradeIds = 21;
-  float jobRepairCostModifier = 22;
-  int64 factionId = 23;
-}
-
-message ConsumableSpec {
-oneof Params {
-  ConsumableBuffSpecParams consumableBuffSpecParams = 10;
-  ConsumableUnlockSpecParams consumableUnlockSpecParams = 11;
-}
-
-  int64 id = 1;
-  IdRefs idRefs = 2;
-  ConsumableType consumableType = 3;
-  int64 category = 4;
-  Rarity rarity = 5;
-  bool requiresSlot = 6;
-  bool automaticActivation = 7;
-  string name = 8;
-  int32 grade = 9;
-  EntityType targetType = 12;
-  ShowInInventoryRule showInInventoryRule = 13;
-}
-
-message Cosmetic {
-  int64 id = 1;
-  string name = 2;
-  IdRefs idRefs = 3;
-  CosmeticType type = 4;
-  int32 rarity = 5;
-  int32 sorting = 6;
-  bool inventoryRequired = 7;
-  map<string, int64> data = 8;
-}
-
-message GameActivityPhaseSpec {
-  int64 id = 1;
-  string idStr = 2;
-  repeated InflectionPointSpec endConditions = 3;
-  repeated GameActivityRuleSpec rules = 4;
-  GameActivityPhaseType phaseType = 5;
-}
-
-message GameActivityRuleSpec {
-oneof Attributes {
-  ActivityGoalRuleAttributes goal = 3;
-  ActiveShipRuleAttributes activeShip = 4;
-  RelocateRuleAttributes relocate = 5;
-  RepairRuleAttributes repair = 6;
-}
-
-  GameActivityRuleType ruleType = 1;
-  string ruleTypeStr = 2;
-}
-
-message GameActivityScheduleSpec {
-  int64 gameActivitySpecId = 1;
-  map<int32, ActivityDayScheduleSpec> byWeekday = 2;
 }
 
 message ActionSpec {
@@ -3204,6 +3517,16 @@ message ArmorSpec {
   Modifiers modifiers = 3;
 }
 
+message ResourceAutoConvertSpecsResponse {
+  map<int64, ArtifactShardsAutoConvertSpec> resourceAutoConvertSpecs = 1;
+}
+
+message ArtifactShardsAutoConvertSpec {
+  int64 resourceId = 1;
+  int64 convertResourceId = 2;
+  int64 convertAmount = 3;
+}
+
 message BaseShipTierSpec {
   map<int64, int64> baseCosts = 1;
   int32 duration = 2;
@@ -3240,18 +3563,6 @@ message CargoSpec {
   float safeResources = 1;
   int64 resourceMax = 2;
   int32 generation = 3;
-}
-
-message Component {
-  string componentType = 1;
-  string recipeType = 2;
-  string name = 3;
-  float power = 4;
-  string faction = 5;
-  int32 grade = 6;
-  int32 rarity = 7;
-  string subtype = 8;
-  repeated int32 shipTypes = 9;
 }
 
 message ComponentSpecResponse {
@@ -3629,14 +3940,6 @@ message StaticSyncConsumableBuffsSpecsResponse {
   map<int64, BuffSpec> consumableBuffsSpecs = 1;
 }
 
-message StaticSyncPvPBandingResponse {
-  repeated PvPBandingLevel pvpBandingLevels = 1;
-  repeated PvPBandingLevel pvpBandingMiningLevels = 2;
-  int32 miningUnlock = 3;
-  int32 shipUnlock = 4;
-  int32 stationUnlock = 5;
-}
-
 message StaticSyncArmadaAttackSpecResponse {
   repeated ArmadaAttackSpec spec = 1;
 }
@@ -3671,11 +3974,6 @@ message StaticSyncPrestigeDataResponse {
 
 message StaticSyncWorkerResponse {
   repeated WorkerSpec spec = 1;
-}
-
-message StaticSyncAwayAssignmentsResponse {
-  repeated int64 refreshTimePeriods = 1;
-  Resource refreshCost = 2;
 }
 
 message StaticSyncConsumableSpecsResponse {
@@ -3818,90 +4116,9 @@ message ComponentSlotModifier {
   ComponentSubType subType = 4;
 }
 
-message HullSpec {
-message Component {
-  repeated ComponentSlotModifier modifiers = 1;
-}
-
-message OfficerSlotBonus {
-  string stat = 1;
-  float modifier = 2;
-}
-
-message OfficerSlots {
-  repeated HullSpec.OfficerSlotBonus slotBonuses = 1;
-  OfficerCoreStatType requiredType = 2;
-}
-
-message CrewSlot {
-  int32 index = 1;
-  int32 unlockLevel = 2;
-}
-
-message CoreStatModifier {
-  OfficerCoreStatType type = 1;
-  float bonus = 2;
-  float threshold = 3;
-}
-
-  int64 id = 1;
-  string idStr = 2;
-  string name = 3;
-  HullType type = 4;
-  Faction faction = 5;
-  int32 grade = 6;
-  int32 numOfficerSlots = 7;
-  int32 xpAmount = 8;
-  int32 hullHp = 10;
-  int32 ratingMax = 11;
-  IdRefs idRefs = 12;
-  repeated int64 componentDefaults = 13;
-  repeated int32 componentIndices = 14;
-  map<int32, Component> components = 15;
-  repeated OfficerSlots officerSlots = 16;
-  repeated CrewSlot crewSlots = 17;
-  float replotTimeMax = 18;
-  float jobRepairCostModifier = 19;
-  repeated CoreStatModifier coreStatModifiers = 20;
-  int32 initiative = 21;
-  int32 sortOrder = 22;
-  int32 tierMax = 23;
-  string craftingId = 24;
-  Rarity rarity = 25;
-  int64 factionId = 26;
-  FleetArmadaCategory category = 27;
-  repeated int64 activatedAbilitiesIds = 28;
-  map<int64, int64> abilityUnlockResearchIds = 29;
-  int64 forbiddenTechSlot1SpecId = 30;
-  int32 forbiddenTechSlot1TierReq = 31;
-  map<int64, int32> forbiddenTechSlot1Cost = 32;
-  bool peaceShieldDownWhenAttacked = 33;
-  int32 generation = 34;
-  repeated int64 shipBonuses = 35;
-  int64 forbiddenTechSlot2SpecId = 36;
-  int32 forbiddenTechSlot2TierReq = 37;
-  map<int64, int32> forbiddenTechSlot2Cost = 38;
-}
-
 message ImpulseSpec {
   float dodge = 1;
   float impulse = 2;
-}
-
-message JobSpeedupResourceSpec {
-message Cost {
-  float modifier = 1;
-  int64 resourceId = 2;
-}
-
-message Costs {
-  EntityType entityType = 1;
-  repeated JobSpeedupResourceSpec.Cost costs_ = 2;
-}
-
-  int32 jobType = 1;
-  repeated Cost costs = 2;
-  repeated Costs costsByEntity = 3;
 }
 
 message LoyaltyConfig {
@@ -3958,40 +4175,9 @@ message Modifiers {
   float kinetic = 6;
 }
 
-message ModuleEffectSpec {
-oneof RankedTypedValues {
-  RankedValuesFloat rankedValuesFloat = 7;
-  RankedValuesInt rankedValuesInt = 8;
-}
-
-  int64 id = 1;
-  string key = 2;
-  int64 resourceId = 3;
-  string uniqueDescriptor = 4;
-  repeated float rankedValues = 5;
-  IdRefs idRefs = 6;
-}
-
-message RankedValuesFloat {
-  repeated float rankedValuesFloat_ = 1;
-}
-
-message RankedValuesInt {
-  repeated int64 rankedValuesInt_ = 1;
-}
-
 message OfficerCoreStatSpec {
   int32 level = 1;
   map<int32, float> stats = 2;
-}
-
-message OfficerCoreStatThresholdsSpec {
-message Threshold {
-  int32 statTotal = 1;
-  float statBonus = 2;
-}
-
-  repeated Threshold thresholds = 1;
 }
 
 message OfficerIntelRequirementSpec {
@@ -4011,43 +4197,6 @@ message OfficerPromotionSpec {
   int32 maxLevel = 2;
   map<int32, PromotionCost> costs = 3;
   int32 ratingFactor = 4;
-}
-
-message OfficerSpec {
-message Level {
-  repeated InventoryItem rewards = 1;
-}
-
-  int64 id = 1;
-  int64 synergyId = 5;
-  int64 synergyLocaId = 6;
-  int64 synergyArtId = 7;
-  OfficerCoreStatType officerClassType = 9;
-  Faction faction = 10;
-  Rarity rarity = 11;
-  IdRefs idRefs = 13;
-  google.protobuf.Timestamp validFrom = 14;
-  int32 attack = 15;
-  int32 defense = 16;
-  int32 health = 17;
-  int64 captainManeuverId = 18;
-  int64 officerAbilityId = 19;
-  int32 sortIndex = 20;
-  int64 promotionMaterial1Id = 21;
-  int64 promotionMaterial2Id = 22;
-  int64 factionId = 23;
-  int32 shardsToUnlock = 24;
-  repeated OfficerRank ranks = 25;
-  int64 belowDecksAbilityId = 26;
-  OfficerType officerType = 27;
-  int64 progressRewardType = 28;
-  int64 intelType = 29;
-  int64 progressRewardSchema = 30;
-  repeated int64 progressRewardSchemas = 31;
-  repeated Level levels = 32;
-  int32 modFcCooldownPercent = 33;
-  repeated int64 activatedAbilitiesIds = 34;
-  map<int64, int64> abilityUnlockResearchIds = 35;
 }
 
 message OfficerSynergyFactorSpec {
@@ -4070,21 +4219,10 @@ message Rewards {
   map<int32, Rewards> rewards = 3;
 }
 
-message PvPBandingLevel {
-  int32 lowerBand = 1;
-  int32 upperBand = 2;
-}
-
-message Requirement {
-  RequirementType type = 1;
-  int64 targetId = 2;
-  int64 level = 3;
-  RequirementParam params = 4;
-}
-
 message RequirementParam {
 oneof Params {
   NumOfficersAtTierParams numOfficersAtTierParams = 1;
+  NumArtifactsAtGivenLevelParams numArtifactsAtGivenLevelParams = 2;
 }
 
 }
@@ -4093,6 +4231,11 @@ message NumOfficersAtTierParams {
   int32 rarity = 1;
   int32 rank = 2;
   int32 amount = 3;
+}
+
+message NumArtifactsAtGivenLevelParams {
+  int32 level = 1;
+  int32 amount = 2;
 }
 
 message ResearchTreesState {
@@ -4118,11 +4261,6 @@ message ResearchProjectSpec {
   int64 viewLevel = 7;
   EntityType entityType = 8;
   int32 generation = 9;
-}
-
-message Resource {
-  int64 resourceId = 1;
-  int64 value = 2;
 }
 
 message ResourceConversionRate {
@@ -4264,6 +4402,9 @@ message ChallengeLadderSlotSpecParams {
 message ForbiddenTechSlotSpecParams {
 }
 
+message FleetPresetSpecParams {
+}
+
 message SlotSpec {
 oneof Params {
   ConsumablesSlotSpecParams consumableSlotSpecParams = 7;
@@ -4273,6 +4414,7 @@ oneof Params {
   SelectableSkillSlotSpecParams selectableSkillSlotSpecParams = 11;
   ChallengeLadderSlotSpecParams challengeLadderSlotSpecParams = 12;
   ForbiddenTechSlotSpecParams forbiddenTechSlotSpecParams = 13;
+  FleetPresetSpecParams fleetPresetSpecParams = 14;
 }
 
   int64 id = 1;
@@ -4316,37 +4458,7 @@ message ResourceHarvester {
   google.protobuf.Timestamp lastHarvest = 3;
   float currentAmount = 4;
   bool isActive = 5;
-}
-
-message StarbaseSpec {
-message Attribute {
-  int64 resourceType = 1;
-  int32 drydockFleetCountLimit = 2;
-}
-
-message Level {
-oneof Attribute {
-  int64 resourceType = 11;
-}
-
-  int64 buildTimeInSeconds = 1;
-  int64 playerXp = 2;
-  int64 hardCurrencyCost = 3;
-  repeated InventoryItem rewards = 5;
-  repeated Requirement requirements = 6;
-  repeated Resource resources = 7;
-  int64 militaryMight = 8;
-  int32 generation = 10;
-}
-
-  int64 id = 1;
-  string name = 2;
-  string type = 3;
-  int32 startingModule = 4;
-  int32 section = 5;
-  Attribute attribute = 7;
-  repeated Level levels = 8;
-  repeated int64 buffIds = 9;
+  float totalAmount = 6;
 }
 
 message TraitsSpec {
@@ -4358,11 +4470,6 @@ message TraitsSpec {
 
 message TraitCostsSpec {
   repeated Resource costs = 1;
-}
-
-message TraitCostsPerLevelSpec {
-  int64 traitId = 1;
-  map<int32, TraitCostsSpec> costsPerLevel = 2;
 }
 
 message TraitRequirementsSpec {
@@ -4485,31 +4592,6 @@ message WorkerSpec {
   int64 subtype = 19;
 }
 
-message AllianceAssignedTerritorySlot {
-enum TerritorySlotState {
-  TERRITORYSLOTSTATE_TAKEOVER = 0;
-  TERRITORYSLOTSTATE_OWNED = 1;
-}
-
-  int64 territoryId = 1;
-  TerritorySlotState state = 2;
-}
-
-message AllianceTerritorySlots {
-  int64 allianceId = 1;
-  int64 slotSize = 2;
-  map<int64, AllianceAssignedTerritorySlot> assignedSlots = 3;
-}
-
-message Territory {
-  int64 territoryId = 1;
-  repeated int64 nodeIds = 2;
-  int32 tier = 3;
-  repeated TerritoryTakeoverPeriod takeoverPeriods = 4;
-  repeated int64 neighbors = 5;
-  map<int64, int64> metadata = 9;
-}
-
 message TerritoryTakeoverPeriod {
   int32 duration = 1;
   int32 startHour = 2;
@@ -4517,25 +4599,6 @@ message TerritoryTakeoverPeriod {
   int32 region = 4;
   int32 type = 5;
   map<int64, int64> joinCosts = 6;
-}
-
-message TerritoryTakeover {
-  int64 territoryId = 1;
-  google.protobuf.Timestamp startTime = 3;
-  google.protobuf.Timestamp endTime = 4;
-  map<int64, int32> scores = 5;
-}
-
-message TerritoryOwner {
-  int64 territoryId = 1;
-  int64 ownerId = 2;
-  TerritoryOwnerVisualData visuals = 3;
-}
-
-message TerritoryOwnerVisualData {
-  int64 ownerId = 1;
-  int32 floorColour = 2;
-  int32 wallColour = 3;
 }
 
 message TerritoryServiceSpec {
@@ -4550,11 +4613,6 @@ message TerritoryServiceSpec {
 message ActiveTerritoryServiceItem {
   int64 serviceId = 1;
   map<int32, string> serviceConfig = 2;
-}
-
-message ActiveTerritoryService {
-  int64 territoryId = 1;
-  repeated ActiveTerritoryServiceItem services = 2;
 }
 
 message TerritoryServiceSlot {
@@ -4677,21 +4735,6 @@ message ScrapyardJobResponse {
   string id = 1;
 }
 
-message UserProfile {
-  string userId = 1;
-  string name = 2;
-  int32 level = 3;
-  int32 levelLastAwarded = 4;
-  uint64 xp = 5;
-  int64 allianceId = 6;
-  int32 ftueStage = 7;
-  uint64 militaryMight = 8;
-  uint64 battleRating = 9;
-  map<int64, int64> cosmetics = 10;
-  int32 gameworldId = 11;
-  bool isMentor = 12;
-}
-
 message UserProfileSettings {
   bool anonymousPurchases = 1;
   bool disabledArmadaPushNotifications = 2;
@@ -4703,6 +4746,10 @@ message UserProfilesResponse {
 
 message UserProfileSettingsResponse {
   UserProfileSettings userProfileSettings = 1;
+}
+
+message VisitedNodes {
+  repeated int64 nodes = 1;
 }
 
 message HostileWaveInfo {
@@ -4758,19 +4805,6 @@ message PlayerFleetList {
   repeated int64 fleetList = 1;
 }
 
-message WaveDefenseChallenge {
-  int64 id = 1;
-  int64 challengeId = 2;
-  int64 systemId = 3;
-  int32 totalWaves = 4;
-  int32 currentWave = 5;
-  int32 status = 6;
-  int32 centralEntityHp = 7;
-  google.protobuf.Timestamp startTime = 8;
-  map<string, PlayerFleetList> playerFleetsMap = 9;
-  string leader = 10;
-}
-
 message WaveDefenseStaticDataResponse {
   map<int64, ChallengeSpec> challenges = 1;
   map<int64, WavesSpec> waves = 2;
@@ -4789,26 +4823,6 @@ message WaveDefenseChallengeDataResponse {
   WaveDefenseChallenge waveDefenseChallenge = 1;
 }
 
-message Wormhole {
-  int64 allianceId = 1;
-  int64 systemId = 2;
-  string ownerId = 3;
-  int32 usageCount = 4;
-  int32 maxUsages = 5;
-  google.protobuf.Timestamp expirationTimestamp = 6;
-  int32 minLevel = 7;
-  int32 instanceId = 8;
-  map<int64, int32> travelCost = 9;
-}
-
 message ActiveWormholesResponse {
   repeated Wormhole wormholes = 1;
-}
-
-message OfficerRank {
-  int32 rank = 1;
-  repeated Digit.PrimeServer.Models.Resource costs = 2;
-  int32 shardsRequired = 3;
-  int32 maxLevel = 4;
-  int32 ratingFactor = 5;
 }

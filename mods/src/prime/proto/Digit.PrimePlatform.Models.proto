@@ -36,6 +36,7 @@ enum EventCategories {
   EVENTCATEGORIES_LOOPMUSEUMTASK = 24;
   EVENTCATEGORIES_PLCBPSEASON = 25;
   EVENTCATEGORIES_PLCBPEVENT = 26;
+  EVENTCATEGORIES_PROGRESSIONREWARD = 27;
 }
 
 enum JoinForbidden {
@@ -95,6 +96,7 @@ message EventHighlights {
   repeated int64 nodeIds = 2;
   repeated int64 specialIds = 3;
   string calloutAssetId = 4;
+  repeated int64 elementIds = 5;
 }
 
 message EventMetadata {
@@ -135,6 +137,9 @@ message EventMetadata {
   uint32 taskCategoryType = 35;
   Digit.PrimePlatform.Content.Resource rewardUnlockCost = 36;
   repeated int64 claimableBundleIds = 37;
+  repeated Precondition preconditions = 38;
+  bool showOnCustomTab = 39;
+  bool hiddenMilestoneReward = 40;
 }
 
 message EventModel {
@@ -203,6 +208,11 @@ message EventNotification {
   google.protobuf.Timestamp modified = 2;
   EventRank playerRank = 3;
   EventEntryData entryData = 4;
+}
+
+message Precondition {
+  string type = 1;
+  string parameter = 2;
 }
 
 message EventSegment {
