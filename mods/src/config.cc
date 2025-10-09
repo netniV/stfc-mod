@@ -439,6 +439,42 @@ void Config::Load()
     write_config = false;
   }
 
+#if _MODDBG
+  this->installUiScaleHooks     = get_config_or_default(config, parsed, "patches", "uiscalehooks", true);
+  this->installZoomHooks        = get_config_or_default(config, parsed, "patches", "zoomhooks", true);
+  this->installBuffFixHooks     = get_config_or_default(config, parsed, "patches", "bufffixhooks", true);
+  this->installToastBannerHooks = get_config_or_default(config, parsed, "patches", "toastbannerhooks", true);
+  this->installPanHooks         = get_config_or_default(config, parsed, "patches", "panhooks", true);
+  this->installImproveResponsivenessHooks =
+      get_config_or_default(config, parsed, "patches", "improveresponsivenesshooks", true);
+  this->installHotkeyHooks       = get_config_or_default(config, parsed, "patches", "hotkeyhooks", true);
+  this->installFreeResizeHooks   = get_config_or_default(config, parsed, "patches", "freeresizehooks", true);
+  this->installTempCrashFixes    = get_config_or_default(config, parsed, "patches", "tempcrashfixes", true);
+  this->installTestPatches       = get_config_or_default(config, parsed, "patches", "testpatches", true);
+  this->installMiscPatches       = get_config_or_default(config, parsed, "patches", "miscpatches", true);
+  this->installChatPatches       = get_config_or_default(config, parsed, "patches", "chatpatches", true);
+  this->installResolutionListFix = get_config_or_default(config, parsed, "patches", "resolutionlistfix", true);
+  this->installSyncPatches       = get_config_or_default(config, parsed, "patches", "syncpatches", true);
+  this->installObjectTracker     = get_config_or_default(config, parsed, "patches", "objecttracker", true);
+  spdlog::debug("");
+#else
+  this->installUiScaleHooks               = true;
+  this->installZoomHooks                  = true;
+  this->installBuffFixHooks               = true;
+  this->installToastBannerHooks           = true;
+  this->installPanHooks                   = true;
+  this->installImproveResponsivenessHooks = true;
+  this->installHotkeyHooks                = true;
+  this->installFreeResizeHooks            = true;
+  this->installTempCrashFixes             = true;
+  this->installTestPatches                = true;
+  this->installMiscPatches                = true;
+  this->installChatPatches                = true;
+  this->installResolutionListFix          = true;
+  this->installSyncPatches                = true;
+  this->installObjectTracker              = true;
+#endif
+
   this->queue_enabled       = get_config_or_default(config, parsed, "control", "queue_enabled", true);
   this->hotkeys_enabled     = get_config_or_default(config, parsed, "control", "hotkeys_enabled", true);
   this->hotkeys_extended    = get_config_or_default(config, parsed, "control", "hotkeys_extended", true);
@@ -503,11 +539,11 @@ void Config::Load()
 
   spdlog::debug("");
 
-  this->sync_debug              = get_config_or_default(config, parsed, "sync", "debug", false);
-  this->sync_logging            = get_config_or_default(config, parsed, "sync", "logging", false);
+  this->sync_debug = get_config_or_default(config, parsed, "sync", "debug", false);
+  this->sync_logging = get_config_or_default(config, parsed, "sync", "logging", false);
 
   SyncConfig sync_defaults;
-  sync_defaults.proxy      = get_config_or_default<std::string>(config, parsed, "sync", "proxy", "");
+  sync_defaults.proxy = get_config_or_default<std::string>(config, parsed, "sync", "proxy", "");
 
   for (const auto& opt : SyncOptions) {
     sync_defaults.*opt.option = get_config_or_default(config, parsed, "sync", opt.option_str, false);
