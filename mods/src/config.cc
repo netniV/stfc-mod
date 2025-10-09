@@ -500,6 +500,7 @@ void Config::Load()
   this->ui_scale_viewer     = get_config_or_default(config, parsed, "graphics", "ui_scale_viewer", 1.0f);
   this->zoom                = get_config_or_default(config, parsed, "graphics", "zoom", 2500.f);
   this->free_resize         = get_config_or_default(config, parsed, "graphics", "free_resize", true);
+  this->allow_cursor        = get_config_or_default(config, parsed, "graphics", "allow_cursor", true);
   this->keyboard_zoom_speed = get_config_or_default(config, parsed, "graphics", "keyboard_zoom_speed", 350.0f);
 
   if (this->enable_experimental) {

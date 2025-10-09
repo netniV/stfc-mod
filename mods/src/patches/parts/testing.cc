@@ -98,6 +98,15 @@ public:
   }
 };
 
+void CursorManager_SetCursor(auto original, void* _this, int cursorType)
+{
+  if (!Config::Get().allow_cursor) {
+    cursorType = 0; // default arrow cursor
+  }
+
+  return original(_this, cursorType);
+}
+
 AppConfig* Model_LoadConfigs(auto original, Model* _this)
 {
   original(_this);
@@ -138,7 +147,19 @@ bool IsQueueEnabled(auto original, void* _this)
 
 void InstallTestPatches()
 {
-  auto model = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.Core", "Model");
+  auto cursorManager = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Cursor", "CursorManager");
+  if (!cursorManager.isValidHelper()) {
+    ErrorMsg::MissingHelper("Cursor", "CursorManager");
+  } else {
+    auto cursorMethod = cursorManager.GetMethod("SetCursor");
+    if (cursorMethod == nullptr) {
+      ErrorMsg::MissingMethod("CursorManager", "SetCursor");
+    } else {
+      SPUD_STATIC_DETOUR(cursorMethod, CursorManager_SetCursor);
+    }
+  }
+
+    auto model = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.Core", "Model");
   if (!model.isValidHelper()) {
     ErrorMsg::MissingHelper("Core", "Model");
   } else {

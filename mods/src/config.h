@@ -130,6 +130,7 @@ public:
   float ui_scale_adjust;
   float ui_scale_viewer;
   float zoom;
+  bool  allow_cursor;
   bool  free_resize;
   bool  adjust_scale_res;
   bool  show_all_resolutions;

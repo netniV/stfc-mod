@@ -170,17 +170,21 @@ void ApplyPatches()
   init_il2cpp_pointers();
 #endif
 
-  printf("Got assembly %p\n", assembly);
-  try {
+  if (assembly == nullptr) {
+    spdlog::error("Failed to load GameAssembly");
+    return;
+  } else {
+    try {
 #if _WIN32
-    auto n = GetProcAddress(assembly, "il2cpp_init");
+      auto n = GetProcAddress(assembly, "il2cpp_init");
 #else
-    auto n = dlsym(assembly, "il2cpp_init");
+      auto n = dlsym(assembly, "il2cpp_init");
 #endif
-    printf("Got il2cpp_init %p\n", n);
+      printf("Got il2cpp_init %p\n", n);
 
-    SPUD_STATIC_DETOUR(n, il2cpp_init_hook);
-  } catch (...) {
-    // Failed to Apply at least some patches
+      SPUD_STATIC_DETOUR(n, il2cpp_init_hook);
+    } catch (...) {
+      // Failed to Apply at least some patches
+    }
   }
 }
