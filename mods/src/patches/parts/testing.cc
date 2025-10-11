@@ -100,12 +100,15 @@ public:
 
 void Cursor_SetCursor(auto original, void* _this, ptrdiff_t texture, Vector2* hotspot, int cursorMode)
 {
-  if (Config::Get().allow_cursor) {
-    return original(_this, texture, hotspot, cursorMode);
+#if _WIN32
+  if (!Config::Get().allow_cursor) {
+    SetCursor(LoadCursor(NULL, IDC_ARROW));
+    ClipCursor(nullptr); // free cursor from any Unity clipping
+    return;
   }
+#endif
 
-  SetCursor(LoadCursor(NULL, IDC_ARROW));
-  ClipCursor(nullptr); // free cursor from any Unity clipping
+  return original(_this, texture, hotspot, cursorMode);
 }
 
 AppConfig* Model_LoadConfigs(auto original, Model* _this)
