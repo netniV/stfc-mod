@@ -219,6 +219,21 @@ void Config::AdjustUiViewerScale(bool scaleUp)
   }
 }
 
+inline std::string mask_token(const std::string& token)
+{
+  if (token.size() > 21) {
+    std::string masked = token;
+    for (size_t i = 9; i < token.size() - 12; ++i) {
+      if (masked[i] != '-') {
+        masked[i] = '*';
+      }
+    }
+    return masked;
+  } else {
+    return token;
+  }
+}
+
 std::string get_config_type_as_string(const toml::node_type type)
 {
   switch (type) {
@@ -249,7 +264,7 @@ std::string get_config_type_as_string(const toml::node_type type)
 
 template <typename T>
 T get_config_or_default(toml::table& config, toml::table& new_config, std::string_view section, std::string_view item,
-                        T default_value)
+                        T default_value, bool write_log)
 {
   new_config.emplace<toml::table>(section, toml::table());
 
@@ -267,7 +282,9 @@ T get_config_or_default(toml::table& config, toml::table& new_config, std::strin
 
   sectionTable.as_table()->insert_or_assign(item, final_value);
 
-  spdlog::debug("config value {}.{} value: {}", section, item, final_value);
+  if (write_log) {
+    spdlog::debug("config value {}.{} value: {}", section, item, final_value);
+  }
 
   return (T)final_value;
 }
@@ -328,7 +345,7 @@ void read_sync_targets(toml::table& config, toml::table& new_config,
 
     if (sync_targets.emplace(target_key.str(), target).second) {
       new_config["sync"]["targets"].as_table()->emplace<toml::table>(target_key.str(), parsed_target);
-      spdlog::debug("config value {} url: {}, token: {}", target_section, target.url, target.token);
+      spdlog::debug("config value {} url: {}, token: {}", target_section, target.url, mask_token(target.token));
     }
   }
 }
@@ -437,6 +454,7 @@ void Config::Load()
   toml::table config;
   toml::table parsed;
   bool        write_config = false;
+  bool        write_log    = true;
   try {
     config       = std::move(toml::parse_file(File::MakePath(filename)));
     write_config = true;
@@ -444,29 +462,31 @@ void Config::Load()
     spdlog::warn("Failed to load config file, falling back to default settings: {}", e.description());
     spdlog::debug("");
     write_config = false;
+    write_log    = false;
   } catch (...) {
     spdlog::warn("Failed to load config file, falling back to default settings");
     spdlog::debug("");
     write_config = false;
+    write_log    = false;
   }
 
 #if _MODDBG
-  this->installUiScaleHooks     = get_config_or_default(config, parsed, "patches", "uiscalehooks", true);
-  this->installZoomHooks        = get_config_or_default(config, parsed, "patches", "zoomhooks", true);
-  this->installBuffFixHooks     = get_config_or_default(config, parsed, "patches", "bufffixhooks", true);
-  this->installToastBannerHooks = get_config_or_default(config, parsed, "patches", "toastbannerhooks", true);
-  this->installPanHooks         = get_config_or_default(config, parsed, "patches", "panhooks", true);
+  this->installUiScaleHooks     = get_config_or_default(config, parsed, "patches", "uiscalehooks", true, write_config);
+  this->installZoomHooks        = get_config_or_default(config, parsed, "patches", "zoomhooks", true, write_config);
+  this->installBuffFixHooks     = get_config_or_default(config, parsed, "patches", "bufffixhooks", true, write_config);
+  this->installToastBannerHooks = get_config_or_default(config, parsed, "patches", "toastbannerhooks", true, write_config);
+  this->installPanHooks         = get_config_or_default(config, parsed, "patches", "panhooks", true, write_config);
   this->installImproveResponsivenessHooks =
-      get_config_or_default(config, parsed, "patches", "improveresponsivenesshooks", true);
-  this->installHotkeyHooks       = get_config_or_default(config, parsed, "patches", "hotkeyhooks", true);
-  this->installFreeResizeHooks   = get_config_or_default(config, parsed, "patches", "freeresizehooks", true);
-  this->installTempCrashFixes    = get_config_or_default(config, parsed, "patches", "tempcrashfixes", true);
-  this->installTestPatches       = get_config_or_default(config, parsed, "patches", "testpatches", true);
-  this->installMiscPatches       = get_config_or_default(config, parsed, "patches", "miscpatches", true);
-  this->installChatPatches       = get_config_or_default(config, parsed, "patches", "chatpatches", true);
-  this->installResolutionListFix = get_config_or_default(config, parsed, "patches", "resolutionlistfix", true);
-  this->installSyncPatches       = get_config_or_default(config, parsed, "patches", "syncpatches", true);
-  this->installObjectTracker     = get_config_or_default(config, parsed, "patches", "objecttracker", true);
+      get_config_or_default(config, parsed, "patches", "improveresponsivenesshooks", true, write_log);
+  this->installHotkeyHooks       = get_config_or_default(config, parsed, "patches", "hotkeyhooks", true, write_config);
+  this->installFreeResizeHooks   = get_config_or_default(config, parsed, "patches", "freeresizehooks", true, write_config);
+  this->installTempCrashFixes    = get_config_or_default(config, parsed, "patches", "tempcrashfixes", true, write_config);
+  this->installTestPatches       = get_config_or_default(config, parsed, "patches", "testpatches", true, write_config);
+  this->installMiscPatches       = get_config_or_default(config, parsed, "patches", "miscpatches", true, write_config);
+  this->installChatPatches       = get_config_or_default(config, parsed, "patches", "chatpatches", true, write_config);
+  this->installResolutionListFix = get_config_or_default(config, parsed, "patches", "resolutionlistfix", true, write_config);
+  this->installSyncPatches       = get_config_or_default(config, parsed, "patches", "syncpatches", true, write_config);
+  this->installObjectTracker     = get_config_or_default(config, parsed, "patches", "objecttracker", true, write_config);
   spdlog::debug("");
 #else
   this->installUiScaleHooks               = true;
@@ -486,81 +506,81 @@ void Config::Load()
   this->installObjectTracker              = true;
 #endif
 
-  this->queue_enabled       = get_config_or_default(config, parsed, "control", "queue_enabled", true);
-  this->hotkeys_enabled     = get_config_or_default(config, parsed, "control", "hotkeys_enabled", true);
-  this->hotkeys_extended    = get_config_or_default(config, parsed, "control", "hotkeys_extended", true);
-  this->use_scopely_hotkeys = get_config_or_default(config, parsed, "control", "use_scopely_hotkeys", false);
-  this->select_timer        = get_config_or_default(config, parsed, "control", "select_timer", 500);
-  this->enable_experimental = get_config_or_default(config, parsed, "control", "enable_experimental", false);
+  this->queue_enabled       = get_config_or_default(config, parsed, "control", "queue_enabled", true, write_config);
+  this->hotkeys_enabled     = get_config_or_default(config, parsed, "control", "hotkeys_enabled", true, write_config);
+  this->hotkeys_extended    = get_config_or_default(config, parsed, "control", "hotkeys_extended", true, write_config);
+  this->use_scopely_hotkeys = get_config_or_default(config, parsed, "control", "use_scopely_hotkeys", false, write_config);
+  this->select_timer        = get_config_or_default(config, parsed, "control", "select_timer", 500, write_config);
+  this->enable_experimental = get_config_or_default(config, parsed, "control", "enable_experimental", false, write_config);
 
   spdlog::debug("");
 
-  this->ui_scale            = get_config_or_default(config, parsed, "graphics", "ui_scale", 0.9f);
-  this->ui_scale_adjust     = get_config_or_default(config, parsed, "graphics", "ui_scale_adjust", 0.05f);
-  this->ui_scale_viewer     = get_config_or_default(config, parsed, "graphics", "ui_scale_viewer", 1.0f);
-  this->zoom                = get_config_or_default(config, parsed, "graphics", "zoom", 2500.f);
-  this->free_resize         = get_config_or_default(config, parsed, "graphics", "free_resize", true);
-  this->allow_cursor        = get_config_or_default(config, parsed, "graphics", "allow_cursor", true);
-  this->keyboard_zoom_speed = get_config_or_default(config, parsed, "graphics", "keyboard_zoom_speed", 350.0f);
+  this->ui_scale            = get_config_or_default(config, parsed, "graphics", "ui_scale", 0.9f, write_config);
+  this->ui_scale_adjust     = get_config_or_default(config, parsed, "graphics", "ui_scale_adjust", 0.05f, write_config);
+  this->ui_scale_viewer     = get_config_or_default(config, parsed, "graphics", "ui_scale_viewer", 1.0f, write_config);
+  this->zoom                = get_config_or_default(config, parsed, "graphics", "zoom", 2500.f, write_config);
+  this->free_resize         = get_config_or_default(config, parsed, "graphics", "free_resize", true, write_config);
+  this->allow_cursor        = get_config_or_default(config, parsed, "graphics", "allow_cursor", true, write_config);
+  this->keyboard_zoom_speed = get_config_or_default(config, parsed, "graphics", "keyboard_zoom_speed", 350.0f, write_config);
 
   if (this->enable_experimental) {
-    this->system_pan_momentum = get_config_or_default(config, parsed, "graphics", "system_pan_momentum", 0.2f);
+    this->system_pan_momentum = get_config_or_default(config, parsed, "graphics", "system_pan_momentum", 0.2f, write_config);
   }
 
   spdlog::debug("");
 
   this->system_pan_momentum_falloff =
-      get_config_or_default(config, parsed, "graphics", "system_pan_momentum_falloff", 0.8f);
+      get_config_or_default(config, parsed, "graphics", "system_pan_momentum_falloff", 0.8f, write_log);
   this->borderless_fullscreen_f11 =
-      get_config_or_default(config, parsed, "graphics", "borderless_fullscreen_f11", true);
-  this->transition_time      = get_config_or_default(config, parsed, "graphics", "transition_time", 0.01f);
-  this->show_all_resolutions = get_config_or_default(config, parsed, "graphics", "show_all_resolutions", false);
-  this->default_system_zoom  = get_config_or_default(config, parsed, "graphics", "default_system_zoom", 0.0f);
+      get_config_or_default(config, parsed, "graphics", "borderless_fullscreen_f11", true, write_log);
+  this->transition_time      = get_config_or_default(config, parsed, "graphics", "transition_time", 0.01f, write_config);
+  this->show_all_resolutions = get_config_or_default(config, parsed, "graphics", "show_all_resolutions", false, write_config);
+  this->default_system_zoom  = get_config_or_default(config, parsed, "graphics", "default_system_zoom", 0.0f, write_config);
 
   spdlog::debug("");
 
-  this->system_zoom_preset_1   = get_config_or_default(config, parsed, "graphics", "system_zoom_preset_1", 0.0f);
-  this->system_zoom_preset_2   = get_config_or_default(config, parsed, "graphics", "system_zoom_preset_2", 0.0f);
-  this->system_zoom_preset_3   = get_config_or_default(config, parsed, "graphics", "system_zoom_preset_3", 0.0f);
-  this->system_zoom_preset_4   = get_config_or_default(config, parsed, "graphics", "system_zoom_preset_4", 0.0f);
-  this->system_zoom_preset_5   = get_config_or_default(config, parsed, "graphics", "system_zoom_preset_5", 0.0f);
-  this->use_presets_as_default = get_config_or_default(config, parsed, "graphics", "use_presets_as_default", false);
+  this->system_zoom_preset_1   = get_config_or_default(config, parsed, "graphics", "system_zoom_preset_1", 0.0f, write_config);
+  this->system_zoom_preset_2   = get_config_or_default(config, parsed, "graphics", "system_zoom_preset_2", 0.0f, write_config);
+  this->system_zoom_preset_3   = get_config_or_default(config, parsed, "graphics", "system_zoom_preset_3", 0.0f, write_config);
+  this->system_zoom_preset_4   = get_config_or_default(config, parsed, "graphics", "system_zoom_preset_4", 0.0f, write_config);
+  this->system_zoom_preset_5   = get_config_or_default(config, parsed, "graphics", "system_zoom_preset_5", 0.0f, write_config);
+  this->use_presets_as_default = get_config_or_default(config, parsed, "graphics", "use_presets_as_default", false, write_config);
 
   spdlog::debug("");
 
-  this->use_out_of_dock_power = get_config_or_default(config, parsed, "buffs", "use_out_of_dock_power", false);
+  this->use_out_of_dock_power = get_config_or_default(config, parsed, "buffs", "use_out_of_dock_power", false, write_config);
 
   spdlog::debug("");
 
-  this->disable_escape_exit    = get_config_or_default(config, parsed, "ui", "disable_escape_exit", false);
-  this->disable_preview_locate = get_config_or_default(config, parsed, "ui", "disable_preview_locate", false);
-  this->disable_preview_recall = get_config_or_default(config, parsed, "ui", "disable_preview_recall", false);
-  this->disable_first_popup    = get_config_or_default(config, parsed, "ui", "disable_first_popup", false);
-  this->disable_move_keys      = get_config_or_default(config, parsed, "ui", "disable_move_keys", false);
-  this->disable_toast_banners  = get_config_or_default(config, parsed, "ui", "disable_toast_banners", true);
-  this->extend_donation_slider = get_config_or_default(config, parsed, "ui", "extend_donation_slider", false);
-  this->extend_donation_max    = get_config_or_default(config, parsed, "ui", "extend_donation_max", 0);
-  this->disable_galaxy_chat    = get_config_or_default(config, parsed, "ui", "disable_galaxy_chat", false);
-  this->disable_veil_chat      = get_config_or_default(config, parsed, "ui", "disable_veil_chat", false);
-  this->show_cargo_default     = get_config_or_default(config, parsed, "ui", "show_cargo_default", false);
-  this->show_player_cargo      = get_config_or_default(config, parsed, "ui", "show_player_cargo", false);
-  this->show_station_cargo     = get_config_or_default(config, parsed, "ui", "show_station_cargo", true);
-  this->show_hostile_cargo     = get_config_or_default(config, parsed, "ui", "show_hostile_cargo", true);
-  this->show_armada_cargo      = get_config_or_default(config, parsed, "ui", "show_armada_cargo", true);
+  this->disable_escape_exit    = get_config_or_default(config, parsed, "ui", "disable_escape_exit", false, write_config);
+  this->disable_preview_locate = get_config_or_default(config, parsed, "ui", "disable_preview_locate", false, write_config);
+  this->disable_preview_recall = get_config_or_default(config, parsed, "ui", "disable_preview_recall", false, write_config);
+  this->disable_first_popup    = get_config_or_default(config, parsed, "ui", "disable_first_popup", false, write_config);
+  this->disable_move_keys      = get_config_or_default(config, parsed, "ui", "disable_move_keys", false, write_config);
+  this->disable_toast_banners  = get_config_or_default(config, parsed, "ui", "disable_toast_banners", true, write_config);
+  this->extend_donation_slider = get_config_or_default(config, parsed, "ui", "extend_donation_slider", false, write_config);
+  this->extend_donation_max    = get_config_or_default(config, parsed, "ui", "extend_donation_max", 0, write_config);
+  this->disable_galaxy_chat    = get_config_or_default(config, parsed, "ui", "disable_galaxy_chat", false, write_config);
+  this->disable_veil_chat      = get_config_or_default(config, parsed, "ui", "disable_veil_chat", false, write_config);
+  this->show_cargo_default     = get_config_or_default(config, parsed, "ui", "show_cargo_default", false, write_config);
+  this->show_player_cargo      = get_config_or_default(config, parsed, "ui", "show_player_cargo", false, write_config);
+  this->show_station_cargo     = get_config_or_default(config, parsed, "ui", "show_station_cargo", true, write_config);
+  this->show_hostile_cargo     = get_config_or_default(config, parsed, "ui", "show_hostile_cargo", true, write_config);
+  this->show_armada_cargo      = get_config_or_default(config, parsed, "ui", "show_armada_cargo", true, write_config);
 
-  this->always_skip_reveal_sequence = get_config_or_default(config, parsed, "ui", "always_skip_reveal_sequence", false);
+  this->always_skip_reveal_sequence = get_config_or_default(config, parsed, "ui", "always_skip_reveal_sequence", false, write_config);
 
   spdlog::debug("");
 
-  this->sync_debug              = get_config_or_default(config, parsed, "sync", "debug", false);
-  this->sync_logging            = get_config_or_default(config, parsed, "sync", "logging", false);
-  this->sync_resolver_cache_ttl = get_config_or_default(config, parsed, "sync", "resolver_cache_ttl", 300);
+  this->sync_debug              = get_config_or_default(config, parsed, "sync", "debug", false, write_config);
+  this->sync_logging            = get_config_or_default(config, parsed, "sync", "logging", false, write_config);
+  this->sync_resolver_cache_ttl = get_config_or_default(config, parsed, "sync", "resolver_cache_ttl", 300, write_config);
 
   SyncConfig sync_defaults;
-  sync_defaults.proxy = get_config_or_default<std::string>(config, parsed, "sync", "proxy", "");
+  sync_defaults.proxy = get_config_or_default<std::string>(config, parsed, "sync", "proxy", "", write_log);
 
   for (const auto& opt : SyncOptions) {
-    sync_defaults.*opt.option = get_config_or_default(config, parsed, "sync", opt.option_str, false);
+    sync_defaults.*opt.option = get_config_or_default(config, parsed, "sync", opt.option_str, false, write_config);
   }
 
   spdlog::debug("");
@@ -609,11 +629,12 @@ void Config::Load()
 
   // must explicitly include std::string typing here, or we get back char * which fails us!
   auto disabled_banner_types_str =
-      get_config_or_default<std::string>(config, parsed, "ui", "disabled_banner_types", "");
+      get_config_or_default<std::string>(config, parsed, "ui", "disabled_banner_types", "", write_log);
 
-  this->config_settings_url = get_config_or_default<std::string>(config, parsed, "config", "settings_url", "");
+  this->config_settings_url =
+      get_config_or_default<std::string>(config, parsed, "config", "settings_url", "", write_log);
   this->config_assets_url_override =
-      get_config_or_default<std::string>(config, parsed, "config", "assets_url_override", "");
+      get_config_or_default<std::string>(config, parsed, "config", "assets_url_override", "", write_log);
 
   std::vector<std::string> types = StrSplit(disabled_banner_types_str, ',');
 

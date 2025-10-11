@@ -98,13 +98,14 @@ public:
   }
 };
 
-void CursorManager_SetCursor(auto original, void* _this, int cursorType)
+void Cursor_SetCursor(auto original, void* _this, ptrdiff_t texture, Vector2* hotspot, int cursorMode)
 {
-  if (!Config::Get().allow_cursor) {
-    cursorType = 0; // default arrow cursor
+  if (Config::Get().allow_cursor) {
+    return original(_this, texture, hotspot, cursorMode);
   }
 
-  return original(_this, cursorType);
+  SetCursor(LoadCursor(NULL, IDC_ARROW));
+  ClipCursor(nullptr); // free cursor from any Unity clipping
 }
 
 AppConfig* Model_LoadConfigs(auto original, Model* _this)
@@ -147,19 +148,19 @@ bool IsQueueEnabled(auto original, void* _this)
 
 void InstallTestPatches()
 {
-  auto cursorManager = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Cursor", "CursorManager");
+  auto cursorManager = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "Cursor");
   if (!cursorManager.isValidHelper()) {
-    ErrorMsg::MissingHelper("Cursor", "CursorManager");
+    ErrorMsg::MissingHelper("UnityEngine", "Cursor");
   } else {
-    auto cursorMethod = cursorManager.GetMethod("SetCursor");
+    auto cursorMethod = cursorManager.GetMethod("SetCursor_Injected");
     if (cursorMethod == nullptr) {
-      ErrorMsg::MissingMethod("CursorManager", "SetCursor");
+      ErrorMsg::MissingMethod("Cursor", "SetCursor_Injected");
     } else {
-      SPUD_STATIC_DETOUR(cursorMethod, CursorManager_SetCursor);
+      SPUD_STATIC_DETOUR(cursorMethod, Cursor_SetCursor);
     }
   }
 
-    auto model = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.Core", "Model");
+  auto model = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.Core", "Model");
   if (!model.isValidHelper()) {
     ErrorMsg::MissingHelper("Core", "Model");
   } else {

@@ -16,6 +16,7 @@
 ### Features
 
 - Added support for macOS
+- Added documentation for Wine and also for Mac
 - Added maximum donation for alliance sliders
 - Added `ui_scale_viewer` to scale the size of object viewers
 - Added `select_current` hotkey to locate currently selected ship in dock
@@ -25,6 +26,8 @@
 - Added prefix to title when using `-ccm` command line option to show which is being used [windows only]
 - Added `select_timer` to adjust period in which double tap ship selection works [default 500ms]
 - Added suppression of first message notification
+- Added `disable_veil_chat` to disable the veil chat tab
+
 - Updated sync methods to:
   - allow multi-targets
   - better handle errors
@@ -36,6 +39,7 @@
 
 ### Fixes
 
+- Fixed various unity engine upgrades causing issues
 - Fixed `ui_scale` or `ui_scale_viewer` so when set to 0.0f disable those scaling features
 - Fixed `zoom_min` and `zoom_max` no longer set default system zoom (only presets can)
 - Fixed numerous method hooks to report when they are not found rather than crash

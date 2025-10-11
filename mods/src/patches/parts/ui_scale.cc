@@ -17,6 +17,14 @@ void ScreenManager_UpdateCanvasRootScaleFactor_Hook(auto original, ScreenManager
 {
   original(_this);
 
+  #if _WIN32
+  static auto cursor = LoadCursor(NULL, IDC_ARROW);
+  if (!Config::Get().allow_cursor) {
+    SetCursor(cursor);
+    ClipCursor(nullptr); // free cursor from any Unity clipping
+  }
+  #endif
+
   if (Config::Get().ui_scale != 0.0f) {
     static auto get_height_method = il2cpp_resolve_icall_typed<int()>("UnityEngine.Screen::get_height()");
     static auto get_width_method  = il2cpp_resolve_icall_typed<int()>("UnityEngine.Screen::get_width()");
