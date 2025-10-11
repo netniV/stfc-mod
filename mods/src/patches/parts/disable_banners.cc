@@ -11,39 +11,37 @@ struct ToastObserver {
 
 void ToastObserver_EnqueueToast_Hook(auto original, ToastObserver *_this, Toast *toast)
 {
-  if (std::find(Config::Get().disabled_banner_types.begin(), Config::Get().disabled_banner_types.end(),
-                toast->get_State())
+  if (std::ranges::find(Config::Get().disabled_banner_types, toast->get_State())
       != Config::Get().disabled_banner_types.end()) {
     return;
   }
+
   original(_this, toast);
 }
 
 void ToastObserver_EnqueueOrCombineToast_Hook(auto original, ToastObserver *_this, Toast *toast, uintptr_t cmpAction)
 {
-  if (std::find(Config::Get().disabled_banner_types.begin(), Config::Get().disabled_banner_types.end(),
-                toast->get_State())
+  if (std::ranges::find(Config::Get().disabled_banner_types, toast->get_State())
       != Config::Get().disabled_banner_types.end()) {
     return;
   }
+
   original(_this, toast, cmpAction);
 }
 
 void InstallToastBannerHooks()
 {
-  auto helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.HUD", "ToastObserver");
-  if (!helper.isValidHelper()) {
+  if (auto helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.HUD", "ToastObserver");
+      !helper.isValidHelper()) {
     ErrorMsg::MissingHelper("HUD", "ToastObserver");
   } else {
-    auto ptr = helper.GetMethod("EnqueueToast");
-    if (ptr == nullptr) {
-      ErrorMsg::MissingMethod("ToastObserver", "EnqueueTosat");
+    if (const auto ptr = helper.GetMethod("EnqueueToast"); ptr == nullptr) {
+      ErrorMsg::MissingMethod("ToastObserver", "EnqueueToast");
     } else {
       SPUD_STATIC_DETOUR(ptr, ToastObserver_EnqueueToast_Hook);
     }
 
-    ptr = helper.GetMethod("EnqueueOrCombineToast");
-    if (ptr == nullptr) {
+    if (const auto ptr = helper.GetMethod("EnqueueOrCombineToast"); ptr == nullptr) {
       ErrorMsg::MissingMethod("ToastObserver", "EnqueueOrCombineToast");
     } else {
       SPUD_STATIC_DETOUR(ptr, ToastObserver_EnqueueOrCombineToast_Hook);

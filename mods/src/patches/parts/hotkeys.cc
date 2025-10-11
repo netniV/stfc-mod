@@ -1,5 +1,4 @@
 #include "config.h"
-#include "prime_types.h"
 
 #include <spud/detour.h>
 
@@ -14,7 +13,6 @@
 #include "prime/StarNodeObjectViewerWidget.h"
 
 #include "prime/ActionQueueManager.h"
-#include "prime/ActionRequirement.h"
 #include "prime/AnimatedRewardsScreenViewController.h"
 #include "prime/BookmarksManager.h"
 #include "prime/ChatManager.h"
@@ -30,14 +28,11 @@
 #include "prime/NavigationSectionManager.h"
 #include "prime/PreScanTargetWidget.h"
 #include "prime/ScanEngageButtonsWidget.h"
-#include "prime/ScanTargetViewController.h"
-#include "prime/SceneManager.h"
 #include "prime/ScreenManager.h"
 
 #include "patches/key.h"
 #include "patches/mapkey.h"
 
-#include <EASTL/unordered_map.h>
 #include <EASTL/vector.h>
 
 #include <iostream>

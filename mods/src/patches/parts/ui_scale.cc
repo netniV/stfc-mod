@@ -91,7 +91,7 @@ void InstallUiScaleHooks()
     });
 
     if (ptr_canvas_show == nullptr) {
-      ErrorMsg::MissingMethod("CanvasContrller", "Show");
+      ErrorMsg::MissingMethod("CanvasController", "Show");
     } else {
       SPUD_STATIC_DETOUR(ptr_canvas_show, CanvasController_Show);
     }
