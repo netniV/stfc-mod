@@ -6,24 +6,24 @@
 
 #include "MonoSingleton.h"
 
-enum class ChatChannelCategory // TypeDefIndex: 11600
-{
+enum class ChatChannelCategory : int32_t {
   None            = -1,
   Newbie          = 0,
   Global          = 1,
   Alliance        = 2,
   Private         = 3,
   Private_Message = 4,
-  Block           = 5
+  Block           = 5,
+  Regional        = 6,
 };
 
-enum class ChatViewMode {
-  Fullscreen,
-  Side,
+enum class ChatViewMode : int32_t {
+  Fullscreen = 0,
+  Side       = 1,
 };
 
 struct ChatManager : MonoSingleton<ChatManager> {
-  friend struct MonoSingleton<ChatManager>;
+  friend struct MonoSingleton;
 
 public:
   __declspec(property(get = __get_IsSideChatAllowed)) bool IsSideChatAllowed;
@@ -49,6 +49,40 @@ public:
     this->OpenChannel(category);
   }
 
+  bool CanSeeNewbieChat()
+  {
+    static auto CanSeeNewbieChatMethod = get_class_helper().GetMethod<bool(ChatManager*)>("CanSeeNewbieChat");
+    static auto CanSeeNewbieChatWarn = true;
+
+    if (CanSeeNewbieChatMethod != nullptr) {
+      return CanSeeNewbieChatMethod(this);
+    }
+
+    if (CanSeeNewbieChatWarn) {
+      CanSeeNewbieChatWarn = false;
+      ErrorMsg::MissingMethod("ChatManager", "CanSeeNewbieChat");
+    }
+
+    return false;
+  }
+
+  bool CanSeeRegionalChat()
+  {
+    static auto CanSeeRegionalChatMethod = get_class_helper().GetMethod<bool(ChatManager*)>("CanSeeRegionalChat");
+    static auto CanSeeRegionalChatWarn = true;
+
+    if (CanSeeRegionalChatMethod != nullptr) {
+      return CanSeeRegionalChatMethod(this);
+    }
+
+    if (CanSeeRegionalChatWarn) {
+      CanSeeRegionalChatWarn = false;
+      ErrorMsg::MissingMethod("ChatManager", "CanSeeRegionalChat");
+    }
+
+    return false;
+  }
+
 public:
   static IL2CppClassHelper& get_class_helper()
   {
@@ -56,7 +90,6 @@ public:
     return class_helper;
   }
 
-  //
   bool __get_IsSideChatAllowed()
   {
     static auto field = get_class_helper().GetProperty("IsSideChatAllowed");
@@ -74,6 +107,7 @@ public:
     static auto field = get_class_helper().GetProperty("ViewMode");
     return *field.Get<ChatViewMode>(this);
   }
+
   void __set_ViewMode(ChatViewMode v)
   {
     static auto field = get_class_helper().GetProperty("ViewMode");

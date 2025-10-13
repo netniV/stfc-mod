@@ -10,7 +10,6 @@ public:
     static auto        parent = helper.GetParent("MonoSingleton`1");
     auto               p      = parent.GetProperty("Instance");
     auto               p2     = p.GetRaw<T>(nullptr);
-    p2                        = p2;
 
     // Il2CppClassPointerStore<MonoSingleton<T>>.NativeClassPtr =
     // (__Null)IL2CPP.il2cpp_class_from_type(Il2CppSystem.Type.internal_from_handle(IL2CPP.il2cpp_class_get_type(IL2CPP.GetIl2CppClass("Assembly-CSharp.dll",

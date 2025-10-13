@@ -4,7 +4,7 @@
 
 #include <il2cpp/il2cpp_helper.h>
 
-enum PanelState { Global = 0, Alliance = 1 };
+#include "ChatManager.h"
 
 class SwipeScroller
 {
@@ -19,18 +19,16 @@ public:
       FocusOnInstantlyMethod(this, index);
     } else if (FocusOnInstantlyWarn) {
       FocusOnInstantlyWarn = false;
-      ErrorMsg::MissingMethod("SwipeSCroller", "FocusOnInstantly");
+      ErrorMsg::MissingMethod("SwipeScroller", "FocusOnInstantly");
     }
   }
 
-public:
   static IL2CppClassHelper& get_class_helper()
   {
     static auto class_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.UI", "SwipeScroller");
     return class_helper;
   }
 
-public:
   int32_t __get__currentContentIndex()
   {
     static auto field = get_class_helper().GetField("_currentContentIndex");
@@ -43,16 +41,14 @@ class ChatPreviewController
 public:
   __declspec(property(get = __get__panelIndicators)) Il2CppArray* _panelIndicators;
   __declspec(property(get = __get__swipeScroller)) SwipeScroller* _swipeScroller;
-  __declspec(property(get = __get__focusedPanel, put = __set__focusedPanel)) PanelState _focusedPanel;
+  __declspec(property(get = __get__focusedPanel, put = __set__focusedPanel)) ChatChannelCategory _focusedPanel;
 
-public:
   static IL2CppClassHelper& get_class_helper()
   {
     static auto class_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Chat", "ChatPreviewController");
     return class_helper;
   }
 
-public:
   Il2CppArray* __get__panelIndicators()
   {
     static auto field = get_class_helper().GetField("_panelIndicators");
@@ -65,15 +61,15 @@ public:
     return *(SwipeScroller**)((ptrdiff_t)this + field.offset());
   }
 
-  PanelState __get__focusedPanel()
+  ChatChannelCategory __get__focusedPanel()
   {
     static auto field = get_class_helper().GetField("_focusedPanel");
-    return *(PanelState*)((ptrdiff_t)this + field.offset());
+    return *(ChatChannelCategory*)((ptrdiff_t)this + field.offset());
   }
 
-  void __set__focusedPanel(PanelState v)
+  void __set__focusedPanel(ChatChannelCategory v)
   {
-    static auto field                                = get_class_helper().GetField("_focusedPanel");
-    *(PanelState*)((ptrdiff_t)this + field.offset()) = v;
+    static auto field                                         = get_class_helper().GetField("_focusedPanel");
+    *(ChatChannelCategory*)((ptrdiff_t)this + field.offset()) = v;
   }
 };
