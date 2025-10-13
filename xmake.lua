@@ -11,7 +11,7 @@ add_requires("nlohmann_json")
 add_requires("cpr")
 add_requireconfs("cpr.libcurl", { configs = { zlib = true } })
 add_requires("boost", { configs = { url = true } })
-add_requires("protobuf-cpp")
+add_requires("protobuf 32.1")
 
 if is_plat("windows") then
     includes("win-proxy-dll")
