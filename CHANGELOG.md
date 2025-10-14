@@ -18,15 +18,17 @@
 - Added support for macOS
 - Added documentation for Wine and also for Mac
 - Added maximum donation for alliance sliders
-- Added `ui_scale_viewer` to scale the size of object viewers
-- Added `select_current` hotkey to locate currently selected ship in dock
-- Added `UiViewerScaleUp` and `UiViewerScaleDown` hotkeys to scale `ui_scale_viewer` in game
-- Added `toggle_queue`, `action_queue` and `action_queue_cancel` for Kir'Shara artifact handling
-- Added `action_quit` for instant game exit
 - Added prefix to title when using `-ccm` command line option to show which is being used [windows only]
-- Added `select_timer` to adjust period in which double tap ship selection works [default 500ms]
 - Added suppression of first message notification
-- Added `disable_veil_chat` to disable the veil chat tab
+
+- Added new configuration options:
+  - `ui_scale_viewer` to scale the size of object viewers
+  - `select_current` hotkey to locate currently selected ship in dock
+  - `UiViewerScaleUp` and `UiViewerScaleDown` hotkeys to scale `ui_scale_viewer` in game
+  - `toggle_queue`, `action_queue` and `action_queue_cancel` for Kir'Shara artifact handling
+  - `action_quit` for instant game exit
+  - `select_timer` to adjust period in which double tap ship selection works [default 500ms]
+  - `disable_veil_chat` to disable the veil chat tab
 
 - Updated sync methods to:
   - allow multi-targets
