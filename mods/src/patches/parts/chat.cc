@@ -6,54 +6,83 @@
 #include "errormsg.h"
 
 #include <spud/detour.h>
+#include <tuple>
+
+auto GetChatTabIndices()
+{
+  if (const auto chat_manager = ChatManager::Instance(); chat_manager) {
+    const auto hasCadetChat    = chat_manager->CanSeeNewbieChat();
+    const auto hasVeilChat     = chat_manager->CanSeeRegionalChat();
+
+    const auto galaxyChatIndex = 0 + (hasCadetChat ? 1 : 0);
+    const auto veilChatIndex   = galaxyChatIndex + 1;
+    const auto allianceChatIndex = (hasCadetChat ? 1 : 0) + 1 + (hasVeilChat ? 1 : 0);
+
+    return std::make_tuple(hasCadetChat ? 0 : -1, galaxyChatIndex, hasVeilChat ? veilChatIndex : -1, allianceChatIndex);
+  }
+
+  return std::make_tuple(-1, 0, -1, 1);
+}
+
+void DisableButtons(FullScreenChatViewController* _this)
+{
+  const auto disableGalaxyChat = Config::Get().disable_galaxy_chat;
+  const auto disableVeilChat = Config::Get().disable_veil_chat;
+
+  if (!(disableGalaxyChat || disableVeilChat))
+    return;
+
+  const auto [cadetChatIdx, galaxyChatIdx, veilChatIdx, allianceChatIdx] = GetChatTabIndices();
+
+  const auto viewController = _this->_categoriesTabBarViewController;
+  if (!viewController) {
+    return;
+  }
+
+  const auto tabBar = viewController->_tabBar;
+  if (!tabBar) {
+    return;
+  }
+
+  if (const auto list = tabBar->_listContainer; !list) {
+    return;
+  }
+
+  const auto listData = tabBar->_data;
+  if (!listData) {
+    return;
+  }
+
+  if (disableGalaxyChat) {
+    if (const auto elm = listData->Get(galaxyChatIdx)) {
+      const auto button = reinterpret_cast<GenericButtonContext*>(elm);
+      button->Interactable = false;
+    }
+  }
+
+  if (disableVeilChat && veilChatIdx != -1) {
+    if (const auto elm = listData->Get(veilChatIdx)) {
+      const auto button = reinterpret_cast<GenericButtonContext*>(elm);
+      button->Interactable = false;
+    }
+  }
+}
 
 void FullScreenChatViewController_AboutToShow(auto original, FullScreenChatViewController* _this)
 {
   original(_this);
+  DisableButtons(_this);
+}
 
-  const auto disable_server = Config::Get().disable_galaxy_chat;
-  const auto disable_regional = Config::Get().disable_veil_chat;
-
-  if (!(disable_server || disable_regional))
+void FullScreenChatViewController_OnDidChangeSelectedTab(auto original, FullScreenChatViewController* _this, int32_t tabIdx, void* tab)
+{
+  const auto [cadetChatIdx, galaxyChatIdx, veilChatIdx, allianceChatIdx] = GetChatTabIndices();
+  if ((tabIdx == galaxyChatIdx && Config::Get().disable_galaxy_chat) || (tabIdx == veilChatIdx && Config::Get().disable_veil_chat)) {
+    // don't show disabled chats if the associated tab was selected
     return;
-
-  if (const auto chat_manager = ChatManager::Instance(); chat_manager) {
-    const auto hasCadetChat    = chat_manager->CanSeeNewbieChat();
-    const auto hasVeilChat     = chat_manager->CanSeeRegionalChat();
-    const auto galaxyChatIndex = 0 + (hasCadetChat ? 1 : 0);
-    const auto veilChatIndex   = galaxyChatIndex + 1;
-
-    const auto viewController = _this->_categoriesTabBarViewController;
-    if (!viewController) {
-      return;
-    }
-
-    const auto tabBar = viewController->_tabBar;
-    if (!tabBar) {
-      return;
-    }
-
-    if (const auto list = tabBar->_listContainer; !list) {
-      return;
-    }
-
-    const auto listData = tabBar->_data;
-    if (!listData) {
-      return;
-    }
-
-    if (disable_server) {
-      if (const auto elm = listData->Get(galaxyChatIndex)) {
-        reinterpret_cast<GenericButtonContext*>(elm)->Interactable = false;
-      }
-    }
-
-    if (disable_regional && hasVeilChat) {
-      if (const auto elm = listData->Get(veilChatIndex)) {
-        reinterpret_cast<GenericButtonContext*>(elm)->Interactable = false;
-      }
-    }
   }
+
+  original(_this, tabIdx, tab);
 }
 
 void ChatPreviewController_AboutToShow(auto original, ChatPreviewController* _this)
@@ -61,44 +90,35 @@ void ChatPreviewController_AboutToShow(auto original, ChatPreviewController* _th
   original(_this);
 
   if (Config::Get().disable_galaxy_chat || Config::Get().disable_veil_chat) {
-    if (const auto chat_manager = ChatManager::Instance(); chat_manager) {
-      const auto hasCadetChat      = chat_manager->CanSeeNewbieChat();
-      const auto hasVeilChat       = chat_manager->CanSeeRegionalChat();
-      const auto allianceChatIndex = (hasCadetChat ? 1 : 0) + 1 + (hasVeilChat ? 1 : 0);
+    const auto allianceChatIdx = std::get<3>(GetChatTabIndices());
+    _this->_focusedPanel       = ChatChannelCategory::Alliance;
 
-      _this->_focusedPanel = ChatChannelCategory::Alliance;
-      if (_this->_swipeScroller->_currentContentIndex != allianceChatIndex) {
-        _this->_swipeScroller->FocusOnInstantly(allianceChatIndex);
-      }
+    if (_this->_swipeScroller->_currentContentIndex != allianceChatIdx) {
+      _this->_swipeScroller->FocusOnInstantly(allianceChatIdx);
     }
   }
 }
 
 void ChatPreviewController_OnPanelFocused(auto original, ChatPreviewController* _this, int32_t index)
 {
-  const auto disable_server = Config::Get().disable_galaxy_chat;
-  const auto disable_regional = Config::Get().disable_veil_chat;
+  static const auto disableGalaxyChat = Config::Get().disable_galaxy_chat;
+  static const auto disableVeilChat   = Config::Get().disable_veil_chat;
 
-  if (!(disable_server || disable_regional)) {
+  if (!(disableGalaxyChat || disableVeilChat)) {
     original(_this, index);
     return;
   }
 
-  if (const auto chat_manager = ChatManager::Instance(); chat_manager) {
-    const auto hasCadetChat      = chat_manager->CanSeeNewbieChat();
-    const auto hasVeilChat       = chat_manager->CanSeeRegionalChat();
-    const auto allianceChatIndex = (hasCadetChat ? 1 : 0) + 1 + (hasVeilChat ? 1 : 0);
+  const auto [cadetChatIdx, galaxyChatIdx, veilChatIdx, allianceChatIdx] = GetChatTabIndices();
+  if (disableGalaxyChat || (veilChatIdx != -1 && disableVeilChat)) {
+    _this->_focusedPanel = ChatChannelCategory::Alliance;
+    original(_this, allianceChatIdx);
 
-    if (disable_server || hasVeilChat && disable_regional) {
-      _this->_focusedPanel = ChatChannelCategory::Alliance;
-      original(_this, allianceChatIndex);
-
-      if (_this->_swipeScroller->_currentContentIndex != allianceChatIndex) {
-        _this->_swipeScroller->FocusOnInstantly(allianceChatIndex);
-      }
-
-      return;
+    if (_this->_swipeScroller->_currentContentIndex != allianceChatIdx) {
+      _this->_swipeScroller->FocusOnInstantly(allianceChatIdx);
     }
+
+    return;
   }
 
   original(_this, index);
@@ -130,8 +150,13 @@ void InstallChatPatches()
     if (const auto ptr = fullscreen_controller.GetMethod("AboutToShow"); ptr == nullptr) {
       ErrorMsg::MissingMethod("FullScreenChatViewController", "AboutToShow");
     } else {
-      // this is fully broken, detour doesn't work
       SPUD_STATIC_DETOUR(ptr, FullScreenChatViewController_AboutToShow);
+    }
+
+    if (const auto ptr = fullscreen_controller.GetMethod("OnDidChangeSelectedTab"); ptr == nullptr) {
+      ErrorMsg::MissingMethod("FullScreenChatViewController", "OnDidChangeSelectedTab");
+    } else {
+      SPUD_STATIC_DETOUR(ptr, FullScreenChatViewController_OnDidChangeSelectedTab);
     }
   }
 
