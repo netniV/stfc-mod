@@ -187,11 +187,10 @@ static const std::string CURL_TYPE_DOWNLOAD = "DOWNLOAD";
 // Per-target worker thread infrastructure
 struct TargetWorker {
   std::jthread worker_thread;
-  std::queue<std::string> request_queue;
+  std::queue<std::pair<std::string, std::string>> request_queue;
   std::mutex queue_mtx;
   std::condition_variable_any queue_cv;
   std::shared_ptr<cpr::Session> session;
-  std::string target_name;
 };
 
 static std::unordered_map<std::string, std::unique_ptr<TargetWorker>> target_workers;
@@ -204,6 +203,7 @@ static void target_worker_thread(std::stop_token stop_token, TargetWorker* worke
 #endif
 
   while (!stop_token.stop_requested()) {
+    std::string identifier;
     std::string post_data;
 
     {
@@ -215,7 +215,9 @@ static void target_worker_thread(std::stop_token stop_token, TargetWorker* worke
       }
 
       if (!worker->request_queue.empty()) {
-        post_data = std::move(worker->request_queue.front());
+        const auto [id, payload] = std::move(worker->request_queue.front());
+        identifier = std::move(id);
+        post_data = std::move(payload);
         worker->request_queue.pop();
       }
     }
@@ -233,28 +235,28 @@ static void target_worker_thread(std::stop_token stop_token, TargetWorker* worke
 #endif
       httpClient->SetBody(cpr::Body{post_data});
 
-      sync_log_debug(CURL_TYPE_UPLOAD, worker->target_name, "Sending data to " + httpClient->GetFullRequestUrl());
+      sync_log_debug(CURL_TYPE_UPLOAD, identifier, "Sending data to " + httpClient->GetFullRequestUrl());
 
       // Synchronously wait for response
       const auto response = httpClient->Post();
 
       if (response.status_code == 0) {
-        sync_log_error(CURL_TYPE_UPLOAD, worker->target_name, "Failed to send request: " + response.error.message);
+        sync_log_error(CURL_TYPE_UPLOAD, identifier, "Failed to send request: " + response.error.message);
       } else if (response.status_code >= 400) {
-        sync_log_error(CURL_TYPE_UPLOAD, worker->target_name, STR_FORMAT("Failed to communicate with server: {} (after {:.1f}s)", response.status_line, response.elapsed));
+        sync_log_error(CURL_TYPE_UPLOAD, identifier, STR_FORMAT("Failed to communicate with server: {} (after {:.1f}s)", response.status_line, response.elapsed));
       } else {
-        sync_log_debug(CURL_TYPE_UPLOAD, worker->target_name, STR_FORMAT("Response: {} ({:.1f}s elapsed)", response.status_line, response.elapsed));
+        sync_log_debug(CURL_TYPE_UPLOAD, identifier, STR_FORMAT("Response: {} ({:.1f}s elapsed)", response.status_line, response.elapsed));
       }
     } catch (const std::runtime_error& e) {
-      ErrorMsg::SyncRuntime(worker->target_name.c_str(), e);
+      ErrorMsg::SyncRuntime(identifier.c_str(), e);
     } catch (const std::exception& e) {
-      ErrorMsg::SyncException(worker->target_name.c_str(), e);
+      ErrorMsg::SyncException(identifier.c_str(), e);
 #if _WIN32
     } catch (winrt::hresult_error const& ex) {
-      ErrorMsg::SyncWinRT(worker->target_name.c_str(), ex);
+      ErrorMsg::SyncWinRT(identifier.c_str(), ex);
 #endif
     } catch (...) {
-      ErrorMsg::SyncMsg(worker->target_name.c_str(), "Unknown error occurred");
+      ErrorMsg::SyncMsg(identifier.c_str(), "Unknown error occurred");
     }
   }
 }
@@ -270,7 +272,6 @@ static TargetWorker* get_curl_client_sync(const std::string& target)
 
   // Create a new worker for this target
   auto worker = std::make_unique<TargetWorker>();
-  worker->target_name = target;
 
   // Initialize session
   worker->session = std::make_shared<cpr::Session>();
@@ -328,7 +329,7 @@ static void send_data(SyncConfig::Type type, const std::string& post_data)
       // Enqueue the request for this target's worker
       {
         std::lock_guard lk(worker->queue_mtx);
-        worker->request_queue.push(post_data);
+        worker->request_queue.emplace(target_identifier, post_data);
         sync_log_debug(CURL_TYPE_UPLOAD, target_identifier,
                        STR_FORMAT("Queued request (queue size: {})", worker->request_queue.size()));
       }
