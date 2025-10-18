@@ -2103,11 +2103,11 @@ void InstallSyncPatches()
     }
   }
 
-  if (auto authentication_service = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.Core", "PrimeApp");
-      !authentication_service.isValidHelper()) {
+  if (auto prime_app = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.Core", "PrimeApp");
+      !prime_app.isValidHelper()) {
     ErrorMsg::MissingHelper("Core", "PrimeApp");
   } else {
-    if (const auto ptr = authentication_service.GetMethod("InitPrimeServer"); ptr == nullptr) {
+    if (const auto ptr = prime_app.GetMethod("InitPrimeServer"); ptr == nullptr) {
       ErrorMsg::MissingMethod("PrimeApp", "InitPrimeServer");
     } else {
       SPUD_STATIC_DETOUR(ptr, PrimeApp_InitPrimeServer);
