@@ -307,7 +307,7 @@ static TargetWorker* get_curl_client_sync(const std::string& target)
   return worker_ptr;
 }
 
-static void send_data(SyncConfig::Type type, const std::string& post_data)
+static void send_data(SyncConfig::Type type, const std::string& post_data, bool is_first_sync)
 {
   static std::once_flag init_once;
   std::call_once(init_once, []() {
@@ -326,11 +326,18 @@ static void send_data(SyncConfig::Type type, const std::string& post_data)
     try {
       auto* worker = get_curl_client_sync(target);
 
+      // If first sync, update the header
+      if (is_first_sync) {
+        auto& headers = worker->session->GetHeader();
+        headers.insert_or_assign("X-PRIME-SYNC", "2");
+        sync_log_trace(CURL_TYPE_UPLOAD, target_identifier, "Adding X-Prime-Sync header for initial sync");
+      }
+
       // Enqueue the request for this target's worker
       {
         std::lock_guard lk(worker->queue_mtx);
         worker->request_queue.emplace(target_identifier, post_data);
-        sync_log_debug(CURL_TYPE_UPLOAD, target_identifier,
+        sync_log_trace(CURL_TYPE_UPLOAD, target_identifier,
                        STR_FORMAT("Queued request (queue size: {})", worker->request_queue.size()));
       }
       worker->queue_cv.notify_one();
@@ -489,9 +496,9 @@ template <> struct adl_serializer<SyncConfig::Type> {
 };
 NLOHMANN_JSON_NAMESPACE_END
 
-std::mutex                                           sync_data_mtx;
-std::condition_variable                              sync_data_cv;
-std::queue<std::pair<SyncConfig::Type, std::string>> sync_data_queue;
+std::mutex                                                  sync_data_mtx;
+std::condition_variable                                     sync_data_cv;
+std::queue<std::tuple<SyncConfig::Type, std::string, bool>> sync_data_queue;
 
 std::mutex              combat_log_data_mtx;
 std::condition_variable combat_log_data_cv;
@@ -515,22 +522,22 @@ struct CachedAllianceData {
 std::unordered_map<int64_t, CachedAllianceData> alliance_data_cache;
 std::mutex                                      alliance_data_cache_mtx;
 
-void queue_data(SyncConfig::Type type, const std::string& data)
+void queue_data(SyncConfig::Type type, const std::string& data, bool is_first_sync = false)
 {
   {
     std::lock_guard lk(sync_data_mtx);
-    sync_data_queue.emplace(type, data);
+    sync_data_queue.emplace(type, data, is_first_sync);
     http::sync_log_debug("QUEUE", to_string(type), "Added data to sync queue");
   }
 
   sync_data_cv.notify_all();
 }
 
-void queue_data(SyncConfig::Type type, const nlohmann::json& data)
+void queue_data(SyncConfig::Type type, const nlohmann::json& data, bool is_first_sync = false)
 {
   {
     std::lock_guard lk(sync_data_mtx);
-    sync_data_queue.emplace(type, data.dump());
+    sync_data_queue.emplace(type, data.dump(), is_first_sync);
     http::sync_log_debug("QUEUE", to_string(type), STR_FORMAT("Added {} entries to sync queue", data.size()));
   }
 
@@ -742,11 +749,11 @@ void process_completed_missions(std::unique_ptr<std::string>&& bytes)
 
 void process_player_inventories(std::unique_ptr<std::string>&& bytes)
 {
-  using json = nlohmann::json;
-  static std::unordered_map<std::pair<std::underlying_type_t<Digit::PrimeServer::Models::InventoryItemType>, int64_t>,
-                            int64_t, pairhash>
-                    inventory_states;
-  static std::mutex inventory_states_mtx;
+  using json   = nlohmann::json;
+  using item_t = std::underlying_type_t<Digit::PrimeServer::Models::InventoryItemType>;
+  static std::unordered_map<std::pair<item_t, int64_t>, int64_t, pairhash> inventory_states;
+  static std::mutex                                                        inventory_states_mtx;
+  static std::once_flag                                                    first_sync_flag;
 
   if (auto response = Digit::PrimeServer::Models::InventoryResponse(); response.ParseFromString(*bytes)) {
 
@@ -777,7 +784,9 @@ void process_player_inventories(std::unique_ptr<std::string>&& bytes)
     }
 
     if (!inventory_items.empty()) {
-      queue_data(SyncConfig::Type::Inventory, inventory_items);
+      bool is_first_sync = false;
+      std::call_once(first_sync_flag, [&is_first_sync] { is_first_sync = true; });
+      queue_data(SyncConfig::Type::Inventory, inventory_items, is_first_sync);
     }
   } else {
     spdlog::error("Failed to parse player inventories");
@@ -932,6 +941,8 @@ void process_global_active_buffs(std::unique_ptr<std::string>&& bytes)
   using json = nlohmann::json;
   static std::unordered_map<int64_t, std::pair<int32_t, int64_t>> buff_states;
   static std::mutex                                               buff_states_mtx;
+  static std::once_flag                                           first_sync_flag;
+
 
   if (auto response = Digit::PrimeServer::Models::GlobalActiveBuffsResponse(); response.ParseFromString(*bytes)) {
 
@@ -975,7 +986,9 @@ void process_global_active_buffs(std::unique_ptr<std::string>&& bytes)
     }
 
     if (!buff_array.empty()) {
-      queue_data(SyncConfig::Type::Buffs, buff_array);
+      bool is_first_sync = false;
+      std::call_once(first_sync_flag, [&is_first_sync] { is_first_sync = true; });
+      queue_data(SyncConfig::Type::Buffs, buff_array, is_first_sync);
     }
   } else {
     spdlog::error("Failed to parse global active buffs");
@@ -1178,6 +1191,7 @@ void process_jobs(std::unique_ptr<std::string>&& bytes)
   using json = nlohmann::json;
   static std::unordered_set<std::string> jobs_active;
   static std::mutex                      jobs_active_mtx;
+  static std::once_flag                  first_sync_flag;
 
   if (auto response = Digit::PrimeServer::Models::JobResponse(); response.ParseFromString(*bytes)) {
 
@@ -1252,7 +1266,9 @@ void process_jobs(std::unique_ptr<std::string>&& bytes)
     }
 
     if (!job_array.empty()) {
-      queue_data(SyncConfig::Type::Jobs, job_array);
+      bool is_first_sync = false;
+      std::call_once(first_sync_flag, [&is_first_sync] { is_first_sync = true; });
+      queue_data(SyncConfig::Type::Jobs, job_array, is_first_sync);
     }
   } else {
     spdlog::error("Failed to parse jobs");
@@ -1334,6 +1350,7 @@ void process_resources(const nlohmann::json& section)
   using json = nlohmann::json;
   static std::unordered_map<int64_t, int64_t> resource_states;
   static std::mutex                           resource_states_mtx;
+  static std::once_flag                       first_sync_flag;
 
   http::sync_log_trace("PROCESS", "resources", STR_FORMAT("Processing {} resources", section.size()));
 
@@ -1353,7 +1370,9 @@ void process_resources(const nlohmann::json& section)
   }
 
   if (!resource_array.empty()) {
-    queue_data(SyncConfig::Type::Resources, resource_array);
+    bool is_first_sync = false;
+    std::call_once(first_sync_flag, [&is_first_sync] { is_first_sync = true; });
+    queue_data(SyncConfig::Type::Resources, resource_array, is_first_sync);
   }
 }
 
@@ -1390,6 +1409,7 @@ void process_ships(const nlohmann::json& section)
   using json = nlohmann::json;
   static std::unordered_map<int64_t, ShipState> ship_states;
   static std::mutex                             ship_states_mtx;
+  static std::once_flag                         first_sync_flag;
 
   http::sync_log_trace("PROCESS", "ships", STR_FORMAT("Processing {} ships", section.size()));
 
@@ -1419,7 +1439,9 @@ void process_ships(const nlohmann::json& section)
   }
 
   if (!ship_array.empty()) {
-    queue_data(SyncConfig::Type::Ships, ship_array);
+    bool is_first_sync = false;
+    std::call_once(first_sync_flag, [&is_first_sync] { is_first_sync = true; });
+    queue_data(SyncConfig::Type::Ships, ship_array, is_first_sync);
   }
 }
 
@@ -1518,7 +1540,7 @@ void ship_sync_data()
 
 
   for (;;) {
-    std::pair<SyncConfig::Type, std::string> sync_data;
+    std::tuple<SyncConfig::Type, std::string, bool> sync_data;
     {
       std::unique_lock lock(sync_data_mtx);
       sync_data_cv.wait(lock, []() { return !sync_data_queue.empty(); });
@@ -1528,7 +1550,8 @@ void ship_sync_data()
     }
 
     try {
-      http::send_data(sync_data.first, sync_data.second);
+      auto& [type, data, is_first_sync] = sync_data;
+      http::send_data(type, data, is_first_sync);
     } catch (const std::runtime_error& e) {
       ErrorMsg::SyncRuntime("ship", e);
     } catch (const std::exception& e) {
@@ -1745,7 +1768,7 @@ void ship_combat_log_data()
 
       try {
         auto ship_data = battle_array.dump();
-        http::send_data(SyncConfig::Type::Battles, ship_data);
+        http::send_data(SyncConfig::Type::Battles, ship_data, false);
       } catch (const std::runtime_error& e) {
         ErrorMsg::SyncRuntime("combat", e);
       } catch (const std::exception& e) {
