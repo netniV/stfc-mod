@@ -1786,17 +1786,21 @@ void HandleEntityGroup(EntityGroup* entity_group)
 
   // Helper to run processing asynchronously with exception handling
   auto submit_async = [bytesPtr, byteCount]<typename T>(T&& func) {
-    auto payload = std::make_unique<std::string>(bytesPtr, byteCount);
+    try {
+      auto payload = std::make_unique<std::string>(bytesPtr, byteCount);
 
-    std::thread([f = std::forward<T>(func), p = std::move(payload)]() mutable {
-      try {
-        f(std::move(p));
-      } catch (const std::exception& e) {
-        spdlog::error("Exception in HandleEntityGroup: {}", e.what());
-      } catch (...) {
-        spdlog::error("Unknown exception in HandleEntityGroup");
-      }
-    }).detach();
+      std::thread([f = std::forward<T>(func), p = std::move(payload)]() mutable {
+        try {
+          f(std::move(p));
+        } catch (const std::exception& e) {
+          spdlog::error("Exception in HandleEntityGroup: {}", e.what());
+        } catch (...) {
+          spdlog::error("Unknown exception in HandleEntityGroup");
+        }
+      }).detach();
+    } catch (const std::exception& e) {
+      spdlog::error("Failed to spawn an async task: {}", e.what());
+    }
   };
 
   switch (entity_group->Type_) {
