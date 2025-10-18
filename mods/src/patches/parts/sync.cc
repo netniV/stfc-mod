@@ -1927,17 +1927,17 @@ void GameServerModelRegistry_HandleBinaryObjects(auto original, void* _this, Ser
 }
 
 void PrimeApp_InitPrimeServer(auto original, void* _this, Il2CppString* gameServerUrl, Il2CppString* gatewayServerUrl,
-                              Il2CppString* sessionId)
+                              Il2CppString* sessionId, Il2CppString* serverRegion)
 {
-  original(_this, gameServerUrl, gatewayServerUrl, sessionId);
+  original(_this, gameServerUrl, gatewayServerUrl, sessionId, serverRegion);
   http::headers::instanceSessionId = to_string(to_wstring(sessionId));
   http::headers::gameServerUrl     = to_string(to_wstring(gameServerUrl));
 }
 
 void GameServer_Initialise(auto original, void* _this, Il2CppString* sessionId, Il2CppString* gameVersion,
-                           bool encryptRequests)
+                           bool encryptRequests, Il2CppString* serverRegion)
 {
-  original(_this, sessionId, gameVersion, encryptRequests);
+  original(_this, sessionId, gameVersion, encryptRequests, serverRegion);
   http::headers::primeVersion = to_string(to_wstring(gameVersion));
 }
 
