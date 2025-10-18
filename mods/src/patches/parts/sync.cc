@@ -28,6 +28,7 @@
 #include <EASTL/algorithm.h>
 #include <EASTL/bonus/ring_buffer.h>
 #include <cpr/cpr.h>
+#include <curl/curl.h>
 #include <nlohmann/json.hpp>
 
 #include <atomic>
@@ -35,11 +36,14 @@
 #include <condition_variable>
 #include <format>
 #include <fstream>
-#include <ostream>
+#include <mutex>
 #include <queue>
-#include <semaphore>
 #include <string>
 #include <string_view>
+#include <thread>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 #ifndef STR_FORMAT
 #if __cpp_lib_format
@@ -71,7 +75,7 @@ namespace headers
   static std::string    instanceSessionId;
   static int32_t        instanceId;
   static std::string    unityVersion{"6000.0.52f1"};
-  static std::string    primeVersion{"1.000.44468"};
+  static std::string    primeVersion{"1.000.45324"};
   static constexpr char poweredBy[] = "stfc community patch/" VER_FILE_VERSION_STR;
 } // namespace headers
 
@@ -97,52 +101,49 @@ static std::string newUUID()
 }
 
 // Simple URL manipulation class to replace boost::url
-class SimpleUrl
+class Url
 {
 public:
-  explicit SimpleUrl(std::string_view urlString) : url(urlString)
+  explicit Url(const std::string& url) : m_url(url)
   {
-    // Find where the path starts (after scheme://host:port)
-    // Format: scheme://host[:port]/path[?query][#fragment]
-    
-    size_t schemeEnd = url.find("://");
-    if (schemeEnd == std::string::npos) {
-      pathStart = 0;
+    m_handle = curl_url();
+    if (m_handle) {
+      curl_url_set(m_handle, CURLUPART_URL, m_url.data(), 0);
+    }
+  }
+
+  ~Url()
+  {
+    if (m_handle) {
+      curl_url_cleanup(m_handle);
+    }
+  }
+  
+  void set_path(const std::string& path)
+  {
+    if (!m_handle)
       return;
-    }
-    
-    // Skip past "://"
-    size_t hostStart = schemeEnd + 3;
-    
-    // Find the start of the path (first '/' after host)
-    pathStart = url.find('/', hostStart);
-    if (pathStart == std::string::npos) {
-      pathStart = url.length();
+
+    if (CURLUcode rc = curl_url_set(m_handle, CURLUPART_PATH, path.c_str(), 0); rc == CURLUE_OK) {
+      char *url = nullptr;
+      if (rc = curl_url_get(m_handle, CURLUPART_URL , &url, CURLU_PUNYCODE); rc == CURLUE_OK) {
+        m_url = url;
+      }
+
+      if (url != nullptr) {
+        curl_free(url);
+      }
     }
   }
   
-  void setPath(std::string_view newPath)
+  const char* c_str() const
   {
-    // Remove existing path and everything after it
-    url.erase(pathStart);
-    
-    // Add new path (ensure it starts with '/')
-    if (!newPath.empty() && newPath[0] != '/') {
-      url += '/';
-    }
-    url += newPath;
-    
-    // pathStart remains valid since we erase from that position and append
-  }
-  
-  const char* data() const
-  {
-    return url.c_str();
+    return m_url.c_str();
   }
   
 private:
-  std::string url;
-  size_t pathStart;
+  CURLU *m_handle;
+  std::string m_url;
 };
 
 static void sync_log_error(const std::string& type, const std::string& target, const std::string& text)
@@ -183,139 +184,162 @@ static void sync_log_trace(const std::string& type, const std::string& target, c
 static const std::string CURL_TYPE_UPLOAD   = "UPLOAD";
 static const std::string CURL_TYPE_DOWNLOAD = "DOWNLOAD";
 
-std::mutex http_responses_mtx;
-std::condition_variable http_responses_cv;
-using response_queue_item_t = std::tuple<std::string, cpr::Response>;
-std::queue<response_queue_item_t> http_responses_queue;
-
-
-static std::shared_ptr<cpr::Session> get_curl_client_sync(const std::string& target)
-{
-  static std::unordered_map<std::string, std::shared_ptr<cpr::Session>> sessions_map;
-  static std::mutex                                                     sessions_map_mutex;
-
+// Per-target worker thread infrastructure
+struct TargetWorker {
+  std::jthread worker_thread;
+  std::queue<std::string> request_queue;
+  std::mutex queue_mtx;
+  std::condition_variable_any queue_cv;
   std::shared_ptr<cpr::Session> session;
-  {
-    std::lock_guard lk(sessions_map_mutex);
+  std::string target_name;
+};
 
-    if (!sessions_map.contains(target)) {
-      session                   = std::make_shared<cpr::Session>();
-      const auto& target_config = Config::Get().sync_targets[target];
+static std::unordered_map<std::string, std::unique_ptr<TargetWorker>> target_workers;
+static std::mutex target_workers_mtx;
 
-      session->SetUrl(target_config.url);
-      session->SetUserAgent("stfc community patch " VER_FILE_VERSION_STR " (libcurl/" LIBCURL_VERSION ")");
-      session->SetAcceptEncoding(cpr::AcceptEncoding{});
-      session->SetHttpVersion(cpr::HttpVersion{cpr::HttpVersionCode::VERSION_1_1});
-      session->SetRedirect(cpr::Redirect{3, true, false, cpr::PostRedirectFlags::POST_ALL});
-
-      if (!target_config.proxy.empty()) {
-        session->SetProxies({{"http", target_config.proxy}, {"https", target_config.proxy}});
-
-        // TODO: Is this too permissive?
-        session->SetSslOptions(cpr::Ssl(
-          cpr::ssl::VerifyHost{false},
-          cpr::ssl::VerifyPeer{false},
-          cpr::ssl::NoRevoke{true})
-        );
-      }
-
-      session->SetHeader({
-          {"Content-Type", "application/json"},
-          {"X-Powered-By", headers::poweredBy},
-          {"stfc-sync-token", target_config.token},
-      });
-
-      sessions_map[target] = session;
-    } else {
-      session = sessions_map[target];
-    }
-  }
-
-  return session;
-}
-
-static void send_data(SyncConfig::Type type, const std::string& post_data)
+static void target_worker_thread(std::stop_token stop_token, TargetWorker* worker)
 {
-  using sem_ptr = std::shared_ptr<std::counting_semaphore<1>>;
-  static std::unordered_map<std::string, sem_ptr> client_semaphores;
-  static std::mutex                               client_sync_map_guard;
-  static std::once_flag                           init_once;
+#if _WIN32
+  WinRtApartmentGuard apartmentGuard;
+#endif
 
-  std::call_once(init_once, []() {
-    const auto& targets = Config::Get().sync_targets;
-    if (targets.empty()) {
-      sync_log_warn(CURL_TYPE_UPLOAD, "GLOBAL", "No target found, will not attempt to send");
-    } else {
-      client_semaphores.reserve(targets.size());
-      for (const auto& target : targets | std::views::keys) {
-        client_semaphores.emplace(target, std::make_shared<std::counting_semaphore<1>>(1));
-      }
-    }
-  });
+  while (!stop_token.stop_requested()) {
+    std::string post_data;
 
-  for (const auto& target : Config::Get().sync_targets | std::views::filter([type](const auto& t) { return t.second.enabled(type); }) | std::views::keys) {
-    // Get/create the per-target semaphore in a thread-safe manner.
-    sem_ptr target_sem;
     {
-      std::lock_guard guard(client_sync_map_guard);
-      auto            it = client_semaphores.find(target);
-      if (it == client_semaphores.end()) {
-        it = client_semaphores.emplace(target, std::make_shared<std::counting_semaphore<1>>(1)).first;
+      std::unique_lock lk(worker->queue_mtx);
+      worker->queue_cv.wait(lk, stop_token, [worker] { return !worker->request_queue.empty(); });
+
+      if (stop_token.stop_requested() && worker->request_queue.empty()) {
+        break;
       }
-      target_sem = it->second;
+
+      if (!worker->request_queue.empty()) {
+        post_data = std::move(worker->request_queue.front());
+        worker->request_queue.pop();
+      }
     }
 
-    const auto target_identifier = STR_FORMAT("{} ({})", target, to_string(type));
-    bool acquired = false;
+    if (post_data.empty()) {
+      continue;
+    }
 
+    // Process the request
     try {
-      // Ensure only one in-flight operation per target.
-      target_sem->acquire();
-      acquired = true;
-
-      const auto httpClient = get_curl_client_sync(target);
+      const auto httpClient = worker->session;
 #ifndef _MODDBG
       httpClient->SetConnectTimeout(cpr::ConnectTimeout{3000});
       httpClient->SetTimeout(cpr::Timeout{10000});
 #endif
       httpClient->SetBody(cpr::Body{post_data});
 
-      sync_log_debug(CURL_TYPE_UPLOAD, target_identifier, "Sending data to " + httpClient->GetFullRequestUrl());
-      auto asyncResponse = httpClient->PostAsync();
+      sync_log_debug(CURL_TYPE_UPLOAD, worker->target_name, "Sending data to " + httpClient->GetFullRequestUrl());
 
-      // Detach a waiter that enqueues the completed response and releases the semaphore.
-      std::thread([target_identifier, target_sem, ar = std::move(asyncResponse)]() mutable {
-        try {
-          auto response = ar.get();
-          {
-            std::lock_guard lk(http_responses_mtx);
-            http_responses_queue.emplace(target_identifier, std::move(response));
-          }
-          http_responses_cv.notify_all();
-        } catch (const std::runtime_error& e) {
-          ErrorMsg::SyncRuntime(target_identifier.c_str(), e);
-        } catch (const std::exception& e) {
-          ErrorMsg::SyncException(target_identifier.c_str(), e);
+      // Synchronously wait for response
+      const auto response = httpClient->Post();
+
+      if (response.status_code == 0) {
+        sync_log_error(CURL_TYPE_UPLOAD, worker->target_name, "Failed to send request: " + response.error.message);
+      } else if (response.status_code >= 400) {
+        sync_log_error(CURL_TYPE_UPLOAD, worker->target_name, STR_FORMAT("Failed to communicate with server: {} (after {:.1f}s)", response.status_line, response.elapsed));
+      } else {
+        sync_log_debug(CURL_TYPE_UPLOAD, worker->target_name, STR_FORMAT("Response: {} ({:.1f}s elapsed)", response.status_line, response.elapsed));
+      }
+    } catch (const std::runtime_error& e) {
+      ErrorMsg::SyncRuntime(worker->target_name.c_str(), e);
+    } catch (const std::exception& e) {
+      ErrorMsg::SyncException(worker->target_name.c_str(), e);
 #if _WIN32
-        } catch (winrt::hresult_error const& ex) {
-          ErrorMsg::SyncWinRT(target_identifier.c_str(), ex);
+    } catch (winrt::hresult_error const& ex) {
+      ErrorMsg::SyncWinRT(worker->target_name.c_str(), ex);
 #endif
-        } catch (...) {
-          ErrorMsg::SyncMsg(target_identifier.c_str(), "Unknown error occurred");
-        }
-        // Always release to allow the next send for this target.
-        try { target_sem->release(); } catch (...) {}
-      }).detach();
+    } catch (...) {
+      ErrorMsg::SyncMsg(worker->target_name.c_str(), "Unknown error occurred");
+    }
+  }
+}
+
+static TargetWorker* get_curl_client_sync(const std::string& target)
+{
+  std::lock_guard lk(target_workers_mtx);
+
+  // Check if a worker already exists
+  if (const auto it = target_workers.find(target); it != target_workers.end()) {
+    return it->second.get();
+  }
+
+  // Create a new worker for this target
+  auto worker = std::make_unique<TargetWorker>();
+  worker->target_name = target;
+
+  // Initialize session
+  worker->session = std::make_shared<cpr::Session>();
+  const auto& target_config = Config::Get().sync_targets[target];
+
+  worker->session->SetUrl(target_config.url);
+  worker->session->SetUserAgent("stfc community patch " VER_FILE_VERSION_STR " (libcurl/" LIBCURL_VERSION ")");
+  worker->session->SetAcceptEncoding(cpr::AcceptEncoding{});
+  worker->session->SetHttpVersion(cpr::HttpVersion{cpr::HttpVersionCode::VERSION_1_1});
+  worker->session->SetRedirect(cpr::Redirect{3, true, false, cpr::PostRedirectFlags::POST_ALL});
+
+  if (!target_config.proxy.empty()) {
+    worker->session->SetProxies({{"http", target_config.proxy}, {"https", target_config.proxy}});
+
+    if (!target_config.verify_ssl) {
+      worker->session->SetSslOptions(
+        cpr::Ssl(cpr::ssl::VerifyHost{false}, cpr::ssl::VerifyPeer{false}, cpr::ssl::NoRevoke{true})
+      );
+    }
+  }
+
+  worker->session->SetHeader({
+    {"Content-Type", "application/json"},
+    {"X-Powered-By", headers::poweredBy},
+    {"stfc-sync-token", target_config.token},
+  });
+
+  // Start the worker thread
+  worker->worker_thread = std::jthread(target_worker_thread, worker.get());
+  auto* worker_ptr = worker.get();
+  target_workers[target] = std::move(worker);
+
+  return worker_ptr;
+}
+
+static void send_data(SyncConfig::Type type, const std::string& post_data)
+{
+  static std::once_flag init_once;
+  std::call_once(init_once, []() {
+    const auto& targets = Config::Get().sync_targets;
+    if (targets.empty()) {
+      sync_log_warn(CURL_TYPE_UPLOAD, "GLOBAL", "No target found, will not attempt to send");
+    }
+  });
+
+  for (const auto& target : Config::Get().sync_targets
+       | std::views::filter([type](const auto& t) { return t.second.enabled(type); })
+       | std::views::keys) {
+
+    const auto target_identifier = STR_FORMAT("{} ({})", target, to_string(type));
+
+    try {
+      auto* worker = get_curl_client_sync(target);
+
+      // Enqueue the request for this target's worker
+      {
+        std::lock_guard lk(worker->queue_mtx);
+        worker->request_queue.push(post_data);
+        sync_log_debug(CURL_TYPE_UPLOAD, target_identifier,
+                       STR_FORMAT("Queued request (queue size: {})", worker->request_queue.size()));
+      }
+      worker->queue_cv.notify_one();
 
     } catch (const std::runtime_error& e) {
       spdlog::error("Failed to send sync data to target '{}' - Runtime error: {}", target_identifier, e.what());
-      if (acquired) { try { target_sem->release(); } catch (...) {} }
     } catch (const std::exception& e) {
       spdlog::error("Failed to send sync data to target '{}' - Exception: {}", target_identifier, e.what());
-      if (acquired) { try { target_sem->release(); } catch (...) {} }
     } catch (...) {
       spdlog::error("Failed to send sync data to target '{}' - Unknown error occurred", target_identifier);
-      if (acquired) { try { target_sem->release(); } catch (...) {} }
     }
   }
 }
@@ -323,8 +347,10 @@ static void send_data(SyncConfig::Type type, const std::string& post_data)
 static std::shared_ptr<cpr::Session> get_curl_client_scopely()
 {
   static std::shared_ptr<cpr::Session> session{nullptr};
+  static std::once_flag init_flag;
 
-  if (!session) {
+  // thread-safe initialization
+  std::call_once(init_flag, [] {
     session = std::make_shared<cpr::Session>();
     session->SetAcceptEncoding(cpr::AcceptEncoding{});
     session->SetHttpVersion(cpr::HttpVersion{cpr::HttpVersionCode::VERSION_1_1});
@@ -332,12 +358,11 @@ static std::shared_ptr<cpr::Session> get_curl_client_scopely()
     if (!Config::Get().sync_options.proxy.empty()) {
       session->SetProxies({{"https", Config::Get().sync_options.proxy}});
 
-      // TODO: Is this too permissive?
-      session->SetSslOptions(cpr::Ssl(
-        cpr::ssl::VerifyHost{false},
-        cpr::ssl::VerifyPeer{false},
-        cpr::ssl::NoRevoke{true}
-      ));
+      if (!Config::Get().sync_options.verify_ssl) {
+        session->SetSslOptions(
+          cpr::Ssl(cpr::ssl::VerifyHost{false}, cpr::ssl::VerifyPeer{false}, cpr::ssl::NoRevoke{true})
+        );
+      }
     }
 
     session->SetUserAgent("UnityPlayer/" + headers::unityVersion + " (UnityWebRequest/1.0, libcurl/8.10.1-DEV)");
@@ -352,7 +377,7 @@ static std::shared_ptr<cpr::Session> get_curl_client_scopely()
         {"X-Unity-Version", headers::unityVersion},
         {"X-Powered-By", headers::poweredBy},
     });
-  }
+  });
 
   return session;
 }
@@ -366,15 +391,15 @@ static std::string get_scopely_data(const std::string& path, const std::string& 
     }
   });
 
-  SimpleUrl url(headers::gameServerUrl);
-  url.setPath(path);
+  Url url(headers::gameServerUrl);
+  url.set_path(path);
 
   const auto        httpClient = get_curl_client_scopely();
   static std::mutex client_mutex;
 
   {
     std::lock_guard lk(client_mutex);
-    httpClient->SetUrl(url.data());
+    httpClient->SetUrl(url.c_str());
 
     auto& headers = httpClient->GetHeader();
     headers.insert_or_assign("X-TRANSACTION-ID", newUUID());
@@ -411,36 +436,6 @@ static std::string get_scopely_data(const std::string& path, const std::string& 
   return {};
 }
 
-static void handle_response_data()
-{
-#if _WIN32
-  WinRtApartmentGuard apartmentGuard;
-#endif
-
-  for (;;) {
-    std::string   target_identifier;
-    cpr::Response response;
-
-    {
-      std::unique_lock lk(http_responses_mtx);
-      http_responses_cv.wait(lk, []() { return !http_responses_queue.empty(); });
-
-      auto& tuple       = http_responses_queue.front();
-      target_identifier = std::move(std::get<0>(tuple));
-      response          = std::move(std::get<1>(tuple));
-      http_responses_queue.pop();
-    }
-
-    // Process a completed response
-    if (response.status_code == 0) {
-      sync_log_error(CURL_TYPE_UPLOAD, target_identifier, "Failed to send request: " + response.error.message);
-    } else if (response.status_code >= 400) {
-      sync_log_error(CURL_TYPE_UPLOAD, target_identifier, STR_FORMAT("Failed to communicate with server: {} (after {:.1f}s)", response.status_line, response.elapsed));
-    } else {
-      sync_log_debug(CURL_TYPE_UPLOAD, target_identifier, STR_FORMAT("Response: {} ({:.1f}s elapsed)", response.status_line, response.elapsed));
-    }
-  }
-}
 } // namespace http
 
 NLOHMANN_JSON_NAMESPACE_BEGIN
@@ -1312,7 +1307,6 @@ void process_battle_headers(const nlohmann::json& section)
       if (eastl::find(previously_sent_battlelogs.begin(), previously_sent_battlelogs.end(), id)
           == previously_sent_battlelogs.end()) {
         previously_sent_battlelogs.push_back(id);
-        ;
         to_enqueue.push_back(id);
       }
     }
@@ -2149,5 +2143,4 @@ void InstallSyncPatches()
 
   std::thread(ship_sync_data).detach();
   std::thread(ship_combat_log_data).detach();
-  std::thread(http::handle_response_data).detach();
 }

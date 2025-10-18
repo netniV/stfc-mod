@@ -577,7 +577,8 @@ void Config::Load()
   this->sync_resolver_cache_ttl = get_config_or_default(config, parsed, "sync", "resolver_cache_ttl", 300, write_config);
 
   SyncConfig sync_defaults;
-  sync_defaults.proxy = get_config_or_default<std::string>(config, parsed, "sync", "proxy", "", write_log);
+  sync_defaults.proxy      = get_config_or_default<std::string>(config, parsed, "sync", "proxy", "", write_log);
+  sync_defaults.verify_ssl = get_config_or_default(config, parsed, "sync", "verify_ssl", true, write_config);
 
   for (const auto& opt : SyncOptions) {
     sync_defaults.*opt.option = get_config_or_default(config, parsed, "sync", opt.option_str, false, write_config);
