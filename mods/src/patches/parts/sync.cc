@@ -1409,6 +1409,7 @@ void process_ships(const nlohmann::json& section)
         ship_array.push_back({{"type", SyncConfig::Type::Ships},
                               {"psid", id},
                               {"level", level},
+                              {"level_percentage", level_percentage},
                               {"tier", tier},
                               {"hull_id", ship["hull_id"].get<int64_t>()},
                               {"components", components}});
