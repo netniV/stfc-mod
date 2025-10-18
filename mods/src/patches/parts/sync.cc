@@ -994,11 +994,20 @@ inline std::chrono::time_point<std::chrono::system_clock> parse_timestamp(const 
 #ifdef _WIN32
   std::istringstream ss(timestamp);
   std::chrono::system_clock::time_point time_point;
-  std::chrono::from_stream(ss, "%Y-%m-%dT%H:%M:%S", time_point);
+
+  if (!std::chrono::from_stream(ss, "%Y-%m-%dT%H:%M:%S", time_point)) {
+    spdlog::error("Failed to parse timestamp: {}", timestamp);
+    return std::chrono::system_clock::time_point::min();
+  }
+
   return time_point;
 #else
   std::tm tm = {};
-  strptime(timestamp.c_str(), "%Y-%m-%dT%H:%M:%S", &tm);
+  if (strptime(timestamp.c_str(), "%Y-%m-%dT%H:%M:%S", &tm) == nullptr) {
+    spdlog::error("Failed to parse timestamp: {}", timestamp);
+    return std::chrono::system_clock::min();
+  }
+
   auto time_point = std::chrono::system_clock::from_time_t(std::mktime(&tm));
   return time_point;
 #endif
