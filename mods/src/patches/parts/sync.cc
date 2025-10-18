@@ -79,7 +79,7 @@ namespace headers
   static constexpr char poweredBy[] = "stfc community patch/" VER_FILE_VERSION_STR;
 } // namespace headers
 
-static std::string newUUID()
+[[nodiscard]] static std::string newUUID()
 {
 #ifdef _WIN32
   UUID uuid;
@@ -117,6 +117,29 @@ public:
     if (m_handle) {
       curl_url_cleanup(m_handle);
     }
+  }
+
+  // Delete copy operations to prevent double-free
+  Url(const Url&) = delete;
+  Url& operator=(const Url&) = delete;
+
+  Url(Url&& other) noexcept : m_handle(other.m_handle), m_url(std::move(other.m_url))
+  {
+    other.m_handle = nullptr;
+  }
+
+  Url& operator=(Url&& other) noexcept
+  {
+    if (this != &other) {
+      if (m_handle) {
+        curl_url_cleanup(m_handle);
+      }
+      m_handle = other.m_handle;
+      m_url = std::move(other.m_url);
+      other.m_handle = nullptr;
+    }
+
+    return *this;
   }
   
   void set_path(const std::string& path)
@@ -186,39 +209,50 @@ static const std::string CURL_TYPE_DOWNLOAD = "DOWNLOAD";
 
 // Per-target worker thread infrastructure
 struct TargetWorker {
-  std::jthread worker_thread;
-  std::queue<std::pair<std::string, std::string>> request_queue;
-  std::mutex queue_mtx;
-  std::condition_variable_any queue_cv;
+  TargetWorker() = default;
+  TargetWorker(const TargetWorker&) = delete;
+  TargetWorker& operator=(const TargetWorker&) = delete;
+
+  using request_t = std::tuple<std::string, std::string, bool>;
+
   std::shared_ptr<cpr::Session> session;
+  std::thread                   worker_thread;
+  std::atomic<bool>             stop_requested{false};
+  std::queue<request_t>         request_queue;
+  std::mutex                    queue_mtx;
+  std::condition_variable       queue_cv;
 };
 
-static std::unordered_map<std::string, std::unique_ptr<TargetWorker>> target_workers;
+static std::unordered_map<std::string, std::shared_ptr<TargetWorker>> target_workers;
 static std::mutex target_workers_mtx;
 
-static void target_worker_thread(std::stop_token stop_token, TargetWorker* worker)
+static void target_worker_thread(std::shared_ptr<TargetWorker> worker)
 {
 #if _WIN32
   WinRtApartmentGuard apartmentGuard;
 #endif
 
-  while (!stop_token.stop_requested()) {
+  while (!worker->stop_requested.load(std::memory_order_acquire)) {
     std::string identifier;
     std::string post_data;
+    bool is_first_sync = false;
 
     {
       std::unique_lock lk(worker->queue_mtx);
-      worker->queue_cv.wait(lk, stop_token, [worker] { return !worker->request_queue.empty(); });
+      worker->queue_cv.wait(lk, [&worker] {
+        return worker->stop_requested.load(std::memory_order_acquire) || !worker->request_queue.empty();
+      });
 
-      if (stop_token.stop_requested() && worker->request_queue.empty()) {
+      if (worker->stop_requested.load(std::memory_order_acquire) && worker->request_queue.empty()) {
         break;
       }
 
       if (!worker->request_queue.empty()) {
-        const auto [id, payload] = std::move(worker->request_queue.front());
-        identifier = std::move(id);
-        post_data = std::move(payload);
+        auto item = std::move(worker->request_queue.front());
         worker->request_queue.pop();
+        identifier = std::move(std::get<0>(item));
+        post_data = std::move(std::get<1>(item));
+        is_first_sync = std::get<2>(item);
       }
     }
 
@@ -229,10 +263,15 @@ static void target_worker_thread(std::stop_token stop_token, TargetWorker* worke
     // Process the request
     try {
       const auto httpClient = worker->session;
-#ifndef _MODDBG
-      httpClient->SetConnectTimeout(cpr::ConnectTimeout{3000});
-      httpClient->SetTimeout(cpr::Timeout{10000});
-#endif
+      auto& headers = httpClient->GetHeader();
+
+      if (is_first_sync) {
+        headers.insert_or_assign("X-PRIME-SYNC", "2");
+        sync_log_trace(CURL_TYPE_UPLOAD, identifier, "Adding X-Prime-Sync header for initial sync");
+      } else {
+        headers.erase("X-PRIME-SYNC");
+      }
+
       httpClient->SetBody(cpr::Body{post_data});
 
       sync_log_debug(CURL_TYPE_UPLOAD, identifier, "Sending data to " + httpClient->GetFullRequestUrl());
@@ -261,17 +300,17 @@ static void target_worker_thread(std::stop_token stop_token, TargetWorker* worke
   }
 }
 
-static TargetWorker* get_curl_client_sync(const std::string& target)
+static std::shared_ptr<TargetWorker> get_curl_client_sync(const std::string& target)
 {
   std::lock_guard lk(target_workers_mtx);
 
   // Check if a worker already exists
   if (const auto it = target_workers.find(target); it != target_workers.end()) {
-    return it->second.get();
+    return it->second;
   }
 
   // Create a new worker for this target
-  auto worker = std::make_unique<TargetWorker>();
+  auto worker = std::make_shared<TargetWorker>();
 
   // Initialize session
   worker->session = std::make_shared<cpr::Session>();
@@ -282,6 +321,11 @@ static TargetWorker* get_curl_client_sync(const std::string& target)
   worker->session->SetAcceptEncoding(cpr::AcceptEncoding{});
   worker->session->SetHttpVersion(cpr::HttpVersion{cpr::HttpVersionCode::VERSION_1_1});
   worker->session->SetRedirect(cpr::Redirect{3, true, false, cpr::PostRedirectFlags::POST_ALL});
+
+#ifndef _MODDBG
+  worker->session->SetConnectTimeout(cpr::ConnectTimeout{3'000});
+  worker->session->SetTimeout(cpr::Timeout{10'000});
+#endif
 
   if (!target_config.proxy.empty()) {
     worker->session->SetProxies({{"http", target_config.proxy}, {"https", target_config.proxy}});
@@ -300,11 +344,10 @@ static TargetWorker* get_curl_client_sync(const std::string& target)
   });
 
   // Start the worker thread
-  worker->worker_thread = std::jthread(target_worker_thread, worker.get());
-  auto* worker_ptr = worker.get();
-  target_workers[target] = std::move(worker);
+  worker->worker_thread = std::thread(target_worker_thread, worker);
+  target_workers[target] = worker;
 
-  return worker_ptr;
+  return worker;
 }
 
 static void send_data(SyncConfig::Type type, const std::string& post_data, bool is_first_sync)
@@ -324,19 +367,12 @@ static void send_data(SyncConfig::Type type, const std::string& post_data, bool 
     const auto target_identifier = STR_FORMAT("{} ({})", target, to_string(type));
 
     try {
-      auto* worker = get_curl_client_sync(target);
-
-      // If first sync, update the header
-      if (is_first_sync) {
-        auto& headers = worker->session->GetHeader();
-        headers.insert_or_assign("X-PRIME-SYNC", "2");
-        sync_log_trace(CURL_TYPE_UPLOAD, target_identifier, "Adding X-Prime-Sync header for initial sync");
-      }
+      auto worker = get_curl_client_sync(target);
 
       // Enqueue the request for this target's worker
       {
         std::lock_guard lk(worker->queue_mtx);
-        worker->request_queue.emplace(target_identifier, post_data);
+        worker->request_queue.emplace(target_identifier, post_data, is_first_sync);
         sync_log_trace(CURL_TYPE_UPLOAD, target_identifier,
                        STR_FORMAT("Queued request (queue size: {})", worker->request_queue.size()));
       }
@@ -405,6 +441,8 @@ static std::string get_scopely_data(const std::string& path, const std::string& 
   const auto        httpClient = get_curl_client_scopely();
   static std::mutex client_mutex;
 
+  std::string response_text;
+
   {
     std::lock_guard lk(client_mutex);
     httpClient->SetUrl(url.c_str());
@@ -438,10 +476,10 @@ static std::string get_scopely_data(const std::string& path, const std::string& 
 
     sync_log_debug(CURL_TYPE_DOWNLOAD, path,
                    STR_FORMAT("Response: {} ({}), {:.1f}s elapsed,", response.status_line, type, response.elapsed));
-    return response.text;
+    response_text = response.text;
   }
 
-  return {};
+  return response_text;
 }
 
 } // namespace http
@@ -753,7 +791,7 @@ void process_player_inventories(std::unique_ptr<std::string>&& bytes)
   using item_t = std::underlying_type_t<Digit::PrimeServer::Models::InventoryItemType>;
   static std::unordered_map<std::pair<item_t, int64_t>, int64_t, pairhash> inventory_states;
   static std::mutex                                                        inventory_states_mtx;
-  static std::once_flag                                                    first_sync_flag;
+  static std::atomic_bool                                                  is_first_sync{true};
 
   if (auto response = Digit::PrimeServer::Models::InventoryResponse(); response.ParseFromString(*bytes)) {
 
@@ -784,9 +822,8 @@ void process_player_inventories(std::unique_ptr<std::string>&& bytes)
     }
 
     if (!inventory_items.empty()) {
-      bool is_first_sync = false;
-      std::call_once(first_sync_flag, [&is_first_sync] { is_first_sync = true; });
-      queue_data(SyncConfig::Type::Inventory, inventory_items, is_first_sync);
+      const bool first_sync = is_first_sync.exchange(false, std::memory_order_acq_rel);
+      queue_data(SyncConfig::Type::Inventory, inventory_items, first_sync);
     }
   } else {
     spdlog::error("Failed to parse player inventories");
@@ -941,7 +978,7 @@ void process_global_active_buffs(std::unique_ptr<std::string>&& bytes)
   using json = nlohmann::json;
   static std::unordered_map<int64_t, std::pair<int32_t, int64_t>> buff_states;
   static std::mutex                                               buff_states_mtx;
-  static std::once_flag                                           first_sync_flag;
+  static std::atomic_bool                                         is_first_sync{true};
 
 
   if (auto response = Digit::PrimeServer::Models::GlobalActiveBuffsResponse(); response.ParseFromString(*bytes)) {
@@ -986,9 +1023,8 @@ void process_global_active_buffs(std::unique_ptr<std::string>&& bytes)
     }
 
     if (!buff_array.empty()) {
-      bool is_first_sync = false;
-      std::call_once(first_sync_flag, [&is_first_sync] { is_first_sync = true; });
-      queue_data(SyncConfig::Type::Buffs, buff_array, is_first_sync);
+      const bool first_sync = is_first_sync.exchange(false, std::memory_order_acq_rel);
+      queue_data(SyncConfig::Type::Buffs, buff_array, first_sync);
     }
   } else {
     spdlog::error("Failed to parse global active buffs");
@@ -998,7 +1034,7 @@ void process_global_active_buffs(std::unique_ptr<std::string>&& bytes)
 static std::unordered_map<int64_t, int64_t> slot_states;
 static std::mutex                           slot_states_mtx;
 
-inline std::chrono::time_point<std::chrono::system_clock> parse_timestamp(const std::string& timestamp)
+inline std::optional<std::chrono::time_point<std::chrono::system_clock>> parse_timestamp(const std::string& timestamp)
 {
 #ifdef _WIN32
   std::istringstream ss(timestamp);
@@ -1006,7 +1042,7 @@ inline std::chrono::time_point<std::chrono::system_clock> parse_timestamp(const 
 
   if (!std::chrono::from_stream(ss, "%Y-%m-%dT%H:%M:%S", time_point)) {
     spdlog::error("Failed to parse timestamp: {}", timestamp);
-    return std::chrono::system_clock::time_point::min();
+    return std::nullopt;
   }
 
   return time_point;
@@ -1014,11 +1050,10 @@ inline std::chrono::time_point<std::chrono::system_clock> parse_timestamp(const 
   std::tm tm = {};
   if (strptime(timestamp.c_str(), "%Y-%m-%dT%H:%M:%S", &tm) == nullptr) {
     spdlog::error("Failed to parse timestamp: {}", timestamp);
-    return std::chrono::system_clock::min();
+    return std::nullopt;
   }
 
-  auto time_point = std::chrono::system_clock::from_time_t(std::mktime(&tm));
-  return time_point;
+  return std::chrono::system_clock::from_time_t(std::mktime(&tm));
 #endif
 }
 
@@ -1124,7 +1159,11 @@ void process_entity_slots_rtc(std::unique_ptr<std::string>&& json_payload)
           slot_params["expiry_time"] = nullptr;
         } else {
           const auto timestamp = parse_timestamp(data["consumable_slot_params"]["expiry_time"].get_ref<const std::string&>());
-          slot_params["expiry_time"] = timestamp.time_since_epoch().count();
+          if (timestamp.has_value()) {
+            slot_params["expiry_time"] = timestamp.value().time_since_epoch().count();
+          } else {
+            slot_params["expiry_time"] = nullptr;
+          }
         }
         break;
       case Digit::PrimeServer::Models::SLOTTYPE_OFFICERPRESET:
@@ -1144,7 +1183,11 @@ void process_entity_slots_rtc(std::unique_ptr<std::string>&& json_payload)
             slot_params["cooldown_expiration"] = nullptr;
           } else {
             const auto timestamp = parse_timestamp(params["cooldown_expiration"].get_ref<const std::string&>());
-            slot_params["cooldown_expiration"] = timestamp.time_since_epoch().count();
+            if (timestamp.has_value()) {
+              slot_params["cooldown_expiration"] = timestamp.value().time_since_epoch().count();
+            } else {
+              slot_params["cooldown_expiration"] = nullptr;
+            }
           }
         }
         break;
@@ -1191,7 +1234,7 @@ void process_jobs(std::unique_ptr<std::string>&& bytes)
   using json = nlohmann::json;
   static std::unordered_set<std::string> jobs_active;
   static std::mutex                      jobs_active_mtx;
-  static std::once_flag                  first_sync_flag;
+  static std::atomic_bool                is_first_sync{true};
 
   if (auto response = Digit::PrimeServer::Models::JobResponse(); response.ParseFromString(*bytes)) {
 
@@ -1266,9 +1309,8 @@ void process_jobs(std::unique_ptr<std::string>&& bytes)
     }
 
     if (!job_array.empty()) {
-      bool is_first_sync = false;
-      std::call_once(first_sync_flag, [&is_first_sync] { is_first_sync = true; });
-      queue_data(SyncConfig::Type::Jobs, job_array, is_first_sync);
+      bool first_sync = is_first_sync.exchange(false, std::memory_order_acq_rel);
+      queue_data(SyncConfig::Type::Jobs, job_array, first_sync);
     }
   } else {
     spdlog::error("Failed to parse jobs");
@@ -1350,7 +1392,7 @@ void process_resources(const nlohmann::json& section)
   using json = nlohmann::json;
   static std::unordered_map<int64_t, int64_t> resource_states;
   static std::mutex                           resource_states_mtx;
-  static std::once_flag                       first_sync_flag;
+  static std::atomic_bool                     is_first_sync{true};
 
   http::sync_log_trace("PROCESS", "resources", STR_FORMAT("Processing {} resources", section.size()));
 
@@ -1370,9 +1412,8 @@ void process_resources(const nlohmann::json& section)
   }
 
   if (!resource_array.empty()) {
-    bool is_first_sync = false;
-    std::call_once(first_sync_flag, [&is_first_sync] { is_first_sync = true; });
-    queue_data(SyncConfig::Type::Resources, resource_array, is_first_sync);
+    bool first_sync = is_first_sync.exchange(false, std::memory_order_acq_rel);
+    queue_data(SyncConfig::Type::Resources, resource_array, first_sync);
   }
 }
 
@@ -1409,7 +1450,7 @@ void process_ships(const nlohmann::json& section)
   using json = nlohmann::json;
   static std::unordered_map<int64_t, ShipState> ship_states;
   static std::mutex                             ship_states_mtx;
-  static std::once_flag                         first_sync_flag;
+  static std::atomic_bool                       is_first_sync{true};
 
   http::sync_log_trace("PROCESS", "ships", STR_FORMAT("Processing {} ships", section.size()));
 
@@ -1439,9 +1480,8 @@ void process_ships(const nlohmann::json& section)
   }
 
   if (!ship_array.empty()) {
-    bool is_first_sync = false;
-    std::call_once(first_sync_flag, [&is_first_sync] { is_first_sync = true; });
-    queue_data(SyncConfig::Type::Ships, ship_array, is_first_sync);
+    bool first_sync = is_first_sync.exchange(false, std::memory_order_acq_rel);
+    queue_data(SyncConfig::Type::Ships, ship_array, first_sync);
   }
 }
 
@@ -1532,39 +1572,44 @@ void cache_alliance_names(std::unique_ptr<std::string>&& bytes)
   }
 }
 
-void ship_sync_data()
+void ship_sync_data() noexcept
 {
 #if _WIN32
   WinRtApartmentGuard apartmentGuard;
 #endif
 
+  try {
+    for (;;) {
+      std::tuple<SyncConfig::Type, std::string, bool> sync_data;
+      {
+        std::unique_lock lock(sync_data_mtx);
+        sync_data_cv.wait(lock, []() { return !sync_data_queue.empty(); });
+        // Move the item out while holding the lock to avoid races/UB
+        sync_data = std::move(sync_data_queue.front());
+        sync_data_queue.pop();
+      }
 
-  for (;;) {
-    std::tuple<SyncConfig::Type, std::string, bool> sync_data;
-    {
-      std::unique_lock lock(sync_data_mtx);
-      sync_data_cv.wait(lock, []() { return !sync_data_queue.empty(); });
-      // Move the item out while holding the lock to avoid races/UB
-      sync_data = std::move(sync_data_queue.front());
-      sync_data_queue.pop();
-    }
-
-    try {
-      auto& [type, data, is_first_sync] = sync_data;
-      http::send_data(type, data, is_first_sync);
-    } catch (const std::runtime_error& e) {
-      ErrorMsg::SyncRuntime("ship", e);
-    } catch (const std::exception& e) {
-      ErrorMsg::SyncMsg("ship", e.what());
-    } catch (const std::wstring& sz) {
-      ErrorMsg::SyncMsg("ship", sz);
+      try {
+        auto& [type, data, is_first_sync] = sync_data;
+        http::send_data(type, data, is_first_sync);
+      } catch (const std::runtime_error& e) {
+        ErrorMsg::SyncRuntime("ship", e);
+      } catch (const std::exception& e) {
+        ErrorMsg::SyncMsg("ship", e.what());
+      } catch (const std::wstring& sz) {
+        ErrorMsg::SyncMsg("ship", sz);
 #if _WIN32
-    } catch (winrt::hresult_error const& ex) {
-      ErrorMsg::SyncWinRT("ship", ex);
+      } catch (winrt::hresult_error const& ex) {
+        ErrorMsg::SyncWinRT("ship", ex);
 #endif
-    } catch (...) {
-      ErrorMsg::SyncMsg("ship", "Unknown error during sending of sync data");
+      } catch (...) {
+        ErrorMsg::SyncMsg("ship", "Unknown error during sending of sync data");
+      }
     }
+  } catch (const std::exception& e) {
+    spdlog::critical("ship_sync_data thread terminated: {}", e.what());
+  } catch (...) {
+    spdlog::critical("ship_sync_data thread terminated: unknown exception");
   }
 }
 
@@ -1643,7 +1688,7 @@ void resolve_alliance_names(const std::unordered_set<int64_t>& alliance_ids, nlo
   }
 }
 
-void ship_combat_log_data()
+void ship_combat_log_data() noexcept
 {
   using json = nlohmann::json;
 
@@ -1805,9 +1850,9 @@ void HandleEntityGroup(EntityGroup* entity_group)
 
   // Helper to run processing asynchronously with exception handling
   auto submit_async = [bytesPtr, byteCount]<typename T>(T&& func) {
-    try {
-      auto payload = std::make_unique<std::string>(bytesPtr, byteCount);
+    auto payload = std::make_unique<std::string>(bytesPtr, byteCount);
 
+    try {
       std::thread([f = std::forward<T>(func), p = std::move(payload)]() mutable {
         try {
           f(std::move(p));
@@ -1818,7 +1863,9 @@ void HandleEntityGroup(EntityGroup* entity_group)
         }
       }).detach();
     } catch (const std::exception& e) {
-      spdlog::error("Failed to spawn an async task: {}", e.what());
+      spdlog::error("Failed to spawn async task: {}", e.what());
+    } catch (...) {
+      spdlog::error("Failed to spawn async task: unknown exception");
     }
   };
 
