@@ -32,14 +32,14 @@ private:
 public:
   Il2CppString* __get_dataType()
   {
-    static auto field = get_class_helper().GetProperty("DataType");
-    return field.GetRaw<Il2CppString>(this);
+    static auto prop = get_class_helper().GetProperty("DataType");
+    return prop.GetRaw<Il2CppString>(this);
   }
 
   Il2CppString* __get_channelId()
   {
-    static auto field = get_class_helper().GetProperty("ChannelId");
-    return field.GetRaw<Il2CppString>(this);
+    static auto prop = get_class_helper().GetProperty("ChannelId");
+    return prop.GetRaw<Il2CppString>(this);
   }
 
   int32_t __get_instanceIdJson()
@@ -50,19 +50,19 @@ public:
 
   Il2CppString* __get_target()
   {
-    static auto field = get_class_helper().GetProperty("Target");
-    return field.GetRaw<Il2CppString>(this);
+    static auto prop = get_class_helper().GetProperty("Target");
+    return prop.GetRaw<Il2CppString>(this);
   }
 
   Il2CppString* __get_source()
   {
-    static auto field = get_class_helper().GetProperty("Source");
-    return field.GetRaw<Il2CppString>(this);
+    static auto prop = get_class_helper().GetProperty("Source");
+    return prop.GetRaw<Il2CppString>(this);
   }
 
   Il2CppString* __get_data()
   {
-    static auto field = get_class_helper().GetProperty("Data");
-    return field.GetRaw<Il2CppString>(this);
+    static auto prop = get_class_helper().GetProperty("Data");
+    return prop.GetRaw<Il2CppString>(this);
   }
 };
