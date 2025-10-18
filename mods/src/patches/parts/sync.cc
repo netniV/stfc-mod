@@ -1859,10 +1859,12 @@ void HandleEntityGroup(EntityGroup* entity_group)
       if (Config::Get().sync_options.buffs) {
         submit_async(process_alliance_games_props);
       }
+      break;
     case EntityGroup::Type::UserProfiles:
       if (Config::Get().sync_options.battlelogs) {
         submit_async(cache_player_names);
       }
+      break;
     case EntityGroup::Type::AllianceProfiles:
       if (Config::Get().sync_options.battlelogs) {
         submit_async(cache_alliance_names);
