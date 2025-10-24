@@ -292,6 +292,13 @@ struct XsollaUpdater {
             relativePath = String(relativePath.dropFirst())
           }
 
+          // Skip files in _CodeSignature directory as they will be regenerated when we re-sign
+          if relativePath.contains("_CodeSignature") {
+            logger.info("Skipping _CodeSignature files")
+            delegate?.updateProgress(progress: XsollaUpdateProgress.PatchStepComplete)
+            continue
+          }
+
           let targetPath = tempPath.contentURL.appendingPathComponent(relativePath)
           let sourcePath = URL(fileURLWithPath: gamePath).appendingPathComponent(relativePath)
           let patchPath = URL(fileURLWithPath: patch).appendingPathComponent(relativePath)
@@ -354,6 +361,10 @@ struct XsollaUpdater {
     copyContentsOfDirectory(from: tempPath.contentURL, to: URL(fileURLWithPath: gamePath))
     delegate?.updateProgress(progress: XsollaUpdateProgress.CleaningUp)
     try FileManager.default.removeItem(atPath: tempGamePath)
+    
+    // Set flag to force entitlement re-application after game update
+    logger.info("Update complete, setting flag to force entitlement re-application")
+    UserDefaults.standard.set(true, forKey: "forceEntitlementReapplication")
 
   }
 }

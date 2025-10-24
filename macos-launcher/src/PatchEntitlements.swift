@@ -49,10 +49,17 @@ func ensureGameHasLoaderEntitlements(signingIdentity: String = "-") throws {
         throw EntitlementError.entitlementApplicationFailed
     }
 
+    // Check if we need to force re-application (e.g., after a game update)
+    let forceReapply = UserDefaults.standard.bool(forKey: "forceEntitlementReapplication")
+    
     // Check if the game already has the correct entitlements
-    if checkEntitlements(appPath: gamePath, expectedEntitlements: loaderEntitlements) {
+    if !forceReapply && checkEntitlements(appPath: gamePath, expectedEntitlements: loaderEntitlements) {
         logger.info("Game already has the required loader entitlements")
         return
+    }
+    
+    if forceReapply {
+        logger.info("Forcing entitlement re-application after game update")
     }
 
     // Request user to grant access to the game bundle via file picker
@@ -96,6 +103,12 @@ func ensureGameHasLoaderEntitlements(signingIdentity: String = "-") throws {
     }
 
     logger.info("Successfully applied loader entitlements to the game")
+    
+    // Clear the force re-application flag now that signing is complete
+    if forceReapply {
+        logger.info("Clearing entitlement re-application flag")
+        UserDefaults.standard.set(false, forKey: "forceEntitlementReapplication")
+    }
 }
 
 /// Fetches the path to the Star Trek Fleet Command game executable
@@ -336,108 +349,6 @@ func applyEntitlementsDirectly(
         logger.error("Error applying entitlements: \(error.localizedDescription)")
         // Clean up temp file if it exists
         try? FileManager.default.removeItem(atPath: tempEntitlementsPath)
-        return false
-    }
-}
-
-/// Executes codesign with administrator privileges using a shell script
-/// - Parameters:
-///   - appPath: Path to the application to sign
-///   - entitlementsPath: Path to temporary entitlements plist
-///   - signingIdentity: Code signing identity
-/// - Returns: true if successful, false otherwise
-func executeCodesignWithAdminPrivileges(
-    appPath: String,
-    entitlementsPath: String,
-    signingIdentity: String
-) -> Bool {
-    // Create a temporary shell script that will run with elevated privileges
-    // This preserves the file access context better than AppleScript
-    let tempDir = NSTemporaryDirectory()
-    let scriptPath = (tempDir as NSString).appendingPathComponent("resign_game_\(UUID().uuidString).sh")
-
-    // Build the shell script content
-    let scriptContent = """
-    #!/bin/bash
-    set -e
-
-    # Remove old signature (ignore errors if no signature exists)
-    /usr/bin/codesign --remove-signature "\(appPath)" 2>/dev/null || true
-
-    # Sign with new entitlements
-    /usr/bin/codesign --force --options runtime --sign "\(signingIdentity)" \\
-        --entitlements "\(entitlementsPath)" "\(appPath)"
-
-    exit 0
-    """
-
-    do {
-        // Write the script
-        try scriptContent.write(toFile: scriptPath, atomically: true, encoding: .utf8)
-
-        // Make it executable
-        let attributes = [FileAttributeKey.posixPermissions: 0o755]
-        try FileManager.default.setAttributes(attributes, ofItemAtPath: scriptPath)
-
-        defer {
-            try? FileManager.default.removeItem(atPath: scriptPath)
-        }
-
-        // Execute the script with admin privileges using osascript
-        let success = executeShellScriptWithAdminPrivileges(scriptPath: scriptPath)
-
-        if success {
-            logger.info("Successfully signed app with entitlements")
-        } else {
-            logger.error("Failed to sign app")
-        }
-
-        return success
-
-    } catch {
-        logger.error("Error creating signing script: \(error.localizedDescription)")
-        try? FileManager.default.removeItem(atPath: scriptPath)
-        return false
-    }
-}
-
-/// Executes a shell script file with admin privileges using osascript
-/// - Parameter scriptPath: Path to the shell script to execute
-/// - Returns: true if successful, false otherwise
-func executeShellScriptWithAdminPrivileges(scriptPath: String) -> Bool {
-    // Use osascript to run the shell script with administrator privileges
-    // Running a script file (vs inline command) helps preserve file access context
-    let appleScript = """
-    do shell script "'\(scriptPath)'" with administrator privileges
-    """
-
-    let process = Process()
-    process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
-    process.arguments = ["-e", appleScript]
-
-    let outputPipe = Pipe()
-    let errorPipe = Pipe()
-    process.standardOutput = outputPipe
-    process.standardError = errorPipe
-
-    do {
-        try process.run()
-        process.waitUntilExit()
-
-        if process.terminationStatus != 0 {
-            if let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile() as Data?,
-               !errorData.isEmpty,
-               let errorString = String(data: errorData, encoding: .utf8) {
-                logger.error("Error executing script: \(errorString)")
-            }
-            return false
-        }
-
-        logger.info("Script executed successfully")
-        return true
-
-    } catch {
-        logger.error("Error running osascript: \(error.localizedDescription)")
         return false
     }
 }
