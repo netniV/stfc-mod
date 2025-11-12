@@ -46,6 +46,7 @@ void BundleDataWidget_OnActionButtonPressedCallback(auto original, BundleDataWid
 
 void InstallMiscPatches()
 {
+#if _WIN32
   auto h = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Inventories", "InventoryForPopup");
   if (!h.isValidHelper()) {
     ErrorMsg::MissingHelper("Digit.Prime.Inventories", "InventoryForPopup");
@@ -57,6 +58,7 @@ void InstallMiscPatches()
       SPUD_STATIC_DETOUR(ptr, InventoryForPopup_set_MaxItemsToUse);
     }
   }
+#endif
 
   auto bundle_data_widget = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Shop", "BundleDataWidget");
   if (!bundle_data_widget.isValidHelper()) {
