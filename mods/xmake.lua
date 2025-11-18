@@ -27,7 +27,7 @@ do
     elseif is_plat("macosx") then
         add_cxflags("-fms-extensions")
         -- Add Objective-C++ source
-        add_files("src/window/titlemac.mm")
+        add_files("src/*.mm")
         -- Link Cocoa framework
         add_frameworks("Cocoa")
     elseif is_plat("linux") then
