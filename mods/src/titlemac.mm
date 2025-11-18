@@ -22,7 +22,7 @@ inline std::wstring WindowTitle::Get()
     }
 }
 
-inline void WindowTitle::Set(const std::wstring& title)
+inline bool WindowTitle::Set(const std::wstring& title)
 {
     @autoreleasepool {
         NSWindow *window = [NSApp mainWindow];
