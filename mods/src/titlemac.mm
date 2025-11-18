@@ -1,39 +1,37 @@
 #pragma once
+
 #ifdef _WIN32
 #elif defined(__APPLE__)
 
 #include "windowtitle.h"
 #import <Cocoa/Cocoa.h>
 
-struct TitleMac : public IWindowTitle
+inline std::wstring WindowTitle::Get()
 {
-    static std::wstring Get()
-    {
-        @autoreleasepool {
-            NSWindow *window = [NSApp mainWindow];
-            if (!window) window = [NSApp keyWindow];
-            if (!window) return L"";
+    @autoreleasepool {
+        NSWindow *window = [NSApp mainWindow];
+        if (!window) window = [NSApp keyWindow];
+        if (!window) return L"";
 
-            NSString *title = [window title];
-            if (!title) return L"";
+        NSString *title = [window title];
+        if (!title) return L"";
 
-            std::wstring wtitle([title length], L'\0');
-            [title getCharacters:(unichar*)wtitle.data() range:NSMakeRange(0, [title length])];
-            return wtitle;
-        }
+        std::wstring wtitle([title length], L'\0');
+        [title getCharacters:(unichar*)wtitle.data() range:NSMakeRange(0, [title length])];
+        return wtitle;
     }
+}
 
-    static void Set(const std::wstring& title)
-    {
-        @autoreleasepool {
-            NSWindow *window = [NSApp mainWindow];
-            if (!window) window = [NSApp keyWindow];
-            if (!window) return;
+static void WindowTitle::Set(const std::wstring& title)
+{
+    @autoreleasepool {
+        NSWindow *window = [NSApp mainWindow];
+        if (!window) window = [NSApp keyWindow];
+        if (!window) return;
 
-            NSString *nsTitle = [NSString stringWithCharacters:(const unichar*)title.data() length:title.size()];
-            [window setTitle:nsTitle];
-        }
+        NSString *nsTitle = [NSString stringWithCharacters:(const unichar*)title.data() length:title.size()];
+        [window setTitle:nsTitle];
     }
-};
+} 
 
 #endif

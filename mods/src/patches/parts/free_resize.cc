@@ -9,17 +9,7 @@
 
 #include "prime/AspectRatioConstraintHandler.h"
 #include "prime/IList.h"
-
-#ifdef _WIN32
-#include "titlewindows.h"
-using WindowTitle = TitleWindows;
-#elif defined(__APPLE__)
-#include "titlemac.h"
-using WindowTitle = TitleMac;
-#else
-#include "titlelinux.h"
-using WindowTitle = TitleLinux;
-#endif
+#include "windowtitle.h"
 
 static bool            WndProcInstalled  = false;
 static LONG_PTR        oWndProc          = NULL;

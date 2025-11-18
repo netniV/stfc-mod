@@ -1,15 +1,5 @@
 #include "file.h"
-
-#ifdef _WIN32
-#include "titlewindows.h"
-using WindowTitle = TitleWindows;
-#elif defined(__APPLE__)
-#include "titlemac.h"
-using WindowTitle = TitleMac;
-#else
-#include "titlelinux.h"
-using WindowTitle = TitleLinux;
-#endif
+#include "windowtitle.h"
 
 #if _WIN32
 std::string ConvertWStringToString(const std::wstring& wstr)
@@ -24,7 +14,7 @@ std::string ConvertWStringToString(const std::wstring& wstr)
   return str;
 }
 #endif
-
+ 
 std::filesystem::path File::Path()
 {
   if (!File::initialized) {
