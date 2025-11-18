@@ -1,5 +1,16 @@
 #include "file.h"
 
+#ifdef _WIN32
+#include "titlewindows.h"
+using WindowTitle = TitleWindows;
+#elif defined(__APPLE__)
+#include "titlemac.h"
+using WindowTitle = TitleMac;
+#else
+#include "titlelinux.h"
+using WindowTitle = TitleLinux;
+#endif
+
 #if _WIN32
 std::string ConvertWStringToString(const std::wstring& wstr)
 {
@@ -74,6 +85,14 @@ std::wstring File::Title()
     File::Init();
   }
 
+  if (cacheNameTitle.empty()) {
+    std::wstring title = WindowTitle::Get();
+
+    if (File::override && !title.empty()) {
+      cacheNameTitle = L"[" + configPath.filename().replace_extension().wstring() + L"] " + title;
+    }
+  }
+
   return cacheNameTitle;
 }
 
@@ -114,7 +133,7 @@ void File::Init()
 
     /*******************************
      *
-     * Check for command line argument 
+     * Check for command line argument
      * override and set config path
      *
      *******************************/
@@ -162,25 +181,6 @@ void File::Init()
     if (configPath.empty()) {
       File::override = false;
       configPath     = std::filesystem::path(cacheNameDefault);
-    }
-
-    /*******************************
-     *
-     * Set the window title
-     *
-     *******************************/
-#ifdef _WIN32
-    HWND         hwnd = Config::WindowHandle();
-    std::wstring title;
-    title.reserve(GetWindowTextLength(hwnd) + 1);
-    title.resize(title.capacity());
-    GetWindowTextW(hwnd, const_cast<WCHAR*>(title.c_str()), title.capacity());
-#else
-    std::wstring title = std::wstring(FILE_DEF_TITLE);
-#endif
-
-    if (File::override && !title.empty()) {
-      cacheNameTitle = L"[" + configPath.filename().replace_extension().wstring() + L"] " + title;
     }
 
     /*******************************

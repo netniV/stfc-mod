@@ -21,7 +21,6 @@ void ScreenManager_UpdateCanvasRootScaleFactor_Hook(auto original, ScreenManager
   static auto cursor = LoadCursor(NULL, IDC_ARROW);
   if (!Config::Get().allow_cursor) {
     SetCursor(cursor);
-    ClipCursor(nullptr); // free cursor from any Unity clipping
   }
   #endif
 

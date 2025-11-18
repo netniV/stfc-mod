@@ -10,6 +10,17 @@
 #include "prime/AspectRatioConstraintHandler.h"
 #include "prime/IList.h"
 
+#ifdef _WIN32
+#include "titlewindows.h"
+using WindowTitle = TitleWindows;
+#elif defined(__APPLE__)
+#include "titlemac.h"
+using WindowTitle = TitleMac;
+#else
+#include "titlelinux.h"
+using WindowTitle = TitleLinux;
+#endif
+
 static bool            WndProcInstalled  = false;
 static LONG_PTR        oWndProc          = NULL;
 static WINDOWPLACEMENT g_wpPrev          = {sizeof(g_wpPrev)};
@@ -138,10 +149,9 @@ void AspectRatioConstraintHandler_Update(auto original, void* _this)
 
 #if _WIN32
   if (set_title) {
-    HWND hwnd  = Config::WindowHandle();
     auto title = File::Title();
-    if (hwnd != nullptr && !title.empty()) {
-      if (SetWindowTextW(hwnd, title.c_str())) {
+    if (!title.empty()) {
+      if (WindowTitle::Set(title)) {
         set_title = false;
       }
     }
