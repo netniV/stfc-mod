@@ -27,10 +27,12 @@ inline bool WindowTitle::Set(const std::wstring& title)
     @autoreleasepool {
         NSWindow *window = [NSApp mainWindow];
         if (!window) window = [NSApp keyWindow];
-        if (!window) return;
+        if (!window) return false;
 
         NSString *nsTitle = [NSString stringWithCharacters:(const unichar*)title.data() length:title.size()];
         [window setTitle:nsTitle];
+        
+        return true;
     }
 } 
 
