@@ -127,6 +127,7 @@ namespace Shortcuts
   constexpr const char* show_refinery         = "SHIFT-F";
   constexpr const char* show_research         = "U";
   constexpr const char* show_scrapyard        = "Y";
+  constexpr const char* show_settings         = "SHIFT-S";
   constexpr const char* show_ships            = "N";
   constexpr const char* show_stationexterior  = "SHIFT-G";
   constexpr const char* show_stationinterior  = "SHIFT-H";

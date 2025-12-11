@@ -757,6 +757,7 @@ void Config::Load()
   parse_config_shortcut(config, parsed, "show_missions",         GameFunction::ShowMissions,         DCSH::show_missions);
   parse_config_shortcut(config, parsed, "show_research",         GameFunction::ShowResearch,         DCSH::show_research);
   parse_config_shortcut(config, parsed, "show_scrapyard",        GameFunction::ShowScrapYard,        DCSH::show_scrapyard);
+  parse_config_shortcut(config, parsed, "show_settings",         GameFunction::ShowSettings,         DCSH::show_settings);
   parse_config_shortcut(config, parsed, "show_officers",         GameFunction::ShowOfficers,         DCSH::show_officers);
   parse_config_shortcut(config, parsed, "show_qtrials",          GameFunction::ShowQTrials,          DCSH::show_qtrials);
   parse_config_shortcut(config, parsed, "show_refinery",         GameFunction::ShowRefinery,         DCSH::show_refinery);

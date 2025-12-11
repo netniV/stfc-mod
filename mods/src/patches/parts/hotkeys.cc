@@ -286,6 +286,8 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
         return GotoSection(SectionID::Alliance_Help);
       } else if (MapKey::IsDown(GameFunction::ShowAllianceArmada)) {
         return GotoSection(SectionID::Alliance_Armadas);
+      } else if (MapKey::IsDown(GameFunction::ShowSettings)) {
+        return GotoSection(SectionID::GameSettings);
       } else if (MapKey::IsPressed(GameFunction::UiScaleUp)) {
         config->AdjustUiScale(true);
       } else if (MapKey::IsPressed(GameFunction::UiScaleDown)) {
