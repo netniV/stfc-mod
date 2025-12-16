@@ -1105,6 +1105,12 @@ void process_entity_slots(std::unique_ptr<std::string>&& bytes)
                   skill.has_cooldownexpiration() ? json(skill.cooldownexpiration().seconds()) : json(nullptr);
             }
             break;
+          case Digit::PrimeServer::Models::SLOTTYPE_FORBIDDENTECH:
+            if (slot.has_forbiddentechslotparams()) {
+              const auto& tech = slot.forbiddentechslotparams();
+              slot_params = {{"owner_id", tech.ownerid()}, {"tier", tech.tier()}, {"level", tech.level()}};
+            }
+            break;
           case Digit::PrimeServer::Models::SLOTTYPE_FLEETPRESET:
             if (slot.has_fleetpresetslotparams()) {
               const auto& preset     = slot.fleetpresetslotparams();
@@ -1194,6 +1200,12 @@ void process_entity_slots_rtc(std::unique_ptr<std::string>&& json_payload)
               slot_params["cooldown_expiration"] = nullptr;
             }
           }
+        }
+        break;
+      case Digit::PrimeServer::Models::SLOTTYPE_FORBIDDENTECH:
+        if (const auto& tech = data["forbidden_tech_slot_params"]; !tech.is_null()) {
+          slot_params = tech;
+          state_value = static_cast<int64_t>(std::hash<json>{}(slot_params));
         }
         break;
       case Digit::PrimeServer::Models::SLOTTYPE_FLEETPRESET:
