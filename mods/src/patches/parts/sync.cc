@@ -43,6 +43,7 @@
 #include <thread>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 #ifndef STR_FORMAT
@@ -76,7 +77,7 @@ namespace headers
   static int32_t        instanceId;
   static std::string    unityVersion{"6000.0.52f1"};
   static std::string    primeVersion{"1.000.45324"};
-  static constexpr char poweredBy[] = "stfc community patch/" VER_FILE_VERSION_STR;
+  static std::string    poweredBy{"stfc community patch/" VER_FILE_VERSION_STR};
 } // namespace headers
 
 [[nodiscard]] static std::string newUUID()
@@ -104,17 +105,17 @@ namespace headers
 class Url
 {
 public:
-  explicit Url(const std::string& url) : m_url(url)
+  explicit Url(std::string url) : m_url(std::move(url))
   {
     m_handle = curl_url();
-    if (m_handle) {
+    if (m_handle != nullptr) {
       curl_url_set(m_handle, CURLUPART_URL, m_url.data(), 0);
     }
   }
 
   ~Url()
   {
-    if (m_handle) {
+    if (m_handle != nullptr) {
       curl_url_cleanup(m_handle);
     }
   }
@@ -131,7 +132,7 @@ public:
   Url& operator=(Url&& other) noexcept
   {
     if (this != &other) {
-      if (m_handle) {
+      if (m_handle != nullptr) {
         curl_url_cleanup(m_handle);
       }
 
@@ -145,8 +146,9 @@ public:
   
   void set_path(const std::string& path)
   {
-    if (!m_handle)
+    if (m_handle == nullptr) {
       return;
+    }
 
     if (CURLUcode rc = curl_url_set(m_handle, CURLUPART_PATH, path.c_str(), 0); rc == CURLUE_OK) {
       char *url = nullptr;
@@ -205,8 +207,8 @@ static void sync_log_trace(const std::string& type, const std::string& target, c
   }
 }
 
-static const std::string CURL_TYPE_UPLOAD   = "UPLOAD";
-static const std::string CURL_TYPE_DOWNLOAD = "DOWNLOAD";
+static constexpr std::string CURL_TYPE_UPLOAD   = "UPLOAD";
+static constexpr std::string CURL_TYPE_DOWNLOAD = "DOWNLOAD";
 
 // Per-target worker thread infrastructure
 struct TargetWorker {
@@ -303,7 +305,7 @@ static void target_worker_thread(std::shared_ptr<TargetWorker> worker)
 
 static std::shared_ptr<TargetWorker> get_curl_client_sync(const std::string& target)
 {
-  std::lock_guard lk(target_workers_mtx);
+  std::scoped_lock lk(target_workers_mtx);
 
   // Check if a worker already exists
   if (const auto it = target_workers.find(target); it != target_workers.end()) {
@@ -373,7 +375,7 @@ static void send_data(SyncConfig::Type type, const std::string& post_data, bool 
 
       // Enqueue the request for this target's worker
       {
-        std::lock_guard lk(worker->queue_mtx);
+        std::scoped_lock lk(worker->queue_mtx);
         worker->request_queue.emplace(target_identifier, post_data, is_first_sync);
         sync_log_trace(CURL_TYPE_UPLOAD, target_identifier,
                        STR_FORMAT("Queued request (queue size: {})", worker->request_queue.size()));
@@ -449,7 +451,7 @@ static std::string get_scopely_data(const std::string& path, const std::string& 
   std::string response_text;
 
   {
-    std::lock_guard lk(client_mutex);
+    std::scoped_lock lk(client_mutex);
     httpClient->SetUrl(url.c_str());
 
     auto& headers = httpClient->GetHeader();
@@ -568,7 +570,7 @@ std::mutex                                      alliance_data_cache_mtx;
 void queue_data(SyncConfig::Type type, const std::string& data, bool is_first_sync = false)
 {
   {
-    std::lock_guard lk(sync_data_mtx);
+    std::scoped_lock lk(sync_data_mtx);
     sync_data_queue.emplace(type, data, is_first_sync);
     http::sync_log_debug("QUEUE", to_string(type), "Added data to sync queue");
   }
@@ -579,7 +581,7 @@ void queue_data(SyncConfig::Type type, const std::string& data, bool is_first_sy
 void queue_data(SyncConfig::Type type, const nlohmann::json& data, bool is_first_sync = false)
 {
   {
-    std::lock_guard lk(sync_data_mtx);
+    std::scoped_lock lk(sync_data_mtx);
     sync_data_queue.emplace(type, data.dump(), is_first_sync);
     http::sync_log_debug("QUEUE", to_string(type), STR_FORMAT("Added {} entries to sync queue", data.size()));
   }
@@ -643,7 +645,7 @@ private:
   int32_t              tier             = -1;
   int32_t              level            = -1;
   double_t             level_percentage = -1.0;
-  std::vector<int64_t> components       = {};
+  std::vector<int64_t> components;
 };
 
 struct pairhash {
@@ -659,7 +661,7 @@ static std::mutex                   previously_sent_battlelogs_mtx;
 static void load_previously_sent_logs()
 {
   using json = nlohmann::json;
-  std::lock_guard lk(previously_sent_battlelogs_mtx);
+  std::scoped_lock lk(previously_sent_battlelogs_mtx);
 
   previously_sent_battlelogs.set_capacity(300);
 
@@ -689,7 +691,7 @@ static void save_previously_sent_logs()
   auto battlelog_array = json::array();
 
   {
-    std::lock_guard lk(previously_sent_battlelogs_mtx);
+    std::scoped_lock lk(previously_sent_battlelogs_mtx);
     for (auto id : previously_sent_battlelogs) {
       battlelog_array.push_back(id);
     }
@@ -730,7 +732,7 @@ void process_active_missions(std::unique_ptr<std::string>&& bytes)
 
     bool changed = false;
     {
-      std::lock_guard lk(active_mission_states_mtx);
+      std::scoped_lock lk(active_mission_states_mtx);
       if (active_mission_states != active_missions) {
         changed               = true;
         active_mission_states = std::move(active_missions);
@@ -768,7 +770,7 @@ void process_completed_missions(std::unique_ptr<std::string>&& bytes)
 
     // Assume the completed missions list is append-only: new entries may be added, but existing ones are never removed.
     {
-      std::lock_guard lk(completed_mission_states_mtx);
+      std::scoped_lock lk(completed_mission_states_mtx);
       std::ranges::set_difference(completed_missions, completed_mission_states, std::back_inserter(diff));
 
       if (!diff.empty()) {
@@ -805,7 +807,7 @@ void process_player_inventories(std::unique_ptr<std::string>&& bytes)
 
     auto inventory_items = json::array();
     {
-      std::lock_guard lk(inventory_states_mtx);
+      std::scoped_lock lk(inventory_states_mtx);
 
       for (const auto& inventory : response.inventories() | std::views::values) {
         for (const auto& item : inventory.items()) {
@@ -848,7 +850,7 @@ void process_research_trees_state(std::unique_ptr<std::string>&& bytes)
 
     auto research_array = json::array();
     {
-      std::lock_guard lk(research_states_mtx);
+      std::scoped_lock lk(research_states_mtx);
 
       for (const auto& [id, level] : response.researchprojectlevels()) {
         if (const auto& it = research_states.find(id); it == research_states.end() || it->second != level) {
@@ -878,7 +880,7 @@ void process_officers(std::unique_ptr<std::string>&& bytes)
 
     auto officers_array = json::array();
     {
-      std::lock_guard lk(officer_states_mtx);
+      std::scoped_lock lk(officer_states_mtx);
 
       for (const auto& officer : response.officers()) {
         const RankLevelShardsState officer_state{officer.rankindex(), officer.level(), officer.shardcount()};
@@ -916,7 +918,7 @@ void process_forbidden_techs(std::unique_ptr<std::string>&& bytes)
 
     auto tech_array = json::array();
     {
-      std::lock_guard lk(tech_states_mtx);
+      std::scoped_lock lk(tech_states_mtx);
 
       for (const auto& tech : response.forbiddentechs()) {
         const RankLevelShardsState tech_state{tech.tier(), tech.level(), tech.shardcount()};
@@ -953,7 +955,7 @@ void process_active_officer_traits(std::unique_ptr<std::string>&& bytes)
 
     auto trait_array = json::array();
     {
-      std::lock_guard lk(trait_states_mtx);
+      std::scoped_lock lk(trait_states_mtx);
 
       for (const auto& [officer_id, officer_traits] : response.activeofficertraits()) {
         for (const auto& trait : officer_traits.activetraits() | std::views::values) {
@@ -993,7 +995,7 @@ void process_global_active_buffs(std::unique_ptr<std::string>&& bytes)
 
     auto buff_array = json::array();
     {
-      std::lock_guard lk(buff_states_mtx);
+      std::scoped_lock lk(buff_states_mtx);
 
       // Track all buff ids present in the response to detect removals.
       std::unordered_set<int64_t> present_ids;
@@ -1062,6 +1064,77 @@ inline std::optional<std::chrono::time_point<std::chrono::system_clock>> parse_t
 #endif
 }
 
+void process_single_slot(const Digit::PrimeServer::Models::EntitySlot& slot, nlohmann::json& slot_array)
+{
+  using json = nlohmann::json;
+
+  json    slot_params;
+  int64_t state_value = slot.has_slotitemid() ? slot.slotitemid().value() : -1;
+
+  switch (slot.slottype()) {
+    case Digit::PrimeServer::Models::SLOTTYPE_CONSUMABLE:
+      if (slot.has_consumableslotparams()) {
+        const auto& consumable = slot.consumableslotparams();
+        slot_params["expiry_time"] =
+            consumable.has_expirytime() ? json(consumable.expirytime().seconds()) : json(nullptr);
+      }
+      break;
+    case Digit::PrimeServer::Models::SLOTTYPE_OFFICERPRESET:
+      if (slot.has_officerpresetslotparams()) {
+        const auto& preset = slot.officerpresetslotparams();
+        slot_params = {{"name", preset.name()}, {"order", preset.order()}, {"officer_ids", preset.officerids()}};
+        state_value = static_cast<int64_t>(std::hash<json>{}(slot_params));
+      }
+      break;
+    case Digit::PrimeServer::Models::SLOTTYPE_FLEETCOMMANDER:
+      if (slot.has_fleetcommanderslotparams()) {
+        slot_params["order"] = slot.fleetcommanderslotparams().order();
+      }
+      break;
+    case Digit::PrimeServer::Models::SLOTTYPE_SELECTABLESKILL:
+      if (slot.has_selectableskillslotparams()) {
+        const auto& skill = slot.selectableskillslotparams();
+        slot_params["cooldown_expiration"] =
+            skill.has_cooldownexpiration() ? json(skill.cooldownexpiration().seconds()) : json(nullptr);
+      }
+      break;
+    case Digit::PrimeServer::Models::SLOTTYPE_FORBIDDENTECH:
+      if (slot.has_forbiddentechslotparams()) {
+        const auto& tech = slot.forbiddentechslotparams();
+        slot_params      = {{"owner_id", tech.ownerid()}, {"tier", tech.tier()}, {"level", tech.level()}};
+        state_value = static_cast<int64_t>(std::hash<json>{}(slot_params));
+      }
+      break;
+    case Digit::PrimeServer::Models::SLOTTYPE_FLEETPRESET:
+      if (slot.has_fleetpresetslotparams()) {
+        const auto& preset     = slot.fleetpresetslotparams();
+        auto        setup_json = json::array();
+
+        for (const auto& setup : preset.setups()) {
+          setup_json.push_back({{"drydock_id", setup.drydockid()},
+                                {"ship_id", setup.shipids()[0]},
+                                {"officer_ids", setup.officerids()}});
+        }
+
+        slot_params = {{"name", preset.name()}, {"order", preset.order()}, {"setup", setup_json}};
+        state_value = static_cast<int64_t>(std::hash<json>{}(slot_params));
+      }
+      break;
+    default:
+      return;
+  }
+
+  if (const auto& it = slot_states.find(slot.id()); it == slot_states.end() || it->second != state_value) {
+    slot_states[slot.id()] = state_value;
+    slot_array.push_back({{"type", SyncConfig::Type::Slots},
+                          {"sid", slot.id()},
+                          {"slot_type", slot.slottype()},
+                          {"spec_id", slot.slotspecid()},
+                          {"item_id", slot.has_slotitemid() ? json(slot.slotitemid().value()) : json(nullptr)},
+                          {"params", slot_params}});
+  }
+}
+
 void process_entity_slots(std::unique_ptr<std::string>&& bytes)
 {
   using json = nlohmann::json;
@@ -1072,72 +1145,10 @@ void process_entity_slots(std::unique_ptr<std::string>&& bytes)
 
     auto slot_array = json::array();
     {
-      std::lock_guard lk(slot_states_mtx);
+      std::scoped_lock lk(slot_states_mtx);
 
       for (const auto& slot : response.entityslots_()) {
-        json    slot_params;
-        int64_t state_value = slot.has_slotitemid() ? slot.slotitemid().value() : -1;
-
-        switch (slot.slottype()) {
-          case Digit::PrimeServer::Models::SLOTTYPE_CONSUMABLE:
-            if (slot.has_consumableslotparams()) {
-              const auto& consumable = slot.consumableslotparams();
-              slot_params["expiry_time"] =
-                  consumable.has_expirytime() ? json(consumable.expirytime().seconds()) : json(nullptr);
-            }
-            break;
-          case Digit::PrimeServer::Models::SLOTTYPE_OFFICERPRESET:
-            if (slot.has_officerpresetslotparams()) {
-              const auto& preset = slot.officerpresetslotparams();
-              slot_params = {{"name", preset.name()}, {"order", preset.order()}, {"officer_ids", preset.officerids()}};
-              state_value = static_cast<int64_t>(std::hash<json>{}(slot_params));
-            }
-            break;
-          case Digit::PrimeServer::Models::SLOTTYPE_FLEETCOMMANDER:
-            if (slot.has_fleetcommanderslotparams()) {
-              slot_params["order"] = slot.fleetcommanderslotparams().order();
-            }
-            break;
-          case Digit::PrimeServer::Models::SLOTTYPE_SELECTABLESKILL:
-            if (slot.has_selectableskillslotparams()) {
-              const auto& skill = slot.selectableskillslotparams();
-              slot_params["cooldown_expiration"] =
-                  skill.has_cooldownexpiration() ? json(skill.cooldownexpiration().seconds()) : json(nullptr);
-            }
-            break;
-          case Digit::PrimeServer::Models::SLOTTYPE_FORBIDDENTECH:
-            if (slot.has_forbiddentechslotparams()) {
-              const auto& tech = slot.forbiddentechslotparams();
-              slot_params      = {{"owner_id", tech.ownerid()}, {"tier", tech.tier()}, {"level", tech.level()}};
-            }
-            break;
-          case Digit::PrimeServer::Models::SLOTTYPE_FLEETPRESET:
-            if (slot.has_fleetpresetslotparams()) {
-              const auto& preset     = slot.fleetpresetslotparams();
-              auto        setup_json = json::array();
-
-              for (const auto& setup : preset.setups()) {
-                setup_json.push_back({{"drydock_id", setup.drydockid()},
-                                      {"ship_id", setup.shipids()[0]},
-                                      {"officer_ids", setup.officerids()}});
-              }
-
-              slot_params = {{"name", preset.name()}, {"order", preset.order()}, {"setup", setup_json}};
-              state_value = static_cast<int64_t>(std::hash<json>{}(slot_params));
-            }
-          default:
-            continue;
-        }
-
-        if (const auto& it = slot_states.find(slot.id()); it == slot_states.end() || it->second != state_value) {
-          slot_states[slot.id()] = state_value;
-          slot_array.push_back({{"type", SyncConfig::Type::Slots},
-                                {"sid", slot.id()},
-                                {"slot_type", slot.slottype()},
-                                {"spec_id", slot.slotspecid()},
-                                {"item_id", slot.has_slotitemid() ? json(slot.slotitemid().value()) : json(nullptr)},
-                                {"params", slot_params}});
-        }
+        process_single_slot(slot, slot_array);
       }
     }
 
@@ -1155,79 +1166,17 @@ void process_entity_slots_data(std::unique_ptr<std::string>&& bytes)
 
   if (auto response = Digit::PrimeServer::Models::EntitySlotsData(); response.ParseFromString(*bytes)) {
 
-    http::sync_log_trace("PROCESS", "entity slots data", STR_FORMAT("Processing {} entity slots", response.entityslots_size()));
+    http::sync_log_trace("PROCESS", "entity slots data", STR_FORMAT("Processing {} slots", response.entityslots_size()));
 
     auto slot_array = json::array();
     {
-      std::lock_guard lk(slot_states_mtx);
+      std::scoped_lock lk(slot_states_mtx);
 
       for (const auto& slots : response.entityslots()) {
         http::sync_log_trace("PROCESS", "entity slots data", STR_FORMAT("Processing {} slots for entity {}", slots.slots_size(), static_cast<int32_t>(slots.entitytype())));
 
         for (const auto& slot : slots.slots()) {
-          json    slot_params;
-          int64_t state_value = slot.has_slotitemid() ? slot.slotitemid().value() : -1;
-
-          switch (slot.slottype()) {
-            case Digit::PrimeServer::Models::SLOTTYPE_CONSUMABLE:
-              if (slot.has_consumableslotparams()) {
-                const auto& consumable = slot.consumableslotparams();
-                slot_params["expiry_time"] =
-                    consumable.has_expirytime() ? json(consumable.expirytime().seconds()) : json(nullptr);
-              }
-              break;
-            case Digit::PrimeServer::Models::SLOTTYPE_OFFICERPRESET:
-              if (slot.has_officerpresetslotparams()) {
-                const auto& preset = slot.officerpresetslotparams();
-                slot_params = {{"name", preset.name()}, {"order", preset.order()}, {"officer_ids", preset.officerids()}};
-                state_value = static_cast<int64_t>(std::hash<json>{}(slot_params));
-              }
-              break;
-            case Digit::PrimeServer::Models::SLOTTYPE_FLEETCOMMANDER:
-              if (slot.has_fleetcommanderslotparams()) {
-                slot_params["order"] = slot.fleetcommanderslotparams().order();
-              }
-              break;
-            case Digit::PrimeServer::Models::SLOTTYPE_SELECTABLESKILL:
-              if (slot.has_selectableskillslotparams()) {
-                const auto& skill = slot.selectableskillslotparams();
-                slot_params["cooldown_expiration"] =
-                    skill.has_cooldownexpiration() ? json(skill.cooldownexpiration().seconds()) : json(nullptr);
-              }
-              break;
-            case Digit::PrimeServer::Models::SLOTTYPE_FORBIDDENTECH:
-              if (slot.has_forbiddentechslotparams()) {
-                const auto& tech = slot.forbiddentechslotparams();
-                slot_params = {{"owner_id", tech.ownerid()}, {"tier", tech.tier()}, {"level", tech.level()}};
-              }
-              break;
-            case Digit::PrimeServer::Models::SLOTTYPE_FLEETPRESET:
-              if (slot.has_fleetpresetslotparams()) {
-                const auto& preset     = slot.fleetpresetslotparams();
-                auto        setup_json = json::array();
-
-                for (const auto& setup : preset.setups()) {
-                  setup_json.push_back({{"drydock_id", setup.drydockid()},
-                                        {"ship_id", setup.shipids()[0]},
-                                        {"officer_ids", setup.officerids()}});
-                }
-
-                slot_params = {{"name", preset.name()}, {"order", preset.order()}, {"setup", setup_json}};
-                state_value = static_cast<int64_t>(std::hash<json>{}(slot_params));
-              }
-            default:
-              continue;
-          }
-
-          if (const auto& it = slot_states.find(slot.id()); it == slot_states.end() || it->second != state_value) {
-            slot_states[slot.id()] = state_value;
-            slot_array.push_back({{"type", SyncConfig::Type::Slots},
-                                  {"sid", slot.id()},
-                                  {"slot_type", slot.slottype()},
-                                  {"spec_id", slot.slotspecid()},
-                                  {"item_id", slot.has_slotitemid() ? json(slot.slotitemid().value()) : json(nullptr)},
-                                  {"params", slot_params}});
-          }
+          process_single_slot(slot, slot_array);
         }
       }
     }
@@ -1316,7 +1265,7 @@ void process_entity_slots_rtc(std::unique_ptr<std::string>&& json_payload)
 
     const auto id = data["slot_id"].get<int64_t>();
     {
-      std::lock_guard lk(slot_states_mtx);
+      std::scoped_lock lk(slot_states_mtx);
 
       if (const auto& it = slot_states.find(id); it == slot_states.end() || it->second != state_value) {
         slot_states[id] = state_value;
@@ -1358,7 +1307,7 @@ void process_jobs(std::unique_ptr<std::string>&& bytes)
 
       bool emit = false;
       {
-        std::lock_guard lk(jobs_active_mtx);
+        std::scoped_lock lk(jobs_active_mtx);
         emit = jobs_active.insert(uuid).second;
       }
 
@@ -1402,7 +1351,7 @@ void process_jobs(std::unique_ptr<std::string>&& bytes)
 
     // Prune entries that are no longer present to prevent unbounded growth
     {
-      std::lock_guard lk(jobs_active_mtx);
+      std::scoped_lock lk(jobs_active_mtx);
       for (auto it = jobs_active.begin(); it != jobs_active.end();) {
         if (!uuids_in_response.contains(*it)) {
           job_array.push_back({
@@ -1417,7 +1366,7 @@ void process_jobs(std::unique_ptr<std::string>&& bytes)
     }
 
     if (!job_array.empty()) {
-      bool first_sync = is_first_sync.exchange(false, std::memory_order_acq_rel);
+      const bool first_sync = is_first_sync.exchange(false, std::memory_order_acq_rel);
       queue_data(SyncConfig::Type::Jobs, job_array, first_sync);
     }
   } else {
@@ -1468,7 +1417,7 @@ void process_battle_headers(const nlohmann::json& section)
 
   std::vector<uint64_t> to_enqueue;
   {
-    std::lock_guard lk(previously_sent_battlelogs_mtx);
+    std::scoped_lock lk(previously_sent_battlelogs_mtx);
 
     for (const auto id : battle_ids | std::views::reverse) {
       if (eastl::find(previously_sent_battlelogs.begin(), previously_sent_battlelogs.end(), id)
@@ -1484,7 +1433,7 @@ void process_battle_headers(const nlohmann::json& section)
                          STR_FORMAT("Queuing {} battles for background processing", to_enqueue.size()));
 
     {
-      std::lock_guard lk(combat_log_data_mtx);
+      std::scoped_lock lk(combat_log_data_mtx);
       for (const auto id : to_enqueue) {
         combat_log_data_queue.push(id);
       }
@@ -1506,7 +1455,7 @@ void process_resources(const nlohmann::json& section)
 
   auto resource_array = json::array();
   {
-    std::lock_guard lk(resource_states_mtx);
+    std::scoped_lock lk(resource_states_mtx);
 
     for (const auto& [str_id, resource] : section.get<json::object_t>()) {
       auto id     = std::stoll(str_id);
@@ -1535,7 +1484,7 @@ void process_starbase_modules(const nlohmann::json& section)
 
   auto starbase_array = json::array();
   {
-    std::lock_guard lk(module_states_mtx);
+    std::scoped_lock lk(module_states_mtx);
 
     for (const auto& module : section.get<json::object_t>() | std::views::values) {
       const auto id    = module["id"].get<int64_t>();
@@ -1564,7 +1513,7 @@ void process_ships(const nlohmann::json& section)
 
   auto ship_array = json::array();
   {
-    std::lock_guard lk(ship_states_mtx);
+    std::scoped_lock lk(ship_states_mtx);
 
     for (const auto& ship : section.get<json::object_t>() | std::views::values) {
       const auto      id               = ship["id"].get<int64_t>();
@@ -1644,11 +1593,11 @@ void cache_player_names(std::unique_ptr<std::string>&& bytes)
         std::chrono::steady_clock::now() + std::chrono::seconds(Config::Get().sync_resolver_cache_ttl);
 
     for (const auto& profile : response.userprofiles()) {
-      names.insert_or_assign(profile.userid(), CachedPlayerData{profile.name(), profile.allianceid(), expires_at});
+      names.insert_or_assign(profile.userid(), CachedPlayerData{.name=profile.name(), .alliance=profile.allianceid(), .expires_at=expires_at});
     }
 
     {
-      std::lock_guard lk(player_data_cache_mtx);
+      std::scoped_lock lk(player_data_cache_mtx);
       player_data_cache.insert(names.begin(), names.end());
     }
   } else {
@@ -1666,12 +1615,12 @@ void cache_alliance_names(std::unique_ptr<std::string>&& bytes)
 
     for (const auto& alliance : response.allianceprofiles()) {
       if (alliance.id() > 0) {
-        names.insert_or_assign(alliance.id(), CachedAllianceData{alliance.name(), alliance.tag(), expires_at});
+        names.insert_or_assign(alliance.id(), CachedAllianceData{.name=alliance.name(), .tag=alliance.tag(), .expires_at=expires_at});
       }
     }
 
     {
-      std::lock_guard lk(alliance_data_cache_mtx);
+      std::scoped_lock lk(alliance_data_cache_mtx);
       alliance_data_cache.insert(names.begin(), names.end());
     }
 
@@ -1745,7 +1694,7 @@ inline void collect_alliance_ids(const nlohmann::json& names, std::unordered_set
 void resolve_player_names(const std::unordered_set<std::string>& user_ids, nlohmann::json& out_names,
                           nlohmann::json& out_request_ids, const std::chrono::time_point<std::chrono::steady_clock> now)
 {
-  std::lock_guard lk(player_data_cache_mtx);
+  std::scoped_lock lk(player_data_cache_mtx);
 
   for (const auto& user_id : user_ids) {
     const auto it = player_data_cache.find(user_id);
@@ -1771,13 +1720,13 @@ void resolve_alliance_names(const std::unordered_set<int64_t>& alliance_ids, nlo
                             nlohmann::json&                                          out_request_ids,
                             const std::chrono::time_point<std::chrono::steady_clock> now)
 {
-  std::lock_guard lk(alliance_data_cache_mtx);
+  std::scoped_lock lk(alliance_data_cache_mtx);
 
   for (const auto& alliance_id : alliance_ids) {
     const auto it = alliance_data_cache.find(alliance_id);
     if (it != alliance_data_cache.end()) {
       if (it->second.expires_at > now) {
-        for (auto& [player_id, entry] : out_names.items()) {
+        for (const auto& [player_id, entry] : out_names.items()) {
           try {
             if (entry["alliance_id"].get<int64_t>() == alliance_id) {
               entry["alliance_name"] = it->second.name;
@@ -1856,7 +1805,7 @@ void ship_combat_log_data()
           auto profiles      = http::get_scopely_data("/user_profile/profiles", profiles_request.dump());
           auto profiles_json = json::parse(profiles);
 
-          std::lock_guard lk(player_data_cache_mtx);
+          std::scoped_lock lk(player_data_cache_mtx);
 
           try {
             for (const auto& [player_id, profile] : profiles_json["user_profiles"].get<json::object_t>()) {
@@ -1865,7 +1814,7 @@ void ship_combat_log_data()
 
               names[player_id] = {
                   {"name", name}, {"alliance_id", alliance_id}, {"alliance_name", nullptr}, {"alliance_tag", nullptr}};
-              player_data_cache[player_id] = {name, alliance_id, expires_at};
+              player_data_cache[player_id] = {.name=name, .alliance=alliance_id, .expires_at=expires_at};
             }
           } catch (const json::exception& e) {
             spdlog::error("Failed to parse user profiles: {}", e.what());
@@ -1887,7 +1836,7 @@ void ship_combat_log_data()
           auto profiles      = http::get_scopely_data("/alliance/get_alliances_public_info", alliances_request.dump());
           auto profiles_json = json::parse(profiles);
 
-          std::lock_guard lk(alliance_data_cache_mtx);
+          std::scoped_lock lk(alliance_data_cache_mtx);
 
           try {
             for (const auto& [alliance_id_str, profile] : profiles_json["alliances_info"].get<json::object_t>()) {
@@ -1895,13 +1844,13 @@ void ship_combat_log_data()
               const auto& name = profile["name"].get<std::string>();
               const auto& tag  = profile["tag"].get<std::string>();
 
-              alliance_data_cache[id] = {name, tag, expires_at};
+              alliance_data_cache[id] = {.name=name, .tag=tag, .expires_at=expires_at};
             }
           } catch (json::exception& e) {
             spdlog::error("Failed to parse alliance profiles: {}", e.what());
           }
 
-          for (auto& [player_id, entry] : names.items()) {
+          for (const auto& [player_id, entry] : names.items()) {
             try {
               if (entry.contains("alliance_id")) {
                 const auto alliance_id = entry["alliance_id"].get<int64_t>();
@@ -1958,7 +1907,7 @@ void HandleEntityGroup(EntityGroup* entity_group)
   }
 
   const auto byteCount = static_cast<size_t>(entity_group->Group->Length);
-  auto       bytesPtr  = reinterpret_cast<const char*>(entity_group->Group->bytes->m_Items);
+  const auto *bytesPtr = reinterpret_cast<const char*>(entity_group->Group->bytes->m_Items);
 
   // Helper to run processing asynchronously with exception handling
   auto submit_async = [bytesPtr, byteCount]<typename T>(T&& func) {
@@ -2110,9 +2059,9 @@ void GameServerModelRegistry_ProcessResultInternal(auto original, void* _this, H
                                                    ServiceResponse* service_response, void* callback,
                                                    void* callback_error)
 {
-  const auto entity_groups = service_response->EntityGroups;
+  auto *const entity_groups = service_response->EntityGroups;
   for (int i = 0; i < entity_groups->Count; ++i) {
-    const auto entity_group = entity_groups->get_Item(i);
+    auto *const entity_group = entity_groups->get_Item(i);
     HandleEntityGroup(entity_group);
   }
 
@@ -2121,9 +2070,9 @@ void GameServerModelRegistry_ProcessResultInternal(auto original, void* _this, H
 
 void GameServerModelRegistry_HandleBinaryObjects(auto original, void* _this, ServiceResponse* service_response)
 {
-  const auto entity_groups = service_response->EntityGroups;
+  auto *const entity_groups = service_response->EntityGroups;
   for (int i = 0; i < entity_groups->Count; ++i) {
-    const auto entity_group = entity_groups->get_Item(i);
+    auto *const entity_group = entity_groups->get_Item(i);
     HandleEntityGroup(entity_group);
   }
 
@@ -2160,7 +2109,7 @@ void InstallSyncPatches()
       !game_server_model_registry.isValidHelper()) {
     ErrorMsg::MissingHelper("Core", "GameServerModelRegistry");
   } else {
-    auto ptr = game_server_model_registry.GetMethod("ProcessResultInternal");
+    auto *ptr = game_server_model_registry.GetMethod("ProcessResultInternal");
     if (ptr == nullptr) {
       ErrorMsg::MissingMethod("GameServerModelRegistry", "ProcessResultInterval");
     } else {
@@ -2169,7 +2118,7 @@ void InstallSyncPatches()
 
     ptr = game_server_model_registry.GetMethod("HandleBinaryObjects");
     if (ptr == nullptr) {
-      ErrorMsg::MissingMethod("GameServerModelRegsitry", "HandleBinaryObjects");
+      ErrorMsg::MissingMethod("GameServerModelRegistry", "HandleBinaryObjects");
     } else {
       SPUD_STATIC_DETOUR(ptr, GameServerModelRegistry_HandleBinaryObjects);
     }
@@ -2180,7 +2129,7 @@ void InstallSyncPatches()
       !platform_model_registry.isValidHelper()) {
     ErrorMsg::MissingHelper("Core", "PlatformModelRegistry");
   } else {
-    if (const auto ptr = platform_model_registry.GetMethod("ProcessResultInternal"); ptr == nullptr) {
+    if (auto *const ptr = platform_model_registry.GetMethod("ProcessResultInternal"); ptr == nullptr) {
       ErrorMsg::MissingMethod("PlatformModelRegistry", "ProcessResultInterval");
     } else {
       SPUD_STATIC_DETOUR(ptr, GameServerModelRegistry_ProcessResultInternal);
@@ -2192,7 +2141,7 @@ void InstallSyncPatches()
       !buff_data_container.isValidHelper()) {
     ErrorMsg::MissingHelper("Services", "BuffDataContainer");
   } else {
-    if (const auto ptr = buff_data_container.GetMethod("ParseBinaryObject"); ptr == nullptr) {
+    if (auto *const ptr = buff_data_container.GetMethod("ParseBinaryObject"); ptr == nullptr) {
       ErrorMsg::MissingMethod("BuffDataContainer", "ParseBinaryObject");
     } else {
       SPUD_STATIC_DETOUR(ptr, DataContainer_ParseBinaryObject);
@@ -2204,7 +2153,7 @@ void InstallSyncPatches()
       !buff_service.isValidHelper()) {
     ErrorMsg::MissingHelper("Services", "BuffService");
   } else {
-    if (const auto ptr = buff_service.GetMethod("ParseBinaryObject"); ptr == nullptr) {
+    if (auto *const ptr = buff_service.GetMethod("ParseBinaryObject"); ptr == nullptr) {
       ErrorMsg::MissingMethod("BuffService", "ParseBinaryObject");
     } else {
       SPUD_STATIC_DETOUR(ptr, DataContainer_ParseBinaryObject);
@@ -2216,7 +2165,7 @@ void InstallSyncPatches()
       !inventory_data_container.isValidHelper()) {
     ErrorMsg::MissingHelper("Services", "InventoryDataContainer");
   } else {
-    if (const auto ptr = inventory_data_container.GetMethod("ParseBinaryObject"); ptr == nullptr) {
+    if (auto *const ptr = inventory_data_container.GetMethod("ParseBinaryObject"); ptr == nullptr) {
       ErrorMsg::MissingMethod("InventoryDataContainer", "ParseBinaryObject");
     } else {
       SPUD_STATIC_DETOUR(ptr, DataContainer_ParseBinaryObject);
@@ -2228,7 +2177,7 @@ void InstallSyncPatches()
       !job_service.isValidHelper()) {
     ErrorMsg::MissingHelper("Services", "JobService");
   } else {
-    if (const auto ptr = job_service.GetMethod("ParseBinaryObject"); ptr == nullptr) {
+    if (auto *const ptr = job_service.GetMethod("ParseBinaryObject"); ptr == nullptr) {
       ErrorMsg::MissingMethod("JobService", "ParseBinaryObject");
     } else {
       SPUD_STATIC_DETOUR(ptr, DataContainer_ParseBinaryObject);
@@ -2240,7 +2189,7 @@ void InstallSyncPatches()
       !job_service_data_container.isValidHelper()) {
     ErrorMsg::MissingHelper("Services", "JobServiceDataContainer");
   } else {
-    if (const auto ptr = job_service_data_container.GetMethod("ParseBinaryObject"); ptr == nullptr) {
+    if (auto *const ptr = job_service_data_container.GetMethod("ParseBinaryObject"); ptr == nullptr) {
       ErrorMsg::MissingMethod("JobServiceDataContainer", "ParseBinaryObject");
     } else {
       SPUD_STATIC_DETOUR(ptr, DataContainer_ParseBinaryObject);
@@ -2252,7 +2201,7 @@ void InstallSyncPatches()
       !missions_data_container.isValidHelper()) {
     ErrorMsg::MissingHelper("Models", "MissionsDataContainer");
   } else {
-    if (const auto ptr = missions_data_container.GetMethod("ParseBinaryObject"); ptr == nullptr) {
+    if (auto *const ptr = missions_data_container.GetMethod("ParseBinaryObject"); ptr == nullptr) {
       ErrorMsg::MissingMethod("MissionsDataContainer", "ParseBinaryObject");
     } else {
       SPUD_STATIC_DETOUR(ptr, DataContainer_ParseBinaryObject);
@@ -2264,7 +2213,7 @@ void InstallSyncPatches()
       !research_data_container.isValidHelper()) {
     ErrorMsg::MissingHelper("Services", "ResearchDataContainer");
   } else {
-    if (const auto ptr = research_data_container.GetMethod("ParseBinaryObject"); ptr == nullptr) {
+    if (auto *const ptr = research_data_container.GetMethod("ParseBinaryObject"); ptr == nullptr) {
       ErrorMsg::MissingHelper("ResearchDataContainer", "ParseBinaryObject");
     } else {
       SPUD_STATIC_DETOUR(ptr, DataContainer_ParseBinaryObject);
@@ -2276,7 +2225,7 @@ void InstallSyncPatches()
       !research_service.isValidHelper()) {
     ErrorMsg::MissingHelper("Services", "ResearchService");
   } else {
-    if (const auto ptr = research_service.GetMethod("ParseBinaryObject"); ptr == nullptr) {
+    if (auto *const ptr = research_service.GetMethod("ParseBinaryObject"); ptr == nullptr) {
       ErrorMsg::MissingMethod("ResearchService", "ParseBinaryObject");
     } else {
       SPUD_STATIC_DETOUR(ptr, DataContainer_ParseBinaryObject);
@@ -2288,25 +2237,25 @@ void InstallSyncPatches()
       !slot_data_container.isValidHelper()) {
     ErrorMsg::MissingHelper("Services", "SlotDataContainer");
   } else {
-    if (const auto ptr = slot_data_container.GetMethod("ParseBinaryObject"); ptr == nullptr) {
+    if (auto *const ptr = slot_data_container.GetMethod("ParseBinaryObject"); ptr == nullptr) {
       ErrorMsg::MissingMethod("SlotDataContainer", "ParseBinaryObject");
     } else {
       SPUD_STATIC_DETOUR(ptr, DataContainer_ParseBinaryObject);
     }
 
-    if (const auto ptr = slot_data_container.GetMethod("ParseEntitySlotsData"); ptr == nullptr) {
+    if (auto *const ptr = slot_data_container.GetMethod("ParseEntitySlotsData"); ptr == nullptr) {
       ErrorMsg::MissingMethod("SlotDataContainer", "ParseEntitySlotsData");
     } else {
       SPUD_STATIC_DETOUR(ptr, DataContainer_ParseEntitySlotsData);
     }
 
-    if (const auto ptr = slot_data_container.GetMethod("ParseSlotUpdatedJson"); ptr == nullptr) {
+    if (auto *const ptr = slot_data_container.GetMethod("ParseSlotUpdatedJson"); ptr == nullptr) {
       ErrorMsg::MissingMethod("SlotDataContainer", "ParseSlotUpdatedJson");
     } else {
       SPUD_STATIC_DETOUR(ptr, DataContainer_ParseRtcPayload);
     }
 
-    if (const auto ptr = slot_data_container.GetMethod("ParseSlotRemovedJson"); ptr == nullptr) {
+    if (auto *const ptr = slot_data_container.GetMethod("ParseSlotRemovedJson"); ptr == nullptr) {
       ErrorMsg::MissingMethod("SlotDataContainer", "ParseSlotRemovedJson");
     } else {
       SPUD_STATIC_DETOUR(ptr, DataContainer_ParseRtcPayload);
@@ -2317,7 +2266,7 @@ void InstallSyncPatches()
       !prime_app.isValidHelper()) {
     ErrorMsg::MissingHelper("Core", "PrimeApp");
   } else {
-    if (const auto ptr = prime_app.GetMethod("InitPrimeServer"); ptr == nullptr) {
+    if (auto *const ptr = prime_app.GetMethod("InitPrimeServer"); ptr == nullptr) {
       ErrorMsg::MissingMethod("PrimeApp", "InitPrimeServer");
     } else {
       SPUD_STATIC_DETOUR(ptr, PrimeApp_InitPrimeServer);
@@ -2329,13 +2278,13 @@ void InstallSyncPatches()
       !game_server.isValidHelper()) {
     ErrorMsg::MissingHelper("Core", "GameServer");
   } else {
-    if (const auto ptr = game_server.GetMethod("Initialise"); ptr == nullptr) {
+    if (auto *const ptr = game_server.GetMethod("Initialise"); ptr == nullptr) {
       ErrorMsg::MissingMethod("GameServer", "Initialise");
     } else {
       SPUD_STATIC_DETOUR(ptr, GameServer_Initialise);
     }
 
-    if (const auto ptr = game_server.GetMethod("SetInstanceIdHeader"); ptr == nullptr) {
+    if (auto *const ptr = game_server.GetMethod("SetInstanceIdHeader"); ptr == nullptr) {
       ErrorMsg::MissingMethod("GameServer", "SetInstanceIdHeader");
     } else {
       SPUD_STATIC_DETOUR(ptr, GameServer_SetInstanceIdHeader);
