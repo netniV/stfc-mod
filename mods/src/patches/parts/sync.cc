@@ -1197,7 +1197,7 @@ void process_entity_slots_rtc(std::unique_ptr<std::string>&& json_payload)
     auto data = json::parse(*json_payload);
     http::sync_log_trace("PROCESS", "entity slots (RTC)", "Processing entity slot update");
 
-    const auto item = data["item_id"];
+    const auto item = data["slot_item_id"];
     const auto item_id = item.is_null() ? -1 : item.get<int64_t>();
 
     json    slot_params;
