@@ -1,10 +1,9 @@
 import Foundation
 import Security
 import AppKit
-import os
 
 /// Logger for entitlement management operations
-private let logger = Logger(subsystem: "com.stfcmod.startrekpatch", category: "entitlements")
+private let logger = FileLogger(category: "entitlements")
 
 /// Entitlements required to enable the loader for STFC
 let loaderEntitlements: [String: Any] = [

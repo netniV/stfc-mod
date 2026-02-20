@@ -1,9 +1,8 @@
 import Foundation
 import SwiftUI
-import os
 
 /// Logger for launcher actions
-private let logger = Logger(subsystem: "com.stfcmod.startrekpatch", category: "launcher")
+private let logger = FileLogger(category: "launcher")
 
 struct ActionView: View, XSollaUpdaterDelegate {
 

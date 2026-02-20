@@ -1,8 +1,7 @@
 import Foundation
-import os
 
 /// Logger for Xsolla operations
-private let logger = Logger(subsystem: "com.stfcmod.startrekpatch", category: "xsolla")
+private let logger = FileLogger(category: "xsolla")
 
 struct DownloadAction {
   var url: String
