@@ -83,6 +83,10 @@ func ensureGameHasLoaderEntitlements(signingIdentity: String = "-") throws {
         confirmedURL.stopAccessingSecurityScopedResource()
     }
 
+    // Clean up stale .temp files left behind by the Xsolla game updater.
+    // These break codesign because it treats them as unsigned subcomponents.
+    cleanupTempFiles(inBundleAt: gameAppPath)
+
     // Apply the entitlements using the security-scoped access
     // We only sign the main executable, preserving nested framework/plugin signatures
     logger.info("Applying loader entitlements to the game binary...")
@@ -499,6 +503,31 @@ private func areValuesEqual(_ lhs: Any, _ rhs: Any) -> Bool {
 
     // Fallback: try string comparison
     return "\(lhs)" == "\(rhs)"
+}
+
+/// Removes stale `.temp` files from the game bundle that the Xsolla updater
+/// sometimes leaves behind. These confuse `codesign` which treats them as
+/// unsigned subcomponents and refuses to sign the main executable.
+func cleanupTempFiles(inBundleAt bundlePath: String) {
+    let contentsPath = (bundlePath as NSString).appendingPathComponent("Contents")
+    let fileManager = FileManager.default
+
+    guard let enumerator = fileManager.enumerator(atPath: contentsPath) else {
+        logger.warning("Could not enumerate bundle contents at \(contentsPath)")
+        return
+    }
+
+    while let relativePath = enumerator.nextObject() as? String {
+        guard relativePath.hasSuffix(".temp") else { continue }
+
+        let fullPath = (contentsPath as NSString).appendingPathComponent(relativePath)
+        logger.info("Removing stale temp file: \(relativePath)")
+        do {
+            try fileManager.removeItem(atPath: fullPath)
+        } catch {
+            logger.warning("Could not remove temp file \(relativePath): \(error.localizedDescription)")
+        }
+    }
 }
 
 /// Checks if the game is currently running
