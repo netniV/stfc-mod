@@ -1,5 +1,6 @@
 #include <il2cpp/il2cpp_helper.h>
 
+#include "errormsg.h"
 #include "prime/AllianceStarbaseObjectViewerWidget.h"
 #include "prime/AnimatedRewardsScreenViewController.h"
 #include "prime/ArmadaObjectViewerWidget.h"
@@ -88,8 +89,10 @@ void* track_ctor(auto original, void* _this)
   typedef void      (*FinalizerCallback)(void* object, void* client_data);
   FinalizerCallback oldCallback = nullptr;
   void*             oldData     = nullptr;
-  GC_register_finalizer_inner((intptr_t)_this, track_finalizer, nullptr, &oldCallback, &oldData);
-  assert(!oldCallback);
+  if (GC_register_finalizer_inner) {
+    GC_register_finalizer_inner((intptr_t)_this, track_finalizer, nullptr, &oldCallback, &oldData);
+    assert(!oldCallback);
+  }
   add_to_tracking_recursive(cls->klass, _this);
   return obj;
 }
@@ -153,14 +156,26 @@ static eastl::unordered_set<void*> seen_destroy;
 template <typename T> void TrackObject()
 {
   auto& object_class = T::get_class_helper();
-  auto  ctor         = object_class.GetMethod(".ctor");
-  auto  on_destroy   = object_class.GetMethod("OnDestroy");
-  if (seen_ctor.find(ctor) == seen_ctor.end()) {
+  if (!object_class.isValidHelper()) {
+    spdlog::error("ObjectTracker: Unable to find class for tracking");
+    return;
+  }
+
+  const auto* class_name = object_class.get_cls()->name;
+
+  auto ctor       = object_class.GetMethod(".ctor");
+  auto on_destroy = object_class.GetMethod("OnDestroy");
+
+  if (ctor == nullptr) {
+    ErrorMsg::MissingMethod(class_name, ".ctor");
+  } else if (seen_ctor.find(ctor) == seen_ctor.end()) {
     SPUD_STATIC_DETOUR(ctor, track_ctor);
     seen_ctor.emplace(ctor);
   }
 
-  if (seen_destroy.find(on_destroy) == seen_destroy.end()) {
+  if (on_destroy == nullptr) {
+    ErrorMsg::MissingMethod(class_name, "OnDestroy");
+  } else if (seen_destroy.find(on_destroy) == seen_destroy.end()) {
     SPUD_STATIC_DETOUR(on_destroy, track_destroy);
     seen_destroy.emplace(on_destroy);
   }
@@ -196,6 +211,11 @@ void InstallObjectTrackers()
       "55 48 89 E5 41 57 41 56 41 55 41 54 53 48 83 EC ? 4C 89 45 ? 48 89 4D ? 83 3D", "GameAssembly.dylib");
 #endif
 #endif
+
+  if (GC_register_finalizer_inner_matches.size() == 0) {
+    spdlog::error("ObjectTracker: Unable to find GC_register_finalizer_inner signature");
+    return;
+  }
 
   const auto GC_register_finalizer_inner_match = GC_register_finalizer_inner_matches.get(0);
   GC_register_finalizer_inner = (decltype(GC_register_finalizer_inner))GC_register_finalizer_inner_match.address();
