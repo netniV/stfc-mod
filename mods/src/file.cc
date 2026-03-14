@@ -192,7 +192,25 @@ void File::Init()
     if (File::override) {
       cacheNameLog = configPath.replace_extension(FILE_EXT_LOG).string();
     } else {
-      cacheNameLog = std::string(FILE_DEF_LOG);
+#if !_WIN32
+      const std::filesystem::path libraryPath =
+          fm::FolderManager::pathForDirectory(fm::NSLibraryDirectory, fm::NSUserDomainMask);
+      const auto log_dir = libraryPath / "Logs" / "com.stfcmod.startrekpatch";
+      std::error_code ec;
+      std::filesystem::create_directories(log_dir, ec);
+      cacheNameLog = (log_dir / FILE_DEF_LOG).string();
+#else
+      PWSTR localAppData = nullptr;
+      if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &localAppData))) {
+        std::filesystem::path log_dir = std::filesystem::path(localAppData) / "stfcmod" / "Logs";
+        CoTaskMemFree(localAppData);
+        std::error_code ec;
+        std::filesystem::create_directories(log_dir, ec);
+        cacheNameLog = (log_dir / FILE_DEF_LOG).string();
+      } else {
+        cacheNameLog = std::string(FILE_DEF_LOG);
+      }
+#endif
     }
 
     /*******************************

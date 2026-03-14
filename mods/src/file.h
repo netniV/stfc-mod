@@ -18,6 +18,7 @@
 #if !_WIN32
 #include "folder_manager.h"
 #else
+#include <ShlObj.h>
 #include <shellapi.h>
 #include <windows.h>
 #endif
