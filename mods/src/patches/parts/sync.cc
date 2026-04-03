@@ -1938,6 +1938,8 @@ void HandleEntityGroup(EntityGroup* entity_group)
   const auto byteCount = static_cast<size_t>(entity_group->Group->Length);
   const auto *bytesPtr = reinterpret_cast<const char*>(entity_group->Group->bytes->m_Items);
 
+  spdlog::debug("HandleEntityGroup called with type: {}", static_cast<int>(entity_group->Type_));
+
   // Helper to run processing asynchronously with exception handling
   auto submit_async = [bytesPtr, byteCount]<typename T>(T&& func) {
     auto payload = std::make_unique<std::string>(bytesPtr, byteCount);
