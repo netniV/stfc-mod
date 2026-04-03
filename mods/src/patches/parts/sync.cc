@@ -869,7 +869,7 @@ void process_research_trees_state(std::unique_ptr<std::string>&& bytes)
       }
     }
 
-    if (!research_array.empty()) {
+    if (!research_array.empty() && Config::Get().sync_options.research) {
       queue_data(SyncConfig::Type::Research, research_array);
     }
   } else {
@@ -911,7 +911,7 @@ void process_officers(std::unique_ptr<std::string>&& bytes)
       }
     }
 
-    if (!officers_array.empty()) {
+    if (!officers_array.empty() && Config::Get().sync_options.officer) {
       queue_data(SyncConfig::Type::Officer, officers_array);
     }
   } else {
@@ -1487,7 +1487,7 @@ void process_resources(const nlohmann::json& section)
     }
   }
 
-  if (!resource_array.empty()) {
+  if (!resource_array.empty() && Config::Get().sync_options.resources) {
     bool first_sync = is_first_sync.exchange(false, std::memory_order_acq_rel);
     queue_data(SyncConfig::Type::Resources, resource_array, first_sync);
   }
@@ -1521,7 +1521,7 @@ void process_starbase_modules(const nlohmann::json& section)
     }
   }
 
-  if (!starbase_array.empty()) {
+  if (!starbase_array.empty() && Config::Get().sync_options.buildings) {
     queue_data(SyncConfig::Type::Buildings, starbase_array);
   }
 }
@@ -1565,7 +1565,7 @@ void process_ships(const nlohmann::json& section)
     }
   }
 
-  if (!ship_array.empty()) {
+  if (!ship_array.empty() && Config::Get().sync_options.ships) {
     bool first_sync = is_first_sync.exchange(false, std::memory_order_acq_rel);
     queue_data(SyncConfig::Type::Ships, ship_array, first_sync);
   }
@@ -1976,12 +1976,12 @@ void HandleEntityGroup(EntityGroup* entity_group)
       }
       break;
     case EntityGroup::Type::ResearchTreesState:
-      if (Config::Get().sync_options.research) {
+      if (Config::Get().sync_options.research || Config::Get().export_gamestate) {
         submit_async(process_research_trees_state);
       }
       break;
     case EntityGroup::Type::Officers:
-      if (Config::Get().sync_options.officer) {
+      if (Config::Get().sync_options.officer || Config::Get().export_gamestate) {
         submit_async(process_officers);
       }
       break;
@@ -1996,7 +1996,7 @@ void HandleEntityGroup(EntityGroup* entity_group)
       }
       break;
     case EntityGroup::Type::Json:
-      if (const auto& o = Config::Get().sync_options; o.battlelogs || o.resources || o.ships || o.buildings) {
+      if (const auto& o = Config::Get().sync_options; o.battlelogs || o.resources || o.ships || o.buildings || Config::Get().export_gamestate) {
         submit_async(process_json);
       }
       break;
