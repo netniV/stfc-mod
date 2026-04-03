@@ -2,6 +2,7 @@
 #include "errormsg.h"
 #include "file.h"
 #include "str_utils.h"
+#include "gamestate_export.h"
 
 #include <il2cpp-api-types.h>
 #include <Digit.PrimeServer.Models.pb.h>
@@ -856,6 +857,11 @@ void process_research_trees_state(std::unique_ptr<std::string>&& bytes)
       std::scoped_lock lk(research_states_mtx);
 
       for (const auto& [id, level] : response.researchprojectlevels()) {
+        // Capture for gamestate export
+        if (Config::Get().export_gamestate) {
+          gamestate_export::capture_research(id, level);
+        }
+
         if (const auto& it = research_states.find(id); it == research_states.end() || it->second != level) {
           research_states[id] = level;
           research_array.push_back({{"type", SyncConfig::Type::Research}, {"rid", id}, {"level", level}});
@@ -887,6 +893,11 @@ void process_officers(std::unique_ptr<std::string>&& bytes)
 
       for (const auto& officer : response.officers()) {
         const RankLevelShardsState officer_state{officer.rankindex(), officer.level(), officer.shardcount()};
+
+        // Capture for gamestate export
+        if (Config::Get().export_gamestate) {
+          gamestate_export::capture_officers(officer.id(), officer.rankindex(), officer.level(), officer.shardcount());
+        }
 
         if (const auto& it = officer_states.find(officer.id());
             it == officer_states.end() || it->second != officer_state) {
@@ -1456,6 +1467,11 @@ void process_resources(const nlohmann::json& section)
 
   http::sync_log_trace("PROCESS", "resources", STR_FORMAT("Processing {} resources", section.size()));
 
+  // Capture for gamestate export
+  if (Config::Get().export_gamestate) {
+    gamestate_export::capture_resources(section);
+  }
+
   auto resource_array = json::array();
   {
     std::scoped_lock lk(resource_states_mtx);
@@ -1485,6 +1501,11 @@ void process_starbase_modules(const nlohmann::json& section)
 
   http::sync_log_trace("PROCESS", "starbase modules", STR_FORMAT("Processing {} buildings", section.size()));
 
+  // Capture for gamestate export
+  if (Config::Get().export_gamestate) {
+    gamestate_export::capture_buildings(section);
+  }
+
   auto starbase_array = json::array();
   {
     std::scoped_lock lk(module_states_mtx);
@@ -1513,6 +1534,11 @@ void process_ships(const nlohmann::json& section)
   static std::atomic_bool                       is_first_sync{true};
 
   http::sync_log_trace("PROCESS", "ships", STR_FORMAT("Processing {} ships", section.size()));
+
+  // Capture for gamestate export
+  if (Config::Get().export_gamestate) {
+    gamestate_export::capture_ships(section);
+  }
 
   auto ship_array = json::array();
   {
