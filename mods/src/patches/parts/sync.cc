@@ -1466,10 +1466,12 @@ void process_resources(const nlohmann::json& section)
   static std::atomic_bool                     is_first_sync{true};
 
   http::sync_log_trace("PROCESS", "resources", STR_FORMAT("Processing {} resources", section.size()));
+  spdlog::info("GameState: Processing {} resources", section.size());
 
   // Capture for gamestate export
   if (Config::Get().export_gamestate) {
     gamestate_export::capture_resources(section);
+    spdlog::info("GameState: Captured {} resources for export", section.size());
   }
 
   auto resource_array = json::array();
@@ -1500,10 +1502,12 @@ void process_starbase_modules(const nlohmann::json& section)
   static std::mutex                           module_states_mtx;
 
   http::sync_log_trace("PROCESS", "starbase modules", STR_FORMAT("Processing {} buildings", section.size()));
+  spdlog::info("GameState: Processing {} starbase modules (buildings)", section.size());
 
   // Capture for gamestate export
   if (Config::Get().export_gamestate) {
     gamestate_export::capture_buildings(section);
+    spdlog::info("GameState: Captured {} buildings for export", section.size());
   }
 
   auto starbase_array = json::array();
@@ -1534,10 +1538,12 @@ void process_ships(const nlohmann::json& section)
   static std::atomic_bool                       is_first_sync{true};
 
   http::sync_log_trace("PROCESS", "ships", STR_FORMAT("Processing {} ships", section.size()));
+  spdlog::info("GameState: Processing {} ships", section.size());
 
   // Capture for gamestate export
   if (Config::Get().export_gamestate) {
     gamestate_export::capture_ships(section);
+    spdlog::info("GameState: Captured {} ships for export", section.size());
   }
 
   auto ship_array = json::array();
