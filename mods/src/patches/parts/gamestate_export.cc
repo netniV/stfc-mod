@@ -7,6 +7,7 @@
 #include <spdlog/spdlog.h>
 
 #include <chrono>
+#include <condition_variable>
 #include <ctime>
 #include <filesystem>
 #include <fstream>
@@ -24,6 +25,9 @@ namespace gamestate_export
 
 static std::thread export_thread;
 static bool        should_stop = false;
+static bool        should_export_now = false;
+static std::mutex  export_request_mutex;
+static std::condition_variable export_cv;
 
 // Cached game data
 static std::mutex game_data_mutex;
@@ -33,6 +37,13 @@ static std::unordered_map<int64_t, int32_t> cached_buildings;
 static std::unordered_map<int64_t, json> cached_ships;
 static std::unordered_map<int64_t, int32_t> cached_research;
 static std::unordered_map<uint64_t, json> cached_officers;
+
+static void request_immediate_export()
+{
+  std::scoped_lock lock(export_request_mutex);
+  should_export_now = true;
+  export_cv.notify_one();
+}
 
 std::string get_iso8601_timestamp()
 {
@@ -69,6 +80,7 @@ void capture_resources(const nlohmann::json& data)
     auto amount = resource["current_amount"].get<int64_t>();
     cached_resources[id] = amount;
   }
+  request_immediate_export();
 }
 
 void capture_buildings(const nlohmann::json& data)
@@ -79,6 +91,7 @@ void capture_buildings(const nlohmann::json& data)
     const auto level = module["level"].get<int32_t>();
     cached_buildings[id] = level;
   }
+  request_immediate_export();
 }
 
 void capture_ships(const nlohmann::json& data)
@@ -94,12 +107,19 @@ void capture_ships(const nlohmann::json& data)
       {"components", ship.value("components", json::array())}
     };
   }
+  request_immediate_export();
 }
 
 void capture_research(int64_t id, int32_t level)
 {
   std::scoped_lock lock(game_data_mutex);
   cached_research[id] = level;
+
+  // Only request export every 10th research item to avoid spam
+  static int research_count = 0;
+  if (++research_count % 10 == 0) {
+    request_immediate_export();
+  }
 }
 
 void capture_officers(uint64_t id, int32_t rank, int32_t level, int32_t shards)
@@ -110,6 +130,12 @@ void capture_officers(uint64_t id, int32_t rank, int32_t level, int32_t shards)
     {"level", level},
     {"shards", shards}
   };
+
+  // Only request export every 10th officer to avoid spam
+  static int officer_count = 0;
+  if (++officer_count % 10 == 0) {
+    request_immediate_export();
+  }
 }
 
 json build_gamestate_json()
@@ -239,14 +265,25 @@ void export_thread_func()
   }
 
   while (!should_stop) {
-    if (cfg.export_gamestate_interval > 0) {
-      std::this_thread::sleep_for(std::chrono::seconds(cfg.export_gamestate_interval));
+    // Wait for either immediate export request or interval timeout
+    std::unique_lock<std::mutex> lock(export_request_mutex);
 
-      if (!should_stop) {
-        export_gamestate();
-      }
+    if (cfg.export_gamestate_interval > 0) {
+      export_cv.wait_for(lock, std::chrono::seconds(cfg.export_gamestate_interval), 
+                         [] { return should_export_now || should_stop; });
     } else {
-      std::this_thread::sleep_for(std::chrono::seconds(1));
+      export_cv.wait(lock, [] { return should_export_now || should_stop; });
+    }
+
+    if (should_stop) {
+      break;
+    }
+
+    // Export if requested or interval elapsed
+    if (should_export_now || cfg.export_gamestate_interval > 0) {
+      should_export_now = false;
+      lock.unlock();
+      export_gamestate();
     }
   }
 
