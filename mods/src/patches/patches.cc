@@ -36,6 +36,14 @@ void InstallTempCrashFixes();
 void InstallSyncPatches();
 void InstallObjectTrackers();
 
+// Forward declare gamestate_export namespace
+namespace gamestate_export
+{
+  void init();
+}
+
+void InstallGameStateExport();
+
 __int64 il2cpp_init_hook(auto original, const char* domain_name)
 {
   struct PatchEntry {
@@ -117,6 +125,7 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
       {"ResolutionListFix", {InstallResolutionListFix, &cfg.installResolutionListFix}},
       {"SyncPatches", {InstallSyncPatches, &cfg.installSyncPatches}},
       {"ObjectTracker", {InstallObjectTrackers, &cfg.installObjectTracker}},
+      {"GameStateExport", {InstallGameStateExport, &cfg.export_gamestate}},
   };
   printf("il2cpp_init_hook(%s)\n", domain_name);
 
@@ -151,6 +160,12 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
   spdlog::info("");
 
   return r;
+}
+
+void InstallGameStateExport()
+{
+  gamestate_export::init();
+  spdlog::info("GameState export initialized");
 }
 
 void ApplyPatches()
