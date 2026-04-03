@@ -183,6 +183,14 @@ namespace Sync
   constexpr auto        resolver_cache_ttl = 300;
 } // namespace Sync
 
+namespace GameStateExport
+{
+  constexpr bool        export_gamestate            = false;
+  constexpr auto        export_gamestate_interval   = 300; // 5 minutes
+  constexpr const char* export_gamestate_path       = "";
+  constexpr bool        export_gamestate_on_startup = true;
+} // namespace GameStateExport
+
 namespace UI
 {
   constexpr bool        always_skip_reveal_sequence = true;

@@ -187,6 +187,12 @@ public:
 
   std::map<std::string, SyncTargetConfig> sync_targets;
 
+  // Game state export settings
+  bool        export_gamestate;
+  int         export_gamestate_interval;        // seconds, 0 = manual/shutdown only
+  std::string export_gamestate_path;            // empty = game directory
+  bool        export_gamestate_on_startup;      // export immediately on mod load
+
   bool installUiScaleHooks;
   bool installZoomHooks;
   bool installBuffFixHooks;
