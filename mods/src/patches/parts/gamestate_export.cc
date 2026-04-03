@@ -1,6 +1,7 @@
 #include "gamestate_export.h"
 #include "../../config.h"
 #include "../../file.h"
+#include "../../version.h"
 
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
@@ -10,8 +11,11 @@
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
+#include <map>
+#include <mutex>
 #include <sstream>
 #include <thread>
+#include <unordered_map>
 
 using json = nlohmann::json;
 
@@ -20,6 +24,15 @@ namespace gamestate_export
 
 static std::thread export_thread;
 static bool        should_stop = false;
+
+// Cached game data
+static std::mutex game_data_mutex;
+static json cached_player_data;
+static std::unordered_map<int64_t, int64_t> cached_resources;
+static std::unordered_map<int64_t, int32_t> cached_buildings;
+static std::unordered_map<int64_t, json> cached_ships;
+static std::unordered_map<int64_t, int32_t> cached_research;
+static std::unordered_map<uint64_t, json> cached_officers;
 
 std::string get_iso8601_timestamp()
 {
@@ -42,39 +55,132 @@ std::string get_iso8601_timestamp()
   return oss.str();
 }
 
+void capture_player_data(const nlohmann::json& data)
+{
+  std::scoped_lock lock(game_data_mutex);
+  cached_player_data = data;
+}
+
+void capture_resources(const nlohmann::json& data)
+{
+  std::scoped_lock lock(game_data_mutex);
+  for (const auto& [str_id, resource] : data.items()) {
+    auto id = std::stoll(str_id);
+    auto amount = resource["current_amount"].get<int64_t>();
+    cached_resources[id] = amount;
+  }
+}
+
+void capture_buildings(const nlohmann::json& data)
+{
+  std::scoped_lock lock(game_data_mutex);
+  for (const auto& module : data) {
+    const auto id = module["id"].get<int64_t>();
+    const auto level = module["level"].get<int32_t>();
+    cached_buildings[id] = level;
+  }
+}
+
+void capture_ships(const nlohmann::json& data)
+{
+  std::scoped_lock lock(game_data_mutex);
+  for (const auto& ship : data) {
+    const auto id = ship["id"].get<int64_t>();
+    cached_ships[id] = {
+      {"hull_id", ship["hull_id"]},
+      {"tier", ship["tier"]},
+      {"level", ship["level"]},
+      {"level_percentage", ship["level_percentage"]},
+      {"components", ship.value("components", json::array())}
+    };
+  }
+}
+
+void capture_research(int64_t id, int32_t level)
+{
+  std::scoped_lock lock(game_data_mutex);
+  cached_research[id] = level;
+}
+
+void capture_officers(uint64_t id, int32_t rank, int32_t level, int32_t shards)
+{
+  std::scoped_lock lock(game_data_mutex);
+  cached_officers[id] = {
+    {"rank", rank},
+    {"level", level},
+    {"shards", shards}
+  };
+}
+
 json build_gamestate_json()
 {
+  std::scoped_lock lock(game_data_mutex);
+
   json j;
 
   j["meta"]["version"] = "1.0.0";
   j["meta"]["exported_at"] = get_iso8601_timestamp();
-  j["meta"]["mod_version"] = "0.6.0"; // TODO: Pull from version.h
+  j["meta"]["mod_version"] = VER_FILE_VERSION_STR;
 
-  // Player info placeholder
-  j["player"]["ops_level"] = 0;
-  j["player"]["name"] = "";
-  j["player"]["alliance"] = "";
-  j["player"]["power"] = 0;
+  // Player info
+  if (!cached_player_data.is_null()) {
+    j["player"] = cached_player_data;
+  } else {
+    j["player"] = {
+      {"ops_level", 0},
+      {"name", ""},
+      {"alliance", ""},
+      {"power", 0}
+    };
+  }
 
-  // Buildings placeholder
+  // Buildings
   j["buildings"] = json::array();
+  for (const auto& [id, level] : cached_buildings) {
+    j["buildings"].push_back({
+      {"id", id},
+      {"level", level}
+    });
+  }
 
-  // Research placeholder
+  // Research
   j["research"] = json::array();
+  for (const auto& [id, level] : cached_research) {
+    j["research"].push_back({
+      {"id", id},
+      {"level", level}
+    });
+  }
 
-  // Ships placeholder
+  // Ships
   j["ships"] = json::array();
+  for (const auto& [id, ship_data] : cached_ships) {
+    json ship_entry = ship_data;
+    ship_entry["id"] = id;
+    j["ships"].push_back(ship_entry);
+  }
 
-  // Faction reputation placeholder
-  j["faction_reputation"] = json::array();
+  // Officers
+  j["officers"] = json::array();
+  for (const auto& [id, officer_data] : cached_officers) {
+    json officer_entry = officer_data;
+    officer_entry["id"] = id;
+    j["officers"].push_back(officer_entry);
+  }
 
-  // Resources placeholder
+  // Resources
   j["resources"] = json::object();
+  for (const auto& [id, amount] : cached_resources) {
+    j["resources"][std::to_string(id)] = amount;
+  }
 
-  // Blueprints placeholder
+  // Placeholders for future implementation
+  j["faction_reputation"] = json::array();
   j["blueprints"] = json::array();
 
-  spdlog::debug("GameState JSON structure built (placeholder data)");
+  spdlog::debug("GameState JSON structure built: {} buildings, {} research, {} ships, {} officers, {} resources",
+                cached_buildings.size(), cached_research.size(), cached_ships.size(), 
+                cached_officers.size(), cached_resources.size());
 
   return j;
 }
