@@ -23,6 +23,7 @@ namespace DCC = DefaultConfig::Control;
 namespace DCU = DefaultConfig::UI;
 namespace DCBS = DefaultConfig::Buffs;
 namespace DCS = DefaultConfig::Sync;
+namespace DCGSE = DefaultConfig::GameStateExport;
 namespace DCSC = DefaultConfig::SystemConfig;
 namespace DCSH = DefaultConfig::Shortcuts;
 
@@ -638,6 +639,22 @@ void Config::Load()
     this->sync_options.*opt.option =
         std::ranges::any_of(targets_view, [opt](const auto& target) { return target.*opt.option; });
   }
+
+  spdlog::debug("");
+
+  // Game state export configuration
+  this->export_gamestate = 
+      get_config_or_default(config, parsed, "gamestate_export", "enabled", 
+                            DCGSE::export_gamestate, write_config);
+  this->export_gamestate_interval = 
+      get_config_or_default(config, parsed, "gamestate_export", "interval", 
+                            DCGSE::export_gamestate_interval, write_config);
+  this->export_gamestate_path = 
+      get_config_or_default<std::string>(config, parsed, "gamestate_export", "path", 
+                                         DCGSE::export_gamestate_path, write_config);
+  this->export_gamestate_on_startup = 
+      get_config_or_default(config, parsed, "gamestate_export", "export_on_startup", 
+                            DCGSE::export_gamestate_on_startup, write_config);
 
   spdlog::debug("");
 
