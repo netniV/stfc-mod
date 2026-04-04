@@ -57,10 +57,12 @@ python scripts\data_extraction\convert_spocks_data.py game_data_maps\buildings.j
 | Officers | 277   | ? Complete | Full data from Spock's Club JSON |
 | Buildings| 110   | ? Complete | Full data from Spock's Club JSON |
 | Resources| 4613  | ? Complete | Full data from Spock's Club inventory.json |
-| Research | 1     | ?? Incomplete | HTML export only captured 1 item - need AJAX/API |
+| Research | 2261  | ? Complete | Extracted from HTML table (unique research IDs) |
 | Ships    | 0     | ? Pending | Need to find API endpoint or JSON export |
 | Traits   | 0     | ? Pending | Officer trait IDs not found in exports |
 | Avatars  | 0     | ? Pending | Command center avatar IDs not in HTML exports |
+
+**Total: 7,261 game items mapped!**
 
 ## Data Format
 

@@ -142,7 +142,11 @@ def parse_inventory_json(file_path: Path) -> Dict[str, Dict]:
     return mapping
 
 def parse_research_html(file_path: Path) -> Dict[str, Dict]:
-    """Parse research.html by splitting into rows"""
+    """Parse research.html by splitting into rows
+
+    Each research technology has multiple levels (rows), all sharing the same data-rid.
+    We extract one entry per unique data-rid with the base name and category.
+    """
     print(f"Parsing research from: {file_path}")
 
     import re
@@ -154,10 +158,11 @@ def parse_research_html(file_path: Path) -> Dict[str, Dict]:
     rows = html_content.split('</tr>')
 
     mapping = {}
+    seen_rids = set()
 
     for row in rows:
-        # Check if this row has data-myrow="0"
-        if 'data-myrow="0"' not in row:
+        # Look for rows with data-rid (all research rows have this)
+        if 'data-rid=' not in row:
             continue
 
         # Extract research ID
@@ -167,28 +172,32 @@ def parse_research_html(file_path: Path) -> Dict[str, Dict]:
 
         research_id = rid_match.group(1)
 
-        # Extract all TD contents
+        # Skip if we've already processed this research ID
+        if research_id in seen_rids:
+            continue
+        seen_rids.add(research_id)
+
+        # Extract all TD contents (columns)
+        # Column 0 = Name, Column 1 = Level, Column 2 = Tree/Category
         td_matches = re.findall(r'<td[^>]*?>(.*?)</td>', row, re.DOTALL)
 
-        if td_matches and len(td_matches) > 0:
+        if td_matches and len(td_matches) >= 3:
+            # Column 0: Research name
             name = td_matches[0].strip()
-            # Remove HTML tags and normalize whitespace
-            name = re.sub(r'<[^>]+>', '', name)
-            name = re.sub(r'\s+', ' ', name).strip()
+            name = re.sub(r'<[^>]+>', '', name)  # Remove HTML tags
+            name = re.sub(r'\s+', ' ', name).strip()  # Normalize whitespace
 
-            if name:
-                # Get category (3rd TD)
-                category = ''
-                if len(td_matches) > 2:
-                    category = td_matches[2].strip()
-                    category = re.sub(r'<[^>]+>', '', category).strip()
+            # Column 2: Tree/Category
+            category = td_matches[2].strip()
+            category = re.sub(r'<[^>]+>', '', category).strip()
 
+            if name and research_id:
                 mapping[research_id] = {
                     'name': name,
                     'category': category
                 }
 
-    print(f"  Found {len(mapping)} research items")
+    print(f"  Found {len(mapping)} unique research items")
     return mapping
 
 def parse_command_center_html(directory: Path) -> Dict[str, Dict]:
