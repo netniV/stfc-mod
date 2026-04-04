@@ -1,0 +1,6631 @@
+{
+    "officers": [
+        {
+            "name": "0718",
+            "id": "4219901626",
+            "longname": "Officer 0718",
+            "level": "15",
+            "rank": "3",
+            "synergy": "AUXILIARY CONTROLS",
+            "faction": "Federation",
+            "artid": "56",
+            "attack": "73.26000213623047",
+            "defense": "97.68000030517578",
+            "health": "122.0999984741211",
+            "abilities": "",
+            "rarity": "Uncommon",
+            "traits": [
+                3,
+                0,
+                0
+            ],
+            "traitIds": [
+                2907922750
+            ]
+        },
+        {
+            "name": "AHVIX",
+            "id": "229898163",
+            "longname": "Ahvix",
+            "level": "0",
+            "rank": "0",
+            "synergy": "MUDD'S COMPANY",
+            "faction": "Neutral",
+            "artid": "129",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3882627861,
+                157489769
+            ]
+        },
+        {
+            "name": "AIRIAM",
+            "id": "743931698",
+            "longname": "Airiam",
+            "level": "5",
+            "rank": "1",
+            "synergy": "DISCOVERY CREW",
+            "faction": "Federation",
+            "artid": "136",
+            "attack": "33.119998931884766",
+            "defense": "49.68000030517578",
+            "health": "16.559999465942383",
+            "abilities": "burningmining",
+            "rarity": "Uncommon",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                2907922750
+            ]
+        },
+        {
+            "name": "ALOK SAHAR",
+            "id": "2100903263",
+            "longname": "Alok Sahar",
+            "level": "0",
+            "rank": "0",
+            "synergy": "SECTION 31",
+            "faction": "Section 31",
+            "artid": "306",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3866580290,
+                2225675063
+            ]
+        },
+        {
+            "name": "ALONZO FREEMAN",
+            "id": "3423547423",
+            "longname": "Alonzo Freeman",
+            "level": "5",
+            "rank": "1",
+            "synergy": "LOWER DECKS CREW",
+            "faction": "Federation",
+            "artid": "256",
+            "attack": "80.37000274658203",
+            "defense": "80.37000274658203",
+            "health": "89.30000305175781",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                1791920497,
+                1174064606
+            ]
+        },
+        {
+            "name": "ANDY BILLUPS",
+            "id": "3458822900",
+            "longname": "Andy Billups",
+            "level": "0",
+            "rank": "0",
+            "synergy": "INTERCEPTOR STRIKE TEAM",
+            "faction": "Federation",
+            "artid": "252",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3882627861,
+                4098050049,
+                2252175917
+            ]
+        },
+        {
+            "name": "ANNORAX",
+            "id": "1511887954",
+            "longname": "Annorax",
+            "level": "0",
+            "rank": "0",
+            "synergy": "VOYAGER 30TH ANNIVERSARY",
+            "faction": "Neutral",
+            "artid": "299",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2907922750,
+                2429093458,
+                3339685283
+            ]
+        },
+        {
+            "name": "ARIX",
+            "id": "339936167",
+            "longname": "Arix",
+            "level": "30",
+            "rank": "5",
+            "synergy": "NERO'S CREW",
+            "faction": "Romulan",
+            "artid": "19",
+            "attack": "89.4000015258789",
+            "defense": "417.20001220703125",
+            "health": "208.60000610351562",
+            "abilities": "burning",
+            "rarity": "Uncommon",
+            "traits": [
+                2,
+                0,
+                0
+            ],
+            "traitIds": [
+                684078471
+            ]
+        },
+        {
+            "name": "ARKADY",
+            "id": "282462507",
+            "longname": "Arkady Ivanov",
+            "level": "20",
+            "rank": "4",
+            "synergy": "ENTERPRISE CREW",
+            "faction": "Federation",
+            "artid": "6",
+            "attack": "69.91999816894531",
+            "defense": "209.75999450683594",
+            "health": "139.83999633789062",
+            "abilities": "",
+            "rarity": "Uncommon",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                3882627861
+            ]
+        },
+        {
+            "name": "ARROCK",
+            "id": "1835829612",
+            "longname": "Arrock",
+            "level": "0",
+            "rank": "0",
+            "synergy": "FERENGI CONGLOMERATE",
+            "faction": "Neutral",
+            "artid": "192",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "mining",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                1791920497,
+                3656096402
+            ]
+        },
+        {
+            "name": "AZETBUR",
+            "id": "2475235160",
+            "longname": "Azetbur",
+            "level": "15",
+            "rank": "3",
+            "synergy": "KLINGON PATRIOTS",
+            "faction": "Klingon",
+            "artid": "11",
+            "attack": "259.8299865722656",
+            "defense": "288.70001220703125",
+            "health": "144.35000610351562",
+            "abilities": "hullbreach",
+            "rarity": "Rare",
+            "traits": [
+                2,
+                0,
+                0
+            ],
+            "traitIds": [
+                361843434,
+                2052038896
+            ]
+        },
+        {
+            "name": "B&apos;ELANNA TORRES",
+            "id": "38768657",
+            "longname": "B&apos;Elanna Torres",
+            "level": "0",
+            "rank": "0",
+            "synergy": "VOYAGER",
+            "faction": "Federation",
+            "artid": "242",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3882627861,
+                3261247615
+            ]
+        },
+        {
+            "name": "B&apos;ETOR",
+            "id": "1577339063",
+            "longname": "B&apos;Etor",
+            "level": "0",
+            "rank": "0",
+            "synergy": "PRIDE OF ROMULUS",
+            "faction": "Romulan",
+            "artid": "189",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3540291854,
+                2600171180
+            ]
+        },
+        {
+            "name": "BA&apos;EL",
+            "id": "566062509",
+            "longname": "Ba&apos;el",
+            "level": "0",
+            "rank": "0",
+            "synergy": "KHITOMER'S REVENGE",
+            "faction": "Klingon",
+            "artid": "185",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                1791920497,
+                2443557161
+            ]
+        },
+        {
+            "name": "BADGEY",
+            "id": "1437818828",
+            "longname": "Badgey",
+            "level": "10",
+            "rank": "2",
+            "synergy": "LOWER DECKS CREW",
+            "faction": "Federation",
+            "artid": "198",
+            "attack": "69.12000274658203",
+            "defense": "53.7599983215332",
+            "health": "92.16000366210938",
+            "abilities": "",
+            "rarity": "Uncommon",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                3540291854
+            ]
+        },
+        {
+            "name": "BAROT",
+            "id": "2518604778",
+            "longname": "Barot",
+            "level": "10",
+            "rank": "3",
+            "synergy": "SURVEYORS & MINERS",
+            "faction": "Klingon",
+            "artid": "89",
+            "attack": "352.79998779296875",
+            "defense": "35.279998779296875",
+            "health": "35.279998779296875",
+            "abilities": "mining",
+            "rarity": "Rare",
+            "traits": [
+                2,
+                0,
+                0
+            ],
+            "traitIds": [
+                684078471,
+                1893566143
+            ]
+        },
+        {
+            "name": "BECKETT MARINER",
+            "id": "725106789",
+            "longname": "Beckett Mariner",
+            "level": "5",
+            "rank": "1",
+            "synergy": "LOWER DECKS CREW",
+            "faction": "Federation",
+            "artid": "196",
+            "attack": "267.3999938964844",
+            "defense": "76.4000015258789",
+            "health": "191",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                4095929849,
+                2600171180,
+                2642640274
+            ]
+        },
+        {
+            "name": "BENJAMIN SISKO",
+            "id": "2178926216",
+            "longname": "Benjamin Sisko",
+            "level": "5",
+            "rank": "1",
+            "synergy": "DEEP SPACE NINE",
+            "faction": "Federation",
+            "artid": "213",
+            "attack": "191",
+            "defense": "191",
+            "health": "152.8000030517578",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                3919986983,
+                3656096402,
+                2211734929
+            ]
+        },
+        {
+            "name": "BEVERLY CRUSHER",
+            "id": "177664289",
+            "longname": "Beverly Crusher",
+            "level": "5",
+            "rank": "1",
+            "synergy": "TNG CREW",
+            "faction": "Federation",
+            "artid": "174",
+            "attack": "35.720001220703125",
+            "defense": "89.30000305175781",
+            "health": "89.30000305175781",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                2552274115,
+                3261247615
+            ]
+        },
+        {
+            "name": "BLACK OPS CHAPEL",
+            "id": "3258596709",
+            "longname": "SNW Black Ops Chapel",
+            "level": "0",
+            "rank": "0",
+            "synergy": "STRANGE NEW WORLDS",
+            "faction": "Federation",
+            "artid": "316",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                157489769,
+                2081856853
+            ]
+        },
+        {
+            "name": "BLACK OPS M&apos;BENGA",
+            "id": "901708334",
+            "longname": "SNW Black Ops M&apos;Benga",
+            "level": "0",
+            "rank": "0",
+            "synergy": "STRANGE NEW WORLDS",
+            "faction": "Federation",
+            "artid": "315",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3675525991,
+                2438170383,
+                2500447456
+            ]
+        },
+        {
+            "name": "BONES",
+            "id": "3923643019",
+            "longname": "Leonard McCoy",
+            "level": "10",
+            "rank": "2",
+            "synergy": "ENTERPRISE CREW",
+            "faction": "Federation",
+            "artid": "3",
+            "attack": "70.55999755859375",
+            "defense": "158.75999450683594",
+            "health": "194.0399932861328",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                3,
+                0,
+                0
+            ],
+            "traitIds": [
+                2552274115,
+                2443557161
+            ]
+        },
+        {
+            "name": "BORG QUEEN",
+            "id": "1203492497",
+            "longname": "Borg Queen",
+            "level": "0",
+            "rank": "0",
+            "synergy": "UNIMATRIX TWELVE",
+            "faction": "Borg",
+            "artid": "234",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3029484406,
+                2052038896,
+                1592043254
+            ]
+        },
+        {
+            "name": "BRAD BOIMLER",
+            "id": "2486433247",
+            "longname": "Brad Boimler",
+            "level": "0",
+            "rank": "0",
+            "synergy": "LOWER DECKS CREW",
+            "faction": "Federation",
+            "artid": "197",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                635998176,
+                3656096402
+            ]
+        },
+        {
+            "name": "BYR CH&apos;KELRER",
+            "id": "3083230680",
+            "longname": "Byr Ch&apos;Kelrer",
+            "level": "0",
+            "rank": "0",
+            "synergy": "SYMBIOSIS",
+            "faction": "Neutral",
+            "artid": "285",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2429093458,
+                3748066941
+            ]
+        },
+        {
+            "name": "CADET KIRK",
+            "id": "1525867544",
+            "longname": "Cadet James T. Kirk",
+            "level": "20",
+            "rank": "4",
+            "synergy": "ANOTHER TIME",
+            "faction": "Federation",
+            "artid": "83",
+            "attack": "73.69999694824219",
+            "defense": "73.69999694824219",
+            "health": "29.479999542236328",
+            "abilities": "",
+            "rarity": "Common",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": []
+        },
+        {
+            "name": "CADET MCCOY",
+            "id": "1853520303",
+            "longname": "Cadet Leonard McCoy",
+            "level": "20",
+            "rank": "4",
+            "synergy": "ANOTHER TIME",
+            "faction": "Federation",
+            "artid": "85",
+            "attack": "44.220001220703125",
+            "defense": "44.220001220703125",
+            "health": "88.44000244140625",
+            "abilities": "",
+            "rarity": "Common",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": []
+        },
+        {
+            "name": "CADET SCOTTY",
+            "id": "4150311506",
+            "longname": "Cadet Montgomery Scott",
+            "level": "30",
+            "rank": "5",
+            "synergy": "ANOTHER TIME",
+            "faction": "Federation",
+            "artid": "86",
+            "attack": "50.08000183105469",
+            "defense": "125.19999694824219",
+            "health": "125.19999694824219",
+            "abilities": "",
+            "rarity": "Common",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": []
+        },
+        {
+            "name": "CADET SULU",
+            "id": "4066988596",
+            "longname": "Cadet Hikaru Sulu",
+            "level": "20",
+            "rank": "4",
+            "synergy": "ANOTHER TIME",
+            "faction": "Federation",
+            "artid": "88",
+            "attack": "88.44000244140625",
+            "defense": "44.220001220703125",
+            "health": "44.220001220703125",
+            "abilities": "",
+            "rarity": "Common",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": []
+        },
+        {
+            "name": "CADET UHURA",
+            "id": "194631754",
+            "longname": "Cadet Nyota Uhura",
+            "level": "20",
+            "rank": "4",
+            "synergy": "ANOTHER TIME",
+            "faction": "Federation",
+            "artid": "87",
+            "attack": "73.69999694824219",
+            "defense": "29.479999542236328",
+            "health": "73.69999694824219",
+            "abilities": "",
+            "rarity": "Common",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": []
+        },
+        {
+            "name": "CAP. TILLY",
+            "id": "1958876935",
+            "longname": "Captain Tilly",
+            "level": "0",
+            "rank": "0",
+            "synergy": "TERRAN EMPIRE",
+            "faction": "Neutral",
+            "artid": "144",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                4095929849,
+                2052038896
+            ]
+        },
+        {
+            "name": "CAROL",
+            "id": "3722250154",
+            "longname": "Carol Marcus",
+            "level": "5",
+            "rank": "1",
+            "synergy": "AUXILIARY CONTROLS",
+            "faction": "Federation",
+            "artid": "92",
+            "attack": "76.4000015258789",
+            "defense": "152.8000030517578",
+            "health": "229.1999969482422",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                2907922750,
+                3179454262,
+                2211734929
+            ]
+        },
+        {
+            "name": "CAROL FREEMAN",
+            "id": "1116563882",
+            "longname": "Carol Freeman",
+            "level": "0",
+            "rank": "0",
+            "synergy": "LOWER DECKS CREW",
+            "faction": "Federation",
+            "artid": "251",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3919986983,
+                2443557161,
+                3675525991
+            ]
+        },
+        {
+            "name": "CATH",
+            "id": "4019230068",
+            "longname": "Cath",
+            "level": "0",
+            "rank": "0",
+            "synergy": "FERENGI CONGLOMERATE",
+            "faction": "Neutral",
+            "artid": "195",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                635998176,
+                340106997
+            ]
+        },
+        {
+            "name": "CHAKOTAY",
+            "id": "3838190976",
+            "longname": "Chakotay",
+            "level": "0",
+            "rank": "0",
+            "synergy": "VOYAGER",
+            "faction": "Federation",
+            "artid": "246",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                263486591,
+                2443557161,
+                2853700866
+            ]
+        },
+        {
+            "name": "CHANG",
+            "id": "1730335425",
+            "longname": "Chang",
+            "level": "15",
+            "rank": "3",
+            "synergy": "KLINGON PATRIOTS",
+            "faction": "Klingon",
+            "artid": "9",
+            "attack": "490.7900085449219",
+            "defense": "115.4800033569336",
+            "health": "86.61000061035156",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                4095929849,
+                2052038896
+            ]
+        },
+        {
+            "name": "CHANGELING KIRA",
+            "id": "180486983",
+            "longname": "Changeling Kira",
+            "level": "0",
+            "rank": "0",
+            "synergy": "DEEP SPACE NINE",
+            "faction": "Federation",
+            "artid": "216",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                1791920497,
+                1174064606
+            ]
+        },
+        {
+            "name": "CHARVANEK",
+            "id": "1250418815",
+            "longname": "Liviana Charvanek",
+            "level": "0",
+            "rank": "0",
+            "synergy": "ROMULAN PATRIOTS",
+            "faction": "Romulan",
+            "artid": "29",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "burning",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                4095929849,
+                2225675063,
+                2778393058
+            ]
+        },
+        {
+            "name": "CHEN",
+            "id": "2765885322",
+            "longname": "Grace Chen",
+            "level": "20",
+            "rank": "5",
+            "synergy": "STARFLEET ACADEMY",
+            "faction": "Federation",
+            "artid": "71",
+            "attack": "174.8000030517578",
+            "defense": "174.8000030517578",
+            "health": "122.36000061035156",
+            "abilities": "",
+            "rarity": "Uncommon",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                2335661777
+            ]
+        },
+        {
+            "name": "CULBER",
+            "id": "440622131",
+            "longname": "Hugh Culber",
+            "level": "5",
+            "rank": "1",
+            "synergy": "DISCOVERY CREW",
+            "faction": "Federation",
+            "artid": "137",
+            "attack": "16.559999465942383",
+            "defense": "16.559999465942383",
+            "health": "66.23999786376953",
+            "abilities": "",
+            "rarity": "Uncommon",
+            "traits": [
+                3,
+                0,
+                0
+            ],
+            "traitIds": [
+                2552274115
+            ]
+        },
+        {
+            "name": "D&apos;JAOKI",
+            "id": "513311144",
+            "longname": "D&apos;jaoki",
+            "level": "15",
+            "rank": "3",
+            "synergy": "ROMULAN PATRIOTS",
+            "faction": "Romulan",
+            "artid": "91",
+            "attack": "158.72999572753906",
+            "defense": "24.420000076293945",
+            "health": "109.88999938964844",
+            "abilities": "",
+            "rarity": "Uncommon",
+            "traits": [
+                2,
+                0,
+                0
+            ],
+            "traitIds": [
+                4095929849
+            ]
+        },
+        {
+            "name": "D&apos;VANA TENDI",
+            "id": "3865023367",
+            "longname": "D&apos;Vana Tendi",
+            "level": "5",
+            "rank": "1",
+            "synergy": "LOWER DECKS CREW",
+            "faction": "Federation",
+            "artid": "200",
+            "attack": "171.89999389648438",
+            "defense": "191",
+            "health": "171.89999389648438",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2907922750,
+                3748066941,
+                2443062718
+            ]
+        },
+        {
+            "name": "DAJASH TOLRA",
+            "id": "3739192827",
+            "longname": "Dajash Tolra",
+            "level": "0",
+            "rank": "0",
+            "synergy": "SYMBIOSIS",
+            "faction": "Neutral",
+            "artid": "282",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                635998176,
+                1942092534,
+                1804121334
+            ]
+        },
+        {
+            "name": "DAMAR",
+            "id": "2613379706",
+            "longname": "Damar",
+            "level": "0",
+            "rank": "0",
+            "synergy": "INTERCEPTOR STRIKE TEAM",
+            "faction": "Neutral",
+            "artid": "222",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2335661777,
+                1367248560
+            ]
+        },
+        {
+            "name": "DANE",
+            "id": "3662189922",
+            "longname": "Sir Alexander Dane",
+            "level": "5",
+            "rank": "1",
+            "synergy": "Galaxy Quest",
+            "faction": "Neutral",
+            "artid": "280",
+            "attack": "107.16000366210938",
+            "defense": "142.8800048828125",
+            "health": "116.08999633789062",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                4098050049,
+                2552274115
+            ]
+        },
+        {
+            "name": "DARWIN",
+            "id": "2963484044",
+            "longname": "Mae Darwin",
+            "level": "0",
+            "rank": "0",
+            "synergy": "SHAKEDOWN CRUISE",
+            "faction": "Federation",
+            "artid": "46",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Common",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": []
+        },
+        {
+            "name": "DATA",
+            "id": "1683164967",
+            "longname": "Data",
+            "level": "0",
+            "rank": "0",
+            "synergy": "TNG CREW",
+            "faction": "Federation",
+            "artid": "171",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                1791920497,
+                2225675063,
+                4272864048
+            ]
+        },
+        {
+            "name": "DEANNA TROI",
+            "id": "1070197892",
+            "longname": "Deanna Troi",
+            "level": "0",
+            "rank": "0",
+            "synergy": "TNG CREW",
+            "faction": "Federation",
+            "artid": "173",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "romulanhater",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                263486591,
+                1367248560,
+                2853700866
+            ]
+        },
+        {
+            "name": "DECIUS",
+            "id": "3961190554",
+            "longname": "Decius",
+            "level": "5",
+            "rank": "1",
+            "synergy": "ROMULAN PATRIOTS",
+            "faction": "Romulan",
+            "artid": "31",
+            "attack": "71.44000244140625",
+            "defense": "98.2300033569336",
+            "health": "44.650001525878906",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                2,
+                0,
+                0
+            ],
+            "traitIds": [
+                4095929849,
+                1174064606
+            ]
+        },
+        {
+            "name": "DEMARCO",
+            "id": "2339276935",
+            "longname": "Gwen DeMarco",
+            "level": "0",
+            "rank": "0",
+            "synergy": "Galaxy Quest",
+            "faction": "Neutral",
+            "artid": "281",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2218599426,
+                2853700866,
+                2443557161
+            ]
+        },
+        {
+            "name": "DEZOC",
+            "id": "3412597742",
+            "longname": "Dezoc",
+            "level": "0",
+            "rank": "0",
+            "synergy": "UNIMATRIX TWELVE",
+            "faction": "Borg",
+            "artid": "235",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3029484406,
+                3179454262
+            ]
+        },
+        {
+            "name": "DIXON HILL",
+            "id": "1022775390",
+            "longname": "Dixon Hill",
+            "level": "5",
+            "rank": "1",
+            "synergy": "HOLODECK",
+            "faction": "Federation",
+            "artid": "214",
+            "attack": "125.0199966430664",
+            "defense": "62.5099983215332",
+            "health": "62.5099983215332",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2218599426,
+                1893566143
+            ]
+        },
+        {
+            "name": "DOCTOR T&apos;ANA",
+            "id": "3013113875",
+            "longname": "Doctor T&apos;Ana",
+            "level": "0",
+            "rank": "0",
+            "synergy": "LOWER DECKS CREW",
+            "faction": "Federation",
+            "artid": "255",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2552274115,
+                1367248560,
+                1109324742
+            ]
+        },
+        {
+            "name": "DOMITIA",
+            "id": "3816036121",
+            "longname": "Domitia",
+            "level": "20",
+            "rank": "4",
+            "synergy": "SURVEYORS & MINERS",
+            "faction": "Romulan",
+            "artid": "51",
+            "attack": "14.739999771118164",
+            "defense": "81.06999969482422",
+            "health": "73.69999694824219",
+            "abilities": "mining",
+            "rarity": "Common",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": []
+        },
+        {
+            "name": "DUPONT",
+            "id": "2446409392",
+            "longname": "Raphaël DuPont",
+            "level": "0",
+            "rank": "0",
+            "synergy": "SURVEYORS & MINERS",
+            "faction": "Federation",
+            "artid": "39",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "mining",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2907922750,
+                340106997
+            ]
+        },
+        {
+            "name": "EIGHT OF ELEVEN",
+            "id": "1131760724",
+            "longname": "Eight of Eleven",
+            "level": "15",
+            "rank": "3",
+            "synergy": "UNIMATRIX TWELVE",
+            "faction": "Borg",
+            "artid": "112",
+            "attack": "146.52000427246094",
+            "defense": "134.30999755859375",
+            "health": "183.14999389648438",
+            "abilities": "",
+            "rarity": "Uncommon",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                3029484406
+            ]
+        },
+        {
+            "name": "ELEVEN OF ELEVEN",
+            "id": "3542999283",
+            "longname": "Eleven of Eleven",
+            "level": "0",
+            "rank": "0",
+            "synergy": "UNIMATRIX TWELVE",
+            "faction": "Borg",
+            "artid": "181",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "mining",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3029484406,
+                1893566143,
+                2252175917
+            ]
+        },
+        {
+            "name": "EMP. GEORGIOU",
+            "id": "2449957978",
+            "longname": "Emperor Georgiou",
+            "level": "5",
+            "rank": "1",
+            "synergy": "TERRAN EMPIRE",
+            "faction": "Neutral",
+            "artid": "140",
+            "attack": "44.650001525878906",
+            "defense": "98.2300033569336",
+            "health": "98.2300033569336",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                2,
+                0,
+                0
+            ],
+            "traitIds": [
+                4095929849,
+                2052038896
+            ]
+        },
+        {
+            "name": "ENT-E DATA",
+            "id": "2397371699",
+            "longname": "Enterprise-E Data",
+            "level": "0",
+            "rank": "0",
+            "synergy": "ENTERPRISE-E",
+            "faction": "Federation",
+            "artid": "258",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3261247615,
+                4272864048
+            ]
+        },
+        {
+            "name": "ENT-E PICARD",
+            "id": "2852124874",
+            "longname": "Enterprise-E Picard",
+            "level": "0",
+            "rank": "0",
+            "synergy": "ENTERPRISE-E",
+            "faction": "Federation",
+            "artid": "257",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3919986983,
+                2218599426,
+                2849623828
+            ]
+        },
+        {
+            "name": "ENT-E RIKER",
+            "id": "1449938138",
+            "longname": "Enterprise-E Riker",
+            "level": "0",
+            "rank": "0",
+            "synergy": "ENTERPRISE-E",
+            "faction": "Federation",
+            "artid": "259",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2218599426,
+                2225675063,
+                2778393058
+            ]
+        },
+        {
+            "name": "ENT-E TROI",
+            "id": "507415640",
+            "longname": "Enterprise-E Troi",
+            "level": "0",
+            "rank": "0",
+            "synergy": "ENTERPRISE-E",
+            "faction": "Federation",
+            "artid": "260",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2552274115,
+                2077051754
+            ]
+        },
+        {
+            "name": "EURYDICE",
+            "id": "949329475",
+            "longname": "Eurydice",
+            "level": "0",
+            "rank": "0",
+            "synergy": "MUDD'S COMPANY",
+            "faction": "Neutral",
+            "artid": "124",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3540291854,
+                2849623828,
+                1492096412
+            ]
+        },
+        {
+            "name": "EZRI DAX",
+            "id": "1549505702",
+            "longname": "Ezri Dax",
+            "level": "0",
+            "rank": "0",
+            "synergy": "Status Control Team",
+            "faction": "Neutral",
+            "artid": "321",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                263486591,
+                2557011175,
+                2853700866
+            ]
+        },
+        {
+            "name": "FESS",
+            "id": "3191841428",
+            "longname": "Fess",
+            "level": "0",
+            "rank": "0",
+            "synergy": "FERENGI CONGLOMERATE",
+            "faction": "Neutral",
+            "artid": "193",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "mining",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3540291854,
+                2052038896
+            ]
+        },
+        {
+            "name": "FIVE OF ELEVEN",
+            "id": "3583932904",
+            "longname": "Five of Eleven",
+            "level": "5",
+            "rank": "1",
+            "synergy": "UNIMATRIX TWELVE",
+            "faction": "Borg",
+            "artid": "111",
+            "attack": "171.89999389648438",
+            "defense": "382",
+            "health": "171.89999389648438",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3029484406,
+                2052038896,
+                3675525991
+            ]
+        },
+        {
+            "name": "FOUR OF ELEVEN",
+            "id": "3490516652",
+            "longname": "Four of Eleven",
+            "level": "0",
+            "rank": "0",
+            "synergy": "UNIMATRIX TWELVE",
+            "faction": "Borg",
+            "artid": "180",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "mining",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3029484406,
+                3261247615,
+                2252175917
+            ]
+        },
+        {
+            "name": "FRENCH MARSHAL Q",
+            "id": "2862563009",
+            "longname": "French Marshal Q",
+            "level": "0",
+            "rank": "0",
+            "synergy": "INTERCEPTOR RETALIATION SQUAD",
+            "faction": "Neutral",
+            "artid": "292",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                1791920497,
+                2225675063
+            ]
+        },
+        {
+            "name": "GAILA",
+            "id": "776602621",
+            "longname": "Gaila",
+            "level": "20",
+            "rank": "4",
+            "synergy": "STARFLEET ACADEMY",
+            "faction": "Federation",
+            "artid": "72",
+            "attack": "44.220001220703125",
+            "defense": "36.849998474121094",
+            "health": "95.80999755859375",
+            "abilities": "",
+            "rarity": "Common",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": []
+        },
+        {
+            "name": "GARAK",
+            "id": "3681781473",
+            "longname": "Garak",
+            "level": "0",
+            "rank": "0",
+            "synergy": "INTERCEPTOR STRIKE TEAM",
+            "faction": "Neutral",
+            "artid": "221",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3540291854,
+                3958319174
+            ]
+        },
+        {
+            "name": "GEORDI LA FORGE",
+            "id": "2204519406",
+            "longname": "Geordi La Forge",
+            "level": "0",
+            "rank": "0",
+            "synergy": "TNG CREW",
+            "faction": "Federation",
+            "artid": "175",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "klingonhater",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3882627861,
+                3179454262,
+                3339685283
+            ]
+        },
+        {
+            "name": "GEORGIOU",
+            "id": "1580157615",
+            "longname": "Georgiou",
+            "level": "0",
+            "rank": "0",
+            "synergy": "DISCOVERY CREW",
+            "faction": "Federation",
+            "artid": "138",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "burning",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3919986983,
+                340106997,
+                691961506
+            ]
+        },
+        {
+            "name": "GHALENAR",
+            "id": "1442833808",
+            "longname": "Ghalenar",
+            "level": "0",
+            "rank": "0",
+            "synergy": "UNIMATRIX TWELVE",
+            "faction": "Borg",
+            "artid": "233",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3029484406,
+                1942092534
+            ]
+        },
+        {
+            "name": "GHRUSH",
+            "id": "909354959",
+            "longname": "Ghrush",
+            "level": "20",
+            "rank": "4",
+            "synergy": "Syndicate",
+            "faction": "Neutral",
+            "artid": "921",
+            "attack": "977.3400268554688",
+            "defense": "977.3400268554688",
+            "health": "977.3400268554688",
+            "abilities": "mining",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                635998176,
+                2052038896,
+                1804121334
+            ]
+        },
+        {
+            "name": "GONZALES",
+            "id": "2865735742",
+            "longname": "Lucia Gonzales",
+            "level": "15",
+            "rank": "3",
+            "synergy": "STARFLEET ACADEMY",
+            "faction": "Federation",
+            "artid": "70",
+            "attack": "122.0999984741211",
+            "defense": "85.47000122070312",
+            "health": "122.0999984741211",
+            "abilities": "",
+            "rarity": "Uncommon",
+            "traits": [
+                2,
+                0,
+                0
+            ],
+            "traitIds": [
+                1891252528
+            ]
+        },
+        {
+            "name": "GOON",
+            "id": "1083140166",
+            "longname": "Goon",
+            "level": "5",
+            "rank": "1",
+            "synergy": "MUDD'S COMPANY",
+            "faction": "Neutral",
+            "artid": "127",
+            "attack": "62.099998474121094",
+            "defense": "20.700000762939453",
+            "health": "16.559999465942383",
+            "abilities": "",
+            "rarity": "Uncommon",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                4095929849
+            ]
+        },
+        {
+            "name": "GORKON",
+            "id": "1465017198",
+            "longname": "Gorkon",
+            "level": "10",
+            "rank": "2",
+            "synergy": "KLINGON PATRIOTS",
+            "faction": "Klingon",
+            "artid": "8",
+            "attack": "547.0399780273438",
+            "defense": "136.75999450683594",
+            "health": "136.75999450683594",
+            "abilities": "hullbreach",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                361843434,
+                2052038896,
+                3675525991
+            ]
+        },
+        {
+            "name": "GOSSA",
+            "id": "1039950897",
+            "longname": "Gossa",
+            "level": "0",
+            "rank": "0",
+            "synergy": "UNIMATRIX TWELVE",
+            "faction": "Borg",
+            "artid": "236",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3029484406,
+                1942092534
+            ]
+        },
+        {
+            "name": "GOWRON",
+            "id": "2392608691",
+            "longname": "Gowron",
+            "level": "0",
+            "rank": "0",
+            "synergy": "KHITOMER'S REVENGE",
+            "faction": "Klingon",
+            "artid": "183",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                361843434,
+                2052038896
+            ]
+        },
+        {
+            "name": "GUL DUKAT",
+            "id": "1310878702",
+            "longname": "Gul Dukat",
+            "level": "0",
+            "rank": "0",
+            "synergy": "INTERCEPTOR STRIKE TEAM",
+            "faction": "Neutral",
+            "artid": "220",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                1891252528,
+                2600171180,
+                1804121334
+            ]
+        },
+        {
+            "name": "HADLEY",
+            "id": "3314108979",
+            "longname": "Geoffrey Hadley",
+            "level": "0",
+            "rank": "0",
+            "synergy": "SHAKEDOWN CRUISE",
+            "faction": "Federation",
+            "artid": "48",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Common",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": []
+        },
+        {
+            "name": "HARRISON",
+            "id": "3553398304",
+            "longname": "John Harrison",
+            "level": "5",
+            "rank": "1",
+            "synergy": "SECTION 31",
+            "faction": "Federation",
+            "artid": "38",
+            "attack": "17.860000610351562",
+            "defense": "26.790000915527344",
+            "health": "169.6699981689453",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                3866580290,
+                3958319174
+            ]
+        },
+        {
+            "name": "HARRY KIM",
+            "id": "1458469333",
+            "longname": "Harry Kim",
+            "level": "0",
+            "rank": "0",
+            "synergy": "VOYAGER",
+            "faction": "Federation",
+            "artid": "244",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2218599426,
+                4098050049
+            ]
+        },
+        {
+            "name": "HARRY MUDD",
+            "id": "677303054",
+            "longname": "Harcourt Fenton Mudd",
+            "level": "0",
+            "rank": "0",
+            "synergy": "MUDD'S COMPANY",
+            "faction": "Neutral",
+            "artid": "130",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                4157672546,
+                3958319174,
+                1996208113
+            ]
+        },
+        {
+            "name": "HELVIA",
+            "id": "3156736320",
+            "longname": "Helvia",
+            "level": "30",
+            "rank": "5",
+            "synergy": "SURVEYORS & MINERS",
+            "faction": "Romulan",
+            "artid": "53",
+            "attack": "25.040000915527344",
+            "defense": "150.24000549316406",
+            "health": "125.19999694824219",
+            "abilities": "mining",
+            "rarity": "Common",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": []
+        },
+        {
+            "name": "HENDORFF",
+            "id": "3628828668",
+            "longname": "Hendorff",
+            "level": "5",
+            "rank": "1",
+            "synergy": "SHAKEDOWN CRUISE",
+            "faction": "Federation",
+            "artid": "45",
+            "attack": "62.099998474121094",
+            "defense": "28.979999542236328",
+            "health": "8.279999732971191",
+            "abilities": "",
+            "rarity": "Uncommon",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                4269549085
+            ]
+        },
+        {
+            "name": "HONORGUARD WORF",
+            "id": "2498836305",
+            "longname": "Honorguard Worf",
+            "level": "0",
+            "rank": "0",
+            "synergy": "KHITOMER'S REVENGE",
+            "faction": "Klingon",
+            "artid": "182",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                4269549085,
+                2443557161,
+                1592043254
+            ]
+        },
+        {
+            "name": "HOSHI SATO",
+            "id": "1039659244",
+            "longname": "Hoshi Sato",
+            "level": "5",
+            "rank": "1",
+            "synergy": "ENTERPRISE NX-01",
+            "faction": "Federation",
+            "artid": "266",
+            "attack": "71.44000244140625",
+            "defense": "71.44000244140625",
+            "health": "107.16000366210938",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2218599426,
+                3261247615
+            ]
+        },
+        {
+            "name": "HUGH",
+            "id": "4290764940",
+            "longname": "Hugh",
+            "level": "0",
+            "rank": "0",
+            "synergy": "UNIMATRIX TWELVE",
+            "faction": "Borg",
+            "artid": "232",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3029484406,
+                157489769,
+                2778393058
+            ]
+        },
+        {
+            "name": "ICHEB",
+            "id": "2864895220",
+            "longname": "Icheb",
+            "level": "0",
+            "rank": "0",
+            "synergy": "BATTLESHIP RETALIATION SQUAD",
+            "faction": "Neutral",
+            "artid": "297",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3029484406,
+                2443557161
+            ]
+        },
+        {
+            "name": "IKAT&apos;IKA",
+            "id": "3835531386",
+            "longname": "Ikat&apos;ika",
+            "level": "0",
+            "rank": "0",
+            "synergy": "EXPLORER STRIKE TEAM",
+            "faction": "Neutral",
+            "artid": "224",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                4269549085,
+                2225675063
+            ]
+        },
+        {
+            "name": "INFILTRATOR TUVOK",
+            "id": "3592998124",
+            "longname": "Infiltrator Tuvok",
+            "level": "0",
+            "rank": "0",
+            "synergy": "BATTLESHIP RETALIATION SQUAD",
+            "faction": "Neutral",
+            "artid": "298",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3748066941,
+                1367248560
+            ]
+        },
+        {
+            "name": "INSTR. SPOCK",
+            "id": "1622062016",
+            "longname": "Instructor Spock",
+            "level": "20",
+            "rank": "4",
+            "synergy": "ANOTHER TIME",
+            "faction": "Federation",
+            "artid": "84",
+            "attack": "44.220001220703125",
+            "defense": "88.44000244140625",
+            "health": "44.220001220703125",
+            "abilities": "",
+            "rarity": "Common",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": []
+        },
+        {
+            "name": "JACK RANSOM",
+            "id": "2852482387",
+            "longname": "Jack Ransom",
+            "level": "0",
+            "rank": "0",
+            "synergy": "EXPLORER STRIKE TEAM",
+            "faction": "Federation",
+            "artid": "253",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                635998176,
+                2225675063,
+                1536031792
+            ]
+        },
+        {
+            "name": "JADZIA DAX",
+            "id": "1916661181",
+            "longname": "Jadzia Dax",
+            "level": "0",
+            "rank": "0",
+            "synergy": "DEEP SPACE NINE",
+            "faction": "Federation",
+            "artid": "218",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                635998176,
+                3656096402,
+                2853700866
+            ]
+        },
+        {
+            "name": "JAVAID",
+            "id": "668528267",
+            "longname": "Javaid",
+            "level": "20",
+            "rank": "4",
+            "synergy": "NERO'S CREW",
+            "faction": "Romulan",
+            "artid": "21",
+            "attack": "209.75999450683594",
+            "defense": "87.4000015258789",
+            "health": "122.36000061035156",
+            "abilities": "",
+            "rarity": "Uncommon",
+            "traits": [
+                2,
+                0,
+                0
+            ],
+            "traitIds": [
+                2429093458
+            ]
+        },
+        {
+            "name": "JAYLAH",
+            "id": "3479870516",
+            "longname": "CAPT. TILLY",
+            "level": "0",
+            "rank": "0",
+            "synergy": "JAYLAH",
+            "faction": "Federation",
+            "artid": "94",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                4095929849,
+                157489769,
+                3339685283
+            ]
+        },
+        {
+            "name": "JEAN-LUC PICARD",
+            "id": "1427486959",
+            "longname": "Jean-Luc Picard",
+            "level": "10",
+            "rank": "2",
+            "synergy": "TNG CREW",
+            "faction": "Federation",
+            "artid": "170",
+            "attack": "307.7099914550781",
+            "defense": "376.0899963378906",
+            "health": "136.75999450683594",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3919986983,
+                3748066941,
+                206433446
+            ]
+        },
+        {
+            "name": "JOACHIM",
+            "id": "3264304828",
+            "longname": "Joachim",
+            "level": "20",
+            "rank": "4",
+            "synergy": "KHAN'S CREW",
+            "faction": "Neutral",
+            "artid": "61",
+            "attack": "126.18000030517578",
+            "defense": "757.0800170898438",
+            "health": "462.6600036621094",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                3866580290,
+                2225675063
+            ]
+        },
+        {
+            "name": "JOAQUIN",
+            "id": "3528103772",
+            "longname": "Joaquin",
+            "level": "30",
+            "rank": "5",
+            "synergy": "KHAN'S CREW",
+            "faction": "Neutral",
+            "artid": "63",
+            "attack": "298",
+            "defense": "149",
+            "health": "506.6000061035156",
+            "abilities": "mining",
+            "rarity": "Uncommon",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                3866580290
+            ]
+        },
+        {
+            "name": "JONATHAN ARCHER",
+            "id": "2679776436",
+            "longname": "Jonathan Archer",
+            "level": "0",
+            "rank": "0",
+            "synergy": "ENTERPRISE NX-01",
+            "faction": "Federation",
+            "artid": "263",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3919986983,
+                340106997,
+                2778393058
+            ]
+        },
+        {
+            "name": "JULIAN BASHIR",
+            "id": "2620014350",
+            "longname": "Julian Bashir",
+            "level": "0",
+            "rank": "0",
+            "synergy": "DEEP SPACE NINE",
+            "faction": "Federation",
+            "artid": "217",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2552274115,
+                4098050049
+            ]
+        },
+        {
+            "name": "K&apos;BISCH",
+            "id": "2432668775",
+            "longname": "K&apos;Bisch",
+            "level": "20",
+            "rank": "4",
+            "synergy": "SURVEYORS & MINERS",
+            "faction": "Klingon",
+            "artid": "52",
+            "attack": "14.739999771118164",
+            "defense": "66.33000183105469",
+            "health": "95.80999755859375",
+            "abilities": "mining",
+            "rarity": "Common",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": []
+        },
+        {
+            "name": "KANG",
+            "id": "1608562191",
+            "longname": "Kang",
+            "level": "0",
+            "rank": "0",
+            "synergy": "BLOOD & HONOR",
+            "faction": "Klingon",
+            "artid": "22",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "hullbreach",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                1891252528,
+                3261247615,
+                2778393058
+            ]
+        },
+        {
+            "name": "KATHRYN JANEWAY",
+            "id": "2343910766",
+            "longname": "Kathryn Janeway",
+            "level": "0",
+            "rank": "0",
+            "synergy": "VOYAGER",
+            "faction": "Federation",
+            "artid": "243",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3919986983,
+                2225675063,
+                2853700866
+            ]
+        },
+        {
+            "name": "KATI",
+            "id": "1602389738",
+            "longname": "Kati",
+            "level": "30",
+            "rank": "5",
+            "synergy": "KHAN'S CREW",
+            "faction": "Neutral",
+            "artid": "65",
+            "attack": "447",
+            "defense": "59.599998474121094",
+            "health": "447",
+            "abilities": "",
+            "rarity": "Uncommon",
+            "traits": [
+                3,
+                0,
+                0
+            ],
+            "traitIds": [
+                3866580290
+            ]
+        },
+        {
+            "name": "KEENSER",
+            "id": "3492633912",
+            "longname": "Keenser",
+            "level": "10",
+            "rank": "2",
+            "synergy": "AUXILIARY CONTROLS",
+            "faction": "Federation",
+            "artid": "54",
+            "attack": "35.279998779296875",
+            "defense": "282.239990234375",
+            "health": "105.83999633789062",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                3882627861,
+                2443557161
+            ]
+        },
+        {
+            "name": "KERLA",
+            "id": "3880112208",
+            "longname": "Kerla",
+            "level": "15",
+            "rank": "3",
+            "synergy": "KLINGON PATRIOTS",
+            "faction": "Klingon",
+            "artid": "10",
+            "attack": "230.9600067138672",
+            "defense": "144.35000610351562",
+            "health": "317.57000732421875",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                2,
+                0,
+                0
+            ],
+            "traitIds": [
+                263486591,
+                3656096402
+            ]
+        },
+        {
+            "name": "KHAN",
+            "id": "2822661458",
+            "longname": "Khan Noonien Singh",
+            "level": "10",
+            "rank": "2",
+            "synergy": "KHAN'S CREW",
+            "faction": "Neutral",
+            "artid": "60",
+            "attack": "615.4199829101562",
+            "defense": "102.56999969482422",
+            "health": "376.0899963378906",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                3866580290,
+                3958319174,
+                1996208113
+            ]
+        },
+        {
+            "name": "KIRA NERYS",
+            "id": "339027623",
+            "longname": "Kira Nerys",
+            "level": "0",
+            "rank": "0",
+            "synergy": "DEEP SPACE NINE",
+            "faction": "Federation",
+            "artid": "226",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                746598513,
+                1367248560
+            ]
+        },
+        {
+            "name": "KIRK",
+            "id": "988947581",
+            "longname": "James T. Kirk",
+            "level": "10",
+            "rank": "2",
+            "synergy": "ENTERPRISE CREW",
+            "faction": "Federation",
+            "artid": "1",
+            "attack": "136.75999450683594",
+            "defense": "547.0399780273438",
+            "health": "136.75999450683594",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3919986983,
+                2849623828,
+                2642640274
+            ]
+        },
+        {
+            "name": "KLAA",
+            "id": "2601201375",
+            "longname": "Klaa",
+            "level": "20",
+            "rank": "4",
+            "synergy": "GLORY IN THE KILL",
+            "faction": "Klingon",
+            "artid": "77",
+            "attack": "69.91999816894531",
+            "defense": "87.4000015258789",
+            "health": "262.20001220703125",
+            "abilities": "",
+            "rarity": "Uncommon",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                4095929849
+            ]
+        },
+        {
+            "name": "KOMAL",
+            "id": "680147223",
+            "longname": "Komal",
+            "level": "30",
+            "rank": "5",
+            "synergy": "GLORY IN THE KILL",
+            "faction": "Klingon",
+            "artid": "79",
+            "attack": "150.24000549316406",
+            "defense": "100.16000366210938",
+            "health": "50.08000183105469",
+            "abilities": "",
+            "rarity": "Common",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": []
+        },
+        {
+            "name": "KOTH",
+            "id": "250991574",
+            "longname": "Koth",
+            "level": "20",
+            "rank": "4",
+            "synergy": "KLINGON PATRIOTS",
+            "faction": "Klingon",
+            "artid": "12",
+            "attack": "122.36000061035156",
+            "defense": "104.87999725341797",
+            "health": "192.27999877929688",
+            "abilities": "",
+            "rarity": "Uncommon",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                4269549085
+            ]
+        },
+        {
+            "name": "KRAS",
+            "id": "2847497836",
+            "longname": "Kras",
+            "level": "0",
+            "rank": "0",
+            "synergy": "GLORY IN THE KILL",
+            "faction": "Klingon",
+            "artid": "76",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                263486591,
+                3261247615,
+                2252175917
+            ]
+        },
+        {
+            "name": "KRELL",
+            "id": "3465002315",
+            "longname": "Krell",
+            "level": "10",
+            "rank": "2",
+            "synergy": "BLOOD & HONOR",
+            "faction": "Klingon",
+            "artid": "24",
+            "attack": "141.1199951171875",
+            "defense": "35.279998779296875",
+            "health": "246.9600067138672",
+            "abilities": "hullbreachfedhater",
+            "rarity": "Rare",
+            "traits": [
+                3,
+                0,
+                0
+            ],
+            "traitIds": [
+                856598033,
+                3261247615
+            ]
+        },
+        {
+            "name": "KUMAK",
+            "id": "1983456684",
+            "longname": "Kumak",
+            "level": "15",
+            "rank": "3",
+            "synergy": "NERO'S CREW",
+            "faction": "Romulan",
+            "artid": "17",
+            "attack": "288.70001220703125",
+            "defense": "115.4800033569336",
+            "health": "288.70001220703125",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                746598513,
+                2225675063
+            ]
+        },
+        {
+            "name": "KURON",
+            "id": "913104893",
+            "longname": "Kuron",
+            "level": "0",
+            "rank": "0",
+            "synergy": "BLOOD & HONOR",
+            "faction": "Klingon",
+            "artid": "25",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                4095929849,
+                2849623828
+            ]
+        },
+        {
+            "name": "L&apos;NAR",
+            "id": "3079282844",
+            "longname": "L&apos;Nar",
+            "level": "15",
+            "rank": "3",
+            "synergy": "ROMULAN PATRIOTS",
+            "faction": "Romulan",
+            "artid": "33",
+            "attack": "61.04999923706055",
+            "defense": "146.52000427246094",
+            "health": "85.47000122070312",
+            "abilities": "klingonhater",
+            "rarity": "Uncommon",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                856598033
+            ]
+        },
+        {
+            "name": "LALIARI",
+            "id": "2729881938",
+            "longname": "Laliari",
+            "level": "0",
+            "rank": "0",
+            "synergy": "Galaxy Quest",
+            "faction": "Neutral",
+            "artid": "288",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3882627861,
+                2218599426
+            ]
+        },
+        {
+            "name": "LESLIE",
+            "id": "307877748",
+            "longname": "Frank Leslie",
+            "level": "0",
+            "rank": "0",
+            "synergy": "SHAKEDOWN CRUISE",
+            "faction": "Federation",
+            "artid": "47",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Uncommon",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3882627861
+            ]
+        },
+        {
+            "name": "LIEUTENANT PICARD",
+            "id": "3643810820",
+            "longname": "Lieutenant Picard",
+            "level": "5",
+            "rank": "1",
+            "synergy": "NEXT GEN",
+            "faction": "Federation",
+            "artid": "278",
+            "attack": "125.0199966430664",
+            "defense": "53.58000183105469",
+            "health": "107.16000366210938",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                263486591,
+                4098050049
+            ]
+        },
+        {
+            "name": "LINKASA",
+            "id": "3114234402",
+            "longname": "Linkasa",
+            "level": "15",
+            "rank": "3",
+            "synergy": "BLOOD & HONOR",
+            "faction": "Klingon",
+            "artid": "28",
+            "attack": "36.630001068115234",
+            "defense": "134.30999755859375",
+            "health": "122.0999984741211",
+            "abilities": "",
+            "rarity": "Uncommon",
+            "traits": [
+                2,
+                0,
+                0
+            ],
+            "traitIds": [
+                3882627861
+            ]
+        },
+        {
+            "name": "LIVIS",
+            "id": "2333021829",
+            "longname": "Livis",
+            "level": "15",
+            "rank": "3",
+            "synergy": "NERO'S CREW",
+            "faction": "Romulan",
+            "artid": "18",
+            "attack": "57.7400016784668",
+            "defense": "86.61000061035156",
+            "health": "548.530029296875",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                635998176,
+                1174064606
+            ]
+        },
+        {
+            "name": "LORCA",
+            "id": "4110037371",
+            "longname": "Gabriel Lorca",
+            "level": "0",
+            "rank": "0",
+            "synergy": "TERRAN EMPIRE",
+            "faction": "Neutral",
+            "artid": "139",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "hullbreach",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3540291854,
+                2600171180,
+                2778393058
+            ]
+        },
+        {
+            "name": "LURSA",
+            "id": "2639742910",
+            "longname": "Lursa",
+            "level": "0",
+            "rank": "0",
+            "synergy": "PRIDE OF ROMULUS",
+            "faction": "Romulan",
+            "artid": "188",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Uncommon",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3540291854
+            ]
+        },
+        {
+            "name": "M&apos;BENGA",
+            "id": "2775384983",
+            "longname": "Jabilo M&apos;Benga",
+            "level": "20",
+            "rank": "4",
+            "synergy": "AUXILIARY CONTROLS",
+            "faction": "Federation",
+            "artid": "58",
+            "attack": "51.59000015258789",
+            "defense": "81.06999969482422",
+            "health": "44.220001220703125",
+            "abilities": "",
+            "rarity": "Common",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": []
+        },
+        {
+            "name": "M&apos;RAL",
+            "id": "3221819893",
+            "longname": "M&apos;Ral",
+            "level": "21",
+            "rank": "5",
+            "synergy": "KLINGON PATRIOTS",
+            "faction": "Klingon",
+            "artid": "14",
+            "attack": "279.1499938964844",
+            "defense": "55.83000183105469",
+            "health": "111.66000366210938",
+            "abilities": "",
+            "rarity": "Uncommon",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                4095929849
+            ]
+        },
+        {
+            "name": "MARA",
+            "id": "1353192478",
+            "longname": "Mara",
+            "level": "10",
+            "rank": "2",
+            "synergy": "BLOOD & HONOR",
+            "faction": "Klingon",
+            "artid": "23",
+            "attack": "246.9600067138672",
+            "defense": "52.91999816894531",
+            "health": "123.4800033569336",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                4095929849,
+                2600171180
+            ]
+        },
+        {
+            "name": "MARCUS",
+            "id": "1127234629",
+            "longname": "Alexander Marcus",
+            "level": "0",
+            "rank": "0",
+            "synergy": "SECTION 31",
+            "faction": "Federation",
+            "artid": "43",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                4095929849,
+                2600171180,
+                4098882473
+            ]
+        },
+        {
+            "name": "MARIACHI Q",
+            "id": "2341819707",
+            "longname": "Mariachi Q",
+            "level": "0",
+            "rank": "0",
+            "synergy": "INTERCEPTOR RETALIATION SQUAD",
+            "faction": "Neutral",
+            "artid": "291",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2429093458,
+                340106997
+            ]
+        },
+        {
+            "name": "MARLA",
+            "id": "1617168639",
+            "longname": "Marla McGivers",
+            "level": "15",
+            "rank": "3",
+            "synergy": "KHAN'S CREW",
+            "faction": "Neutral",
+            "artid": "62",
+            "attack": "115.4800033569336",
+            "defense": "288.70001220703125",
+            "health": "288.70001220703125",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                2907922750,
+                3261247615
+            ]
+        },
+        {
+            "name": "MARTOK",
+            "id": "2184439996",
+            "longname": "Martok",
+            "level": "0",
+            "rank": "0",
+            "synergy": "KHITOMER'S REVENGE",
+            "faction": "Klingon",
+            "artid": "184",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                4095929849,
+                2443557161
+            ]
+        },
+        {
+            "name": "MASRIAD VAEL",
+            "id": "473853704",
+            "longname": "Masriad Vael",
+            "level": "0",
+            "rank": "0",
+            "synergy": "SYMBIOSIS",
+            "faction": "Neutral",
+            "artid": "284",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                1791920497,
+                157489769,
+                2778393058
+            ]
+        },
+        {
+            "name": "MAVERY",
+            "id": "1628322562",
+            "longname": "Mavery",
+            "level": "0",
+            "rank": "0",
+            "synergy": "Syndicate",
+            "faction": "Neutral",
+            "artid": "212",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                856598033,
+                1942092534,
+                2443062718
+            ]
+        },
+        {
+            "name": "MICHAEL BURNHAM",
+            "id": "3999633781",
+            "longname": "Michael Burnham",
+            "level": "0",
+            "rank": "0",
+            "synergy": "DISCOVERY CREW",
+            "faction": "Federation",
+            "artid": "131",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2218599426,
+                3748066941,
+                2642640274
+            ]
+        },
+        {
+            "name": "MILES O&apos;BRIEN",
+            "id": "2871265794",
+            "longname": "Miles O&apos;Brien",
+            "level": "5",
+            "rank": "1",
+            "synergy": "DEEP SPACE NINE",
+            "faction": "Federation",
+            "artid": "215",
+            "attack": "89.30000305175781",
+            "defense": "89.30000305175781",
+            "health": "71.44000244140625",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                263486591,
+                4098050049
+            ]
+        },
+        {
+            "name": "MIREK",
+            "id": "531187684",
+            "longname": "Mirek",
+            "level": "10",
+            "rank": "2",
+            "synergy": "ROMULAN PATRIOTS",
+            "faction": "Romulan",
+            "artid": "32",
+            "attack": "35.279998779296875",
+            "defense": "246.9600067138672",
+            "health": "141.1199951171875",
+            "abilities": "burningfedhater",
+            "rarity": "Rare",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                2907922750,
+                1174064606
+            ]
+        },
+        {
+            "name": "MIRROR DATA",
+            "id": "435759625",
+            "longname": "Mirror Data",
+            "level": "0",
+            "rank": "0",
+            "synergy": "MIRROR UNIVERSE",
+            "faction": "Federation",
+            "artid": "274",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2429093458,
+                3179454262
+            ]
+        },
+        {
+            "name": "MIRROR EZRI",
+            "id": "901426684",
+            "longname": "Mirror Ezri",
+            "level": "0",
+            "rank": "0",
+            "synergy": "MIRROR UNIVERSE",
+            "faction": "Neutral",
+            "artid": "276",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2335661777,
+                1942092534
+            ]
+        },
+        {
+            "name": "MIRROR KIRA",
+            "id": "4235647200",
+            "longname": "Mirror Kira",
+            "level": "0",
+            "rank": "0",
+            "synergy": "MIRROR UNIVERSE",
+            "faction": "Klingon",
+            "artid": "275",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                361843434,
+                1174064606,
+                1592043254
+            ]
+        },
+        {
+            "name": "MIRROR PICARD",
+            "id": "3131537917",
+            "longname": "Mirror Picard",
+            "level": "0",
+            "rank": "0",
+            "synergy": "MIRROR UNIVERSE",
+            "faction": "Federation",
+            "artid": "273",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                4095929849,
+                2849623828,
+                2252175917
+            ]
+        },
+        {
+            "name": "MIRROR TROI",
+            "id": "3598147546",
+            "longname": "Mirror Troi",
+            "level": "0",
+            "rank": "0",
+            "synergy": "MIRROR UNIVERSE",
+            "faction": "Federation",
+            "artid": "277",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                1891252528,
+                2600171180
+            ]
+        },
+        {
+            "name": "MIRROR UHURA",
+            "id": "4294120304",
+            "longname": "Mirror Uhura",
+            "level": "0",
+            "rank": "0",
+            "synergy": "MIRROR UNIVERSE",
+            "faction": "Federation",
+            "artid": "916",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                635998176,
+                340106997,
+                3339685283
+            ]
+        },
+        {
+            "name": "MISS Q",
+            "id": "93766267",
+            "longname": "Miss Q",
+            "level": "0",
+            "rank": "0",
+            "synergy": "EXPLORER RETALIATION SQUAD",
+            "faction": "Neutral",
+            "artid": "295",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2218599426,
+                2849623828
+            ]
+        },
+        {
+            "name": "MITCHELL",
+            "id": "4132174205",
+            "longname": "Gary Mitchell",
+            "level": "0",
+            "rank": "0",
+            "synergy": "AUXILIARY CONTROLS",
+            "faction": "Federation",
+            "artid": "57",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                635998176,
+                2225675063,
+                2077051754
+            ]
+        },
+        {
+            "name": "MOREAU",
+            "id": "3990993357",
+            "longname": "Marlena Moreau",
+            "level": "10",
+            "rank": "2",
+            "synergy": "SHAKEDOWN CRUISE",
+            "faction": "Federation",
+            "artid": "44",
+            "attack": "141.1199951171875",
+            "defense": "141.1199951171875",
+            "health": "141.1199951171875",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                2907922750,
+                2443557161
+            ]
+        },
+        {
+            "name": "MUDD",
+            "id": "634330627",
+            "longname": "Harcourt Fenton Mudd",
+            "level": "0",
+            "rank": "0",
+            "synergy": "MUDD'S COMPANY",
+            "faction": "Neutral",
+            "artid": "123",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2218599426,
+                1942092534,
+                2443062718
+            ]
+        },
+        {
+            "name": "MÄKINEN",
+            "id": "3155462804",
+            "longname": "Elea Mäkinen",
+            "level": "0",
+            "rank": "0",
+            "synergy": "SURVEYORS & MINERS",
+            "faction": "Federation",
+            "artid": "42",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "mining",
+            "rarity": "Uncommon",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2907922750
+            ]
+        },
+        {
+            "name": "NAGA DELVOS",
+            "id": "2402639187",
+            "longname": "Naga Delvos",
+            "level": "5",
+            "rank": "1",
+            "synergy": "EMERALD CHAIN",
+            "faction": "Neutral",
+            "artid": "289",
+            "attack": "286.5",
+            "defense": "210.10000610351562",
+            "health": "248.3000030517578",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                746598513,
+                3748066941,
+                2443062718
+            ]
+        },
+        {
+            "name": "NAVI",
+            "id": "3019272402",
+            "longname": "Navi",
+            "level": "20",
+            "rank": "4",
+            "synergy": "KHAN'S CREW",
+            "faction": "Neutral",
+            "artid": "120",
+            "attack": "84.12000274658203",
+            "defense": "841.2000122070312",
+            "health": "420.6000061035156",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                3866580290,
+                3656096402
+            ]
+        },
+        {
+            "name": "NEELIX",
+            "id": "497650232",
+            "longname": "Neelix",
+            "level": "0",
+            "rank": "0",
+            "synergy": "VOYAGER",
+            "faction": "Federation",
+            "artid": "249",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                1891252528,
+                2443557161
+            ]
+        },
+        {
+            "name": "NERO",
+            "id": "656972203",
+            "longname": "Nero",
+            "level": "10",
+            "rank": "2",
+            "synergy": "NERO'S CREW",
+            "faction": "Romulan",
+            "artid": "15",
+            "attack": "136.75999450683594",
+            "defense": "136.75999450683594",
+            "health": "547.0399780273438",
+            "abilities": "burning",
+            "rarity": "Epic",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                3919986983,
+                1893566143,
+                1592043254
+            ]
+        },
+        {
+            "name": "NESMITH",
+            "id": "2785409233",
+            "longname": "Jason Nesmith",
+            "level": "0",
+            "rank": "0",
+            "synergy": "Galaxy Quest",
+            "faction": "Neutral",
+            "artid": "279",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                635998176,
+                1536031792,
+                2642640274
+            ]
+        },
+        {
+            "name": "NEXT GEN CRUSHER",
+            "id": "1485791413",
+            "longname": "LORCA",
+            "level": "30",
+            "rank": "5",
+            "synergy": "NEXT GEN",
+            "faction": "Federation",
+            "artid": "163",
+            "attack": "75.12000274658203",
+            "defense": "75.12000274658203",
+            "health": "150.24000549316406",
+            "abilities": "",
+            "rarity": "Common",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": []
+        },
+        {
+            "name": "NEXT GEN DATA",
+            "id": "1841597470",
+            "longname": "Next Gen Data",
+            "level": "30",
+            "rank": "5",
+            "synergy": "NEXT GEN",
+            "faction": "Federation",
+            "artid": "160",
+            "attack": "125.19999694824219",
+            "defense": "125.19999694824219",
+            "health": "50.08000183105469",
+            "abilities": "",
+            "rarity": "Common",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": []
+        },
+        {
+            "name": "NEXT GEN LA FORGE",
+            "id": "3968109489",
+            "longname": "Next Gen La Forge",
+            "level": "30",
+            "rank": "5",
+            "synergy": "NEXT GEN",
+            "faction": "Federation",
+            "artid": "164",
+            "attack": "125.19999694824219",
+            "defense": "50.08000183105469",
+            "health": "125.19999694824219",
+            "abilities": "",
+            "rarity": "Common",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": []
+        },
+        {
+            "name": "NEXT GEN RIKER",
+            "id": "631590783",
+            "longname": "Next Gen Riker",
+            "level": "30",
+            "rank": "5",
+            "synergy": "NEXT GEN",
+            "faction": "Federation",
+            "artid": "161",
+            "attack": "150.24000549316406",
+            "defense": "75.12000274658203",
+            "health": "75.12000274658203",
+            "abilities": "",
+            "rarity": "Common",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": []
+        },
+        {
+            "name": "NEXT GEN TROI",
+            "id": "3217575459",
+            "longname": "Next Gen Troi",
+            "level": "30",
+            "rank": "5",
+            "synergy": "NEXT GEN",
+            "faction": "Federation",
+            "artid": "162",
+            "attack": "75.12000274658203",
+            "defense": "150.24000549316406",
+            "health": "75.12000274658203",
+            "abilities": "",
+            "rarity": "Common",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": []
+        },
+        {
+            "name": "NINE OF ELEVEN",
+            "id": "1859906553",
+            "longname": "Nine of Eleven",
+            "level": "10",
+            "rank": "2",
+            "synergy": "UNIMATRIX TWELVE",
+            "faction": "Borg",
+            "artid": "113",
+            "attack": "99.83999633789062",
+            "defense": "115.19999694824219",
+            "health": "76.80000305175781",
+            "abilities": "",
+            "rarity": "Uncommon",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                3029484406
+            ]
+        },
+        {
+            "name": "NOG",
+            "id": "1878219859",
+            "longname": "Nog",
+            "level": "0",
+            "rank": "0",
+            "synergy": "Status Control Team",
+            "faction": "Neutral",
+            "artid": "319",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                635998176,
+                2500447456,
+                2642640274
+            ]
+        },
+        {
+            "name": "ODO",
+            "id": "1028718336",
+            "longname": "Odo",
+            "level": "0",
+            "rank": "0",
+            "synergy": "DEEP SPACE NINE",
+            "faction": "Federation",
+            "artid": "231",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3540291854,
+                157489769,
+                3339685283
+            ]
+        },
+        {
+            "name": "ONE OF ELEVEN",
+            "id": "989647182",
+            "longname": "One of Eleven",
+            "level": "5",
+            "rank": "1",
+            "synergy": "UNIMATRIX TWELVE",
+            "faction": "Borg",
+            "artid": "110",
+            "attack": "160.74000549316406",
+            "defense": "89.30000305175781",
+            "health": "89.30000305175781",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                3029484406,
+                1553515004
+            ]
+        },
+        {
+            "name": "ORIGINS BURNHAM",
+            "id": "3245467973",
+            "longname": "Origins Burnham",
+            "level": "5",
+            "rank": "1",
+            "synergy": "DISCOVERY ORIGINS",
+            "faction": "Federation",
+            "artid": "141",
+            "attack": "41.400001525878906",
+            "defense": "28.979999542236328",
+            "health": "28.979999542236328",
+            "abilities": "",
+            "rarity": "Uncommon",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                2218599426
+            ]
+        },
+        {
+            "name": "ORIGINS SARU",
+            "id": "3534264929",
+            "longname": "Origins Saru",
+            "level": "15",
+            "rank": "3",
+            "synergy": "DISCOVERY ORIGINS",
+            "faction": "Federation",
+            "artid": "142",
+            "attack": "36.04999923706055",
+            "defense": "51.5",
+            "health": "36.04999923706055",
+            "abilities": "",
+            "rarity": "Common",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": []
+        },
+        {
+            "name": "ORIGINS STAMETS",
+            "id": "868427019",
+            "longname": "Origins Stamets",
+            "level": "10",
+            "rank": "2",
+            "synergy": "DISCOVERY ORIGINS",
+            "faction": "Federation",
+            "artid": "143",
+            "attack": "22.68000030517578",
+            "defense": "22.68000030517578",
+            "health": "32.400001525878906",
+            "abilities": "",
+            "rarity": "Common",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": []
+        },
+        {
+            "name": "OTTO",
+            "id": "2219055924",
+            "longname": "Otto",
+            "level": "30",
+            "rank": "5",
+            "synergy": "KHAN'S CREW",
+            "faction": "Neutral",
+            "artid": "64",
+            "attack": "774.7999877929688",
+            "defense": "89.4000015258789",
+            "health": "89.4000015258789",
+            "abilities": "",
+            "rarity": "Uncommon",
+            "traits": [
+                2,
+                0,
+                0
+            ],
+            "traitIds": [
+                3866580290
+            ]
+        },
+        {
+            "name": "PAN",
+            "id": "43410162",
+            "longname": "Pan",
+            "level": "20",
+            "rank": "4",
+            "synergy": "KHAN'S CREW",
+            "faction": "Neutral",
+            "artid": "121",
+            "attack": "841.2000122070312",
+            "defense": "420.6000061035156",
+            "health": "84.12000274658203",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                3866580290,
+                157489769
+            ]
+        },
+        {
+            "name": "PAUL STAMETS",
+            "id": "2030703558",
+            "longname": "Paul Stamets",
+            "level": "5",
+            "rank": "1",
+            "synergy": "DISCOVERY CREW",
+            "faction": "Federation",
+            "artid": "133",
+            "attack": "35.720001220703125",
+            "defense": "71.44000244140625",
+            "health": "107.16000366210938",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                2429093458,
+                3179454262
+            ]
+        },
+        {
+            "name": "PHELLUN",
+            "id": "3038078185",
+            "longname": "Phellun",
+            "level": "0",
+            "rank": "0",
+            "synergy": "Syndicate",
+            "faction": "Neutral",
+            "artid": "286",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3540291854,
+                3958319174,
+                1592043254
+            ]
+        },
+        {
+            "name": "PHLOX",
+            "id": "1848943130",
+            "longname": "Phlox",
+            "level": "0",
+            "rank": "0",
+            "synergy": "ENTERPRISE NX-01",
+            "faction": "Federation",
+            "artid": "265",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2552274115,
+                2849623828,
+                1536031792
+            ]
+        },
+        {
+            "name": "PIC ADMIRAL PICARD",
+            "id": "1109650513",
+            "longname": "PIC Admiral Picard",
+            "level": "5",
+            "rank": "1",
+            "synergy": "PICARD",
+            "faction": "Federation",
+            "artid": "237",
+            "attack": "229.1999969482422",
+            "defense": "152.8000030517578",
+            "health": "152.8000030517578",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3919986983,
+                3261247615,
+                1996208113
+            ]
+        },
+        {
+            "name": "PIC BEVERLY CRUSHER",
+            "id": "802343108",
+            "longname": "PIC Beverly Crusher",
+            "level": "0",
+            "rank": "0",
+            "synergy": "PICARD",
+            "faction": "Federation",
+            "artid": "238",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2907922750,
+                1367248560
+            ]
+        },
+        {
+            "name": "PIC HUGH",
+            "id": "182221633",
+            "longname": "PIC Hugh",
+            "level": "0",
+            "rank": "0",
+            "synergy": "EX-BORG",
+            "faction": "Ex-Borg",
+            "artid": "267",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3029484406,
+                157489769,
+                2778393058
+            ]
+        },
+        {
+            "name": "PIC RIKER",
+            "id": "2836324820",
+            "longname": "PIC RIKER",
+            "level": "0",
+            "rank": "0",
+            "synergy": "PICARD",
+            "faction": "Federation",
+            "artid": "239",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                1791920497,
+                3656096402,
+                1536031792
+            ]
+        },
+        {
+            "name": "PIC WORF",
+            "id": "3484257385",
+            "longname": "PIC Worf",
+            "level": "0",
+            "rank": "0",
+            "synergy": "PICARD",
+            "faction": "Federation",
+            "artid": "240",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                856598033,
+                2225675063,
+                1592043254
+            ]
+        },
+        {
+            "name": "PIKE",
+            "id": "329940464",
+            "longname": "Christopher Pike",
+            "level": "5",
+            "rank": "1",
+            "synergy": "SHAKEDOWN CRUISE",
+            "faction": "Federation",
+            "artid": "90",
+            "attack": "114.5999984741211",
+            "defense": "171.89999389648438",
+            "health": "171.89999389648438",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                635998176,
+                1174064606,
+                4098882473
+            ]
+        },
+        {
+            "name": "PON",
+            "id": "1860865109",
+            "longname": "Pon",
+            "level": "5",
+            "rank": "1",
+            "synergy": "EXPLORER STRIKE TEAM",
+            "faction": "Neutral",
+            "artid": "225",
+            "attack": "89.30000305175781",
+            "defense": "89.30000305175781",
+            "health": "71.44000244140625",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                746598513,
+                2225675063
+            ]
+        },
+        {
+            "name": "QA&apos;UG",
+            "id": "3594947012",
+            "longname": "Qa&apos;ug",
+            "level": "15",
+            "rank": "3",
+            "synergy": "BLOOD & HONOR",
+            "faction": "Klingon",
+            "artid": "27",
+            "attack": "97.68000030517578",
+            "defense": "97.68000030517578",
+            "health": "97.68000030517578",
+            "abilities": "",
+            "rarity": "Uncommon",
+            "traits": [
+                2,
+                0,
+                0
+            ],
+            "traitIds": [
+                4095929849
+            ]
+        },
+        {
+            "name": "QUARK",
+            "id": "2334517642",
+            "longname": "QUARK",
+            "level": "5",
+            "rank": "1",
+            "synergy": "FERENGI CONGLOMERATE",
+            "faction": "Neutral",
+            "artid": "191",
+            "attack": "133.6999969482422",
+            "defense": "229.1999969482422",
+            "health": "171.89999389648438",
+            "abilities": "mining",
+            "rarity": "Epic",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                2218599426,
+                157489769,
+                1492096412
+            ]
+        },
+        {
+            "name": "QUASI",
+            "id": "3814065186",
+            "longname": "Quasi",
+            "level": "0",
+            "rank": "0",
+            "synergy": "MIRROR UNIVERSE",
+            "faction": "Section 31",
+            "artid": "305",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                4157672546,
+                3179454262,
+                1996208113
+            ]
+        },
+        {
+            "name": "RACHEL GARRETT",
+            "id": "1409510538",
+            "longname": "Rachel Garrett",
+            "level": "0",
+            "rank": "0",
+            "synergy": "ENTERPRISE-E",
+            "faction": "Section 31",
+            "artid": "303",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3919986983,
+                3656096402
+            ]
+        },
+        {
+            "name": "REGINALD BARCLAY",
+            "id": "3523093667",
+            "longname": "Reginald Barclay",
+            "level": "0",
+            "rank": "0",
+            "synergy": "HOLODECK",
+            "faction": "Federation",
+            "artid": "205",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3882627861,
+                4098050049,
+                2211734929
+            ]
+        },
+        {
+            "name": "RIMA",
+            "id": "1349602017",
+            "longname": "Rima",
+            "level": "15",
+            "rank": "3",
+            "synergy": "KHAN'S CREW",
+            "faction": "Neutral",
+            "artid": "122",
+            "attack": "288.70001220703125",
+            "defense": "57.7400016784668",
+            "health": "577.4000244140625",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                3866580290,
+                2849623828
+            ]
+        },
+        {
+            "name": "RO MUDD",
+            "id": "1330179266",
+            "longname": "Ro Mudd",
+            "level": "5",
+            "rank": "1",
+            "synergy": "MUDD'S COMPANY",
+            "faction": "Neutral",
+            "artid": "125",
+            "attack": "133.9499969482422",
+            "defense": "44.650001525878906",
+            "health": "35.720001220703125",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                635998176,
+                3958319174
+            ]
+        },
+        {
+            "name": "ROM",
+            "id": "1248750548",
+            "longname": "Rom",
+            "level": "0",
+            "rank": "0",
+            "synergy": "FERENGI CONGLOMERATE",
+            "faction": "Neutral",
+            "artid": "194",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3882627861,
+                2443557161,
+                2778393058
+            ]
+        },
+        {
+            "name": "ROMI",
+            "id": "312289551",
+            "longname": "Romi",
+            "level": "0",
+            "rank": "0",
+            "synergy": "EXPLORER RETALIATION SQUAD",
+            "faction": "Neutral",
+            "artid": "293",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2907922750,
+                2600171180
+            ]
+        },
+        {
+            "name": "RUKOR",
+            "id": "176044746",
+            "longname": "Rukor",
+            "level": "30",
+            "rank": "5",
+            "synergy": "GLORY IN THE KILL",
+            "faction": "Klingon",
+            "artid": "81",
+            "attack": "187.8000030517578",
+            "defense": "100.16000366210938",
+            "health": "12.520000457763672",
+            "abilities": "",
+            "rarity": "Common",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": []
+        },
+        {
+            "name": "S31 GEORGIOU",
+            "id": "2923667463",
+            "longname": "S31 Georgiou",
+            "level": "0",
+            "rank": "0",
+            "synergy": "STRANGE NEW WORLDS",
+            "faction": "Section 31",
+            "artid": "302",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3540291854,
+                2849623828,
+                2443062718
+            ]
+        },
+        {
+            "name": "SAM RUTHERFORD",
+            "id": "47699744",
+            "longname": "Sam Rutherford",
+            "level": "5",
+            "rank": "1",
+            "synergy": "LOWER DECKS CREW",
+            "faction": "Federation",
+            "artid": "199",
+            "attack": "160.74000549316406",
+            "defense": "44.650001525878906",
+            "health": "44.650001525878906",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3882627861,
+                1553515004
+            ]
+        },
+        {
+            "name": "SARU",
+            "id": "56060748",
+            "longname": "Saru",
+            "level": "5",
+            "rank": "1",
+            "synergy": "DISCOVERY CREW",
+            "faction": "Federation",
+            "artid": "132",
+            "attack": "17.860000610351562",
+            "defense": "142.8800048828125",
+            "health": "53.58000183105469",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                1791920497,
+                4098050049
+            ]
+        },
+        {
+            "name": "SCOTTY",
+            "id": "3155244352",
+            "longname": "Montgomery Scott",
+            "level": "20",
+            "rank": "4",
+            "synergy": "ENTERPRISE CREW",
+            "faction": "Federation",
+            "artid": "4",
+            "attack": "104.87999725341797",
+            "defense": "227.24000549316406",
+            "health": "87.4000015258789",
+            "abilities": "",
+            "rarity": "Uncommon",
+            "traits": [
+                2,
+                0,
+                0
+            ],
+            "traitIds": [
+                2429093458
+            ]
+        },
+        {
+            "name": "SELA",
+            "id": "336948052",
+            "longname": "Sela",
+            "level": "0",
+            "rank": "0",
+            "synergy": "PRIDE OF ROMULUS",
+            "faction": "Romulan",
+            "artid": "186",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3540291854,
+                1174064606,
+                2778393058
+            ]
+        },
+        {
+            "name": "SESHA",
+            "id": "2651130337",
+            "longname": "SESHA",
+            "level": "0",
+            "rank": "0",
+            "synergy": "MUDD'S COMPANY",
+            "faction": "Neutral",
+            "artid": "126",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Common",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": []
+        },
+        {
+            "name": "SESKA",
+            "id": "2458983580",
+            "longname": "Seska",
+            "level": "0",
+            "rank": "0",
+            "synergy": "VOYAGER 30TH ANNIVERSARY",
+            "faction": "Neutral",
+            "artid": "300",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                1536031792,
+                2600171180,
+                1942092534
+            ]
+        },
+        {
+            "name": "SEVEN OF ELEVEN",
+            "id": "3304441016",
+            "longname": "Seven of Eleven",
+            "level": "5",
+            "rank": "1",
+            "synergy": "UNIMATRIX TWELVE",
+            "faction": "Borg",
+            "artid": "114",
+            "attack": "125.0199966430664",
+            "defense": "107.16000366210938",
+            "health": "107.16000366210938",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                3029484406,
+                2443557161
+            ]
+        },
+        {
+            "name": "SEVEN OF NINE",
+            "id": "2037089464",
+            "longname": "Seven of Nine",
+            "level": "0",
+            "rank": "0",
+            "synergy": "VOYAGER",
+            "faction": "Federation",
+            "artid": "248",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2907922750,
+                157489769,
+                1804121334
+            ]
+        },
+        {
+            "name": "SEVERUS",
+            "id": "161972881",
+            "longname": "Severus",
+            "level": "15",
+            "rank": "3",
+            "synergy": "ROMULAN PATRIOTS",
+            "faction": "Romulan",
+            "artid": "35",
+            "attack": "85.47000122070312",
+            "defense": "85.47000122070312",
+            "health": "122.0999984741211",
+            "abilities": "",
+            "rarity": "Uncommon",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                3882627861
+            ]
+        },
+        {
+            "name": "SHAXS",
+            "id": "4151676212",
+            "longname": "Shaxs",
+            "level": "0",
+            "rank": "0",
+            "synergy": "BATTLESHIP STRIKE TEAM",
+            "faction": "Federation",
+            "artid": "254",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                4269549085,
+                2052038896,
+                3675525991
+            ]
+        },
+        {
+            "name": "SHEV",
+            "id": "2567136252",
+            "longname": "Shev Akria",
+            "level": "30",
+            "rank": "5",
+            "synergy": "STARFLEET ACADEMY",
+            "faction": "Federation",
+            "artid": "73",
+            "attack": "162.75999450683594",
+            "defense": "75.12000274658203",
+            "health": "62.599998474121094",
+            "abilities": "",
+            "rarity": "Common",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": []
+        },
+        {
+            "name": "SHRAN",
+            "id": "3221659017",
+            "longname": "Shran",
+            "level": "5",
+            "rank": "1",
+            "synergy": "ENTERPRISE NX-01",
+            "faction": "Federation",
+            "artid": "264",
+            "attack": "107.16000366210938",
+            "defense": "71.44000244140625",
+            "health": "71.44000244140625",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                4095929849,
+                1893566143
+            ]
+        },
+        {
+            "name": "SIX OF ELEVEN",
+            "id": "3627600020",
+            "longname": "Six of Eleven",
+            "level": "0",
+            "rank": "0",
+            "synergy": "UNIMATRIX TWELVE",
+            "faction": "Borg",
+            "artid": "116",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3029484406,
+                2052038896,
+                3675525991
+            ]
+        },
+        {
+            "name": "SNW D&apos;CHOK",
+            "id": "598126845",
+            "longname": "SNW D&apos;Chok",
+            "level": "0",
+            "rank": "0",
+            "synergy": "STRANGE NEW WORLDS",
+            "faction": "Klingon",
+            "artid": "314",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2778393058,
+                861220693,
+                2081856853
+            ]
+        },
+        {
+            "name": "SNW HEMMER",
+            "id": "3742595916",
+            "longname": "SNW Hemmer",
+            "level": "0",
+            "rank": "0",
+            "synergy": "STRANGE NEW WORLDS",
+            "faction": "Federation",
+            "artid": "208",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3882627861,
+                3748066941,
+                2211734929
+            ]
+        },
+        {
+            "name": "SNW JAMES KIRK",
+            "id": "3294474373",
+            "longname": "SNW James Kirk",
+            "level": "0",
+            "rank": "0",
+            "synergy": "STRANGE NEW WORLDS",
+            "faction": "Federation",
+            "artid": "272",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2218599426,
+                2225675063,
+                2778393058
+            ]
+        },
+        {
+            "name": "SNW LA&apos;AN",
+            "id": "2543722471",
+            "longname": "SNW La&apos;an Noonien-Singh",
+            "level": "0",
+            "rank": "0",
+            "synergy": "STRANGE NEW WORLDS",
+            "faction": "Federation",
+            "artid": "203",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                4269549085,
+                157489769
+            ]
+        },
+        {
+            "name": "SNW M&apos;BENGA",
+            "id": "1532505261",
+            "longname": "SNW M&apos;Benga",
+            "level": "0",
+            "rank": "0",
+            "synergy": "STRANGE NEW WORLDS",
+            "faction": "Federation",
+            "artid": "268",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2552274115,
+                3540291854,
+                3339685283
+            ]
+        },
+        {
+            "name": "SNW NURSE CHAPEL",
+            "id": "597303582",
+            "longname": "SNW Nurse Chapel",
+            "level": "0",
+            "rank": "0",
+            "synergy": "STRANGE NEW WORLDS",
+            "faction": "Federation",
+            "artid": "270",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                635998176,
+                206433446
+            ]
+        },
+        {
+            "name": "SNW ORTEGAS",
+            "id": "1689277174",
+            "longname": "SNW Erica Ortegas",
+            "level": "0",
+            "rank": "0",
+            "synergy": "STRANGE NEW WORLDS",
+            "faction": "Federation",
+            "artid": "207",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2335661777,
+                1367248560
+            ]
+        },
+        {
+            "name": "SNW PELIA",
+            "id": "3936395808",
+            "longname": "SNW Pelia",
+            "level": "0",
+            "rank": "0",
+            "synergy": "STRANGE NEW WORLDS",
+            "faction": "Federation",
+            "artid": "271",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3882627861,
+                2218599426
+            ]
+        },
+        {
+            "name": "SNW PIKE",
+            "id": "2241990218",
+            "longname": "SNW Christopher Pike",
+            "level": "0",
+            "rank": "0",
+            "synergy": "STRANGE NEW WORLDS",
+            "faction": "Federation",
+            "artid": "201",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3919986983,
+                3656096402,
+                2211734929
+            ]
+        },
+        {
+            "name": "SNW SAM KIRK",
+            "id": "1426126747",
+            "longname": "SNW Sam Kirk",
+            "level": "0",
+            "rank": "0",
+            "synergy": "STRANGE NEW WORLDS",
+            "faction": "Federation",
+            "artid": "269",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2907922750,
+                3656096402,
+                3261247615
+            ]
+        },
+        {
+            "name": "SNW SCOTTY",
+            "id": "1536491613",
+            "longname": "SNW Montgomery Scott",
+            "level": "0",
+            "rank": "0",
+            "synergy": "STRANGE NEW WORLDS",
+            "faction": "Federation",
+            "artid": "312",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3882627861,
+                2964659998,
+                3807225757
+            ]
+        },
+        {
+            "name": "SNW SPOCK",
+            "id": "2702893021",
+            "longname": "SNW Spock",
+            "level": "5",
+            "rank": "1",
+            "synergy": "STRANGE NEW WORLDS",
+            "faction": "Federation",
+            "artid": "202",
+            "attack": "35.720001220703125",
+            "defense": "125.0199966430664",
+            "health": "89.30000305175781",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                2907922750,
+                1367248560
+            ]
+        },
+        {
+            "name": "SNW T&apos;PRING",
+            "id": "3339117238",
+            "longname": "SNW T&apos;Pring",
+            "level": "0",
+            "rank": "0",
+            "synergy": "STRANGE NEW WORLDS",
+            "faction": "Federation",
+            "artid": "313",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2218599426,
+                3807225757,
+                2286439376
+            ]
+        },
+        {
+            "name": "SNW UHURA",
+            "id": "97787926",
+            "longname": "SNW Nyota Uhura",
+            "level": "5",
+            "rank": "1",
+            "synergy": "STRANGE NEW WORLDS",
+            "faction": "Federation",
+            "artid": "206",
+            "attack": "125.0199966430664",
+            "defense": "35.720001220703125",
+            "health": "89.30000305175781",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                2218599426,
+                3656096402
+            ]
+        },
+        {
+            "name": "SNW UNA",
+            "id": "1724793140",
+            "longname": "SNW Una Chin-Riley",
+            "level": "0",
+            "rank": "0",
+            "synergy": "STRANGE NEW WORLDS",
+            "faction": "Federation",
+            "artid": "204",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                263486591,
+                3656096402,
+                2211734929
+            ]
+        },
+        {
+            "name": "SORAN",
+            "id": "783581005",
+            "longname": "Soran",
+            "level": "0",
+            "rank": "0",
+            "synergy": "EXPLORER RETALIATION SQUAD",
+            "faction": "Neutral",
+            "artid": "294",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                1891252528,
+                1367248560,
+                2077051754
+            ]
+        },
+        {
+            "name": "SPECIALIST SEVEN",
+            "id": "2778731701",
+            "longname": "Specialist Seven",
+            "level": "0",
+            "rank": "0",
+            "synergy": "BATTLESHIP RETALIATION SQUAD",
+            "faction": "Neutral",
+            "artid": "296",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3029484406,
+                2849623828,
+                1804121334
+            ]
+        },
+        {
+            "name": "SPOCK",
+            "id": "766809588",
+            "longname": "Spock",
+            "level": "10",
+            "rank": "2",
+            "synergy": "ENTERPRISE CREW",
+            "faction": "Federation",
+            "artid": "2",
+            "attack": "35.279998779296875",
+            "defense": "299.8800048828125",
+            "health": "88.19999694824219",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                2,
+                0,
+                0
+            ],
+            "traitIds": [
+                2907922750,
+                3261247615
+            ]
+        },
+        {
+            "name": "STARFLEET Q",
+            "id": "2787886893",
+            "longname": "Starfleet Q",
+            "level": "0",
+            "rank": "0",
+            "synergy": "INTERCEPTOR RETALIATION SQUAD",
+            "faction": "Neutral",
+            "artid": "290",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3540291854,
+                2849623828,
+                2252175917
+            ]
+        },
+        {
+            "name": "STONN",
+            "id": "755079845",
+            "longname": "Stonn",
+            "level": "20",
+            "rank": "4",
+            "synergy": "SURVEYORS & MINERS",
+            "faction": "Federation",
+            "artid": "50",
+            "attack": "84.12000274658203",
+            "defense": "336.4800109863281",
+            "health": "588.8400268554688",
+            "abilities": "mining",
+            "rarity": "Rare",
+            "traits": [
+                2,
+                0,
+                0
+            ],
+            "traitIds": [
+                684078471,
+                3261247615
+            ]
+        },
+        {
+            "name": "STRIKE TEAM LA&apos;AN",
+            "id": "3479942533",
+            "longname": "Strike Team SNW La&apos;an",
+            "level": "0",
+            "rank": "0",
+            "synergy": "BATTLESHIP STRIKE TEAM",
+            "faction": "Federation",
+            "artid": "209",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2218599426,
+                2443557161,
+                3675525991
+            ]
+        },
+        {
+            "name": "STRIKE TEAM ORTEGAS",
+            "id": "2354305961",
+            "longname": "Strike Team SNW Ortegas",
+            "level": "0",
+            "rank": "0",
+            "synergy": "BATTLESHIP STRIKE TEAM",
+            "faction": "Federation",
+            "artid": "211",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                4157672546,
+                3748066941
+            ]
+        },
+        {
+            "name": "STRIKE TEAM UNA",
+            "id": "3512227954",
+            "longname": "Strike Team SNW Una",
+            "level": "0",
+            "rank": "0",
+            "synergy": "BATTLESHIP STRIKE TEAM",
+            "faction": "Federation",
+            "artid": "210",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                1791920497,
+                4098050049
+            ]
+        },
+        {
+            "name": "SUDER",
+            "id": "2173095604",
+            "longname": "Suder",
+            "level": "0",
+            "rank": "0",
+            "synergy": "VOYAGER 30TH ANNIVERSARY",
+            "faction": "Neutral",
+            "artid": "301",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                4095929849,
+                1174064606
+            ]
+        },
+        {
+            "name": "SULU",
+            "id": "2520801863",
+            "longname": "Hikaru Sulu",
+            "level": "15",
+            "rank": "3",
+            "synergy": "ENTERPRISE CREW",
+            "faction": "Federation",
+            "artid": "5",
+            "attack": "122.0999984741211",
+            "defense": "122.0999984741211",
+            "health": "48.84000015258789",
+            "abilities": "",
+            "rarity": "Uncommon",
+            "traits": [
+                3,
+                0,
+                0
+            ],
+            "traitIds": [
+                2335661777
+            ]
+        },
+        {
+            "name": "T&apos;LAAN",
+            "id": "1455040265",
+            "longname": "T&apos;Laan",
+            "level": "30",
+            "rank": "5",
+            "synergy": "STARFLEET ACADEMY",
+            "faction": "Federation",
+            "artid": "74",
+            "attack": "75.12000274658203",
+            "defense": "162.75999450683594",
+            "health": "62.599998474121094",
+            "abilities": "",
+            "rarity": "Common",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": []
+        },
+        {
+            "name": "T&apos;POL",
+            "id": "4114433540",
+            "longname": "T&apos;Pol",
+            "level": "5",
+            "rank": "1",
+            "synergy": "ENTERPRISE NX-01",
+            "faction": "Federation",
+            "artid": "261",
+            "attack": "71.44000244140625",
+            "defense": "107.16000366210938",
+            "health": "71.44000244140625",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2907922750,
+                3261247615
+            ]
+        },
+        {
+            "name": "T&apos;PRING",
+            "id": "1556052341",
+            "longname": "T&apos;Pring",
+            "level": "20",
+            "rank": "4",
+            "synergy": "SURVEYORS & MINERS",
+            "faction": "Federation",
+            "artid": "49",
+            "attack": "84.12000274658203",
+            "defense": "588.8400268554688",
+            "health": "336.4800109863281",
+            "abilities": "mining",
+            "rarity": "Rare",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                2218599426,
+                1893566143
+            ]
+        },
+        {
+            "name": "TAL",
+            "id": "361377304",
+            "longname": "Tal",
+            "level": "0",
+            "rank": "0",
+            "synergy": "ROMULAN PATRIOTS",
+            "faction": "Romulan",
+            "artid": "30",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                263486591,
+                1174064606
+            ]
+        },
+        {
+            "name": "TASHA YAR",
+            "id": "4148782205",
+            "longname": "Tasha Yar",
+            "level": "5",
+            "rank": "1",
+            "synergy": "TNG CREW",
+            "faction": "Federation",
+            "artid": "178",
+            "attack": "26.790000915527344",
+            "defense": "116.08999633789062",
+            "health": "71.44000244140625",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                4269549085,
+                2443557161
+            ]
+        },
+        {
+            "name": "TEN OF ELEVEN",
+            "id": "370544309",
+            "longname": "Ten of Eleven",
+            "level": "0",
+            "rank": "0",
+            "synergy": "UNIMATRIX TWELVE",
+            "faction": "Borg",
+            "artid": "115",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "mining",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3029484406,
+                1893566143,
+                1109324742
+            ]
+        },
+        {
+            "name": "THE DOCTOR",
+            "id": "1421610149",
+            "longname": "The Doctor",
+            "level": "0",
+            "rank": "0",
+            "synergy": "VOYAGER",
+            "faction": "Federation",
+            "artid": "241",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2552274115,
+                2849623828,
+                2252175917
+            ]
+        },
+        {
+            "name": "THE HIERARCH",
+            "id": "429857188",
+            "longname": "The Hierarch",
+            "level": "0",
+            "rank": "0",
+            "synergy": "Status Control Team",
+            "faction": "Neutral",
+            "artid": "320",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2286439376,
+                2438170383,
+                2077051754
+            ]
+        },
+        {
+            "name": "THREE OF ELEVEN",
+            "id": "1395454844",
+            "longname": "Three Of Eleven",
+            "level": "0",
+            "rank": "0",
+            "synergy": "UNIMATRIX TWELVE",
+            "faction": "Borg",
+            "artid": "179",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "mining",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3029484406,
+                1893566143,
+                1804121334
+            ]
+        },
+        {
+            "name": "TILLY",
+            "id": "1800794103",
+            "longname": "Tilly",
+            "level": "5",
+            "rank": "1",
+            "synergy": "DISCOVERY CREW",
+            "faction": "Federation",
+            "artid": "134",
+            "attack": "28.979999542236328",
+            "defense": "41.400001525878906",
+            "health": "28.979999542236328",
+            "abilities": "",
+            "rarity": "Uncommon",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                2907922750
+            ]
+        },
+        {
+            "name": "TIZA",
+            "id": "3106264505",
+            "longname": "Tiza",
+            "level": "5",
+            "rank": "1",
+            "synergy": "MUDD'S COMPANY",
+            "faction": "Neutral",
+            "artid": "128",
+            "attack": "22.360000610351562",
+            "defense": "12.039999961853027",
+            "health": "6.880000114440918",
+            "abilities": "",
+            "rarity": "Common",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": []
+        },
+        {
+            "name": "TMP HIKARU SULU",
+            "id": "328154093",
+            "longname": "TMP Hikaru Sulu",
+            "level": "0",
+            "rank": "0",
+            "synergy": "THE MOTION PICTURES",
+            "faction": "Neutral",
+            "artid": "322",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3919986983,
+                691961506,
+                2081856853
+            ]
+        },
+        {
+            "name": "TMP NYOTA UHURA",
+            "id": "1983933897",
+            "longname": "TMP Nyota Uhura",
+            "level": "0",
+            "rank": "0",
+            "synergy": "THE MOTION PICTURES",
+            "faction": "Neutral",
+            "artid": "323",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3261247615,
+                2964659998,
+                2286439376
+            ]
+        },
+        {
+            "name": "TOLI",
+            "id": "2087036948",
+            "longname": "TOLI",
+            "level": "0",
+            "rank": "0",
+            "synergy": "SYMBIOSIS",
+            "faction": "Neutral",
+            "artid": "283",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2218599426,
+                1942092534
+            ]
+        },
+        {
+            "name": "TOM PARIS",
+            "id": "3849424588",
+            "longname": "Tom Paris",
+            "level": "0",
+            "rank": "0",
+            "synergy": "VOYAGER",
+            "faction": "Federation",
+            "artid": "245",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2335661777,
+                1367248560
+            ]
+        },
+        {
+            "name": "TOMALAK",
+            "id": "215089650",
+            "longname": "Tomalak",
+            "level": "0",
+            "rank": "0",
+            "synergy": "PRIDE OF ROMULUS",
+            "faction": "Romulan",
+            "artid": "187",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "klingonhater",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3919986983,
+                2600171180
+            ]
+        },
+        {
+            "name": "TOS CHEKOV",
+            "id": "3382562951",
+            "longname": "TOS Pavel Chekov",
+            "level": "5",
+            "rank": "1",
+            "synergy": "TOS ENTERPRISE CREW",
+            "faction": "Federation",
+            "artid": "156",
+            "attack": "89.30000305175781",
+            "defense": "62.5099983215332",
+            "health": "62.5099983215332",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                2,
+                0,
+                0
+            ],
+            "traitIds": [
+                3882627861,
+                3748066941
+            ]
+        },
+        {
+            "name": "TOS KIRK",
+            "id": "107451388",
+            "longname": "TOS James T. Kirk",
+            "level": "5",
+            "rank": "1",
+            "synergy": "TOS ENTERPRISE CREW",
+            "faction": "Federation",
+            "artid": "150",
+            "attack": "152.8000030517578",
+            "defense": "152.8000030517578",
+            "health": "152.8000030517578",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                3919986983,
+                2849623828,
+                2642640274
+            ]
+        },
+        {
+            "name": "TOS MCCOY",
+            "id": "423029416",
+            "longname": "TOS Leonard McCoy",
+            "level": "0",
+            "rank": "0",
+            "synergy": "TOS ENTERPRISE CREW",
+            "faction": "Federation",
+            "artid": "153",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2552274115,
+                2443557161
+            ]
+        },
+        {
+            "name": "TOS SCOTTY",
+            "id": "3579242146",
+            "longname": "TOS Montgomery Scott",
+            "level": "5",
+            "rank": "1",
+            "synergy": "TOS ENTERPRISE CREW",
+            "faction": "Federation",
+            "artid": "155",
+            "attack": "62.5099983215332",
+            "defense": "89.30000305175781",
+            "health": "62.5099983215332",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                3882627861,
+                3748066941
+            ]
+        },
+        {
+            "name": "TOS SPOCK",
+            "id": "2757127113",
+            "longname": "TOS Spock",
+            "level": "5",
+            "rank": "1",
+            "synergy": "TOS ENTERPRISE CREW",
+            "faction": "Federation",
+            "artid": "151",
+            "attack": "76.4000015258789",
+            "defense": "305.6000061035156",
+            "health": "76.4000015258789",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                2907922750,
+                3748066941,
+                1804121334
+            ]
+        },
+        {
+            "name": "TOS SULU",
+            "id": "1670351312",
+            "longname": "TOS Hikaru Sulu",
+            "level": "0",
+            "rank": "0",
+            "synergy": "TOS ENTERPRISE CREW",
+            "faction": "Federation",
+            "artid": "154",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2335661777,
+                1367248560
+            ]
+        },
+        {
+            "name": "TOS UHURA",
+            "id": "1752126880",
+            "longname": "TOS Nyota Uhura",
+            "level": "5",
+            "rank": "1",
+            "synergy": "TOS ENTERPRISE CREW",
+            "faction": "Federation",
+            "artid": "152",
+            "attack": "35.720001220703125",
+            "defense": "89.30000305175781",
+            "health": "89.30000305175781",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                2,
+                0,
+                0
+            ],
+            "traitIds": [
+                2218599426,
+                3261247615
+            ]
+        },
+        {
+            "name": "TRIP TUCKER",
+            "id": "1903302017",
+            "longname": "Trip Tucker",
+            "level": "0",
+            "rank": "0",
+            "synergy": "ENTERPRISE NX-01",
+            "faction": "Federation",
+            "artid": "262",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3882627861,
+                2849623828,
+                2252175917
+            ]
+        },
+        {
+            "name": "TUVOK",
+            "id": "2120397875",
+            "longname": "Tuvok",
+            "level": "0",
+            "rank": "0",
+            "synergy": "VOYAGER",
+            "faction": "Federation",
+            "artid": "247",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                4269549085,
+                3261247615
+            ]
+        },
+        {
+            "name": "TWO OF ELEVEN",
+            "id": "118103052",
+            "longname": "Two of Eleven",
+            "level": "0",
+            "rank": "0",
+            "synergy": "UNIMATRIX TWELVE",
+            "faction": "Borg",
+            "artid": "157",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "mining",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3029484406,
+                1553515004
+            ]
+        },
+        {
+            "name": "TYLER",
+            "id": "3769449499",
+            "longname": "Ash Tyler",
+            "level": "0",
+            "rank": "0",
+            "synergy": "DISCOVERY CREW",
+            "faction": "Federation",
+            "artid": "135",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                856598033,
+                2443557161
+            ]
+        },
+        {
+            "name": "UHURA",
+            "id": "2695272429",
+            "longname": "Nyota Uhura",
+            "level": "10",
+            "rank": "2",
+            "synergy": "ENTERPRISE CREW",
+            "faction": "Federation",
+            "artid": "7",
+            "attack": "211.67999267578125",
+            "defense": "123.4800033569336",
+            "health": "88.19999694824219",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                2218599426,
+                3261247615
+            ]
+        },
+        {
+            "name": "VARTOQ",
+            "id": "3394864658",
+            "longname": "Vartoq",
+            "level": "30",
+            "rank": "5",
+            "synergy": "GLORY IN THE KILL",
+            "faction": "Klingon",
+            "artid": "80",
+            "attack": "162.75999450683594",
+            "defense": "62.599998474121094",
+            "health": "75.12000274658203",
+            "abilities": "",
+            "rarity": "Common",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": []
+        },
+        {
+            "name": "VEL",
+            "id": "3281026482",
+            "longname": "Vel K&apos;Bentayr",
+            "level": "20",
+            "rank": "4",
+            "synergy": "STARFLEET ACADEMY",
+            "faction": "Federation",
+            "artid": "75",
+            "attack": "58.959999084472656",
+            "defense": "58.959999084472656",
+            "health": "58.959999084472656",
+            "abilities": "",
+            "rarity": "Common",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": []
+        },
+        {
+            "name": "VELLA",
+            "id": "2235857051",
+            "longname": "Vella",
+            "level": "20",
+            "rank": "4",
+            "synergy": "NERO'S CREW",
+            "faction": "Romulan",
+            "artid": "20",
+            "attack": "157.32000732421875",
+            "defense": "192.27999877929688",
+            "health": "69.91999816894531",
+            "abilities": "",
+            "rarity": "Uncommon",
+            "traits": [
+                2,
+                0,
+                0
+            ],
+            "traitIds": [
+                2907922750
+            ]
+        },
+        {
+            "name": "VEMET",
+            "id": "2959514562",
+            "longname": "Vemet",
+            "level": "10",
+            "rank": "2",
+            "synergy": "NERO'S CREW",
+            "faction": "Romulan",
+            "artid": "16",
+            "attack": "88.19999694824219",
+            "defense": "158.75999450683594",
+            "health": "176.39999389648438",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                263486591,
+                4098050049
+            ]
+        },
+        {
+            "name": "VIL GUL DUKAT",
+            "id": "2033443887",
+            "longname": "VIL Gul Dukat",
+            "level": "0",
+            "rank": "0",
+            "synergy": "VILLAINS",
+            "faction": "Neutral",
+            "artid": "318",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                635998176,
+                2225675063,
+                1996208113
+            ]
+        },
+        {
+            "name": "VIL WINN ADAMI",
+            "id": "2686255925",
+            "longname": "VIL Winn Adami",
+            "level": "0",
+            "rank": "0",
+            "synergy": "VILLAINS",
+            "faction": "Neutral",
+            "artid": "317",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2286439376,
+                1891252528,
+                2443557161
+            ]
+        },
+        {
+            "name": "VIXIS",
+            "id": "2517597941",
+            "longname": "Vixis",
+            "level": "26",
+            "rank": "5",
+            "synergy": "GLORY IN THE KILL",
+            "faction": "Klingon",
+            "artid": "78",
+            "attack": "98.44000244140625",
+            "defense": "295.32000732421875",
+            "health": "196.8800048828125",
+            "abilities": "",
+            "rarity": "Uncommon",
+            "traits": [
+                2,
+                0,
+                0
+            ],
+            "traitIds": [
+                4095929849
+            ]
+        },
+        {
+            "name": "WESLEY CRUSHER",
+            "id": "1116707401",
+            "longname": "Wesley Crusher",
+            "level": "5",
+            "rank": "1",
+            "synergy": "TNG CREW",
+            "faction": "Federation",
+            "artid": "176",
+            "attack": "80.37000274658203",
+            "defense": "80.37000274658203",
+            "health": "80.37000274658203",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2218599426,
+                3748066941
+            ]
+        },
+        {
+            "name": "WEYOUN",
+            "id": "1925563045",
+            "longname": "Weyoun",
+            "level": "0",
+            "rank": "0",
+            "synergy": "EXPLORER STRIKE TEAM",
+            "faction": "Neutral",
+            "artid": "223",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3540291854,
+                1367248560,
+                1996208113
+            ]
+        },
+        {
+            "name": "WILLIAM T. RIKER",
+            "id": "1137482318",
+            "longname": "William T. Riker",
+            "level": "0",
+            "rank": "0",
+            "synergy": "TNG CREW",
+            "faction": "Federation",
+            "artid": "172",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "fedhater",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                1791920497,
+                2849623828,
+                1536031792
+            ]
+        },
+        {
+            "name": "WOK CAROL",
+            "id": "807303933",
+            "longname": "WOK Carol Marcus",
+            "level": "0",
+            "rank": "0",
+            "synergy": "WRATH OF KHAN",
+            "faction": "Federation",
+            "artid": "307",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2286439376,
+                2500447456,
+                861220693
+            ]
+        },
+        {
+            "name": "WOK JOACHIM",
+            "id": "897691678",
+            "longname": "WOK Joachim",
+            "level": "0",
+            "rank": "0",
+            "synergy": "WRATH OF KHAN",
+            "faction": "Neutral",
+            "artid": "309",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2964659998,
+                2557011175,
+                2438170383
+            ]
+        },
+        {
+            "name": "WOK MCCOY",
+            "id": "1352288560",
+            "longname": "WOK Leonard McCoy",
+            "level": "0",
+            "rank": "0",
+            "synergy": "WRATH OF KHAN",
+            "faction": "Federation",
+            "artid": "308",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2081856853,
+                2964659998
+            ]
+        },
+        {
+            "name": "WOK SAAVIK",
+            "id": "1738777089",
+            "longname": "WOK Saavik",
+            "level": "0",
+            "rank": "0",
+            "synergy": "WRATH OF KHAN",
+            "faction": "Federation",
+            "artid": "311",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                3807225757,
+                2500447456
+            ]
+        },
+        {
+            "name": "WOK SCOTTY",
+            "id": "3242236216",
+            "longname": "WOK Montgomery Scott",
+            "level": "0",
+            "rank": "0",
+            "synergy": "WRATH OF KHAN",
+            "faction": "Federation",
+            "artid": "310",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Epic",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                2500447456,
+                2964659998,
+                2081856853
+            ]
+        },
+        {
+            "name": "WORF",
+            "id": "2593842933",
+            "longname": "Worf",
+            "level": "10",
+            "rank": "2",
+            "synergy": "TNG CREW",
+            "faction": "Federation",
+            "artid": "177",
+            "attack": "194.0399932861328",
+            "defense": "194.0399932861328",
+            "health": "35.279998779296875",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                4269549085,
+                2443557161
+            ]
+        },
+        {
+            "name": "WOTELN",
+            "id": "98548875",
+            "longname": "Woteln",
+            "level": "20",
+            "rank": "5",
+            "synergy": "KLINGON PATRIOTS",
+            "faction": "Klingon",
+            "artid": "13",
+            "attack": "157.32000732421875",
+            "defense": "209.75999450683594",
+            "health": "52.439998626708984",
+            "abilities": "",
+            "rarity": "Uncommon",
+            "traits": [
+                1,
+                0,
+                0
+            ],
+            "traitIds": [
+                4095929849
+            ]
+        },
+        {
+            "name": "YAN&apos;AGH",
+            "id": "3001921707",
+            "longname": "Yan&apos;agh",
+            "level": "15",
+            "rank": "3",
+            "synergy": "BLOOD & HONOR",
+            "faction": "Klingon",
+            "artid": "26",
+            "attack": "109.88999938964844",
+            "defense": "24.420000076293945",
+            "health": "158.72999572753906",
+            "abilities": "romulanhater",
+            "rarity": "Uncommon",
+            "traits": [
+                2,
+                0,
+                0
+            ],
+            "traitIds": [
+                3882627861
+            ]
+        },
+        {
+            "name": "YUKI",
+            "id": "3381802332",
+            "longname": "Yuki Sulu",
+            "level": "5",
+            "rank": "1",
+            "synergy": "SECTION 31",
+            "faction": "Federation",
+            "artid": "37",
+            "attack": "116.08999633789062",
+            "defense": "80.37000274658203",
+            "health": "17.860000610351562",
+            "abilities": "romulanhater",
+            "rarity": "Rare",
+            "traits": [
+                2,
+                0,
+                0
+            ],
+            "traitIds": [
+                856598033,
+                1174064606
+            ]
+        },
+        {
+            "name": "ZAHRA",
+            "id": "407568868",
+            "longname": "Zahra",
+            "level": "20",
+            "rank": "4",
+            "synergy": "AUXILIARY CONTROLS",
+            "faction": "Federation",
+            "artid": "59",
+            "attack": "36.849998474121094",
+            "defense": "22.110000610351562",
+            "health": "117.91999816894531",
+            "abilities": "",
+            "rarity": "Common",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": []
+        },
+        {
+            "name": "ZEPH",
+            "id": "3594463469",
+            "longname": "Zeph",
+            "level": "0",
+            "rank": "0",
+            "synergy": "SECTION 31",
+            "faction": "Section 31",
+            "artid": "304",
+            "attack": "",
+            "defense": "",
+            "health": "",
+            "abilities": "",
+            "rarity": "Rare",
+            "traits": [
+                0,
+                0,
+                0
+            ],
+            "traitIds": [
+                4269549085,
+                1553515004
+            ]
+        },
+        {
+            "name": "ZHOU",
+            "id": "1143746577",
+            "longname": "Paul Zhou",
+            "level": "10",
+            "rank": "2",
+            "synergy": "SECTION 31",
+            "faction": "Federation",
+            "artid": "40",
+            "attack": "61.439998626708984",
+            "defense": "99.83999633789062",
+            "health": "23.040000915527344",
+            "abilities": "",
+            "rarity": "Uncommon",
+            "traits": [
+                2,
+                0,
+                0
+            ],
+            "traitIds": [
+                856598033
+            ]
+        }
+    ]
+}

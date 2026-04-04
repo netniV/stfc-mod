@@ -1,0 +1,1984 @@
+{
+  "officers": {
+    "4219901626": {
+      "name": "Officer 0718",
+      "short_name": "0718",
+      "faction": "Federation",
+      "rarity": "Uncommon",
+      "synergy": "AUXILIARY CONTROLS"
+    },
+    "229898163": {
+      "name": "Ahvix",
+      "short_name": "AHVIX",
+      "faction": "Neutral",
+      "rarity": "Rare",
+      "synergy": "MUDD'S COMPANY"
+    },
+    "743931698": {
+      "name": "Airiam",
+      "short_name": "AIRIAM",
+      "faction": "Federation",
+      "rarity": "Uncommon",
+      "synergy": "DISCOVERY CREW",
+      "abilities": "burningmining"
+    },
+    "2100903263": {
+      "name": "Alok Sahar",
+      "short_name": "ALOK SAHAR",
+      "faction": "Section 31",
+      "rarity": "Rare",
+      "synergy": "SECTION 31"
+    },
+    "3423547423": {
+      "name": "Alonzo Freeman",
+      "short_name": "ALONZO FREEMAN",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "LOWER DECKS CREW"
+    },
+    "3458822900": {
+      "name": "Andy Billups",
+      "short_name": "ANDY BILLUPS",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "INTERCEPTOR STRIKE TEAM"
+    },
+    "1511887954": {
+      "name": "Annorax",
+      "short_name": "ANNORAX",
+      "faction": "Neutral",
+      "rarity": "Epic",
+      "synergy": "VOYAGER 30TH ANNIVERSARY"
+    },
+    "339936167": {
+      "name": "Arix",
+      "short_name": "ARIX",
+      "faction": "Romulan",
+      "rarity": "Uncommon",
+      "synergy": "NERO'S CREW",
+      "abilities": "burning"
+    },
+    "282462507": {
+      "name": "Arkady Ivanov",
+      "short_name": "ARKADY",
+      "faction": "Federation",
+      "rarity": "Uncommon",
+      "synergy": "ENTERPRISE CREW"
+    },
+    "1835829612": {
+      "name": "Arrock",
+      "short_name": "ARROCK",
+      "faction": "Neutral",
+      "rarity": "Rare",
+      "synergy": "FERENGI CONGLOMERATE",
+      "abilities": "mining"
+    },
+    "2475235160": {
+      "name": "Azetbur",
+      "short_name": "AZETBUR",
+      "faction": "Klingon",
+      "rarity": "Rare",
+      "synergy": "KLINGON PATRIOTS",
+      "abilities": "hullbreach"
+    },
+    "38768657": {
+      "name": "B&apos;Elanna Torres",
+      "short_name": "B&apos;ELANNA TORRES",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "VOYAGER"
+    },
+    "1577339063": {
+      "name": "B&apos;Etor",
+      "short_name": "B&apos;ETOR",
+      "faction": "Romulan",
+      "rarity": "Rare",
+      "synergy": "PRIDE OF ROMULUS"
+    },
+    "566062509": {
+      "name": "Ba&apos;el",
+      "short_name": "BA&apos;EL",
+      "faction": "Klingon",
+      "rarity": "Rare",
+      "synergy": "KHITOMER'S REVENGE"
+    },
+    "1437818828": {
+      "name": "Badgey",
+      "short_name": "BADGEY",
+      "faction": "Federation",
+      "rarity": "Uncommon",
+      "synergy": "LOWER DECKS CREW"
+    },
+    "2518604778": {
+      "name": "Barot",
+      "short_name": "BAROT",
+      "faction": "Klingon",
+      "rarity": "Rare",
+      "synergy": "SURVEYORS & MINERS",
+      "abilities": "mining"
+    },
+    "725106789": {
+      "name": "Beckett Mariner",
+      "short_name": "BECKETT MARINER",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "LOWER DECKS CREW"
+    },
+    "2178926216": {
+      "name": "Benjamin Sisko",
+      "short_name": "BENJAMIN SISKO",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "DEEP SPACE NINE"
+    },
+    "177664289": {
+      "name": "Beverly Crusher",
+      "short_name": "BEVERLY CRUSHER",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "TNG CREW"
+    },
+    "3258596709": {
+      "name": "SNW Black Ops Chapel",
+      "short_name": "BLACK OPS CHAPEL",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "STRANGE NEW WORLDS"
+    },
+    "901708334": {
+      "name": "SNW Black Ops M&apos;Benga",
+      "short_name": "BLACK OPS M&apos;BENGA",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "STRANGE NEW WORLDS"
+    },
+    "3923643019": {
+      "name": "Leonard McCoy",
+      "short_name": "BONES",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "ENTERPRISE CREW"
+    },
+    "1203492497": {
+      "name": "Borg Queen",
+      "short_name": "BORG QUEEN",
+      "faction": "Borg",
+      "rarity": "Epic",
+      "synergy": "UNIMATRIX TWELVE"
+    },
+    "2486433247": {
+      "name": "Brad Boimler",
+      "short_name": "BRAD BOIMLER",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "LOWER DECKS CREW"
+    },
+    "3083230680": {
+      "name": "Byr Ch&apos;Kelrer",
+      "short_name": "BYR CH&apos;KELRER",
+      "faction": "Neutral",
+      "rarity": "Rare",
+      "synergy": "SYMBIOSIS"
+    },
+    "1525867544": {
+      "name": "Cadet James T. Kirk",
+      "short_name": "CADET KIRK",
+      "faction": "Federation",
+      "rarity": "Common",
+      "synergy": "ANOTHER TIME"
+    },
+    "1853520303": {
+      "name": "Cadet Leonard McCoy",
+      "short_name": "CADET MCCOY",
+      "faction": "Federation",
+      "rarity": "Common",
+      "synergy": "ANOTHER TIME"
+    },
+    "4150311506": {
+      "name": "Cadet Montgomery Scott",
+      "short_name": "CADET SCOTTY",
+      "faction": "Federation",
+      "rarity": "Common",
+      "synergy": "ANOTHER TIME"
+    },
+    "4066988596": {
+      "name": "Cadet Hikaru Sulu",
+      "short_name": "CADET SULU",
+      "faction": "Federation",
+      "rarity": "Common",
+      "synergy": "ANOTHER TIME"
+    },
+    "194631754": {
+      "name": "Cadet Nyota Uhura",
+      "short_name": "CADET UHURA",
+      "faction": "Federation",
+      "rarity": "Common",
+      "synergy": "ANOTHER TIME"
+    },
+    "1958876935": {
+      "name": "Captain Tilly",
+      "short_name": "CAP. TILLY",
+      "faction": "Neutral",
+      "rarity": "Rare",
+      "synergy": "TERRAN EMPIRE"
+    },
+    "3722250154": {
+      "name": "Carol Marcus",
+      "short_name": "CAROL",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "AUXILIARY CONTROLS"
+    },
+    "1116563882": {
+      "name": "Carol Freeman",
+      "short_name": "CAROL FREEMAN",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "LOWER DECKS CREW"
+    },
+    "4019230068": {
+      "name": "Cath",
+      "short_name": "CATH",
+      "faction": "Neutral",
+      "rarity": "Rare",
+      "synergy": "FERENGI CONGLOMERATE"
+    },
+    "3838190976": {
+      "name": "Chakotay",
+      "short_name": "CHAKOTAY",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "VOYAGER"
+    },
+    "1730335425": {
+      "name": "Chang",
+      "short_name": "CHANG",
+      "faction": "Klingon",
+      "rarity": "Rare",
+      "synergy": "KLINGON PATRIOTS"
+    },
+    "180486983": {
+      "name": "Changeling Kira",
+      "short_name": "CHANGELING KIRA",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "DEEP SPACE NINE"
+    },
+    "1250418815": {
+      "name": "Liviana Charvanek",
+      "short_name": "CHARVANEK",
+      "faction": "Romulan",
+      "rarity": "Epic",
+      "synergy": "ROMULAN PATRIOTS",
+      "abilities": "burning"
+    },
+    "2765885322": {
+      "name": "Grace Chen",
+      "short_name": "CHEN",
+      "faction": "Federation",
+      "rarity": "Uncommon",
+      "synergy": "STARFLEET ACADEMY"
+    },
+    "440622131": {
+      "name": "Hugh Culber",
+      "short_name": "CULBER",
+      "faction": "Federation",
+      "rarity": "Uncommon",
+      "synergy": "DISCOVERY CREW"
+    },
+    "513311144": {
+      "name": "D&apos;jaoki",
+      "short_name": "D&apos;JAOKI",
+      "faction": "Romulan",
+      "rarity": "Uncommon",
+      "synergy": "ROMULAN PATRIOTS"
+    },
+    "3865023367": {
+      "name": "D&apos;Vana Tendi",
+      "short_name": "D&apos;VANA TENDI",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "LOWER DECKS CREW"
+    },
+    "3739192827": {
+      "name": "Dajash Tolra",
+      "short_name": "DAJASH TOLRA",
+      "faction": "Neutral",
+      "rarity": "Epic",
+      "synergy": "SYMBIOSIS"
+    },
+    "2613379706": {
+      "name": "Damar",
+      "short_name": "DAMAR",
+      "faction": "Neutral",
+      "rarity": "Rare",
+      "synergy": "INTERCEPTOR STRIKE TEAM"
+    },
+    "3662189922": {
+      "name": "Sir Alexander Dane",
+      "short_name": "DANE",
+      "faction": "Neutral",
+      "rarity": "Rare",
+      "synergy": "Galaxy Quest"
+    },
+    "2963484044": {
+      "name": "Mae Darwin",
+      "short_name": "DARWIN",
+      "faction": "Federation",
+      "rarity": "Common",
+      "synergy": "SHAKEDOWN CRUISE"
+    },
+    "1683164967": {
+      "name": "Data",
+      "short_name": "DATA",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "TNG CREW"
+    },
+    "1070197892": {
+      "name": "Deanna Troi",
+      "short_name": "DEANNA TROI",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "TNG CREW",
+      "abilities": "romulanhater"
+    },
+    "3961190554": {
+      "name": "Decius",
+      "short_name": "DECIUS",
+      "faction": "Romulan",
+      "rarity": "Rare",
+      "synergy": "ROMULAN PATRIOTS"
+    },
+    "2339276935": {
+      "name": "Gwen DeMarco",
+      "short_name": "DEMARCO",
+      "faction": "Neutral",
+      "rarity": "Epic",
+      "synergy": "Galaxy Quest"
+    },
+    "3412597742": {
+      "name": "Dezoc",
+      "short_name": "DEZOC",
+      "faction": "Borg",
+      "rarity": "Rare",
+      "synergy": "UNIMATRIX TWELVE"
+    },
+    "1022775390": {
+      "name": "Dixon Hill",
+      "short_name": "DIXON HILL",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "HOLODECK"
+    },
+    "3013113875": {
+      "name": "Doctor T&apos;Ana",
+      "short_name": "DOCTOR T&apos;ANA",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "LOWER DECKS CREW"
+    },
+    "3816036121": {
+      "name": "Domitia",
+      "short_name": "DOMITIA",
+      "faction": "Romulan",
+      "rarity": "Common",
+      "synergy": "SURVEYORS & MINERS",
+      "abilities": "mining"
+    },
+    "2446409392": {
+      "name": "Rapha�l DuPont",
+      "short_name": "DUPONT",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "SURVEYORS & MINERS",
+      "abilities": "mining"
+    },
+    "1131760724": {
+      "name": "Eight of Eleven",
+      "short_name": "EIGHT OF ELEVEN",
+      "faction": "Borg",
+      "rarity": "Uncommon",
+      "synergy": "UNIMATRIX TWELVE"
+    },
+    "3542999283": {
+      "name": "Eleven of Eleven",
+      "short_name": "ELEVEN OF ELEVEN",
+      "faction": "Borg",
+      "rarity": "Epic",
+      "synergy": "UNIMATRIX TWELVE",
+      "abilities": "mining"
+    },
+    "2449957978": {
+      "name": "Emperor Georgiou",
+      "short_name": "EMP. GEORGIOU",
+      "faction": "Neutral",
+      "rarity": "Rare",
+      "synergy": "TERRAN EMPIRE"
+    },
+    "2397371699": {
+      "name": "Enterprise-E Data",
+      "short_name": "ENT-E DATA",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "ENTERPRISE-E"
+    },
+    "2852124874": {
+      "name": "Enterprise-E Picard",
+      "short_name": "ENT-E PICARD",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "ENTERPRISE-E"
+    },
+    "1449938138": {
+      "name": "Enterprise-E Riker",
+      "short_name": "ENT-E RIKER",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "ENTERPRISE-E"
+    },
+    "507415640": {
+      "name": "Enterprise-E Troi",
+      "short_name": "ENT-E TROI",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "ENTERPRISE-E"
+    },
+    "949329475": {
+      "name": "Eurydice",
+      "short_name": "EURYDICE",
+      "faction": "Neutral",
+      "rarity": "Epic",
+      "synergy": "MUDD'S COMPANY"
+    },
+    "1549505702": {
+      "name": "Ezri Dax",
+      "short_name": "EZRI DAX",
+      "faction": "Neutral",
+      "rarity": "Epic",
+      "synergy": "Status Control Team"
+    },
+    "3191841428": {
+      "name": "Fess",
+      "short_name": "FESS",
+      "faction": "Neutral",
+      "rarity": "Rare",
+      "synergy": "FERENGI CONGLOMERATE",
+      "abilities": "mining"
+    },
+    "3583932904": {
+      "name": "Five of Eleven",
+      "short_name": "FIVE OF ELEVEN",
+      "faction": "Borg",
+      "rarity": "Epic",
+      "synergy": "UNIMATRIX TWELVE"
+    },
+    "3490516652": {
+      "name": "Four of Eleven",
+      "short_name": "FOUR OF ELEVEN",
+      "faction": "Borg",
+      "rarity": "Epic",
+      "synergy": "UNIMATRIX TWELVE",
+      "abilities": "mining"
+    },
+    "2862563009": {
+      "name": "French Marshal Q",
+      "short_name": "FRENCH MARSHAL Q",
+      "faction": "Neutral",
+      "rarity": "Rare",
+      "synergy": "INTERCEPTOR RETALIATION SQUAD"
+    },
+    "776602621": {
+      "name": "Gaila",
+      "short_name": "GAILA",
+      "faction": "Federation",
+      "rarity": "Common",
+      "synergy": "STARFLEET ACADEMY"
+    },
+    "3681781473": {
+      "name": "Garak",
+      "short_name": "GARAK",
+      "faction": "Neutral",
+      "rarity": "Rare",
+      "synergy": "INTERCEPTOR STRIKE TEAM"
+    },
+    "2204519406": {
+      "name": "Geordi La Forge",
+      "short_name": "GEORDI LA FORGE",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "TNG CREW",
+      "abilities": "klingonhater"
+    },
+    "1580157615": {
+      "name": "Georgiou",
+      "short_name": "GEORGIOU",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "DISCOVERY CREW",
+      "abilities": "burning"
+    },
+    "1442833808": {
+      "name": "Ghalenar",
+      "short_name": "GHALENAR",
+      "faction": "Borg",
+      "rarity": "Rare",
+      "synergy": "UNIMATRIX TWELVE"
+    },
+    "909354959": {
+      "name": "Ghrush",
+      "short_name": "GHRUSH",
+      "faction": "Neutral",
+      "rarity": "Epic",
+      "synergy": "Syndicate",
+      "abilities": "mining"
+    },
+    "2865735742": {
+      "name": "Lucia Gonzales",
+      "short_name": "GONZALES",
+      "faction": "Federation",
+      "rarity": "Uncommon",
+      "synergy": "STARFLEET ACADEMY"
+    },
+    "1083140166": {
+      "name": "Goon",
+      "short_name": "GOON",
+      "faction": "Neutral",
+      "rarity": "Uncommon",
+      "synergy": "MUDD'S COMPANY"
+    },
+    "1465017198": {
+      "name": "Gorkon",
+      "short_name": "GORKON",
+      "faction": "Klingon",
+      "rarity": "Epic",
+      "synergy": "KLINGON PATRIOTS",
+      "abilities": "hullbreach"
+    },
+    "1039950897": {
+      "name": "Gossa",
+      "short_name": "GOSSA",
+      "faction": "Borg",
+      "rarity": "Rare",
+      "synergy": "UNIMATRIX TWELVE"
+    },
+    "2392608691": {
+      "name": "Gowron",
+      "short_name": "GOWRON",
+      "faction": "Klingon",
+      "rarity": "Rare",
+      "synergy": "KHITOMER'S REVENGE"
+    },
+    "1310878702": {
+      "name": "Gul Dukat",
+      "short_name": "GUL DUKAT",
+      "faction": "Neutral",
+      "rarity": "Epic",
+      "synergy": "INTERCEPTOR STRIKE TEAM"
+    },
+    "3314108979": {
+      "name": "Geoffrey Hadley",
+      "short_name": "HADLEY",
+      "faction": "Federation",
+      "rarity": "Common",
+      "synergy": "SHAKEDOWN CRUISE"
+    },
+    "3553398304": {
+      "name": "John Harrison",
+      "short_name": "HARRISON",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "SECTION 31"
+    },
+    "1458469333": {
+      "name": "Harry Kim",
+      "short_name": "HARRY KIM",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "VOYAGER"
+    },
+    "677303054": {
+      "name": "Harcourt Fenton Mudd",
+      "short_name": "HARRY MUDD",
+      "faction": "Neutral",
+      "rarity": "Epic",
+      "synergy": "MUDD'S COMPANY"
+    },
+    "3156736320": {
+      "name": "Helvia",
+      "short_name": "HELVIA",
+      "faction": "Romulan",
+      "rarity": "Common",
+      "synergy": "SURVEYORS & MINERS",
+      "abilities": "mining"
+    },
+    "3628828668": {
+      "name": "Hendorff",
+      "short_name": "HENDORFF",
+      "faction": "Federation",
+      "rarity": "Uncommon",
+      "synergy": "SHAKEDOWN CRUISE"
+    },
+    "2498836305": {
+      "name": "Honorguard Worf",
+      "short_name": "HONORGUARD WORF",
+      "faction": "Klingon",
+      "rarity": "Epic",
+      "synergy": "KHITOMER'S REVENGE"
+    },
+    "1039659244": {
+      "name": "Hoshi Sato",
+      "short_name": "HOSHI SATO",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "ENTERPRISE NX-01"
+    },
+    "4290764940": {
+      "name": "Hugh",
+      "short_name": "HUGH",
+      "faction": "Borg",
+      "rarity": "Epic",
+      "synergy": "UNIMATRIX TWELVE"
+    },
+    "2864895220": {
+      "name": "Icheb",
+      "short_name": "ICHEB",
+      "faction": "Neutral",
+      "rarity": "Rare",
+      "synergy": "BATTLESHIP RETALIATION SQUAD"
+    },
+    "3835531386": {
+      "name": "Ikat&apos;ika",
+      "short_name": "IKAT&apos;IKA",
+      "faction": "Neutral",
+      "rarity": "Rare",
+      "synergy": "EXPLORER STRIKE TEAM"
+    },
+    "3592998124": {
+      "name": "Infiltrator Tuvok",
+      "short_name": "INFILTRATOR TUVOK",
+      "faction": "Neutral",
+      "rarity": "Rare",
+      "synergy": "BATTLESHIP RETALIATION SQUAD"
+    },
+    "1622062016": {
+      "name": "Instructor Spock",
+      "short_name": "INSTR. SPOCK",
+      "faction": "Federation",
+      "rarity": "Common",
+      "synergy": "ANOTHER TIME"
+    },
+    "2852482387": {
+      "name": "Jack Ransom",
+      "short_name": "JACK RANSOM",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "EXPLORER STRIKE TEAM"
+    },
+    "1916661181": {
+      "name": "Jadzia Dax",
+      "short_name": "JADZIA DAX",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "DEEP SPACE NINE"
+    },
+    "668528267": {
+      "name": "Javaid",
+      "short_name": "JAVAID",
+      "faction": "Romulan",
+      "rarity": "Uncommon",
+      "synergy": "NERO'S CREW"
+    },
+    "3479870516": {
+      "name": "CAPT. TILLY",
+      "short_name": "JAYLAH",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "JAYLAH"
+    },
+    "1427486959": {
+      "name": "Jean-Luc Picard",
+      "short_name": "JEAN-LUC PICARD",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "TNG CREW"
+    },
+    "3264304828": {
+      "name": "Joachim",
+      "short_name": "JOACHIM",
+      "faction": "Neutral",
+      "rarity": "Rare",
+      "synergy": "KHAN'S CREW"
+    },
+    "3528103772": {
+      "name": "Joaquin",
+      "short_name": "JOAQUIN",
+      "faction": "Neutral",
+      "rarity": "Uncommon",
+      "synergy": "KHAN'S CREW",
+      "abilities": "mining"
+    },
+    "2679776436": {
+      "name": "Jonathan Archer",
+      "short_name": "JONATHAN ARCHER",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "ENTERPRISE NX-01"
+    },
+    "2620014350": {
+      "name": "Julian Bashir",
+      "short_name": "JULIAN BASHIR",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "DEEP SPACE NINE"
+    },
+    "2432668775": {
+      "name": "K&apos;Bisch",
+      "short_name": "K&apos;BISCH",
+      "faction": "Klingon",
+      "rarity": "Common",
+      "synergy": "SURVEYORS & MINERS",
+      "abilities": "mining"
+    },
+    "1608562191": {
+      "name": "Kang",
+      "short_name": "KANG",
+      "faction": "Klingon",
+      "rarity": "Epic",
+      "synergy": "BLOOD & HONOR",
+      "abilities": "hullbreach"
+    },
+    "2343910766": {
+      "name": "Kathryn Janeway",
+      "short_name": "KATHRYN JANEWAY",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "VOYAGER"
+    },
+    "1602389738": {
+      "name": "Kati",
+      "short_name": "KATI",
+      "faction": "Neutral",
+      "rarity": "Uncommon",
+      "synergy": "KHAN'S CREW"
+    },
+    "3492633912": {
+      "name": "Keenser",
+      "short_name": "KEENSER",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "AUXILIARY CONTROLS"
+    },
+    "3880112208": {
+      "name": "Kerla",
+      "short_name": "KERLA",
+      "faction": "Klingon",
+      "rarity": "Rare",
+      "synergy": "KLINGON PATRIOTS"
+    },
+    "2822661458": {
+      "name": "Khan Noonien Singh",
+      "short_name": "KHAN",
+      "faction": "Neutral",
+      "rarity": "Epic",
+      "synergy": "KHAN'S CREW"
+    },
+    "339027623": {
+      "name": "Kira Nerys",
+      "short_name": "KIRA NERYS",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "DEEP SPACE NINE"
+    },
+    "988947581": {
+      "name": "James T. Kirk",
+      "short_name": "KIRK",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "ENTERPRISE CREW"
+    },
+    "2601201375": {
+      "name": "Klaa",
+      "short_name": "KLAA",
+      "faction": "Klingon",
+      "rarity": "Uncommon",
+      "synergy": "GLORY IN THE KILL"
+    },
+    "680147223": {
+      "name": "Komal",
+      "short_name": "KOMAL",
+      "faction": "Klingon",
+      "rarity": "Common",
+      "synergy": "GLORY IN THE KILL"
+    },
+    "250991574": {
+      "name": "Koth",
+      "short_name": "KOTH",
+      "faction": "Klingon",
+      "rarity": "Uncommon",
+      "synergy": "KLINGON PATRIOTS"
+    },
+    "2847497836": {
+      "name": "Kras",
+      "short_name": "KRAS",
+      "faction": "Klingon",
+      "rarity": "Epic",
+      "synergy": "GLORY IN THE KILL"
+    },
+    "3465002315": {
+      "name": "Krell",
+      "short_name": "KRELL",
+      "faction": "Klingon",
+      "rarity": "Rare",
+      "synergy": "BLOOD & HONOR",
+      "abilities": "hullbreachfedhater"
+    },
+    "1983456684": {
+      "name": "Kumak",
+      "short_name": "KUMAK",
+      "faction": "Romulan",
+      "rarity": "Rare",
+      "synergy": "NERO'S CREW"
+    },
+    "913104893": {
+      "name": "Kuron",
+      "short_name": "KURON",
+      "faction": "Klingon",
+      "rarity": "Rare",
+      "synergy": "BLOOD & HONOR"
+    },
+    "3079282844": {
+      "name": "L&apos;Nar",
+      "short_name": "L&apos;NAR",
+      "faction": "Romulan",
+      "rarity": "Uncommon",
+      "synergy": "ROMULAN PATRIOTS",
+      "abilities": "klingonhater"
+    },
+    "2729881938": {
+      "name": "Laliari",
+      "short_name": "LALIARI",
+      "faction": "Neutral",
+      "rarity": "Rare",
+      "synergy": "Galaxy Quest"
+    },
+    "307877748": {
+      "name": "Frank Leslie",
+      "short_name": "LESLIE",
+      "faction": "Federation",
+      "rarity": "Uncommon",
+      "synergy": "SHAKEDOWN CRUISE"
+    },
+    "3643810820": {
+      "name": "Lieutenant Picard",
+      "short_name": "LIEUTENANT PICARD",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "NEXT GEN"
+    },
+    "3114234402": {
+      "name": "Linkasa",
+      "short_name": "LINKASA",
+      "faction": "Klingon",
+      "rarity": "Uncommon",
+      "synergy": "BLOOD & HONOR"
+    },
+    "2333021829": {
+      "name": "Livis",
+      "short_name": "LIVIS",
+      "faction": "Romulan",
+      "rarity": "Rare",
+      "synergy": "NERO'S CREW"
+    },
+    "4110037371": {
+      "name": "Gabriel Lorca",
+      "short_name": "LORCA",
+      "faction": "Neutral",
+      "rarity": "Epic",
+      "synergy": "TERRAN EMPIRE",
+      "abilities": "hullbreach"
+    },
+    "2639742910": {
+      "name": "Lursa",
+      "short_name": "LURSA",
+      "faction": "Romulan",
+      "rarity": "Uncommon",
+      "synergy": "PRIDE OF ROMULUS"
+    },
+    "2775384983": {
+      "name": "Jabilo M&apos;Benga",
+      "short_name": "M&apos;BENGA",
+      "faction": "Federation",
+      "rarity": "Common",
+      "synergy": "AUXILIARY CONTROLS"
+    },
+    "3221819893": {
+      "name": "M&apos;Ral",
+      "short_name": "M&apos;RAL",
+      "faction": "Klingon",
+      "rarity": "Uncommon",
+      "synergy": "KLINGON PATRIOTS"
+    },
+    "1353192478": {
+      "name": "Mara",
+      "short_name": "MARA",
+      "faction": "Klingon",
+      "rarity": "Rare",
+      "synergy": "BLOOD & HONOR"
+    },
+    "1127234629": {
+      "name": "Alexander Marcus",
+      "short_name": "MARCUS",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "SECTION 31"
+    },
+    "2341819707": {
+      "name": "Mariachi Q",
+      "short_name": "MARIACHI Q",
+      "faction": "Neutral",
+      "rarity": "Rare",
+      "synergy": "INTERCEPTOR RETALIATION SQUAD"
+    },
+    "1617168639": {
+      "name": "Marla McGivers",
+      "short_name": "MARLA",
+      "faction": "Neutral",
+      "rarity": "Rare",
+      "synergy": "KHAN'S CREW"
+    },
+    "2184439996": {
+      "name": "Martok",
+      "short_name": "MARTOK",
+      "faction": "Klingon",
+      "rarity": "Rare",
+      "synergy": "KHITOMER'S REVENGE"
+    },
+    "473853704": {
+      "name": "Masriad Vael",
+      "short_name": "MASRIAD VAEL",
+      "faction": "Neutral",
+      "rarity": "Epic",
+      "synergy": "SYMBIOSIS"
+    },
+    "1628322562": {
+      "name": "Mavery",
+      "short_name": "MAVERY",
+      "faction": "Neutral",
+      "rarity": "Epic",
+      "synergy": "Syndicate"
+    },
+    "3999633781": {
+      "name": "Michael Burnham",
+      "short_name": "MICHAEL BURNHAM",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "DISCOVERY CREW"
+    },
+    "2871265794": {
+      "name": "Miles O&apos;Brien",
+      "short_name": "MILES O&apos;BRIEN",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "DEEP SPACE NINE"
+    },
+    "531187684": {
+      "name": "Mirek",
+      "short_name": "MIREK",
+      "faction": "Romulan",
+      "rarity": "Rare",
+      "synergy": "ROMULAN PATRIOTS",
+      "abilities": "burningfedhater"
+    },
+    "435759625": {
+      "name": "Mirror Data",
+      "short_name": "MIRROR DATA",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "MIRROR UNIVERSE"
+    },
+    "901426684": {
+      "name": "Mirror Ezri",
+      "short_name": "MIRROR EZRI",
+      "faction": "Neutral",
+      "rarity": "Rare",
+      "synergy": "MIRROR UNIVERSE"
+    },
+    "4235647200": {
+      "name": "Mirror Kira",
+      "short_name": "MIRROR KIRA",
+      "faction": "Klingon",
+      "rarity": "Epic",
+      "synergy": "MIRROR UNIVERSE"
+    },
+    "3131537917": {
+      "name": "Mirror Picard",
+      "short_name": "MIRROR PICARD",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "MIRROR UNIVERSE"
+    },
+    "3598147546": {
+      "name": "Mirror Troi",
+      "short_name": "MIRROR TROI",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "MIRROR UNIVERSE"
+    },
+    "4294120304": {
+      "name": "Mirror Uhura",
+      "short_name": "MIRROR UHURA",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "MIRROR UNIVERSE"
+    },
+    "93766267": {
+      "name": "Miss Q",
+      "short_name": "MISS Q",
+      "faction": "Neutral",
+      "rarity": "Rare",
+      "synergy": "EXPLORER RETALIATION SQUAD"
+    },
+    "4132174205": {
+      "name": "Gary Mitchell",
+      "short_name": "MITCHELL",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "AUXILIARY CONTROLS"
+    },
+    "3990993357": {
+      "name": "Marlena Moreau",
+      "short_name": "MOREAU",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "SHAKEDOWN CRUISE"
+    },
+    "634330627": {
+      "name": "Harcourt Fenton Mudd",
+      "short_name": "MUDD",
+      "faction": "Neutral",
+      "rarity": "Epic",
+      "synergy": "MUDD'S COMPANY"
+    },
+    "3155462804": {
+      "name": "Elea M�kinen",
+      "short_name": "M�KINEN",
+      "faction": "Federation",
+      "rarity": "Uncommon",
+      "synergy": "SURVEYORS & MINERS",
+      "abilities": "mining"
+    },
+    "2402639187": {
+      "name": "Naga Delvos",
+      "short_name": "NAGA DELVOS",
+      "faction": "Neutral",
+      "rarity": "Epic",
+      "synergy": "EMERALD CHAIN"
+    },
+    "3019272402": {
+      "name": "Navi",
+      "short_name": "NAVI",
+      "faction": "Neutral",
+      "rarity": "Rare",
+      "synergy": "KHAN'S CREW"
+    },
+    "497650232": {
+      "name": "Neelix",
+      "short_name": "NEELIX",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "VOYAGER"
+    },
+    "656972203": {
+      "name": "Nero",
+      "short_name": "NERO",
+      "faction": "Romulan",
+      "rarity": "Epic",
+      "synergy": "NERO'S CREW",
+      "abilities": "burning"
+    },
+    "2785409233": {
+      "name": "Jason Nesmith",
+      "short_name": "NESMITH",
+      "faction": "Neutral",
+      "rarity": "Epic",
+      "synergy": "Galaxy Quest"
+    },
+    "1485791413": {
+      "name": "LORCA",
+      "short_name": "NEXT GEN CRUSHER",
+      "faction": "Federation",
+      "rarity": "Common",
+      "synergy": "NEXT GEN"
+    },
+    "1841597470": {
+      "name": "Next Gen Data",
+      "short_name": "NEXT GEN DATA",
+      "faction": "Federation",
+      "rarity": "Common",
+      "synergy": "NEXT GEN"
+    },
+    "3968109489": {
+      "name": "Next Gen La Forge",
+      "short_name": "NEXT GEN LA FORGE",
+      "faction": "Federation",
+      "rarity": "Common",
+      "synergy": "NEXT GEN"
+    },
+    "631590783": {
+      "name": "Next Gen Riker",
+      "short_name": "NEXT GEN RIKER",
+      "faction": "Federation",
+      "rarity": "Common",
+      "synergy": "NEXT GEN"
+    },
+    "3217575459": {
+      "name": "Next Gen Troi",
+      "short_name": "NEXT GEN TROI",
+      "faction": "Federation",
+      "rarity": "Common",
+      "synergy": "NEXT GEN"
+    },
+    "1859906553": {
+      "name": "Nine of Eleven",
+      "short_name": "NINE OF ELEVEN",
+      "faction": "Borg",
+      "rarity": "Uncommon",
+      "synergy": "UNIMATRIX TWELVE"
+    },
+    "1878219859": {
+      "name": "Nog",
+      "short_name": "NOG",
+      "faction": "Neutral",
+      "rarity": "Epic",
+      "synergy": "Status Control Team"
+    },
+    "1028718336": {
+      "name": "Odo",
+      "short_name": "ODO",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "DEEP SPACE NINE"
+    },
+    "989647182": {
+      "name": "One of Eleven",
+      "short_name": "ONE OF ELEVEN",
+      "faction": "Borg",
+      "rarity": "Rare",
+      "synergy": "UNIMATRIX TWELVE"
+    },
+    "3245467973": {
+      "name": "Origins Burnham",
+      "short_name": "ORIGINS BURNHAM",
+      "faction": "Federation",
+      "rarity": "Uncommon",
+      "synergy": "DISCOVERY ORIGINS"
+    },
+    "3534264929": {
+      "name": "Origins Saru",
+      "short_name": "ORIGINS SARU",
+      "faction": "Federation",
+      "rarity": "Common",
+      "synergy": "DISCOVERY ORIGINS"
+    },
+    "868427019": {
+      "name": "Origins Stamets",
+      "short_name": "ORIGINS STAMETS",
+      "faction": "Federation",
+      "rarity": "Common",
+      "synergy": "DISCOVERY ORIGINS"
+    },
+    "2219055924": {
+      "name": "Otto",
+      "short_name": "OTTO",
+      "faction": "Neutral",
+      "rarity": "Uncommon",
+      "synergy": "KHAN'S CREW"
+    },
+    "43410162": {
+      "name": "Pan",
+      "short_name": "PAN",
+      "faction": "Neutral",
+      "rarity": "Rare",
+      "synergy": "KHAN'S CREW"
+    },
+    "2030703558": {
+      "name": "Paul Stamets",
+      "short_name": "PAUL STAMETS",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "DISCOVERY CREW"
+    },
+    "3038078185": {
+      "name": "Phellun",
+      "short_name": "PHELLUN",
+      "faction": "Neutral",
+      "rarity": "Epic",
+      "synergy": "Syndicate"
+    },
+    "1848943130": {
+      "name": "Phlox",
+      "short_name": "PHLOX",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "ENTERPRISE NX-01"
+    },
+    "1109650513": {
+      "name": "PIC Admiral Picard",
+      "short_name": "PIC ADMIRAL PICARD",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "PICARD"
+    },
+    "802343108": {
+      "name": "PIC Beverly Crusher",
+      "short_name": "PIC BEVERLY CRUSHER",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "PICARD"
+    },
+    "182221633": {
+      "name": "PIC Hugh",
+      "short_name": "PIC HUGH",
+      "faction": "Ex-Borg",
+      "rarity": "Epic",
+      "synergy": "EX-BORG"
+    },
+    "2836324820": {
+      "name": "PIC RIKER",
+      "short_name": "PIC RIKER",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "PICARD"
+    },
+    "3484257385": {
+      "name": "PIC Worf",
+      "short_name": "PIC WORF",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "PICARD"
+    },
+    "329940464": {
+      "name": "Christopher Pike",
+      "short_name": "PIKE",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "SHAKEDOWN CRUISE"
+    },
+    "1860865109": {
+      "name": "Pon",
+      "short_name": "PON",
+      "faction": "Neutral",
+      "rarity": "Rare",
+      "synergy": "EXPLORER STRIKE TEAM"
+    },
+    "3594947012": {
+      "name": "Qa&apos;ug",
+      "short_name": "QA&apos;UG",
+      "faction": "Klingon",
+      "rarity": "Uncommon",
+      "synergy": "BLOOD & HONOR"
+    },
+    "2334517642": {
+      "name": "QUARK",
+      "short_name": "QUARK",
+      "faction": "Neutral",
+      "rarity": "Epic",
+      "synergy": "FERENGI CONGLOMERATE",
+      "abilities": "mining"
+    },
+    "3814065186": {
+      "name": "Quasi",
+      "short_name": "QUASI",
+      "faction": "Section 31",
+      "rarity": "Epic",
+      "synergy": "MIRROR UNIVERSE"
+    },
+    "1409510538": {
+      "name": "Rachel Garrett",
+      "short_name": "RACHEL GARRETT",
+      "faction": "Section 31",
+      "rarity": "Rare",
+      "synergy": "ENTERPRISE-E"
+    },
+    "3523093667": {
+      "name": "Reginald Barclay",
+      "short_name": "REGINALD BARCLAY",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "HOLODECK"
+    },
+    "1349602017": {
+      "name": "Rima",
+      "short_name": "RIMA",
+      "faction": "Neutral",
+      "rarity": "Rare",
+      "synergy": "KHAN'S CREW"
+    },
+    "1330179266": {
+      "name": "Ro Mudd",
+      "short_name": "RO MUDD",
+      "faction": "Neutral",
+      "rarity": "Rare",
+      "synergy": "MUDD'S COMPANY"
+    },
+    "1248750548": {
+      "name": "Rom",
+      "short_name": "ROM",
+      "faction": "Neutral",
+      "rarity": "Epic",
+      "synergy": "FERENGI CONGLOMERATE"
+    },
+    "312289551": {
+      "name": "Romi",
+      "short_name": "ROMI",
+      "faction": "Neutral",
+      "rarity": "Rare",
+      "synergy": "EXPLORER RETALIATION SQUAD"
+    },
+    "176044746": {
+      "name": "Rukor",
+      "short_name": "RUKOR",
+      "faction": "Klingon",
+      "rarity": "Common",
+      "synergy": "GLORY IN THE KILL"
+    },
+    "2923667463": {
+      "name": "S31 Georgiou",
+      "short_name": "S31 GEORGIOU",
+      "faction": "Section 31",
+      "rarity": "Epic",
+      "synergy": "STRANGE NEW WORLDS"
+    },
+    "47699744": {
+      "name": "Sam Rutherford",
+      "short_name": "SAM RUTHERFORD",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "LOWER DECKS CREW"
+    },
+    "56060748": {
+      "name": "Saru",
+      "short_name": "SARU",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "DISCOVERY CREW"
+    },
+    "3155244352": {
+      "name": "Montgomery Scott",
+      "short_name": "SCOTTY",
+      "faction": "Federation",
+      "rarity": "Uncommon",
+      "synergy": "ENTERPRISE CREW"
+    },
+    "336948052": {
+      "name": "Sela",
+      "short_name": "SELA",
+      "faction": "Romulan",
+      "rarity": "Epic",
+      "synergy": "PRIDE OF ROMULUS"
+    },
+    "2651130337": {
+      "name": "SESHA",
+      "short_name": "SESHA",
+      "faction": "Neutral",
+      "rarity": "Common",
+      "synergy": "MUDD'S COMPANY"
+    },
+    "2458983580": {
+      "name": "Seska",
+      "short_name": "SESKA",
+      "faction": "Neutral",
+      "rarity": "Epic",
+      "synergy": "VOYAGER 30TH ANNIVERSARY"
+    },
+    "3304441016": {
+      "name": "Seven of Eleven",
+      "short_name": "SEVEN OF ELEVEN",
+      "faction": "Borg",
+      "rarity": "Rare",
+      "synergy": "UNIMATRIX TWELVE"
+    },
+    "2037089464": {
+      "name": "Seven of Nine",
+      "short_name": "SEVEN OF NINE",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "VOYAGER"
+    },
+    "161972881": {
+      "name": "Severus",
+      "short_name": "SEVERUS",
+      "faction": "Romulan",
+      "rarity": "Uncommon",
+      "synergy": "ROMULAN PATRIOTS"
+    },
+    "4151676212": {
+      "name": "Shaxs",
+      "short_name": "SHAXS",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "BATTLESHIP STRIKE TEAM"
+    },
+    "2567136252": {
+      "name": "Shev Akria",
+      "short_name": "SHEV",
+      "faction": "Federation",
+      "rarity": "Common",
+      "synergy": "STARFLEET ACADEMY"
+    },
+    "3221659017": {
+      "name": "Shran",
+      "short_name": "SHRAN",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "ENTERPRISE NX-01"
+    },
+    "3627600020": {
+      "name": "Six of Eleven",
+      "short_name": "SIX OF ELEVEN",
+      "faction": "Borg",
+      "rarity": "Epic",
+      "synergy": "UNIMATRIX TWELVE"
+    },
+    "598126845": {
+      "name": "SNW D&apos;Chok",
+      "short_name": "SNW D&apos;CHOK",
+      "faction": "Klingon",
+      "rarity": "Epic",
+      "synergy": "STRANGE NEW WORLDS"
+    },
+    "3742595916": {
+      "name": "SNW Hemmer",
+      "short_name": "SNW HEMMER",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "STRANGE NEW WORLDS"
+    },
+    "3294474373": {
+      "name": "SNW James Kirk",
+      "short_name": "SNW JAMES KIRK",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "STRANGE NEW WORLDS"
+    },
+    "2543722471": {
+      "name": "SNW La&apos;an Noonien-Singh",
+      "short_name": "SNW LA&apos;AN",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "STRANGE NEW WORLDS"
+    },
+    "1532505261": {
+      "name": "SNW M&apos;Benga",
+      "short_name": "SNW M&apos;BENGA",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "STRANGE NEW WORLDS"
+    },
+    "597303582": {
+      "name": "SNW Nurse Chapel",
+      "short_name": "SNW NURSE CHAPEL",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "STRANGE NEW WORLDS"
+    },
+    "1689277174": {
+      "name": "SNW Erica Ortegas",
+      "short_name": "SNW ORTEGAS",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "STRANGE NEW WORLDS"
+    },
+    "3936395808": {
+      "name": "SNW Pelia",
+      "short_name": "SNW PELIA",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "STRANGE NEW WORLDS"
+    },
+    "2241990218": {
+      "name": "SNW Christopher Pike",
+      "short_name": "SNW PIKE",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "STRANGE NEW WORLDS"
+    },
+    "1426126747": {
+      "name": "SNW Sam Kirk",
+      "short_name": "SNW SAM KIRK",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "STRANGE NEW WORLDS"
+    },
+    "1536491613": {
+      "name": "SNW Montgomery Scott",
+      "short_name": "SNW SCOTTY",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "STRANGE NEW WORLDS"
+    },
+    "2702893021": {
+      "name": "SNW Spock",
+      "short_name": "SNW SPOCK",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "STRANGE NEW WORLDS"
+    },
+    "3339117238": {
+      "name": "SNW T&apos;Pring",
+      "short_name": "SNW T&apos;PRING",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "STRANGE NEW WORLDS"
+    },
+    "97787926": {
+      "name": "SNW Nyota Uhura",
+      "short_name": "SNW UHURA",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "STRANGE NEW WORLDS"
+    },
+    "1724793140": {
+      "name": "SNW Una Chin-Riley",
+      "short_name": "SNW UNA",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "STRANGE NEW WORLDS"
+    },
+    "783581005": {
+      "name": "Soran",
+      "short_name": "SORAN",
+      "faction": "Neutral",
+      "rarity": "Epic",
+      "synergy": "EXPLORER RETALIATION SQUAD"
+    },
+    "2778731701": {
+      "name": "Specialist Seven",
+      "short_name": "SPECIALIST SEVEN",
+      "faction": "Neutral",
+      "rarity": "Epic",
+      "synergy": "BATTLESHIP RETALIATION SQUAD"
+    },
+    "766809588": {
+      "name": "Spock",
+      "short_name": "SPOCK",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "ENTERPRISE CREW"
+    },
+    "2787886893": {
+      "name": "Starfleet Q",
+      "short_name": "STARFLEET Q",
+      "faction": "Neutral",
+      "rarity": "Epic",
+      "synergy": "INTERCEPTOR RETALIATION SQUAD"
+    },
+    "755079845": {
+      "name": "Stonn",
+      "short_name": "STONN",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "SURVEYORS & MINERS",
+      "abilities": "mining"
+    },
+    "3479942533": {
+      "name": "Strike Team SNW La&apos;an",
+      "short_name": "STRIKE TEAM LA&apos;AN",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "BATTLESHIP STRIKE TEAM"
+    },
+    "2354305961": {
+      "name": "Strike Team SNW Ortegas",
+      "short_name": "STRIKE TEAM ORTEGAS",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "BATTLESHIP STRIKE TEAM"
+    },
+    "3512227954": {
+      "name": "Strike Team SNW Una",
+      "short_name": "STRIKE TEAM UNA",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "BATTLESHIP STRIKE TEAM"
+    },
+    "2173095604": {
+      "name": "Suder",
+      "short_name": "SUDER",
+      "faction": "Neutral",
+      "rarity": "Rare",
+      "synergy": "VOYAGER 30TH ANNIVERSARY"
+    },
+    "2520801863": {
+      "name": "Hikaru Sulu",
+      "short_name": "SULU",
+      "faction": "Federation",
+      "rarity": "Uncommon",
+      "synergy": "ENTERPRISE CREW"
+    },
+    "1455040265": {
+      "name": "T&apos;Laan",
+      "short_name": "T&apos;LAAN",
+      "faction": "Federation",
+      "rarity": "Common",
+      "synergy": "STARFLEET ACADEMY"
+    },
+    "4114433540": {
+      "name": "T&apos;Pol",
+      "short_name": "T&apos;POL",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "ENTERPRISE NX-01"
+    },
+    "1556052341": {
+      "name": "T&apos;Pring",
+      "short_name": "T&apos;PRING",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "SURVEYORS & MINERS",
+      "abilities": "mining"
+    },
+    "361377304": {
+      "name": "Tal",
+      "short_name": "TAL",
+      "faction": "Romulan",
+      "rarity": "Rare",
+      "synergy": "ROMULAN PATRIOTS"
+    },
+    "4148782205": {
+      "name": "Tasha Yar",
+      "short_name": "TASHA YAR",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "TNG CREW"
+    },
+    "370544309": {
+      "name": "Ten of Eleven",
+      "short_name": "TEN OF ELEVEN",
+      "faction": "Borg",
+      "rarity": "Epic",
+      "synergy": "UNIMATRIX TWELVE",
+      "abilities": "mining"
+    },
+    "1421610149": {
+      "name": "The Doctor",
+      "short_name": "THE DOCTOR",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "VOYAGER"
+    },
+    "429857188": {
+      "name": "The Hierarch",
+      "short_name": "THE HIERARCH",
+      "faction": "Neutral",
+      "rarity": "Epic",
+      "synergy": "Status Control Team"
+    },
+    "1395454844": {
+      "name": "Three Of Eleven",
+      "short_name": "THREE OF ELEVEN",
+      "faction": "Borg",
+      "rarity": "Epic",
+      "synergy": "UNIMATRIX TWELVE",
+      "abilities": "mining"
+    },
+    "1800794103": {
+      "name": "Tilly",
+      "short_name": "TILLY",
+      "faction": "Federation",
+      "rarity": "Uncommon",
+      "synergy": "DISCOVERY CREW"
+    },
+    "3106264505": {
+      "name": "Tiza",
+      "short_name": "TIZA",
+      "faction": "Neutral",
+      "rarity": "Common",
+      "synergy": "MUDD'S COMPANY"
+    },
+    "328154093": {
+      "name": "TMP Hikaru Sulu",
+      "short_name": "TMP HIKARU SULU",
+      "faction": "Neutral",
+      "rarity": "Epic",
+      "synergy": "THE MOTION PICTURES"
+    },
+    "1983933897": {
+      "name": "TMP Nyota Uhura",
+      "short_name": "TMP NYOTA UHURA",
+      "faction": "Neutral",
+      "rarity": "Epic",
+      "synergy": "THE MOTION PICTURES"
+    },
+    "2087036948": {
+      "name": "TOLI",
+      "short_name": "TOLI",
+      "faction": "Neutral",
+      "rarity": "Rare",
+      "synergy": "SYMBIOSIS"
+    },
+    "3849424588": {
+      "name": "Tom Paris",
+      "short_name": "TOM PARIS",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "VOYAGER"
+    },
+    "215089650": {
+      "name": "Tomalak",
+      "short_name": "TOMALAK",
+      "faction": "Romulan",
+      "rarity": "Rare",
+      "synergy": "PRIDE OF ROMULUS",
+      "abilities": "klingonhater"
+    },
+    "3382562951": {
+      "name": "TOS Pavel Chekov",
+      "short_name": "TOS CHEKOV",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "TOS ENTERPRISE CREW"
+    },
+    "107451388": {
+      "name": "TOS James T. Kirk",
+      "short_name": "TOS KIRK",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "TOS ENTERPRISE CREW"
+    },
+    "423029416": {
+      "name": "TOS Leonard McCoy",
+      "short_name": "TOS MCCOY",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "TOS ENTERPRISE CREW"
+    },
+    "3579242146": {
+      "name": "TOS Montgomery Scott",
+      "short_name": "TOS SCOTTY",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "TOS ENTERPRISE CREW"
+    },
+    "2757127113": {
+      "name": "TOS Spock",
+      "short_name": "TOS SPOCK",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "TOS ENTERPRISE CREW"
+    },
+    "1670351312": {
+      "name": "TOS Hikaru Sulu",
+      "short_name": "TOS SULU",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "TOS ENTERPRISE CREW"
+    },
+    "1752126880": {
+      "name": "TOS Nyota Uhura",
+      "short_name": "TOS UHURA",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "TOS ENTERPRISE CREW"
+    },
+    "1903302017": {
+      "name": "Trip Tucker",
+      "short_name": "TRIP TUCKER",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "ENTERPRISE NX-01"
+    },
+    "2120397875": {
+      "name": "Tuvok",
+      "short_name": "TUVOK",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "VOYAGER"
+    },
+    "118103052": {
+      "name": "Two of Eleven",
+      "short_name": "TWO OF ELEVEN",
+      "faction": "Borg",
+      "rarity": "Rare",
+      "synergy": "UNIMATRIX TWELVE",
+      "abilities": "mining"
+    },
+    "3769449499": {
+      "name": "Ash Tyler",
+      "short_name": "TYLER",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "DISCOVERY CREW"
+    },
+    "2695272429": {
+      "name": "Nyota Uhura",
+      "short_name": "UHURA",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "ENTERPRISE CREW"
+    },
+    "3394864658": {
+      "name": "Vartoq",
+      "short_name": "VARTOQ",
+      "faction": "Klingon",
+      "rarity": "Common",
+      "synergy": "GLORY IN THE KILL"
+    },
+    "3281026482": {
+      "name": "Vel K&apos;Bentayr",
+      "short_name": "VEL",
+      "faction": "Federation",
+      "rarity": "Common",
+      "synergy": "STARFLEET ACADEMY"
+    },
+    "2235857051": {
+      "name": "Vella",
+      "short_name": "VELLA",
+      "faction": "Romulan",
+      "rarity": "Uncommon",
+      "synergy": "NERO'S CREW"
+    },
+    "2959514562": {
+      "name": "Vemet",
+      "short_name": "VEMET",
+      "faction": "Romulan",
+      "rarity": "Rare",
+      "synergy": "NERO'S CREW"
+    },
+    "2033443887": {
+      "name": "VIL Gul Dukat",
+      "short_name": "VIL GUL DUKAT",
+      "faction": "Neutral",
+      "rarity": "Epic",
+      "synergy": "VILLAINS"
+    },
+    "2686255925": {
+      "name": "VIL Winn Adami",
+      "short_name": "VIL WINN ADAMI",
+      "faction": "Neutral",
+      "rarity": "Epic",
+      "synergy": "VILLAINS"
+    },
+    "2517597941": {
+      "name": "Vixis",
+      "short_name": "VIXIS",
+      "faction": "Klingon",
+      "rarity": "Uncommon",
+      "synergy": "GLORY IN THE KILL"
+    },
+    "1116707401": {
+      "name": "Wesley Crusher",
+      "short_name": "WESLEY CRUSHER",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "TNG CREW"
+    },
+    "1925563045": {
+      "name": "Weyoun",
+      "short_name": "WEYOUN",
+      "faction": "Neutral",
+      "rarity": "Epic",
+      "synergy": "EXPLORER STRIKE TEAM"
+    },
+    "1137482318": {
+      "name": "William T. Riker",
+      "short_name": "WILLIAM T. RIKER",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "TNG CREW",
+      "abilities": "fedhater"
+    },
+    "807303933": {
+      "name": "WOK Carol Marcus",
+      "short_name": "WOK CAROL",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "WRATH OF KHAN"
+    },
+    "897691678": {
+      "name": "WOK Joachim",
+      "short_name": "WOK JOACHIM",
+      "faction": "Neutral",
+      "rarity": "Epic",
+      "synergy": "WRATH OF KHAN"
+    },
+    "1352288560": {
+      "name": "WOK Leonard McCoy",
+      "short_name": "WOK MCCOY",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "WRATH OF KHAN"
+    },
+    "1738777089": {
+      "name": "WOK Saavik",
+      "short_name": "WOK SAAVIK",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "WRATH OF KHAN"
+    },
+    "3242236216": {
+      "name": "WOK Montgomery Scott",
+      "short_name": "WOK SCOTTY",
+      "faction": "Federation",
+      "rarity": "Epic",
+      "synergy": "WRATH OF KHAN"
+    },
+    "2593842933": {
+      "name": "Worf",
+      "short_name": "WORF",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "TNG CREW"
+    },
+    "98548875": {
+      "name": "Woteln",
+      "short_name": "WOTELN",
+      "faction": "Klingon",
+      "rarity": "Uncommon",
+      "synergy": "KLINGON PATRIOTS"
+    },
+    "3001921707": {
+      "name": "Yan&apos;agh",
+      "short_name": "YAN&apos;AGH",
+      "faction": "Klingon",
+      "rarity": "Uncommon",
+      "synergy": "BLOOD & HONOR",
+      "abilities": "romulanhater"
+    },
+    "3381802332": {
+      "name": "Yuki Sulu",
+      "short_name": "YUKI",
+      "faction": "Federation",
+      "rarity": "Rare",
+      "synergy": "SECTION 31",
+      "abilities": "romulanhater"
+    },
+    "407568868": {
+      "name": "Zahra",
+      "short_name": "ZAHRA",
+      "faction": "Federation",
+      "rarity": "Common",
+      "synergy": "AUXILIARY CONTROLS"
+    },
+    "3594463469": {
+      "name": "Zeph",
+      "short_name": "ZEPH",
+      "faction": "Section 31",
+      "rarity": "Rare",
+      "synergy": "SECTION 31"
+    },
+    "1143746577": {
+      "name": "Paul Zhou",
+      "short_name": "ZHOU",
+      "faction": "Federation",
+      "rarity": "Uncommon",
+      "synergy": "SECTION 31"
+    }
+  },
+  "research": {},
+  "buildings": {},
+  "ships": {},
+  "resources": {},
+  "components": {}
+}
