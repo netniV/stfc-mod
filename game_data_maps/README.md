@@ -22,9 +22,19 @@ Visit https://spocks.club and log in, then navigate to each page:
 For each page:
 1. Open browser DevTools (F12)
 2. Go to Network tab
-3. Look for AJAX calls that return JSON data
-4. Copy the JSON response
-5. Save to `game_data_maps/<category>.json`
+3. Reload the page or interact with it
+4. Look for AJAX calls that return JSON data (check XHR filter)
+5. Click on the request to view the response
+6. Right-click ? Copy ? Copy response
+7. Save to `game_data_maps/<category>.json` or `spocks_club_content_to_parse/<category>.json`
+
+### Finding the Right API Calls
+
+**Research**: The research page uses DataTables which loads data via AJAX. Look for requests to endpoints containing "research" or "datatables" in the Network tab when the page loads.
+
+**Ships**: Similar to research - check Network tab when viewing ships page.
+
+**Officer Traits**: May be embedded in the officers.json data or require a separate endpoint.
 
 ### 2. Convert to Mappings
 
@@ -42,13 +52,15 @@ python scripts\data_extraction\convert_spocks_data.py game_data_maps\buildings.j
 
 ## Current Status
 
-| Category | Count | Status |
-|----------|-------|--------|
-| Officers | 277   | ? Complete |
-| Research | 0     | ? Pending |
-| Buildings| 0     | ? Pending |
-| Ships    | 0     | ? Pending |
-| Resources| 0     | ? Pending |
+| Category | Count | Status | Notes |
+|----------|-------|--------|-------|
+| Officers | 277   | ? Complete | Full data from Spock's Club JSON |
+| Buildings| 110   | ? Complete | Full data from Spock's Club JSON |
+| Resources| 4613  | ? Complete | Full data from Spock's Club inventory.json |
+| Research | 1     | ?? Incomplete | HTML export only captured 1 item - need AJAX/API |
+| Ships    | 0     | ? Pending | Need to find API endpoint or JSON export |
+| Traits   | 0     | ? Pending | Officer trait IDs not found in exports |
+| Avatars  | 0     | ? Pending | Command center avatar IDs not in HTML exports |
 
 ## Data Format
 
