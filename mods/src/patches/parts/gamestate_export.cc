@@ -510,6 +510,15 @@ void export_differential()
 
     json differential = build_differential_json();
 
+    // Check if there are actually any changes
+    {
+      int total_changes = differential["summary"]["total_changes"];
+      if (total_changes == 0) {
+        spdlog::debug("GameState export: No changes detected, skipping differential export");
+        return;
+      }
+    }
+
     // Read existing deltas array (if file exists)
     json deltas_array = json::array();
     std::ifstream in(export_path);
