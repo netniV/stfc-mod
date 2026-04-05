@@ -51,9 +51,21 @@ static std::string last_full_export_time;
 static std::string last_differential_export_time;
 static std::chrono::steady_clock::time_point last_full_export_tp;
 static std::chrono::steady_clock::time_point last_differential_export_tp;
+static std::chrono::steady_clock::time_point startup_time;
+static constexpr int STARTUP_GRACE_PERIOD_SECONDS = 15; // Wait 15 seconds after startup before first export
 
 static void request_immediate_export()
 {
+  // Don't trigger exports during startup grace period
+  auto now = std::chrono::steady_clock::now();
+  auto seconds_since_startup = std::chrono::duration_cast<std::chrono::seconds>(now - startup_time).count();
+
+  if (seconds_since_startup < STARTUP_GRACE_PERIOD_SECONDS) {
+    spdlog::debug("GameState: Skipping immediate export during startup grace period ({}/{}s)", 
+                  seconds_since_startup, STARTUP_GRACE_PERIOD_SECONDS);
+    return;
+  }
+
   std::scoped_lock lock(export_request_mutex);
   should_export_now = true;
   export_cv.notify_one();
@@ -100,17 +112,25 @@ void capture_resources(const nlohmann::json& data)
 void capture_buildings(const nlohmann::json& data)
 {
   std::scoped_lock lock(game_data_mutex);
+  spdlog::info("GameState capture_buildings: Received {} buildings, cached_buildings currently has {} entries", 
+               data.size(), cached_buildings.size());
+
   for (const auto& module : data) {
     const auto id = module["id"].get<int64_t>();
     const auto level = module["level"].get<int32_t>();
     cached_buildings[id] = level;
   }
+
+  spdlog::info("GameState capture_buildings: After capture, cached_buildings has {} entries", cached_buildings.size());
   request_immediate_export();
 }
 
 void capture_ships(const nlohmann::json& data)
 {
   std::scoped_lock lock(game_data_mutex);
+  spdlog::info("GameState capture_ships: Received {} ships, cached_ships currently has {} entries", 
+               data.size(), cached_ships.size());
+
   for (const auto& ship : data) {
     const auto id = ship["id"].get<int64_t>();
     cached_ships[id] = {
@@ -121,6 +141,8 @@ void capture_ships(const nlohmann::json& data)
       {"components", ship.value("components", json::array())}
     };
   }
+
+  spdlog::info("GameState capture_ships: After capture, cached_ships has {} entries", cached_ships.size());
   request_immediate_export();
 }
 
@@ -403,7 +425,7 @@ json build_gamestate_json()
   j["faction_reputation"] = json::array();
   j["blueprints"] = json::array();
 
-  spdlog::debug("GameState JSON structure built: {} buildings, {} research, {} ships, {} officers, {} resources",
+  spdlog::info("GameState JSON structure built: {} buildings, {} research, {} ships, {} officers, {} resources",
                 cached_buildings.size(), cached_research.size(), cached_ships.size(), 
                 cached_officers.size(), cached_resources.size());
 
@@ -569,9 +591,12 @@ void export_thread_func()
 
   spdlog::info("GameState export thread started");
 
-  // Always export full snapshot on startup
+  // Always export full snapshot on startup, but wait for grace period first
   if (cfg.export_gamestate_on_startup) {
-    spdlog::info("GameState export: Performing startup full export");
+    spdlog::info("GameState export: Waiting {} seconds for all game data to load before startup export", 
+                 STARTUP_GRACE_PERIOD_SECONDS);
+    std::this_thread::sleep_for(std::chrono::seconds(STARTUP_GRACE_PERIOD_SECONDS));
+    spdlog::info("GameState export: Performing startup full export with all captured data");
     export_gamestate();
   }
 
@@ -642,6 +667,9 @@ void init()
                cfg.export_gamestate_interval,
                cfg.export_gamestate_path.empty() ? "<game directory>" : cfg.export_gamestate_path,
                cfg.export_gamestate_on_startup);
+
+  // Record startup time for grace period
+  startup_time = std::chrono::steady_clock::now();
 
   // Load ID mappings
   std::filesystem::path mappings_path = "game_data_maps/stfc_id_mappings.json";

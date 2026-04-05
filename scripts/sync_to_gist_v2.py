@@ -76,7 +76,7 @@ class GameStateSync:
                 json.load(f)
             return True
         except json.JSONDecodeError as e:
-            print(f"??  Invalid JSON in {file_path.name}: {e}")
+            print(f"??  Invalid JSON in {file_path.name}: {e}", flush=True)
             return False
         except FileNotFoundError:
             return False
@@ -127,25 +127,25 @@ class GameStateSync:
             if response.status_code == 200:
                 now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 if export_type == 'differential_array':
-                    print(f"? [{now}] Synced DELTA ARRAY ({total_deltas} deltas, latest: {total_changes} changes)")
+                    print(f"? [{now}] Synced DELTA ARRAY ({total_deltas} deltas, latest: {total_changes} changes)", flush=True)
                 elif export_type == 'differential' and total_changes is not None:
-                    print(f"? [{now}] Synced DIFFERENTIAL export ({total_changes} changes)")
+                    print(f"? [{now}] Synced DIFFERENTIAL export ({total_changes} changes)", flush=True)
                 else:
-                    print(f"? [{now}] Synced FULL export")
+                    print(f"? [{now}] Synced FULL export", flush=True)
                 return True
             else:
-                print(f"? Failed to update Gist: HTTP {response.status_code}")
-                print(f"   Response: {response.text}")
+                print(f"? Failed to update Gist: HTTP {response.status_code}", flush=True)
+                print(f"   Response: {response.text}", flush=True)
                 return False
 
         except FileNotFoundError:
             # File not found is expected - differential might not exist yet
             return False
         except requests.RequestException as e:
-            print(f"? Network error: {e}")
+            print(f"? Network error: {e}", flush=True)
             return False
         except Exception as e:
-            print(f"? Unexpected error: {e}")
+            print(f"? Unexpected error: {e}", flush=True)
             return False
 
     def get_gist_urls(self):
@@ -169,25 +169,25 @@ class GameStateSync:
 
     def run(self):
         """Main sync loop"""
-        print("?? STFC Game State ? GitHub Gist Sync v2.0")
-        print(f"?? Watching:")
-        print(f"   Full:  {self.gamestate_full_path}")
-        print(f"   Delta: {self.gamestate_delta_path}")
-        print(f"?? Gist ID: {GIST_ID}")
-        print(f"??  Check interval: {CHECK_INTERVAL}s")
-        print("\n" + "="*60)
+        print("?? STFC Game State ? GitHub Gist Sync v2.0", flush=True)
+        print(f"?? Watching:", flush=True)
+        print(f"   Full:  {self.gamestate_full_path}", flush=True)
+        print(f"   Delta: {self.gamestate_delta_path}", flush=True)
+        print(f"?? Gist ID: {GIST_ID}", flush=True)
+        print(f"??  Check interval: {CHECK_INTERVAL}s", flush=True)
+        print("\n" + "="*60, flush=True)
 
         # Check if files exist
         if not self.gamestate_full_path.exists():
-            print(f"\n??  WARNING: Full gamestate file not found!")
-            print(f"   Make sure STFC is running with the community mod installed")
-            print(f"   and enabled = true in [gamestate_export] section\n")
+            print(f"\n??  WARNING: Full gamestate file not found!", flush=True)
+            print(f"   Make sure STFC is running with the community mod installed", flush=True)
+            print(f"   and enabled = true in [gamestate_export] section\n", flush=True)
 
         urls = self.get_gist_urls()
-        print("\n?? Share these URLs with AI assistants:")
-        print(f"   Full:  {urls.get('full', 'N/A')}")
-        print(f"   Delta: {urls.get('delta', 'N/A')}\n")
-        print("Press Ctrl+C to stop\n")
+        print("\n?? Share these URLs with AI assistants:", flush=True)
+        print(f"   Full:  {urls.get('full', 'N/A')}", flush=True)
+        print(f"   Delta: {urls.get('delta', 'N/A')}\n", flush=True)
+        print("Press Ctrl+C to stop\n", flush=True)
 
         try:
             while True:
@@ -212,20 +212,20 @@ class GameStateSync:
                 time.sleep(CHECK_INTERVAL)
 
         except KeyboardInterrupt:
-            print("\n\n?? Sync stopped by user")
+            print("\n\n?? Sync stopped by user", flush=True)
         except Exception as e:
-            print(f"\n? Fatal error: {e}")
+            print(f"\n? Fatal error: {e}", flush=True)
 
 def main():
     # Validate configuration
     if GITHUB_TOKEN == "ghp_YOUR_TOKEN_HERE":
-        print("? ERROR: Please edit the script and set your GITHUB_TOKEN")
-        print("   Get a token from: https://github.com/settings/tokens")
+        print("? ERROR: Please edit the script and set your GITHUB_TOKEN", flush=True)
+        print("   Get a token from: https://github.com/settings/tokens", flush=True)
         return
 
     if GIST_ID == "YOUR_GIST_ID_HERE":
-        print("? ERROR: Please edit the script and set your GIST_ID")
-        print("   Create a gist at: https://gist.github.com/")
+        print("? ERROR: Please edit the script and set your GIST_ID", flush=True)
+        print("   Create a gist at: https://gist.github.com/", flush=True)
         return
 
     syncer = GameStateSync()
