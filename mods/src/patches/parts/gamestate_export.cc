@@ -1,4 +1,5 @@
 #include "gamestate_export.h"
+#include "id_mappings.h"
 #include "../../config.h"
 #include "../../file.h"
 #include "../../version.h"
@@ -147,6 +148,7 @@ json build_gamestate_json()
   j["meta"]["version"] = "1.0.0";
   j["meta"]["exported_at"] = get_iso8601_timestamp();
   j["meta"]["mod_version"] = VER_FILE_VERSION_STR;
+  j["meta"]["mappings_loaded"] = id_mappings::MappingCache::Get().is_loaded();
 
   // Player info
   if (!cached_player_data.is_null()) {
@@ -160,44 +162,55 @@ json build_gamestate_json()
     };
   }
 
-  // Buildings
+  // Buildings - enrich with names
   j["buildings"] = json::array();
   for (const auto& [id, level] : cached_buildings) {
-    j["buildings"].push_back({
+    json building = {
       {"id", id},
       {"level", level}
-    });
+    };
+    id_mappings::MappingCache::Get().enrich_building(building);
+    j["buildings"].push_back(building);
   }
 
-  // Research
+  // Research - enrich with names
   j["research"] = json::array();
   for (const auto& [id, level] : cached_research) {
-    j["research"].push_back({
+    json research = {
       {"id", id},
       {"level", level}
-    });
+    };
+    id_mappings::MappingCache::Get().enrich_research(research);
+    j["research"].push_back(research);
   }
 
-  // Ships
+  // Ships - enrich with names
   j["ships"] = json::array();
   for (const auto& [id, ship_data] : cached_ships) {
     json ship_entry = ship_data;
     ship_entry["id"] = id;
+    id_mappings::MappingCache::Get().enrich_ship(ship_entry);
     j["ships"].push_back(ship_entry);
   }
 
-  // Officers
+  // Officers - enrich with names
   j["officers"] = json::array();
   for (const auto& [id, officer_data] : cached_officers) {
     json officer_entry = officer_data;
     officer_entry["id"] = id;
+    id_mappings::MappingCache::Get().enrich_officer(officer_entry);
     j["officers"].push_back(officer_entry);
   }
 
-  // Resources
-  j["resources"] = json::object();
+  // Resources - enrich with names
+  j["resources"] = json::array();
   for (const auto& [id, amount] : cached_resources) {
-    j["resources"][std::to_string(id)] = amount;
+    json resource = {
+      {"id", id},
+      {"amount", amount}
+    };
+    id_mappings::MappingCache::Get().enrich_resource(resource, id);
+    j["resources"].push_back(resource);
   }
 
   // Placeholders for future implementation
@@ -303,6 +316,15 @@ void init()
                cfg.export_gamestate_interval,
                cfg.export_gamestate_path.empty() ? "<game directory>" : cfg.export_gamestate_path,
                cfg.export_gamestate_on_startup);
+
+  // Load ID mappings
+  std::filesystem::path mappings_path = "game_data_maps/stfc_id_mappings.json";
+  if (std::filesystem::exists(mappings_path)) {
+    id_mappings::MappingCache::Get().load_mappings(mappings_path.string());
+  } else {
+    spdlog::warn("GameState export: ID mappings file not found at {}. Exported JSON will only contain IDs.", 
+                 mappings_path.string());
+  }
 
   should_stop = false;
   export_thread = std::thread(export_thread_func);
