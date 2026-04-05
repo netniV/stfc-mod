@@ -90,13 +90,29 @@ class GameStateSync:
             # Parse to get metadata for logging
             try:
                 data = json.loads(content)
-                exported_at = data.get('exported_at', 'unknown')
-                export_type = data.get('export_type', 'unknown')
-                total_changes = data.get('summary', {}).get('total_changes', 0) if export_type == 'differential' else None
+
+                # Handle delta array format
+                if isinstance(data, list):
+                    export_type = 'differential_array'
+                    total_deltas = len(data)
+                    if total_deltas > 0:
+                        latest = data[-1]
+                        exported_at = latest.get('exported_at', 'unknown')
+                        total_changes = latest.get('summary', {}).get('total_changes', 0)
+                    else:
+                        exported_at = 'empty'
+                        total_changes = 0
+                else:
+                    exported_at = data.get('exported_at', 'unknown')
+                    export_type = data.get('export_type', 'unknown')
+                    total_changes = data.get('summary', {}).get('total_changes', 0) if export_type == 'differential' else None
+                    total_deltas = None
+
             except:
                 exported_at = 'unknown'
                 export_type = 'unknown'
                 total_changes = None
+                total_deltas = None
 
             payload = {
                 "files": {
@@ -110,7 +126,9 @@ class GameStateSync:
 
             if response.status_code == 200:
                 now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                if export_type == 'differential' and total_changes is not None:
+                if export_type == 'differential_array':
+                    print(f"? [{now}] Synced DELTA ARRAY ({total_deltas} deltas, latest: {total_changes} changes)")
+                elif export_type == 'differential' and total_changes is not None:
                     print(f"? [{now}] Synced DIFFERENTIAL export ({total_changes} changes)")
                 else:
                     print(f"? [{now}] Synced FULL export")

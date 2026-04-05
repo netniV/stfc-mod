@@ -454,6 +454,22 @@ void export_gamestate()
     last_full_export_tp = std::chrono::steady_clock::now();
     update_previous_state();
 
+    // Clear the differential file since we just did a full export
+    std::string delta_path;
+    if (cfg.export_gamestate_path.empty()) {
+      delta_path = "community_patch_gamestate_delta.json";
+    } else {
+      delta_path = (std::filesystem::path(cfg.export_gamestate_path) / "community_patch_gamestate_delta.json").string();
+    }
+
+    // Create empty array for deltas
+    std::ofstream delta_out(delta_path, std::ios::trunc);
+    if (delta_out.is_open()) {
+      delta_out << "[]";
+      delta_out.close();
+      spdlog::debug("GameState export: Cleared delta file for new baseline");
+    }
+
     spdlog::info("GameState export: Successfully exported FULL snapshot to {}", export_path);
 
   } catch (const std::exception& e) {
@@ -494,13 +510,34 @@ void export_differential()
 
     json differential = build_differential_json();
 
-    std::ofstream out(export_path);
+    // Read existing deltas array (if file exists)
+    json deltas_array = json::array();
+    std::ifstream in(export_path);
+    if (in.is_open()) {
+      try {
+        in >> deltas_array;
+        if (!deltas_array.is_array()) {
+          spdlog::warn("GameState differential export: Existing delta file was not an array, recreating");
+          deltas_array = json::array();
+        }
+      } catch (const std::exception& e) {
+        spdlog::warn("GameState differential export: Failed to parse existing delta file: {}, recreating", e.what());
+        deltas_array = json::array();
+      }
+      in.close();
+    }
+
+    // Append new differential to array
+    deltas_array.push_back(differential);
+
+    // Write updated array back
+    std::ofstream out(export_path, std::ios::trunc);
     if (!out.is_open()) {
       spdlog::error("GameState differential export: Failed to open file for writing: {}", export_path);
       return;
     }
 
-    out << differential.dump(2);
+    out << deltas_array.dump(2);
     out.close();
 
     // Update tracking
@@ -509,7 +546,8 @@ void export_differential()
     update_previous_state();
 
     int total_changes = differential["summary"]["total_changes"];
-    spdlog::info("GameState export: Successfully exported DIFFERENTIAL with {} changes to {}", total_changes, export_path);
+    spdlog::info("GameState export: Successfully APPENDED DIFFERENTIAL with {} changes ({} total deltas in file)", 
+                 total_changes, deltas_array.size());
 
   } catch (const std::exception& e) {
     spdlog::error("GameState differential export: Exception during export: {}", e.what());

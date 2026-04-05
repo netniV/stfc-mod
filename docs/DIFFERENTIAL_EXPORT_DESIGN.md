@@ -55,51 +55,77 @@ Currently, the gamestate export creates a full snapshot every time, even if only
 
 #### Differential Export
 ```json
-{
-  "export_type": "differential",
-  "export_version": "1.1.0",
-  "exported_at": "2026-04-04T10:05:00Z",
-  "base_export_at": "2026-04-04T10:00:00Z",
-  "changes": {
-    "buildings": {
-      "modified": [
-        {
-          "id": 72,
-          "name": "Mess Hall",
-          "level": 47,
-          "previous_level": 46,
-          "changed_at": "2026-04-04T10:03:15Z"
+[
+  {
+    "export_type": "differential",
+    "export_version": "1.1.0",
+    "exported_at": "2026-04-04T10:05:00Z",
+    "base_export_at": "2026-04-04T10:00:00Z",
+    "changes": {
+      "buildings": {
+        "modified": [
+          {
+            "id": 72,
+            "name": "Mess Hall",
+            "level": 47,
+            "previous_level": 46,
+            "changed_at": "2026-04-04T10:03:15Z"
+          }
+        ],
+        "added": [],
+        "removed": []
+      },
+      "research": {
+        "modified": [
+          {
+            "id": 12345,
+            "name": "Advanced Warp Theory",
+            "level": 6,
+            "previous_level": 5
+          }
+        ]
+      },
+      "resources": {
+        "parsteel": {
+          "current": 1500000,
+          "previous": 1200000,
+          "delta": 300000
         }
-      ],
-      "added": [],
-      "removed": []
+      },
+      "ships": {...},
+      "officers": {...}
     },
-    "research": {
-      "modified": [
-        {
-          "id": 12345,
-          "name": "Advanced Warp Theory",
-          "level": 6,
-          "previous_level": 5
-        }
-      ]
-    },
-    "resources": {
-      "parsteel": {
-        "current": 1500000,
-        "previous": 1200000,
-        "delta": 300000
+    "summary": {
+      "total_changes": 3,
+      "categories_changed": ["buildings", "research", "resources"]
+    }
+  },
+  {
+    "export_type": "differential",
+    "export_version": "1.1.0",
+    "exported_at": "2026-04-04T10:10:00Z",
+    "base_export_at": "2026-04-04T10:00:00Z",
+    "changes": {
+      "research": {
+        "modified": [
+          {
+            "id": 12346,
+            "name": "Tactical Analysis",
+            "level": 3,
+            "previous_level": 2
+          }
+        ]
       }
     },
-    "ships": {...},
-    "officers": {...}
-  },
-  "summary": {
-    "total_changes": 3,
-    "categories_changed": ["buildings", "research", "resources"]
+    "summary": {
+      "total_changes": 1,
+      "categories_changed": ["research"]
+    }
   }
-}
+]
 ```
+
+**Note:** The differential file is an **array of changes** that accumulates between full exports. When a full export occurs, the delta array is cleared and starts fresh.
 
 ### Implementation Approach
 
@@ -185,6 +211,8 @@ differential_export_filename = "community_patch_gamestate_delta.json"
 3. **Historical tracking**: Git diffs show clear progression
 4. **Efficient Gist usage**: Smaller updates, less API calls
 5. **Better debugging**: Easy to see what triggered an export
+6. **Complete changelog**: Delta array captures ALL changes between full exports
+7. **No missed changes**: Even if AI checks infrequently, it gets the full story
 
 ### Migration Path
 
