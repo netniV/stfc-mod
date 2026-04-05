@@ -43759,5 +43759,313 @@
     }
   },
   "components": {},
-  "avatars": {}
+  "avatars": {},
+  "traits": {
+    "1": {
+      "id": 1,
+      "name": "ENTERPRISE CREW",
+      "key": "fleet_officer_synergy_group_1",
+      "source": "spocks_club"
+    },
+    "2": {
+      "id": 2,
+      "name": "KLINGON PATRIOTS",
+      "key": "fleet_officer_synergy_group_2",
+      "source": "spocks_club"
+    },
+    "3": {
+      "id": 3,
+      "name": "NERO'S CREW",
+      "key": "fleet_officer_synergy_group_3",
+      "source": "spocks_club"
+    },
+    "4": {
+      "id": 4,
+      "name": "BLOOD & HONOR",
+      "key": "fleet_officer_synergy_group_4",
+      "source": "spocks_club"
+    },
+    "5": {
+      "id": 5,
+      "name": "ROMULAN PATRIOTS",
+      "key": "fleet_officer_synergy_group_5",
+      "source": "spocks_club"
+    },
+    "6": {
+      "id": 6,
+      "name": "SECTION 31",
+      "key": "fleet_officer_synergy_group_6",
+      "source": "spocks_club"
+    },
+    "7": {
+      "id": 7,
+      "name": "SHAKEDOWN CRUISE",
+      "key": "fleet_officer_synergy_group_7",
+      "source": "spocks_club"
+    },
+    "8": {
+      "id": 8,
+      "name": "SURVEYORS & MINERS",
+      "key": "fleet_officer_synergy_group_8",
+      "source": "spocks_club"
+    },
+    "9": {
+      "id": 9,
+      "name": "AUXILIARY CONTROLS",
+      "key": "fleet_officer_synergy_group_9",
+      "source": "spocks_club"
+    },
+    "10": {
+      "id": 10,
+      "name": "KHAN'S CREW",
+      "key": "fleet_officer_synergy_group_10",
+      "source": "spocks_club"
+    },
+    "11": {
+      "id": 11,
+      "name": "MUDD'S COMPANY",
+      "key": "fleet_officer_synergy_group_11",
+      "source": "spocks_club"
+    },
+    "12": {
+      "id": 12,
+      "name": "STARFLEET ACADEMY",
+      "key": "fleet_officer_synergy_group_12",
+      "source": "spocks_club"
+    },
+    "13": {
+      "id": 13,
+      "name": "GLORY IN THE KILL",
+      "key": "fleet_officer_synergy_group_13",
+      "source": "spocks_club"
+    },
+    "14": {
+      "id": 14,
+      "name": "ANOTHER TIME",
+      "key": "fleet_officer_synergy_group_14",
+      "source": "spocks_club"
+    },
+    "21": {
+      "id": 21,
+      "name": "JAYLAH",
+      "key": "fleet_officer_synergy_group_21",
+      "source": "spocks_club"
+    },
+    "16": {
+      "id": 16,
+      "name": "UNIMATRIX TWELVE",
+      "key": "fleet_officer_synergy_group_16",
+      "source": "spocks_club"
+    },
+    "17": {
+      "id": 17,
+      "name": "DISCOVERY ORIGINS",
+      "key": "fleet_officer_synergy_group_17",
+      "source": "spocks_club"
+    },
+    "18": {
+      "id": 18,
+      "name": "DISCOVERY CREW",
+      "key": "fleet_officer_synergy_group_18",
+      "source": "spocks_club"
+    },
+    "19": {
+      "id": 19,
+      "name": "TERRAN EMPIRE",
+      "key": "fleet_officer_synergy_group_19",
+      "source": "spocks_club"
+    },
+    "20": {
+      "id": 20,
+      "name": "TOS ENTERPRISE CREW",
+      "key": "fleet_officer_synergy_group_20",
+      "source": "spocks_club"
+    },
+    "22": {
+      "id": 22,
+      "name": "NEXT GEN",
+      "key": "fleet_officer_synergy_group_22",
+      "source": "spocks_club"
+    },
+    "23": {
+      "id": 23,
+      "name": "TNG CREW",
+      "key": "fleet_officer_synergy_group_23",
+      "source": "spocks_club"
+    },
+    "24": {
+      "id": 24,
+      "name": "KHITOMER'S REVENGE",
+      "key": "fleet_officer_synergy_group_24",
+      "source": "spocks_club"
+    },
+    "25": {
+      "id": 25,
+      "name": "PRIDE OF ROMULUS",
+      "key": "fleet_officer_synergy_group_25",
+      "source": "spocks_club"
+    },
+    "26": {
+      "id": 26,
+      "name": "Syndicate",
+      "key": "fleet_officer_synergy_group_26",
+      "source": "spocks_club"
+    },
+    "27": {
+      "id": 27,
+      "name": "FERENGI CONGLOMERATE",
+      "key": "fleet_officer_synergy_group_27",
+      "source": "spocks_club"
+    },
+    "28": {
+      "id": 28,
+      "name": "LOWER DECKS CREW",
+      "key": "fleet_officer_synergy_group_28",
+      "source": "spocks_club"
+    },
+    "29": {
+      "id": 29,
+      "name": "STRANGE NEW WORLDS",
+      "key": "fleet_officer_synergy_group_29",
+      "source": "spocks_club"
+    },
+    "30": {
+      "id": 30,
+      "name": "HOLODECK",
+      "key": "fleet_officer_synergy_group_30",
+      "source": "spocks_club"
+    },
+    "31": {
+      "id": 31,
+      "name": "BATTLESHIP STRIKE TEAM",
+      "key": "fleet_officer_synergy_group_31",
+      "source": "spocks_club"
+    },
+    "32": {
+      "id": 32,
+      "name": "DEEP SPACE NINE",
+      "key": "fleet_officer_synergy_group_32",
+      "source": "spocks_club"
+    },
+    "33": {
+      "id": 33,
+      "name": "INTERCEPTOR STRIKE TEAM",
+      "key": "fleet_officer_synergy_group_33",
+      "source": "spocks_club"
+    },
+    "34": {
+      "id": 34,
+      "name": "EXPLORER STRIKE TEAM",
+      "key": "fleet_officer_synergy_group_34",
+      "source": "spocks_club"
+    },
+    "36": {
+      "id": 36,
+      "name": "FLEET COMMANDER",
+      "key": "fleet_officer_synergy_group_36",
+      "source": "spocks_club"
+    },
+    "35": {
+      "id": 35,
+      "name": "PICARD",
+      "key": "fleet_officer_synergy_group_35",
+      "source": "spocks_club"
+    },
+    "37": {
+      "id": 37,
+      "name": "VOYAGER",
+      "key": "fleet_officer_synergy_group_37",
+      "source": "spocks_club"
+    },
+    "38": {
+      "id": 38,
+      "name": "ENTERPRISE-E",
+      "key": "fleet_officer_synergy_group_38",
+      "source": "spocks_club"
+    },
+    "39": {
+      "id": 39,
+      "name": "ENTERPRISE NX-01",
+      "key": "fleet_officer_synergy_group_39",
+      "source": "spocks_club"
+    },
+    "40": {
+      "id": 40,
+      "name": "EX-BORG",
+      "key": "fleet_officer_synergy_group_40",
+      "source": "spocks_club"
+    },
+    "41": {
+      "id": 41,
+      "name": "MIRROR UNIVERSE",
+      "key": "fleet_officer_synergy_group_41",
+      "source": "spocks_club"
+    },
+    "42": {
+      "id": 42,
+      "name": "Galaxy Quest",
+      "key": "fleet_officer_synergy_group_42",
+      "source": "spocks_club"
+    },
+    "43": {
+      "id": 43,
+      "name": "EMERALD CHAIN",
+      "key": "fleet_officer_synergy_group_43",
+      "source": "spocks_club"
+    },
+    "44": {
+      "id": 44,
+      "name": "SYMBIOSIS",
+      "key": "fleet_officer_synergy_group_44",
+      "source": "spocks_club"
+    },
+    "45": {
+      "id": 45,
+      "name": "INTERCEPTOR RETALIATION SQUAD",
+      "key": "fleet_officer_synergy_group_45",
+      "source": "spocks_club"
+    },
+    "46": {
+      "id": 46,
+      "name": "EXPLORER RETALIATION SQUAD",
+      "key": "fleet_officer_synergy_group_46",
+      "source": "spocks_club"
+    },
+    "47": {
+      "id": 47,
+      "name": "BATTLESHIP RETALIATION SQUAD",
+      "key": "fleet_officer_synergy_group_47",
+      "source": "spocks_club"
+    },
+    "48": {
+      "id": 48,
+      "name": "VOYAGER 30TH ANNIVERSARY",
+      "key": "fleet_officer_synergy_group_48",
+      "source": "spocks_club"
+    },
+    "49": {
+      "id": 49,
+      "name": "WRATH OF KHAN",
+      "key": "fleet_officer_synergy_group_49",
+      "source": "spocks_club"
+    },
+    "50": {
+      "id": 50,
+      "name": "VILLAINS",
+      "key": "fleet_officer_synergy_group_50",
+      "source": "spocks_club"
+    },
+    "51": {
+      "id": 51,
+      "name": "Status Control Team",
+      "key": "fleet_officer_synergy_group_51",
+      "source": "spocks_club"
+    },
+    "52": {
+      "id": 52,
+      "name": "THE MOTION PICTURES",
+      "key": "fleet_officer_synergy_group_52",
+      "source": "spocks_club"
+    }
+  }
 }
