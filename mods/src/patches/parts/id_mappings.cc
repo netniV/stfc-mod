@@ -95,21 +95,14 @@ void MappingCache::load_mappings(const std::string& file_path)
 
     // Load ships (if available)
     if (mappings_data.contains("ships")) {
-      spdlog::debug("Found ships section in mappings");
-      try {
-        for (const auto& [id_str, data] : mappings_data["ships"].items()) {
-          int64_t id = std::stoll(id_str);
-          ItemMapping mapping;
-          mapping.name = data.value("name", "");
-          mapping.category = data.value("class", "");
-          ship_mappings_[id] = mapping;
-        }
-        spdlog::info("Loaded {} ship name mappings", ship_mappings_.size());
-      } catch (const std::exception& e) {
-        spdlog::error("Error loading ships: {}", e.what());
+      for (const auto& [id_str, data] : mappings_data["ships"].items()) {
+        int64_t id = std::stoll(id_str);
+        ItemMapping mapping;
+        mapping.name = data.value("name", "");
+        mapping.category = data.value("class", "");
+        ship_mappings_[id] = mapping;
       }
-    } else {
-      spdlog::warn("No ships section found in mappings file");
+      spdlog::info("Loaded {} ship name mappings", ship_mappings_.size());
     }
 
     // Load traits (if available)
@@ -280,11 +273,10 @@ void MappingCache::enrich_resource(json& resource_json, int64_t id) const
 
 void MappingCache::enrich_ship(json& ship_json) const
 {
-  // Ships are identified by hull_id, not the instance id
-  if (!ship_json.contains("hull_id")) return;
+  if (!ship_json.contains("id")) return;
 
-  int64_t hull_id = ship_json["hull_id"].get<int64_t>();
-  auto mapping = get_ship(hull_id);
+  int64_t id = ship_json["id"].get<int64_t>();
+  auto mapping = get_ship(id);
 
   if (mapping) {
     ship_json["name"] = mapping->name;
