@@ -25,8 +25,11 @@ scripts/gist_config.py
 # Personal runtime config (contains player_id, tokens, local paths)
 community_patch_settings.toml
 community_patch.log
+community_patch_runtime.vars
+patch_battlelogs_sent.json
 check_export.py
 check_delta.py
+test_results.txt
 
 # Temp/scratch files
 001-add-capture-traits-header.patch

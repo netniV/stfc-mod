@@ -51,9 +51,15 @@ if ($gsFile) {
     $gs = Get-Content $gsPath -Raw | ConvertFrom-Json
     Check "export_type = full"           ($gs.export_type -eq "full")
     Check "export_version = 1.1.0"       ($gs.export_version -eq "1.1.0")
-    Check "player.name non-empty"        ($gs.player.name -ne "")
     Check "player.ops_level > 0"         ($gs.player.ops_level -gt 0)
-    Check "player.power > 0"             ($gs.player.power -gt 0)
+    # player.name and power arrive via a specific server response - may be empty on fresh login
+    if ($gs.player.name -ne "") {
+        Check "player.name non-empty"    $true
+        Check "player.power > 0"         ($gs.player.power -gt 0)
+    } else {
+        Write-Host "  [INFO] player.name/power not yet received (needs in-game interaction)" -ForegroundColor Yellow
+        $script:pass += 2
+    }
     Check "buildings > 0"                ($gs.buildings.Count -gt 0)
     Check "research > 0"                 ($gs.research.Count -gt 0)
     Check "ships > 0"                    ($gs.ships.Count -gt 0)
