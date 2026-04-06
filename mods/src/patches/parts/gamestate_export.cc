@@ -518,6 +518,18 @@ json build_gamestate_json()
     };
   }
 
+  // Syndicate (Loyalty) level and XP — read from cached_resources
+  // Resource_Loyalty_Tier_HiddenToken (1141922149) = current syndicate level
+  // Resource_Loyalty_Points           (3374607211) = accumulated XP points
+  {
+    static constexpr int64_t SYNDICATE_LEVEL_RESOURCE_ID = 1141922149LL;
+    static constexpr int64_t SYNDICATE_XP_RESOURCE_ID    = 3374607211LL;
+    auto level_it = cached_resources.find(SYNDICATE_LEVEL_RESOURCE_ID);
+    auto xp_it    = cached_resources.find(SYNDICATE_XP_RESOURCE_ID);
+    j["player"]["syndicate_level"] = (level_it != cached_resources.end()) ? level_it->second : 0;
+    j["player"]["syndicate_xp"]    = (xp_it    != cached_resources.end()) ? xp_it->second    : 0;
+  }
+
   // Buildings - enrich with names
   j["buildings"] = json::array();
   for (const auto& [id, level] : cached_buildings) {

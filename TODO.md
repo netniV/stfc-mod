@@ -64,16 +64,12 @@ buildings data and are available immediately.
       (currently arrives automatically ~5s after login in testing, but not always)
 - [ ] Update docs once player profile trigger is fully confirmed
 
-### Feature: Syndicate level data
-**Goal:** Export the player's Syndicate level (and ideally XP/progress) to the
-gamestate JSON so AI assistants can use it for planning advice.
-**TODO:**
-- [ ] Identify which JSON key or proto message carries Syndicate level data
-      (candidate: `my_skill_data` seen in the JSON blob key list)
-- [ ] Add `syndicate_level` (and optionally `syndicate_xp`) to the
-      `player` section of the gamestate JSON
-- [ ] Document which in-game action triggers the data if it doesn't arrive
-      automatically at login
+### Feature: Syndicate level data — DONE
+Syndicate level and XP read from `cached_resources` at export time:
+- `Resource_Loyalty_Tier_HiddenToken` (id `1141922149`) = syndicate level
+- `Resource_Loyalty_Points` (id `3374607211`) = syndicate XP
+Both arrive automatically at login. Exported as `player.syndicate_level`
+and `player.syndicate_xp` in the gamestate JSON.
 
 
 **Context:** `outcome` and `ship` fields in battlelog entries are resolved by
