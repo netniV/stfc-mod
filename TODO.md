@@ -1,262 +1,98 @@
-# ?? STFC Community Mod - TODO List
+# ??? STFC Community Mod - TODO List
 
-## ? Completed (Feature 1: Gamestate Export)
+## ? Completed
 
-### Core Export Functionality
-- ? Basic gamestate export infrastructure
-- ? Full snapshot export mode
-- ? Differential export mode (changes only)
-- ? Array-based delta accumulation
-- ? Intelligent auto-switching (10% threshold)
-- ? Skip export when no changes detected
-- ? Export on startup + hourly full exports
-- ? Configurable export intervals
-
-### ID Mappings System
-- ? ID mappings infrastructure (`id_mappings.h/cc`)
-- ? MappingCache singleton pattern
-- ? Load mappings from JSON file
-- ? Enrich methods for all data types
-- ? Officers mapping (277 officers) ? COMPLETE
-- ? Buildings mapping (110 buildings) ? COMPLETE
-- ? Resources mapping (4,613 resources) ? COMPLETE
-- ? Research mapping (2,261 research items) ? COMPLETE
-- ? Traits mapping (66 unique traits) ? COMPLETE
-
-### Data Export Coverage
-- ? Player metadata (ops level, name, alliance, power)
-- ? Buildings (id, level, name)
-- ? Research (id, level, name)
-- ? Officers (id, rank, level, shards, name, faction, rarity, synergy, traits with names)
-- ? Resources (id, amount, name, group, rarity)
-- ? Ships (basic structure - id only)
-
-### GitHub Integration
-- ? Gist creation and configuration
-- ? Sync script v2.0 (dual file sync)
-- ? Real-time output (flush fix)
-- ? Documentation (GIST_SETUP_COMPLETE.md)
-
-### Documentation
-- ? README updated with feature
-- ? DIFFERENTIAL_EXPORT_DESIGN.md
-- ? AI_SKILL_GAMESTATE_SYNC.md
-- ? CONTRIBUTING_GAMESTATE_EXPORT.md
-- ? game_data_maps/README.md
+- Feature 1: Gamestate JSON Export (full + differential)
+- Feature 1b: GitHub Gist sync (native, via cpr)
+- Feature 2: Battle log export via CSV watcher
+- Feature 4: Drydock assignments + peace shield in gamestate JSON
+- Fix: export_request_mutex held across blocking I/O (log stall bug)
+- Fix: all file paths now anchored to prime.exe directory (not CWD)
 
 ---
 
-## ?? TODO: Complete Feature 1 (High Priority)
+## ?? Active Bugs (fix before next release)
 
-### 1. Complete ID Mappings ? HIGH PRIORITY
+### BUG-1: Full export fires too frequently, constantly wiping delta file
+**Symptom:** `community_patch_gamestate_delta.json` appears empty or has only
+1 entry even after changes. Full exports happen every few seconds.
+**Root cause:** `capture_player_data()` calls `request_full_export()` on every
+invocation — it fires repeatedly (twice per login). Every full export calls
+`update_previous_state()` AND clears the delta file to `[]`. So differentials
+get written then immediately wiped by the next forced full.
+`capture_buildings()` also fires repeatedly with the same data, spamming
+`request_immediate_export()`.
+**Fix needed:**
+- `capture_player_data`: only force full export when data meaningfully changes
+  (name, ops_level, power actually differ from cached values), not on every call
+- `capture_buildings`: same — skip `request_immediate_export()` if no values
+  changed vs what's already cached
+- Consider: full export should not clear the delta file — delta should
+  accumulate until explicitly reset by the user or on a new session
 
-#### Ships Mapping (0 ships mapped)
-- [ ] Find Spock's Club ships API endpoint or data source
-- [ ] Extract ship IDs and names
-- [ ] Add to `stfc_id_mappings.json`
-- [ ] Implement `enrich_ship()` method fully
-- [ ] Test with exported ship data
+### BUG-2: Peace shield detection incorrect
+**Symptom:** Log reports `SHIELD ALERT: Station peace shield is DOWN` when an
+active peace shield exists.
+**Root cause:** Peace shield data capture is likely not receiving the correct
+expiry epoch, or the game sends it in a different unit/format than expected.
+**Details:**
+- Two types of peace shields exist:
+  1. **Regular shield** — player-applied by consuming a token (30m/3h/8h/24h
+     tokens; using a new token replaces the existing timer, they do not stack)
+  2. **Golden peace shield** — applied by Scopely after maintenance/downtime;
+     has separate UI, name, and countdown from the regular shield
+- Both need to be detected and reported separately in the gamestate JSON
+- Tokens in inventory is a separate resource count (the token items themselves)
+**Fix needed:**
+- Audit what data `capture_peace_shield()` receives and log the raw values
+- Identify the correct field/unit for the expiry epoch
+- Add `shield_type` field: `"regular"` vs `"golden"`
+- Verify token inventory count comes from the right resource ID
 
-**Possible Sources:**
-- Spock's Club ships page: https://spocks.club/ships/
-- Check Network tab for AJAX/API calls
-- May need to scrape HTML if no JSON endpoint
-
-#### Officer Traits Mapping ? COMPLETE
-- ? Find officer trait IDs in Spock's Club data (found in officers.json)
-- ? Extract trait ID to name mappings (66 unique traits identified)
-- ? Add traits section to mappings JSON (added to stfc_id_mappings.json)
-- ? Enhance officer export to include trait names (implemented in id_mappings.cc)
-- ? Update `enrich_officer()` to add traits (completed with trait names and descriptions)
-- ? Create merge script to add traitIds from officers.json (merge_officer_traits.py)
-- ? Merged 562 trait IDs across 248 officers
-
-#### Command Center Avatars (0 avatars mapped)
-- [ ] Extract avatar IDs from game data
-- [ ] Map to avatar names/descriptions
-- [ ] Add to mappings file
-- [ ] Export player avatar selection
-
-### 2. Enhanced Ship Data Export
-
-Current ship export is minimal. Need to capture:
-- [ ] Ship tier
-- [ ] Ship level
-- [ ] Ship scrapping info
-- [ ] Ship location (station, traveling, destroyed)
-- [ ] Ship crew assignments
-- [ ] Hook into proper ship data structures in `sync.cc`
-
-### 3. Faction Reputation Export
-
-Currently placeholder. Need to:
-- [ ] Hook into faction reputation data
-- [ ] Export Federation, Klingon, Romulan points
-- [ ] Include reputation level/tier if available
-- [ ] Add to differential tracking
-
-### 4. Blueprint Progress Export
-
-Currently placeholder. Need to:
-- [ ] Find blueprint progress data structures
-- [ ] Export ship blueprints (current/required)
-- [ ] Export officer shards (current/required to unlock)
-- [ ] Track blueprint changes in differentials
+### BUG-3: Fleet/hangar ships not populating drydock assignments
+**Symptom:** `drydocks` array is always empty `[]` in the gamestate JSON.
+**Terminology (use consistently from now on):**
+- **Fleet** = ships currently deployed/active (in a drydock slot, A–E)
+- **Hangar** = all ships owned by the player (docked or otherwise)
+**Fix needed:**
+- Audit `capture_drydock_assignments()` — verify it is being called and with
+  correct data; add log output showing what assignments arrive
+- Check what game event/response triggers drydock data
 
 ---
 
-## ?? TODO: Additional Features (Medium Priority)
+## ?? Pending Work
 
-### Feature 2: Enhanced Battle Log Export
+### Player profile data population — documentation needed
+**Context:** `player.name` and `player.power` are empty on fresh login until a
+specific server response arrives. `player.ops_level` and `server` populate from
+buildings data and are available immediately.
+**TODO:**
+- [ ] Identify exactly which in-game screens/actions trigger the player profile
+      response that populates `name`, `power`, `server`, `alliance`
+- [ ] Document in README/startup instructions: "visit X, Y, Z screens after
+      launch to ensure full player data is exported"
+- [ ] Work through this together by observing log output vs in-game navigation
 
-- [ ] Extend existing battlelog sync in `sync.cc`
-- [ ] Create `battlelog_export.cc/h` module
-- [ ] Export structured JSON battle logs
-  - [ ] Timestamp
-  - [ ] Attacker/Defender names
-  - [ ] Ship types
-  - [ ] Outcome (win/loss)
-  - [ ] Damage dealt/received
-  - [ ] System/location
-- [ ] Append to `community_patch_battlelog.json`
-- [ ] Cap file at last 500 battles
-- [ ] Add config option to enable/disable
-
-### Feature 3: Alliance Discord Webhooks
-
-- [ ] Territory capture timer reading
-- [ ] Discord webhook POST integration (use `cpr` lib)
-- [ ] Config options for webhook URL and reminder minutes
-- [ ] Territory name and time remaining in message
-- [ ] Discord embed formatting
-- [ ] Add to config.cc
-
-### Feature 4: Resource and Shield Alerts
-
-- [ ] Read protected cargo capacity
-- [ ] Compare with current resources
-- [ ] Read shield status
-- [ ] Read repair timer
-- [ ] Log warnings when thresholds exceeded
-- [ ] Optional: In-game overlay (advanced)
+### Feature 2: Battle log — outcome/ship empty on some entries
+**Context:** `outcome` and `ship` fields in battlelog entries are resolved by
+matching `Player Name` column in the CSV against `cached_player_data.name`.
+If the player name hasn't arrived yet when the CSV is processed, these are empty.
+**TODO:**
+- [ ] Re-resolve outcome/ship lazily when player name becomes available, or
+- [ ] Always populate from the combatants array directly (find the player's row
+      by `player_id` config value rather than name string matching)
 
 ---
 
-## ?? TODO: Data Extraction (Supporting Work)
+## ??? Stale / Superseded items (kept for reference)
 
-### Spock's Club Data Collection
+- Ships ID mappings — 113 ships now in stfc_id_mappings.json ?
+- Officer traits mappings — 84 traits in stfc_id_mappings.json ?
+- Faction reputation export — implemented via Resource_FactionPoint_* ?
+- Blueprint parts export — implemented via Resource_*_Parts_* ?
+- Feature 3: Discord TC webhooks — moved to stfc-discord-tc-notifications repo
 
-- [ ] Ships JSON extraction
-  - Visit https://spocks.club/ships/
-  - Open DevTools Network tab
-  - Find JSON endpoint
-  - Extract ship data
-
-- [ ] Officer traits extraction
-  - Check officers.json for trait IDs
-  - Map trait IDs to trait names
-  - Create trait mappings section
-
-- [ ] Avatar data extraction
-  - Find avatar IDs in game exports
-  - Match to avatar names/images
-  - Document in mappings
-
-### Conversion Scripts
-
-- [ ] Update `convert_spocks_data.py` for ships
-- [ ] Add trait mapping conversion
-- [ ] Add avatar mapping conversion
-- [ ] Test merge functionality with new data types
-
----
-
-## ?? TODO: Optimization & Polish
-
-### Performance
-- [ ] Profile export performance with large datasets
-- [ ] Optimize diff calculation for huge resource lists
-- [ ] Add export duration metrics to logs
-
-### Error Handling
-- [ ] Add retry logic for Gist sync failures
-- [ ] Better error messages for mapping file issues
-- [ ] Validate JSON structure before export
-
-### Testing
-- [ ] Test with multiple account states (new player vs advanced)
-- [ ] Test differential exports over extended time
-- [ ] Test sync script with network interruptions
-- [ ] Verify all enrichment methods work correctly
-
-### Configuration
-- [ ] Add more TOML config options:
-  - [ ] `export_mode` (full/differential/auto)
-  - [ ] `full_export_interval`
-  - [ ] `differential_export_interval`
-  - [ ] `auto_mode_threshold`
-  - [ ] Export file naming options
-
----
-
-## ?? TODO: Merge & Release Preparation
-
-### Code Quality
-- [ ] Code review pass
-- [ ] Remove any debug logging
-- [ ] Ensure all code follows existing style
-- [ ] Add code comments where needed
-- [ ] Verify no hardcoded paths
-
-### Documentation
-- [ ] Update main README with full feature list
-- [ ] Create user guide for gamestate export
-- [ ] Document all config options
-- [ ] Add troubleshooting section
-- [ ] Screenshot examples for AI usage
-
-### Git & PR Strategy
-- [ ] Squash/clean up commit history if needed
-- [ ] Write comprehensive PR description
-- [ ] Test on clean install
-- [ ] Get feedback from mod Discord
-- [ ] Open PR to upstream: `netniV/stfc-mod:dev`
-
----
-
-## ?? Priority Ranking
-
-### P0 - Critical (Do First)
-1. ? Core differential export (DONE)
-2. ? GitHub Gist sync (DONE)
-3. ? Ships ID mappings
-4. ? Complete ship data export
-
-### P1 - High (Do Soon)
-5. ? Faction reputation export
-6. ? Blueprint progress export
-7. ? Officer traits mappings
-8. ? Configuration options (TOML)
-
-### P2 - Medium (Nice to Have)
-9. ? Battle log export (Feature 2)
-10. ? Avatar mappings
-11. ? Performance optimization
-12. ? Extended error handling
-
-### P3 - Low (Future)
-13. ? Discord webhooks (Feature 3)
-14. ? Resource alerts (Feature 4)
-15. ? In-game overlay alerts
-
----
-
-## ?? Summary
-
-**Completed:** ~70% of Feature 1 (Gamestate Export)
-**Remaining for Feature 1:** Ships, traits, faction rep, blueprints
-**Total Features Planned:** 4
-**Overall Progress:** ~17% (Feature 1 done, 3 more to go)
 
 **Next Immediate Steps:**
 1. Extract ships data from Spock's Club
