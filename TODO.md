@@ -21,12 +21,13 @@
 - ? Buildings mapping (110 buildings) ? COMPLETE
 - ? Resources mapping (4,613 resources) ? COMPLETE
 - ? Research mapping (2,261 research items) ? COMPLETE
+- ? Traits mapping (66 unique traits) ? COMPLETE
 
 ### Data Export Coverage
 - ? Player metadata (ops level, name, alliance, power)
 - ? Buildings (id, level, name)
 - ? Research (id, level, name)
-- ? Officers (id, rank, level, shards, name, faction, rarity)
+- ? Officers (id, rank, level, shards, name, faction, rarity, synergy, traits with names)
 - ? Resources (id, amount, name, group, rarity)
 - ? Ships (basic structure - id only)
 
@@ -61,12 +62,14 @@
 - Check Network tab for AJAX/API calls
 - May need to scrape HTML if no JSON endpoint
 
-#### Officer Traits Mapping (0 traits mapped)
-- [ ] Find officer trait IDs in Spock's Club data
-- [ ] Extract trait ID to name mappings
-- [ ] Add traits section to mappings JSON
-- [ ] Enhance officer export to include trait names
-- [ ] Update `enrich_officer()` to add traits
+#### Officer Traits Mapping ? COMPLETE
+- ? Find officer trait IDs in Spock's Club data (found in officers.json)
+- ? Extract trait ID to name mappings (66 unique traits identified)
+- ? Add traits section to mappings JSON (added to stfc_id_mappings.json)
+- ? Enhance officer export to include trait names (implemented in id_mappings.cc)
+- ? Update `enrich_officer()` to add traits (completed with trait names and descriptions)
+- ? Create merge script to add traitIds from officers.json (merge_officer_traits.py)
+- ? Merged 562 trait IDs across 248 officers
 
 #### Command Center Avatars (0 avatars mapped)
 - [ ] Extract avatar IDs from game data
