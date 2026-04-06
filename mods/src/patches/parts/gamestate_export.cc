@@ -619,11 +619,30 @@ json build_gamestate_json()
         std::chrono::system_clock::now().time_since_epoch()).count();
     bool shield_active = cached_shield_expiry_epoch > now_epoch;
 
+    // Sum peace shield tokens from cached_resources using known resource IDs
+    static const std::unordered_set<int64_t> shield_token_resource_ids = {
+      3788095604LL, // Consumable_PeaceShield_1h
+      3679054867LL, // Consumable_PeaceShield_2h
+      3058388990LL, // Consumable_PeaceShield_4h
+      3257212914LL, // Consumable_PeaceShield_8h
+      1105830521LL, // Consumable_PeaceShield_12h
+      178169676LL,  // Consumable_PeaceShield_1d
+      1905604904LL, // Consumable_PeaceShield_3d
+      985389969LL,  // Consumable_PeaceShield_7d
+      166906622LL,  // Consumable_PeaceShield_14d
+      676333576LL,  // Consumable_PeaceShield_30d
+    };
+    int64_t token_count = 0;
+    for (const auto& [id, amount] : cached_resources) {
+      if (shield_token_resource_ids.count(id)) {
+        token_count += amount;
+      }
+    }
+
     json shield_json;
-    shield_json["active"]        = shield_active;
-    shield_json["token_count"]   = cached_shield_token_count;
+    shield_json["active"]      = shield_active;
+    shield_json["token_count"] = token_count;
     if (shield_active) {
-      // Format expiry as ISO-8601
       std::time_t expiry_t = static_cast<std::time_t>(cached_shield_expiry_epoch);
       std::tm expiry_tm    = {};
 #ifdef _WIN32
@@ -633,8 +652,8 @@ json build_gamestate_json()
 #endif
       std::ostringstream oss;
       oss << std::put_time(&expiry_tm, "%Y-%m-%dT%H:%M:%SZ");
-      shield_json["expires_at"]       = oss.str();
-      shield_json["expires_epoch"]    = cached_shield_expiry_epoch;
+      shield_json["expires_at"]        = oss.str();
+      shield_json["expires_epoch"]     = cached_shield_expiry_epoch;
       shield_json["seconds_remaining"] = cached_shield_expiry_epoch - now_epoch;
     } else {
       shield_json["expires_at"]        = nullptr;

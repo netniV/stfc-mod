@@ -851,33 +851,9 @@ void process_player_inventories(std::unique_ptr<std::string>&& bytes)
     http::sync_log_trace("PROCESS", "player inventories",
                          STR_FORMAT("Processing {} inventories", response.inventories_size()));
 
-    // Capture peace shield token count from inventory for gamestate export.
-    // The active shield expiry is captured separately via StarbaseDetailedScan.
-    // Peace shield tokens arrive as INVENTORYCONSUMABLE (type=8) items.
-    // We sum all type=8 items here as a conservative count; the StarbaseDetailedScan
-    // handler owns the expiry epoch and never overwrites the token count.
-    if (Config::Get().export_gamestate) {
-      int64_t token_count = 0;
-      for (const auto& inventory : response.inventories() | std::views::values) {
-        for (const auto& item : inventory.items()) {
-          if (item.type() == Digit::PrimeServer::Models::INVENTORYITEMTYPE_INVENTORYCONSUMABLE) {
-            // debug-level: was temporarily info for shield investigation
-            spdlog::debug("PlayerInventories: CONSUMABLE count={} has_expiry={} has_common={}",
-                          item.count(), item.has_expirytime(), item.has_commonparams());
-          }
-          if (item.type() == Digit::PrimeServer::Models::INVENTORYITEMTYPE_INVENTORYSHIELD) {
-            token_count += item.count();
-            spdlog::info("PlayerInventories: SHIELD item count={} has_expiry={} expiry_secs={}",
-                         item.count(), item.has_expirytime(),
-                         item.has_expirytime() ? item.expirytime().seconds() : 0);
-          }
-        }
-      }
-      // Pass -1 for expiry so we don't clobber what StarbaseDetailedScan wrote
-      if (token_count > 0) {
-        gamestate_export::capture_peace_shield(-1, token_count);
-      }
-    }
+    // Peace shield token counts are read directly from cached_resources at
+    // export time using known resource IDs — no inventory path needed.
+    // Shield expiry is captured separately via process_starbase_detailed_scan.
 
     auto inventory_items = json::array();
     {
