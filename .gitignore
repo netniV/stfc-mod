@@ -21,3 +21,9 @@ debug.log
 **/Info.plist
 # GitHub Gist credentials
 scripts/gist_config.py
+
+# Personal runtime config (contains player_id, tokens, local paths)
+community_patch_settings.toml
+community_patch.log
+check_export.py
+check_delta.py

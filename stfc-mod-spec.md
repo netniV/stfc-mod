@@ -6,7 +6,7 @@
 **Language:** C++ (MSVC, C++17)
 **Build system:** XMake → generates VS2022 solution via `xmake project -k vsxmake2022`
 **Game:** Star Trek Fleet Command (Windows PC client, Scopely)
-**Player:** SpotTheSpaceCat — Ops 41, Server 709, Alliance [GROW]
+**Player:** `<your in-game name>` — Ops 41, Server 709, Alliance [GROW]
 
 ---
 
@@ -69,12 +69,12 @@ current game data without manual CSV exports.
   "exported_at": "2026-04-06T07:32:40Z",
   "meta": { "mod_version": "1.0.0.0", "mappings_loaded": true },
   "player": {
-    "name": "SpotTheSpaceCat",
+    "name": "YourPlayerName",
     "ops_level": 41,
     "power": 19714080,
     "server": 709,
     "alliance": "",
-    "alliance_id": 2593778755994805150
+    "alliance_id": 0
   },
   "buildings": [ { "id": 0, "name": "OPERATIONS", "level": 41 } ],
   "research":  [ { "id": 12345, "name": "...", "level": 5 } ],
