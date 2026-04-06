@@ -13,44 +13,31 @@
 
 ## ?? Active Bugs (fix before next release)
 
-### BUG-1: Full export fires too frequently, constantly wiping delta file
-**Symptom:** `community_patch_gamestate_delta.json` appears empty or has only
-1 entry even after changes. Full exports happen every few seconds.
-**Root cause:** `capture_player_data()` calls `request_full_export()` on every
-invocation — it fires repeatedly (twice per login). Every full export calls
-`update_previous_state()` AND clears the delta file to `[]`. So differentials
-get written then immediately wiped by the next forced full.
-`capture_buildings()` also fires repeatedly with the same data, spamming
-`request_immediate_export()`.
-**Fix needed:**
-- `capture_player_data`: only force full export when data meaningfully changes
-  (name, ops_level, power actually differ from cached values), not on every call
-- `capture_buildings`: same — skip `request_immediate_export()` if no values
-  changed vs what's already cached
-- Consider: full export should not clear the delta file — delta should
-  accumulate until explicitly reset by the user or on a new session
+### BUG-1: Full export fires too frequently, constantly wiping delta file — FIXED
+**Was:** `capture_player_data/buildings/ships` called `request_full_export()` /
+`request_immediate_export()` unconditionally on every call. Game sends repeated
+identical payloads at login, flooding full exports that wiped the delta file.
+**Fix:** All three capture functions now compare incoming values against cached
+state and only request an export when something actually changed.
 
-### BUG-2: Peace shield detection incorrect ? (partially fixed)
+### BUG-2: Peace shield detection incorrect — FULLY FIXED
 **What's fixed:**
-- Shield expiry now read from `StarbaseDetailedScan` (EntityGroup type=57)
+- Shield expiry read from `StarbaseDetailedScan` (EntityGroup type=57)
 - False SHIELD ALERT at startup suppressed until first scan received
 - `active`, `expires_at`, `expires_epoch`, `seconds_remaining` all correct
+- Token count read from `cached_resources` using known resource IDs — verified
+  534 tokens (1h×3 + 4h×177 + 8h×166 + 12h×117 + 1d×66 + 3d×4 + 30d×1)
 - Peace shield changes tracked in differential export
-- `shield_scan_received` flag prevents false alerts before first scan
 
-**Trigger documented:** tap your station object on the system/galaxy map.
-Interior view, exterior view, and system-button do NOT trigger the scan.
+**Trigger documented:** tap your station in the **system view** of your home
+system. NOT the galaxy view, NOT interior/exterior button, NOT system button.
+Documented in INSTALL.md and GIST_SETUP_COMPLETE.md.
 
-**Still pending:**
-- [ ] Token count is always 0 — shield tokens arrive as
-  `INVENTORYITEMTYPE_INVENTORYCONSUMABLE` (type=8) but we need to match
-  them by `commonParams.refId` to the shield token resource IDs to count
-  them correctly. Known token types: 1h(×3), 4h(×177), 8h(×166),
-  12h(×117), 1day(×66), 3day(×4), 30day(×1), plus auto-10min shield.
-- [ ] Golden peace shield (Scopely-applied after maintenance) — separate
-  UI and countdown from regular shield; not yet identified in proto data.
-- [ ] Document in startup instructions: tap your station on the system
-  map to populate shield data (links to player.name/power investigation).
+**Still open (follow-up):**
+- [ ] Golden peace shield (Scopely-applied after maintenance) — separate UI
+      and countdown; not yet identified in proto data
+- [ ] Auto-10min shield (triggered on first attack when unshielded) — verify
+      it shows correctly via the same `StarbaseDetailedScan` path
 
 ### BUG-3: Fleet/hangar ships not populating drydock assignments
 **Symptom:** `drydocks` array is always empty `[]` in the gamestate JSON.
