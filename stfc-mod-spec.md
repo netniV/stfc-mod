@@ -170,25 +170,11 @@ The mod already has some battlelog syncing — this expands it to a full structu
 
 ---
 
-### Feature 3: Alliance Discord Webhook — Territory Reminders
+### Feature 3: Alliance Discord Webhook — Territory Reminders ➡️ OUT OF SCOPE
 
-**Goal:** Post territory capture reminders to a Discord channel webhook automatically
-when a territory capture event is imminent.
-
-**Note:** This feature is partially implemented externally via Cloudflare Workers
-(see project `stfc-discord-tc-notifications`). The mod version would be more accurate
-since it can read actual in-game TC timer data directly.
-
-**Config entries:**
-```toml
-discord_webhook_url = ""
-discord_tc_reminder_minutes = 15  # how many minutes before TC to post
-```
-
-**Implementation approach:**
-- Use `libcurl` (already a project dependency via `cpr`) to POST to Discord webhook
-- Read territory capture timer from `Digit.Prime.TerritoryCapture.proto` data
-- Post an embed message with territory name, time remaining, and checklist
+**Note:** This feature belongs in the separate `stfc-discord-tc-notifications` repo
+(`C:\Users\Cord42\Projects\stfc-discord-tc-notifications`), not here.
+Removing from this project's backlog.
 
 ---
 
