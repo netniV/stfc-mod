@@ -24,15 +24,24 @@ import hashlib
 from pathlib import Path
 from datetime import datetime
 
+# Import credentials from separate config file (not committed to git)
+try:
+    from gist_config import GITHUB_TOKEN, GIST_ID
+except ImportError:
+    # Fallback to placeholders if config file doesn't exist
+    GITHUB_TOKEN = "ghp_YOUR_TOKEN_HERE"
+    GIST_ID = "YOUR_GIST_ID_HERE"
+    print("WARNING: gist_config.py not found. Please create it with your credentials.")
+    print("See gist_config.py.example for template.")
+
 # ============================================================================
-# CONFIG - EDIT THESE VALUES
+# CONFIG - EDIT gist_config.py (not committed to git)
 # ============================================================================
 
-# Your GitHub Personal Access Token (with 'gist' scope)
-GITHUB_TOKEN = "ghp_YOUR_TOKEN_HERE"
-
-# Your Gist ID (from the URL: https://gist.github.com/username/{THIS_PART})
-GIST_ID = "YOUR_GIST_ID_HERE"
+# GitHub credentials are now imported from gist_config.py
+# Create that file with:
+#   GITHUB_TOKEN = "your_token_here"
+#   GIST_ID = "your_gist_id_here"
 
 # Paths to your STFC game state JSON files
 GAMESTATE_FULL_FILE = r"C:\Games\Star Trek Fleet Command\Star Trek Fleet Command\default\game\community_patch_gamestate.json"
@@ -149,22 +158,11 @@ class GameStateSync:
             return False
 
     def get_gist_urls(self):
-        """Get the raw URLs for the Gist files"""
-        try:
-            response = requests.get(self.api_url, headers=self.headers)
-            if response.status_code == 200:
-                data = response.json()
-                urls = {}
-                if GIST_FILENAME_FULL in data['files']:
-                    urls['full'] = data['files'][GIST_FILENAME_FULL]['raw_url']
-                if GIST_FILENAME_DELTA in data['files']:
-                    urls['delta'] = data['files'][GIST_FILENAME_DELTA]['raw_url']
-                return urls
-        except:
-            pass
+        """Get the raw URLs for the Gist files (latest version, no commit hash)"""
+        # Return URLs without commit hashes so they always point to latest version
         return {
-            'full': f"https://gist.githubusercontent.com/USERNAME/{GIST_ID}/raw/{GIST_FILENAME_FULL}",
-            'delta': f"https://gist.githubusercontent.com/USERNAME/{GIST_ID}/raw/{GIST_FILENAME_DELTA}"
+            'full': f"https://gist.githubusercontent.com/DrCord/{GIST_ID}/raw/{GIST_FILENAME_FULL}",
+            'delta': f"https://gist.githubusercontent.com/DrCord/{GIST_ID}/raw/{GIST_FILENAME_DELTA}"
         }
 
     def run(self):

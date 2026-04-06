@@ -1,0 +1,9 @@
+# GitHub Gist Sync Configuration Template
+# Copy this file to gist_config.py and fill in your credentials
+
+# Your GitHub Personal Access Token (with 'gist' scope)
+# Create one at: https://github.com/settings/tokens
+GITHUB_TOKEN = "ghp_YOUR_TOKEN_HERE"
+
+# Your Gist ID (from the URL: https://gist.github.com/username/{THIS_PART})
+GIST_ID = "YOUR_GIST_ID_HERE"
