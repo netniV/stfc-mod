@@ -189,6 +189,7 @@ namespace GameStateExport
   constexpr auto        export_gamestate_interval   = 300; // 5 minutes
   constexpr const char* export_gamestate_path       = "";
   constexpr bool        export_gamestate_on_startup = true;
+  constexpr const char* export_gamestate_player_id  = "";  // set to your userid for accurate player data
 } // namespace GameStateExport
 
 namespace UI

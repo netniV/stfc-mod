@@ -18,6 +18,7 @@ enabled = true
 export_on_startup = true
 interval = 300
 path = 'C:\Games\Star Trek Fleet Command\Star Trek Fleet Command\default\game'
+player_id = 'y806e96e3d5442b69b84b56440a5196c'
 
 [graphics]
 allow_cursor = true

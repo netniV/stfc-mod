@@ -655,6 +655,9 @@ void Config::Load()
   this->export_gamestate_on_startup = 
       get_config_or_default(config, parsed, "gamestate_export", "export_on_startup", 
                             DCGSE::export_gamestate_on_startup, write_config);
+  this->export_gamestate_player_id =
+      get_config_or_default<std::string>(config, parsed, "gamestate_export", "player_id",
+                                         DCGSE::export_gamestate_player_id, write_config);
 
   spdlog::debug("");
 

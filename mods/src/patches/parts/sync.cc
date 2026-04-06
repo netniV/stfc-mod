@@ -1641,20 +1641,22 @@ void cache_player_names(std::unique_ptr<std::string>&& bytes)
       names.insert_or_assign(profile.userid(), CachedPlayerData{.name=profile.name(), .alliance=profile.allianceid(), .expires_at=expires_at});
     }
 
-    // A self-profile response contains exactly 1 profile with militaryMight > 0.
-    // Battle log name lookups return multiple profiles, all with militaryMight = 0.
-    if (Config::Get().export_gamestate && response.userprofiles_size() == 1) {
-      const auto& profile = response.userprofiles(0);
-      if (profile.militarymight() > 0) {
-        nlohmann::json player_data;
-        player_data["name"]       = profile.name();
-        player_data["ops_level"]  = 0; // will be set/preserved from OPERATIONS building
-        player_data["power"]      = static_cast<int64_t>(profile.militarymight());
-        player_data["server"]     = http::headers::instanceId;
-        player_data["alliance_id"] = profile.allianceid();
-        player_data["alliance"]   = "";
-        gamestate_export::capture_player_data(player_data);
-        spdlog::info("GameState: Captured own player name={}, power={}", profile.name(), profile.militarymight());
+    if (Config::Get().export_gamestate) {
+      const auto& player_id = Config::Get().export_gamestate_player_id;
+      for (const auto& profile : response.userprofiles()) {
+        // Match by configured player_id if set, otherwise skip - name/power unknown without it
+        if (!player_id.empty() && profile.userid() == player_id) {
+          nlohmann::json player_data;
+          player_data["name"]        = profile.name();
+          player_data["ops_level"]   = 0; // preserved from OPERATIONS building
+          player_data["power"]       = static_cast<int64_t>(profile.militarymight());
+          player_data["server"]      = http::headers::instanceId;
+          player_data["alliance_id"] = profile.allianceid();
+          player_data["alliance"]    = "";
+          gamestate_export::capture_player_data(player_data);
+          spdlog::info("GameState: Captured own player name={}, power={}", profile.name(), profile.militarymight());
+          break;
+        }
       }
     }
 

@@ -192,6 +192,7 @@ public:
   int         export_gamestate_interval;        // seconds, 0 = manual/shutdown only
   std::string export_gamestate_path;            // empty = game directory
   bool        export_gamestate_on_startup;      // export immediately on mod load
+  std::string export_gamestate_player_id;       // player userid for accurate player data capture
 
   bool installUiScaleHooks;
   bool installZoomHooks;
