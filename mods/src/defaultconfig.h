@@ -202,6 +202,15 @@ namespace GameStateExport
   } // namespace Gist
 } // namespace GameStateExport
 
+namespace ResourceAlerts
+{
+  constexpr bool        enabled                   = false;
+  constexpr auto        poll_interval_seconds      = 60;
+  constexpr auto        reminder_interval_minutes  = 30;
+  // Comma-separated hours-before-expiry thresholds, e.g. "4,2,1"
+  constexpr const char* shield_warn_hours          = "4,2,1";
+} // namespace ResourceAlerts
+
 namespace UI
 {
   constexpr bool        always_skip_reveal_sequence = true;

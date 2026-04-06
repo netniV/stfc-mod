@@ -178,19 +178,74 @@ Removing from this project's backlog.
 
 ---
 
-### Feature 4: Resource and Shield Alerts
+### Feature 4: Drydock Export + Peace Shield Warnings ✅ IMPLEMENTED
 
-**Goal:** Show an in-game overlay or log warning when:
-- Resources exceed protected cargo (vulnerability to attack)
-- Shield is down and resources are above protected cargo threshold
-- Repair timer exceeds a configured threshold
+**Goal:**
+1. Export drydock assignments (which ship is in each active drydock A–E) to the gamestate JSON
+2. Export station peace shield state (active/expired, expiry time, token count) to the gamestate JSON
+3. Log warnings when the peace shield is down or approaching expiry thresholds
 
-**Config entries:**
-```toml
-alert_unprotected_resources = true
-alert_shield_down_threshold = 0  # 0 = always alert when unprotected
-alert_repair_timer_hours = 2
+**Out of scope (shelved):** ship cargo vs. vault protection warnings, repair timer warnings.
+
+#### Gamestate JSON additions
+
+**`drydocks` array** — one entry per assigned drydock:
+```json
+"drydocks": [
+  { "drydock_id": 1, "letter": "A", "ship_id": 111, "ship_name": "Defiant" },
+  { "drydock_id": 2, "letter": "B", "ship_id": 222, "ship_name": "Saladin" }
+]
 ```
+Drydock letter is derived from `drydock_id`: `1=A, 2=B, 3=C, 4=D, 5=E`.
+Each ship entry in the `ships` array is also annotated with `"drydock": "A"` and `"drydock_id": 1`.
+
+**`station.peace_shield` object:**
+```json
+"station": {
+  "peace_shield": {
+    "active": true,
+    "token_count": 3,
+    "expires_at": "2026-04-06T19:38:00Z",
+    "expires_epoch": 1744918680,
+    "seconds_remaining": 32280
+  }
+}
+```
+When the shield is down: `"active": false`, `"expires_at": null`, `"seconds_remaining": 0`.
+
+#### Warning log output
+
+Warnings are written via `spdlog::warn` to `community_patch.log`:
+```
+SHIELD ALERT: Station peace shield is DOWN. Tokens in inventory: 2
+SHIELD ALERT: Station peace shield expires in 1h 47m (threshold: 2h)
+```
+
+#### Data sources
+
+| Data | Source | EntityGroup type |
+|------|--------|-----------------|
+| Drydock assignments | `EntitySlots` / `EntitySlotsData` — `SLOTTYPE_FLEETPRESET` → `FleetPresetSlotParams.setups[]` → `drydockId + shipIds[0]` | `117` / `121` |
+| Peace shield state | `PlayerInventories` — `INVENTORYITEMTYPE_INVENTORYSHIELD (103)` items; `expiryTime` = active shield, `count` = tokens in stock | `46` |
+
+#### Config (`[resource_alerts]` in `community_patch_settings.toml`)
+
+```toml
+[resource_alerts]
+enabled = true
+poll_interval_seconds = 60        # how often to evaluate alert conditions
+reminder_interval_minutes = 30    # minimum gap between repeated warnings of the same type
+shield_warn_hours = "4,2,1"       # warn when shield expiry is within these many hours
+```
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `enabled` | `false` | Master switch for all resource/shield alerts |
+| `poll_interval_seconds` | `60` | How often (seconds) the warning logic runs |
+| `reminder_interval_minutes` | `30` | Minimum minutes between repeated warnings |
+| `shield_warn_hours` | `"4,2,1"` | Comma-separated hours-before-expiry thresholds |
+
+**Implementation:** `mods/src/patches/parts/gamestate_export.cc` — `capture_peace_shield()`, `capture_drydock_assignments()`, `check_shield_warnings()`; `mods/src/patches/parts/sync.cc` — tapped in `process_player_inventories()`, `process_entity_slots()`, `process_entity_slots_data()`
 
 ---
 

@@ -114,6 +114,16 @@ public:
   std::string filename_battlelog = "stfc_battlelog.json";
 };
 
+class ResourceAlertsConfig
+{
+public:
+  bool enabled                      = false;
+  int  poll_interval_seconds        = 60;   // how often to evaluate alert conditions
+  int  reminder_interval_minutes    = 30;   // minimum gap between repeated warnings
+  // Peace shield expiry thresholds (hours before expiry to warn); empty = no threshold warnings
+  std::vector<int> shield_warn_hours = {4, 2, 1};
+};
+
 class Config final
 {
 public:
@@ -204,7 +214,8 @@ public:
   std::string export_gamestate_path;            // empty = game directory
   bool        export_gamestate_on_startup;      // export immediately on mod load
   std::string export_gamestate_player_id;       // player userid for accurate player data capture
-  GistSyncConfig export_gamestate_gist;         // GitHub Gist sync config
+  GistSyncConfig       export_gamestate_gist;   // GitHub Gist sync config
+  ResourceAlertsConfig resource_alerts;         // peace shield / resource alert settings
 
   bool installUiScaleHooks;
   bool installZoomHooks;

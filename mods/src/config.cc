@@ -26,6 +26,7 @@ namespace DCS = DefaultConfig::Sync;
 namespace DCGSE = DefaultConfig::GameStateExport;
 namespace DCSC = DefaultConfig::SystemConfig;
 namespace DCSH = DefaultConfig::Shortcuts;
+namespace DCRA = DefaultConfig::ResourceAlerts;
 
 static const eastl::tuple<const char*, int> bannerTypes[] = {
     {"Standard", ToastState::Standard},
@@ -688,6 +689,41 @@ void Config::Load()
                 this->export_gamestate_gist.enabled,
                 this->export_gamestate_gist.gist_id,
                 this->export_gamestate_gist.token.empty() ? "<not set>" : "<set>");
+
+  spdlog::debug("");
+
+  // Resource / shield alert configuration
+  this->resource_alerts.enabled =
+      get_config_or_default(config, parsed, "resource_alerts", "enabled",
+                            DCRA::enabled, write_config);
+  this->resource_alerts.poll_interval_seconds =
+      get_config_or_default(config, parsed, "resource_alerts", "poll_interval_seconds",
+                            DCRA::poll_interval_seconds, write_config);
+  this->resource_alerts.reminder_interval_minutes =
+      get_config_or_default(config, parsed, "resource_alerts", "reminder_interval_minutes",
+                            DCRA::reminder_interval_minutes, write_config);
+
+  {
+    auto warn_hours_str = get_config_or_default<std::string>(
+        config, parsed, "resource_alerts", "shield_warn_hours",
+        DCRA::shield_warn_hours, write_config);
+    this->resource_alerts.shield_warn_hours.clear();
+    for (const auto& tok : StrSplit(warn_hours_str, ',')) {
+      auto stripped = StripLeadingAsciiWhitespace(tok);
+      if (!stripped.empty()) {
+        try { this->resource_alerts.shield_warn_hours.push_back(std::stoi(std::string(stripped))); }
+        catch (...) {}
+      }
+    }
+    if (this->resource_alerts.shield_warn_hours.empty()) {
+      this->resource_alerts.shield_warn_hours = {4, 2, 1};
+    }
+  }
+
+  spdlog::debug("config resource_alerts: enabled={}, poll={}s, reminder={}min",
+                this->resource_alerts.enabled,
+                this->resource_alerts.poll_interval_seconds,
+                this->resource_alerts.reminder_interval_minutes);
 
   spdlog::debug("");
 
