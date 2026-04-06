@@ -661,21 +661,32 @@ void Config::Load()
 
   // Gist sync sub-section: [gamestate_export.gist]
   namespace DCGSEGist = DefaultConfig::GameStateExport::Gist;
-  this->export_gamestate_gist.enabled =
-      get_config_or_default(config, parsed, "gamestate_export.gist", "enabled",
-                            DCGSEGist::enabled, write_config);
-  this->export_gamestate_gist.gist_id =
-      get_config_or_default<std::string>(config, parsed, "gamestate_export.gist", "gist_id",
-                                         DCGSEGist::gist_id, write_config);
-  this->export_gamestate_gist.token =
-      get_config_or_default<std::string>(config, parsed, "gamestate_export.gist", "token",
-                                         DCGSEGist::token, write_config);
-  this->export_gamestate_gist.filename_full =
-      get_config_or_default<std::string>(config, parsed, "gamestate_export.gist", "filename_full",
-                                         DCGSEGist::filename_full, write_config);
-  this->export_gamestate_gist.filename_delta =
-      get_config_or_default<std::string>(config, parsed, "gamestate_export.gist", "filename_delta",
-                                         DCGSEGist::filename_delta, write_config);
+  const toml::table* gist_table = nullptr;
+  if (auto* gse = config["gamestate_export"].as_table()) {
+    if (auto* g = (*gse)["gist"].as_table()) {
+      gist_table = g;
+    }
+  }
+
+  auto gist_get = [&]<typename T>(const char* key, T default_val) -> T {
+    if (gist_table) {
+      if (auto val = (*gist_table)[key].value<T>()) {
+        return *val;
+      }
+    }
+    return default_val;
+  };
+
+  this->export_gamestate_gist.enabled        = gist_get("enabled",        DCGSEGist::enabled);
+  this->export_gamestate_gist.gist_id        = gist_get("gist_id",        std::string(DCGSEGist::gist_id));
+  this->export_gamestate_gist.token          = gist_get("token",          std::string(DCGSEGist::token));
+  this->export_gamestate_gist.filename_full  = gist_get("filename_full",  std::string(DCGSEGist::filename_full));
+  this->export_gamestate_gist.filename_delta = gist_get("filename_delta", std::string(DCGSEGist::filename_delta));
+
+  spdlog::debug("config gamestate_export.gist: enabled={}, gist_id={}, token={}",
+                this->export_gamestate_gist.enabled,
+                this->export_gamestate_gist.gist_id,
+                this->export_gamestate_gist.token.empty() ? "<not set>" : "<set>");
 
   spdlog::debug("");
 
