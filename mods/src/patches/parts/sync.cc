@@ -1718,6 +1718,33 @@ void process_json(std::unique_ptr<std::string>&& bytes)
         }
 
         process_ships(section);
+
+      } else if (key == "fleets") {
+        if (!export_gs) continue;
+
+        // Each entry has drydock_id (server-side) and ship_ids.
+        // Sort by drydock_id ascending and assign letters A-E in that order.
+        if (section.is_object() && !section.empty()) {
+          std::vector<std::pair<int32_t, int64_t>> assignments; // drydock_id -> ship_id
+          for (const auto& [fleet_key, fleet] : section.items()) {
+            if (!fleet.contains("drydock_id") || !fleet.contains("ship_ids")) continue;
+            if (!fleet["ship_ids"].is_array() || fleet["ship_ids"].empty()) continue;
+            auto drydock_id = fleet["drydock_id"].get<int32_t>();
+            auto ship_id    = fleet["ship_ids"][0].get<int64_t>();
+            assignments.emplace_back(drydock_id, ship_id);
+          }
+          if (!assignments.empty()) {
+            // Sort by raw drydock_id so letters A-E follow server ordering
+            std::sort(assignments.begin(), assignments.end(),
+                      [](const auto& a, const auto& b) { return a.first < b.first; });
+            // Re-index to 1-based sequential IDs so the export layer maps 1=A, 2=B etc.
+            for (int i = 0; i < static_cast<int>(assignments.size()); ++i) {
+              assignments[i].first = i + 1;
+            }
+            spdlog::info("process_json fleets: captured {} drydock assignments", assignments.size());
+            gamestate_export::capture_drydock_assignments(assignments);
+          }
+        }
       }
     }
   } catch (const json::exception& e) {
