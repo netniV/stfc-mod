@@ -1155,8 +1155,9 @@ void init()
   // Record startup time for grace period
   startup_time = std::chrono::steady_clock::now();
 
-  // Load ID mappings
-  std::filesystem::path mappings_path = "game_data_maps/stfc_id_mappings.json";
+  // Load ID mappings — anchor to the exe directory so this works regardless
+  // of what the process working directory happens to be.
+  std::filesystem::path mappings_path = File::ExeDir() / "game_data_maps" / "stfc_id_mappings.json";
   if (std::filesystem::exists(mappings_path)) {
     id_mappings::MappingCache::Get().load_mappings(mappings_path.string());
   } else {

@@ -173,6 +173,26 @@ void File::Init()
       configPath     = std::filesystem::path(cacheNameDefault);
     }
 
+#if _WIN32
+    // Resolve the directory containing prime.exe so all default (non-override)
+    // file paths are always written there, regardless of the process working dir.
+    if (!File::override) {
+      wchar_t exePath[MAX_PATH] = {};
+      if (GetModuleFileNameW(nullptr, exePath, MAX_PATH) != 0) {
+        File::exeDir = std::filesystem::path(exePath).parent_path();
+      }
+    }
+    auto exeDirFile = [](const char* filename) -> std::string {
+      if (!File::exeDir.empty())
+        return (File::exeDir / filename).string();
+      return std::string(filename);
+    };
+#else
+    auto exeDirFile = [](const char* filename) -> std::string {
+      return std::string(filename);
+    };
+#endif
+
     /*******************************
      *
      * Set the battle log file name
@@ -181,7 +201,7 @@ void File::Init()
     if (File::override) {
       cacheNameBattles = configPath.replace_extension(FILE_EXT_JSON).string();
     } else {
-      cacheNameBattles = std::string(FILE_DEF_BL);
+      cacheNameBattles = exeDirFile(FILE_DEF_BL);
     }
 
     /*******************************
@@ -192,7 +212,7 @@ void File::Init()
     if (File::override) {
       cacheNameLog = configPath.replace_extension(FILE_EXT_LOG).string();
     } else {
-      cacheNameLog = std::string(FILE_DEF_LOG);
+      cacheNameLog = exeDirFile(FILE_DEF_LOG);
     }
 
     /*******************************
@@ -204,7 +224,7 @@ void File::Init()
     if (File::override) {
       cacheNameVar = configPath.replace_extension(FILE_EXT_VARS).string();
     } else {
-      cacheNameVar = std::string(FILE_DEF_VARS);
+      cacheNameVar = exeDirFile(FILE_DEF_VARS);
     }
 
     /*******************************
@@ -215,7 +235,7 @@ void File::Init()
     if (File::override) {
       cacheNameConfig = configPath.replace_extension(FILE_EXT_TOML).string();
     } else {
-      cacheNameConfig = std::string(FILE_DEF_CONFIG);
+      cacheNameConfig = exeDirFile(FILE_DEF_CONFIG);
     }
 
     File::initialized = true;
@@ -255,4 +275,11 @@ std::string File::cacheNameVar     = "";
 std::string File::cacheNameConfig  = "";
 std::string File::cacheNameDefault = "";
 
+std::filesystem::path File::exeDir     = "";
 std::filesystem::path File::configPath = "";
+
+const std::filesystem::path& File::ExeDir()
+{
+  if (!File::initialized) File::Init();
+  return File::exeDir;
+}

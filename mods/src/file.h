@@ -49,6 +49,7 @@ public:
   static bool         hasCustomNames();
   static bool         hasDebug();
   static bool         hasTrace();
+  static const std::filesystem::path& ExeDir();
 
 #if _WIN32
   static std::string_view MakePath(std::string_view filename, bool create_dir = false, bool old_path = false);
@@ -64,12 +65,13 @@ private:
   static bool override;
   static bool initialized;
 
-  static std::wstring cacheNameTitle;
-  static std::string  cacheNameBattles;
-  static std::string  cacheNameLog;
-  static std::string  cacheNameVar;
-  static std::string  cacheNameConfig;
-  static std::string  cacheNameDefault;
+  static std::wstring          cacheNameTitle;
+  static std::string           cacheNameBattles;
+  static std::string           cacheNameLog;
+  static std::string           cacheNameVar;
+  static std::string           cacheNameConfig;
+  static std::string           cacheNameDefault;
+  static std::filesystem::path exeDir;
 
   static std::filesystem::path configPath;
 };
