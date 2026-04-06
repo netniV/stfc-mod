@@ -20,6 +20,8 @@
 #include <thread>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
+#include <vector>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -47,6 +49,13 @@ static std::unordered_map<int64_t, int32_t> cached_research;
 static std::unordered_map<uint64_t, json> cached_officers;
 // officer_id -> { trait_id -> level }
 static std::unordered_map<uint64_t, std::unordered_map<uint64_t, int32_t>> cached_officer_traits;
+
+// Peace shield: expiry as Unix epoch seconds (0 = not active), plus token inventory count
+static int64_t cached_shield_expiry_epoch = 0;
+static int64_t cached_shield_token_count  = 0;
+
+// Drydock assignments: drydock_id (1-based) -> player ship id
+static std::vector<std::pair<int32_t, int64_t>> cached_drydock_assignments;
 
 // Previous state for differential tracking
 static std::unordered_map<int64_t, int64_t> previous_resources;
@@ -225,6 +234,24 @@ void capture_officer_trait(uint64_t officer_id, uint64_t trait_id, int32_t level
 {
   std::scoped_lock lock(game_data_mutex);
   cached_officer_traits[officer_id][trait_id] = level;
+}
+
+void capture_peace_shield(int64_t active_expiry_epoch, int64_t token_count)
+{
+  std::scoped_lock lock(game_data_mutex);
+  cached_shield_expiry_epoch = active_expiry_epoch;
+  cached_shield_token_count  = token_count;
+  spdlog::info("GameState: Captured peace shield expiry={}, tokens={}",
+               active_expiry_epoch, token_count);
+  request_immediate_export();
+}
+
+void capture_drydock_assignments(const std::vector<std::pair<int32_t, int64_t>>& assignments)
+{
+  std::scoped_lock lock(game_data_mutex);
+  cached_drydock_assignments = assignments;
+  spdlog::info("GameState: Captured {} drydock assignments", assignments.size());
+  request_immediate_export();
 }
 
 // Helper function to calculate change percentage
@@ -518,9 +545,72 @@ json build_gamestate_json()
     }
   }
 
-  spdlog::info("GameState JSON structure built: {} buildings, {} research, {} ships, {} officers, {} resources",
-                cached_buildings.size(), cached_research.size(), cached_ships.size(), 
-                cached_officers.size(), cached_resources.size());
+  // Station peace shield
+  {
+    auto now_epoch = std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+    bool shield_active = cached_shield_expiry_epoch > now_epoch;
+
+    json shield_json;
+    shield_json["active"]        = shield_active;
+    shield_json["token_count"]   = cached_shield_token_count;
+    if (shield_active) {
+      // Format expiry as ISO-8601
+      std::time_t expiry_t = static_cast<std::time_t>(cached_shield_expiry_epoch);
+      std::tm expiry_tm    = {};
+#ifdef _WIN32
+      gmtime_s(&expiry_tm, &expiry_t);
+#else
+      gmtime_r(&expiry_t, &expiry_tm);
+#endif
+      std::ostringstream oss;
+      oss << std::put_time(&expiry_tm, "%Y-%m-%dT%H:%M:%SZ");
+      shield_json["expires_at"]       = oss.str();
+      shield_json["expires_epoch"]    = cached_shield_expiry_epoch;
+      shield_json["seconds_remaining"] = cached_shield_expiry_epoch - now_epoch;
+    } else {
+      shield_json["expires_at"]        = nullptr;
+      shield_json["expires_epoch"]     = nullptr;
+      shield_json["seconds_remaining"] = 0;
+    }
+    j["station"]["peace_shield"] = shield_json;
+  }
+
+  // Drydock assignments — letter derived from 1-based drydock_id (1=A … 5=E)
+  j["drydocks"] = json::array();
+  for (const auto& [drydock_id, ship_id] : cached_drydock_assignments) {
+    std::string letter(1, static_cast<char>('A' + drydock_id - 1));
+    json entry;
+    entry["drydock_id"] = drydock_id;
+    entry["letter"]     = letter;
+    entry["ship_id"]    = ship_id;
+    // Enrich with ship name via hull_id lookup if the ship is in the hangar cache
+    auto ship_it = cached_ships.find(ship_id);
+    if (ship_it != cached_ships.end() && ship_it->second.contains("hull_id")) {
+      int64_t hull_id = ship_it->second["hull_id"].get<int64_t>();
+      auto mapping = id_mappings::MappingCache::Get().get_ship(hull_id);
+      if (mapping) {
+        entry["ship_name"] = mapping->name;
+      }
+    }
+    j["drydocks"].push_back(entry);
+  }
+  // Annotate each ship in the ships array with its drydock letter
+  for (auto& ship_entry : j["ships"]) {
+    int64_t sid = ship_entry["id"].get<int64_t>();
+    for (const auto& [drydock_id, ship_id] : cached_drydock_assignments) {
+      if (ship_id == sid) {
+        std::string letter(1, static_cast<char>('A' + drydock_id - 1));
+        ship_entry["drydock"]    = letter;
+        ship_entry["drydock_id"] = drydock_id;
+        break;
+      }
+    }
+  }
+
+  spdlog::info("GameState JSON structure built: {} buildings, {} research, {} ships, {} officers, {} resources, {} drydocks",
+                cached_buildings.size(), cached_research.size(), cached_ships.size(),
+                cached_officers.size(), cached_resources.size(), cached_drydock_assignments.size());
 
   return j;
 }
@@ -834,6 +924,76 @@ static void process_battle_csv(const std::string& csv_path)
   }
 }
 
+// --- Peace shield warning state ---
+static std::chrono::steady_clock::time_point last_shield_down_warn_tp;
+static std::chrono::steady_clock::time_point last_shield_expiry_warn_tp;
+static int last_shield_expiry_threshold_hours = -1; // which threshold fired last
+
+static void check_shield_warnings()
+{
+  const auto& cfg = Config::Get();
+  if (!cfg.resource_alerts.enabled) return;
+
+  auto now_steady = std::chrono::steady_clock::now();
+  auto now_epoch  = std::chrono::duration_cast<std::chrono::seconds>(
+      std::chrono::system_clock::now().time_since_epoch()).count();
+
+  int64_t expiry_epoch;
+  int64_t token_count;
+  {
+    std::scoped_lock lock(game_data_mutex);
+    expiry_epoch = cached_shield_expiry_epoch;
+    token_count  = cached_shield_token_count;
+  }
+
+  const auto reminder_dur =
+      std::chrono::minutes(cfg.resource_alerts.reminder_interval_minutes);
+
+  bool shield_active = expiry_epoch > now_epoch;
+
+  if (!shield_active) {
+    // Warn that shield is down, respecting reminder interval
+    auto since_last = now_steady - last_shield_down_warn_tp;
+    if (last_shield_down_warn_tp == std::chrono::steady_clock::time_point{} ||
+        since_last >= reminder_dur) {
+      spdlog::warn("SHIELD ALERT: Station peace shield is DOWN. Tokens in inventory: {}",
+                   token_count);
+      last_shield_down_warn_tp = now_steady;
+    }
+    // Reset expiry threshold tracking when shield is down
+    last_shield_expiry_threshold_hours = -1;
+  } else {
+    // Reset the "shield down" warning timer now that the shield is up
+    last_shield_down_warn_tp = std::chrono::steady_clock::time_point{};
+
+    // Check each configured expiry threshold (sorted descending so largest fires first)
+    auto thresholds = cfg.resource_alerts.shield_warn_hours;
+    std::sort(thresholds.begin(), thresholds.end(), std::greater<int>());
+
+    int64_t seconds_remaining = expiry_epoch - now_epoch;
+    for (int hours : thresholds) {
+      int64_t threshold_secs = static_cast<int64_t>(hours) * 3600;
+      if (seconds_remaining <= threshold_secs) {
+        // Only fire this threshold if we haven't already warned for it
+        // (or a smaller one) this cycle, and respect reminder interval
+        bool new_threshold = (last_shield_expiry_threshold_hours == -1 ||
+                              hours < last_shield_expiry_threshold_hours);
+        bool reminder_due  = (last_shield_expiry_warn_tp == std::chrono::steady_clock::time_point{} ||
+                              (now_steady - last_shield_expiry_warn_tp) >= reminder_dur);
+        if (new_threshold || reminder_due) {
+          int hrs  = static_cast<int>(seconds_remaining / 3600);
+          int mins = static_cast<int>((seconds_remaining % 3600) / 60);
+          spdlog::warn("SHIELD ALERT: Station peace shield expires in {}h {}m (threshold: {}h)",
+                       hrs, mins, hours);
+          last_shield_expiry_warn_tp         = now_steady;
+          last_shield_expiry_threshold_hours = hours;
+        }
+        break; // only fire the innermost (smallest) breached threshold
+      }
+    }
+  }
+}
+
 void export_thread_func()
 {
   auto& cfg = Config::Get();
@@ -934,6 +1094,8 @@ void export_thread_func()
       }
 
       last_export_time = now;
+    } else {
+      lock.unlock();
     }
 
     // Poll prime_Data/ for new battle CSV files
@@ -944,6 +1106,21 @@ void export_thread_func()
         if (processed_csvs.count(csv_path)) continue;
         processed_csvs.insert(csv_path);
         process_battle_csv(csv_path);
+      }
+    }
+
+    // Peace shield / resource alerts poll
+    {
+      const auto& alert_cfg = Config::Get().resource_alerts;
+      if (alert_cfg.enabled) {
+        static std::chrono::steady_clock::time_point last_alert_check;
+        auto now = std::chrono::steady_clock::now();
+        auto poll_dur = std::chrono::seconds(alert_cfg.poll_interval_seconds);
+        if (last_alert_check == std::chrono::steady_clock::time_point{} ||
+            (now - last_alert_check) >= poll_dur) {
+          check_shield_warnings();
+          last_alert_check = now;
+        }
       }
     }
   }
