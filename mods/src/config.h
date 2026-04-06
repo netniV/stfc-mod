@@ -103,6 +103,16 @@ public:
   std::string token;
 };
 
+class GistSyncConfig
+{
+public:
+  bool        enabled  = false;
+  std::string gist_id;
+  std::string token;
+  std::string filename_full  = "stfc_gamestate_full.json";
+  std::string filename_delta = "stfc_gamestate_delta.json";
+};
+
 class Config final
 {
 public:
@@ -193,6 +203,7 @@ public:
   std::string export_gamestate_path;            // empty = game directory
   bool        export_gamestate_on_startup;      // export immediately on mod load
   std::string export_gamestate_player_id;       // player userid for accurate player data capture
+  GistSyncConfig export_gamestate_gist;         // GitHub Gist sync config
 
   bool installUiScaleHooks;
   bool installZoomHooks;

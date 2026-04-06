@@ -190,6 +190,15 @@ namespace GameStateExport
   constexpr const char* export_gamestate_path       = "";
   constexpr bool        export_gamestate_on_startup = true;
   constexpr const char* export_gamestate_player_id  = "";  // set to your userid for accurate player data
+
+  namespace Gist
+  {
+    constexpr bool        enabled        = false;
+    constexpr const char* gist_id        = "";
+    constexpr const char* token          = "";
+    constexpr const char* filename_full  = "stfc_gamestate_full.json";
+    constexpr const char* filename_delta = "stfc_gamestate_delta.json";
+  } // namespace Gist
 } // namespace GameStateExport
 
 namespace UI

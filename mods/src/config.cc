@@ -659,6 +659,24 @@ void Config::Load()
       get_config_or_default<std::string>(config, parsed, "gamestate_export", "player_id",
                                          DCGSE::export_gamestate_player_id, write_config);
 
+  // Gist sync sub-section: [gamestate_export.gist]
+  namespace DCGSEGist = DefaultConfig::GameStateExport::Gist;
+  this->export_gamestate_gist.enabled =
+      get_config_or_default(config, parsed, "gamestate_export.gist", "enabled",
+                            DCGSEGist::enabled, write_config);
+  this->export_gamestate_gist.gist_id =
+      get_config_or_default<std::string>(config, parsed, "gamestate_export.gist", "gist_id",
+                                         DCGSEGist::gist_id, write_config);
+  this->export_gamestate_gist.token =
+      get_config_or_default<std::string>(config, parsed, "gamestate_export.gist", "token",
+                                         DCGSEGist::token, write_config);
+  this->export_gamestate_gist.filename_full =
+      get_config_or_default<std::string>(config, parsed, "gamestate_export.gist", "filename_full",
+                                         DCGSEGist::filename_full, write_config);
+  this->export_gamestate_gist.filename_delta =
+      get_config_or_default<std::string>(config, parsed, "gamestate_export.gist", "filename_delta",
+                                         DCGSEGist::filename_delta, write_config);
+
   spdlog::debug("");
 
   // must explicitly include std::string typing here, or we get back char * which fails us!

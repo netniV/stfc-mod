@@ -4,6 +4,7 @@
 #include "../../file.h"
 #include "../../version.h"
 
+#include <cpr/cpr.h>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
@@ -519,6 +520,44 @@ json build_gamestate_json()
   return j;
 }
 
+static void sync_to_gist(const std::string& file_path, const std::string& gist_filename)
+{
+  const auto& gist = Config::Get().export_gamestate_gist;
+  if (!gist.enabled || gist.gist_id.empty() || gist.token.empty()) {
+    return;
+  }
+
+  std::ifstream in(file_path);
+  if (!in.is_open()) {
+    spdlog::warn("Gist sync: Could not read {}", file_path);
+    return;
+  }
+  std::string content((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+  in.close();
+
+  const std::string url = "https://api.github.com/gists/" + gist.gist_id;
+  const nlohmann::json body = {
+    {"files", {{gist_filename, {{"content", content}}}}}
+  };
+
+  auto response = cpr::Patch(
+    cpr::Url{url},
+    cpr::Header{
+      {"Authorization", "token " + gist.token},
+      {"Accept",        "application/vnd.github.v3+json"},
+      {"Content-Type",  "application/json"}
+    },
+    cpr::Body{body.dump()}
+  );
+
+  if (response.status_code == 200) {
+    spdlog::info("Gist sync: Updated {} in gist {}", gist_filename, gist.gist_id);
+  } else {
+    spdlog::warn("Gist sync: Failed to update {} - HTTP {} {}",
+                 gist_filename, response.status_code, response.status_line);
+  }
+}
+
 void export_gamestate()
 {
   try {
@@ -580,6 +619,7 @@ void export_gamestate()
     }
 
     spdlog::info("GameState export: Successfully exported FULL snapshot to {}", export_path);
+    sync_to_gist(export_path, Config::Get().export_gamestate_gist.filename_full);
 
   } catch (const std::exception& e) {
     spdlog::error("GameState export: Exception during export: {}", e.what());
@@ -666,6 +706,7 @@ void export_differential()
     int total_changes = differential["summary"]["total_changes"];
     spdlog::info("GameState export: Successfully APPENDED DIFFERENTIAL with {} changes ({} total deltas in file)", 
                  total_changes, deltas_array.size());
+    sync_to_gist(export_path, Config::Get().export_gamestate_gist.filename_delta);
 
   } catch (const std::exception& e) {
     spdlog::error("GameState differential export: Exception during export: {}", e.what());
@@ -756,6 +797,16 @@ void init()
                cfg.export_gamestate_interval,
                cfg.export_gamestate_path.empty() ? "<game directory>" : cfg.export_gamestate_path,
                cfg.export_gamestate_on_startup);
+
+  if (cfg.export_gamestate_gist.enabled) {
+    spdlog::info("GameState Gist sync: Enabled for gist_id={}", cfg.export_gamestate_gist.gist_id);
+    spdlog::info("GameState Gist sync: Full URL: https://gist.githubusercontent.com/raw/{}/{}",
+                 cfg.export_gamestate_gist.gist_id, cfg.export_gamestate_gist.filename_full);
+    spdlog::info("GameState Gist sync: Delta URL: https://gist.githubusercontent.com/raw/{}/{}",
+                 cfg.export_gamestate_gist.gist_id, cfg.export_gamestate_gist.filename_delta);
+  } else {
+    spdlog::info("GameState Gist sync: Disabled (set [gamestate_export.gist] enabled=true to activate)");
+  }
 
   // Record startup time for grace period
   startup_time = std::chrono::steady_clock::now();
