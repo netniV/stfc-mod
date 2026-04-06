@@ -725,6 +725,41 @@ static void save_previously_sent_logs()
   }
 }
 
+void process_starbase_detailed_scan(std::unique_ptr<std::string>&& bytes)
+{
+  if (auto response = Digit::PrimeServer::Models::StarbaseDetailedScanResponse(); response.ParseFromString(*bytes)) {
+    if (!response.has_starbasedetailedscan()) return;
+    const auto& scan = response.starbasedetailedscan();
+
+    // Only capture our own station — skip scans of other players' stations
+    const auto& owner_id = scan.owneruserid();
+    const auto& my_id    = Config::Get().export_gamestate_player_id;
+    if (!my_id.empty() && owner_id != my_id) {
+      spdlog::debug("StarbaseDetailedScan: skipping scan for owner={} (not our station)", owner_id);
+      return;
+    }
+
+    int64_t expiry_epoch = 0;
+    if (scan.has_playershield() && scan.playershield().has_expirytime()) {
+      expiry_epoch = scan.playershield().expirytime().seconds();
+    }
+
+    auto now_epoch = std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+
+    spdlog::info("StarbaseDetailedScan: owner={} shield_expiry={} now={} active={}",
+                 owner_id, expiry_epoch, now_epoch, expiry_epoch > now_epoch);
+
+    if (Config::Get().export_gamestate) {
+      // token_count stays 0 here — tokens come from InventoryResponse (type=8 consumables).
+      // We pass -1 to signal "don't update token count" vs a real 0.
+      gamestate_export::capture_peace_shield(expiry_epoch, -1);
+    }
+  } else {
+    spdlog::debug("StarbaseDetailedScan: failed to parse (may be another message type)");
+  }
+}
+
 void process_active_missions(std::unique_ptr<std::string>&& bytes)
 {
   using json = nlohmann::json;
@@ -815,6 +850,34 @@ void process_player_inventories(std::unique_ptr<std::string>&& bytes)
 
     http::sync_log_trace("PROCESS", "player inventories",
                          STR_FORMAT("Processing {} inventories", response.inventories_size()));
+
+    // Capture peace shield token count from inventory for gamestate export.
+    // The active shield expiry is captured separately via StarbaseDetailedScan.
+    // Peace shield tokens arrive as INVENTORYCONSUMABLE (type=8) items.
+    // We sum all type=8 items here as a conservative count; the StarbaseDetailedScan
+    // handler owns the expiry epoch and never overwrites the token count.
+    if (Config::Get().export_gamestate) {
+      int64_t token_count = 0;
+      for (const auto& inventory : response.inventories() | std::views::values) {
+        for (const auto& item : inventory.items()) {
+          if (item.type() == Digit::PrimeServer::Models::INVENTORYITEMTYPE_INVENTORYCONSUMABLE) {
+            // debug-level: was temporarily info for shield investigation
+            spdlog::debug("PlayerInventories: CONSUMABLE count={} has_expiry={} has_common={}",
+                          item.count(), item.has_expirytime(), item.has_commonparams());
+          }
+          if (item.type() == Digit::PrimeServer::Models::INVENTORYITEMTYPE_INVENTORYSHIELD) {
+            token_count += item.count();
+            spdlog::info("PlayerInventories: SHIELD item count={} has_expiry={} expiry_secs={}",
+                         item.count(), item.has_expirytime(),
+                         item.has_expirytime() ? item.expirytime().seconds() : 0);
+          }
+        }
+      }
+      // Pass -1 for expiry so we don't clobber what StarbaseDetailedScan wrote
+      if (token_count > 0) {
+        gamestate_export::capture_peace_shield(-1, token_count);
+      }
+    }
 
     auto inventory_items = json::array();
     {
@@ -1173,6 +1236,29 @@ void process_entity_slots(std::unique_ptr<std::string>&& bytes)
 
     http::sync_log_trace("PROCESS", "entity slots", STR_FORMAT("Processing {} slots", response.entityslots__size()));
 
+    // Capture drydock assignments for gamestate export
+    if (Config::Get().export_gamestate) {
+      std::vector<std::pair<int32_t, int64_t>> assignments;
+      for (const auto& slot : response.entityslots_()) {
+        spdlog::debug("EntitySlots: slot type={} id={} has_fleetpreset={}",
+                      static_cast<int>(slot.slottype()), slot.id(),
+                      slot.has_fleetpresetslotparams());
+        if (slot.slottype() == Digit::PrimeServer::Models::SLOTTYPE_FLEETPRESET &&
+            slot.has_fleetpresetslotparams()) {
+          for (const auto& setup : slot.fleetpresetslotparams().setups()) {
+            spdlog::info("EntitySlots: FLEETPRESET drydock_id={} ship_count={}",
+                         setup.drydockid(), setup.shipids_size());
+            if (setup.drydockid() > 0 && !setup.shipids().empty()) {
+              assignments.emplace_back(setup.drydockid(), setup.shipids(0));
+            }
+          }
+        }
+      }
+      if (!assignments.empty()) {
+        gamestate_export::capture_drydock_assignments(assignments);
+      }
+    }
+
     auto slot_array = json::array();
     {
       std::scoped_lock lk(slot_states_mtx);
@@ -1197,6 +1283,33 @@ void process_entity_slots_data(std::unique_ptr<std::string>&& bytes)
   if (auto response = Digit::PrimeServer::Models::EntitySlotsData(); response.ParseFromString(*bytes)) {
 
     http::sync_log_trace("PROCESS", "entity slots data", STR_FORMAT("Processing {} slots", response.entityslots_size()));
+
+    // Capture drydock assignments for gamestate export
+    if (Config::Get().export_gamestate) {
+      std::vector<std::pair<int32_t, int64_t>> assignments;
+      for (const auto& slots : response.entityslots()) {
+        spdlog::debug("EntitySlotsData: entity_type={} slot_count={}",
+                      static_cast<int>(slots.entitytype()), slots.slots_size());
+        for (const auto& slot : slots.slots()) {
+          spdlog::debug("EntitySlotsData: slot type={} id={} has_fleetpreset={}",
+                        static_cast<int>(slot.slottype()), slot.id(),
+                        slot.has_fleetpresetslotparams());
+          if (slot.slottype() == Digit::PrimeServer::Models::SLOTTYPE_FLEETPRESET &&
+              slot.has_fleetpresetslotparams()) {
+            for (const auto& setup : slot.fleetpresetslotparams().setups()) {
+              spdlog::info("EntitySlotsData: FLEETPRESET drydock_id={} ship_count={}",
+                           setup.drydockid(), setup.shipids_size());
+              if (setup.drydockid() > 0 && !setup.shipids().empty()) {
+                assignments.emplace_back(setup.drydockid(), setup.shipids(0));
+              }
+            }
+          }
+        }
+      }
+      if (!assignments.empty()) {
+        gamestate_export::capture_drydock_assignments(assignments);
+      }
+    }
 
     auto slot_array = json::array();
     {
@@ -2030,7 +2143,7 @@ void HandleEntityGroup(EntityGroup* entity_group)
       }
       break;
     case EntityGroup::Type::PlayerInventories:
-      if (Config::Get().sync_options.inventory) {
+      if (Config::Get().sync_options.inventory || Config::Get().export_gamestate) {
         submit_async(process_player_inventories);
       }
       break;
@@ -2070,13 +2183,18 @@ void HandleEntityGroup(EntityGroup* entity_group)
       }
       break;
     case EntityGroup::Type::EntitySlots:
-      if (Config::Get().sync_options.slots) {
+      if (Config::Get().sync_options.slots || Config::Get().export_gamestate) {
         submit_async(process_entity_slots);
       }
       break;
     case EntityGroup::Type::EntitySlotsData:
-      if (Config::Get().sync_options.slots) {
+      if (Config::Get().sync_options.slots || Config::Get().export_gamestate) {
         submit_async(process_entity_slots_data);
+      }
+      break;
+    case EntityGroup::Type::StarbaseDetailedScan:
+      if (Config::Get().export_gamestate) {
+        submit_async(process_starbase_detailed_scan);
       }
       break;
     case EntityGroup::Type::AllianceGetGameProperties:

@@ -63,6 +63,7 @@ static std::unordered_map<int64_t, int32_t> previous_buildings;
 static std::unordered_map<int64_t, json> previous_ships;
 static std::unordered_map<int64_t, int32_t> previous_research;
 static std::unordered_map<uint64_t, json> previous_officers;
+static int64_t previous_shield_expiry_epoch = -1; // -1 = not yet tracked
 
 // Change tracking
 static std::string last_full_export_time;
@@ -70,7 +71,8 @@ static std::string last_differential_export_time;
 static std::chrono::steady_clock::time_point last_full_export_tp;
 static std::chrono::steady_clock::time_point last_differential_export_tp;
 static std::chrono::steady_clock::time_point startup_time;
-static constexpr int STARTUP_GRACE_PERIOD_SECONDS = 15; // Wait 15 seconds after startup before first export
+static constexpr int STARTUP_GRACE_PERIOD_SECONDS = 15;
+static bool shield_scan_received = false; // suppresses alerts until first StarbaseDetailedScan
 
 static void request_immediate_export()
 {
@@ -260,12 +262,38 @@ void capture_officer_trait(uint64_t officer_id, uint64_t trait_id, int32_t level
 
 void capture_peace_shield(int64_t active_expiry_epoch, int64_t token_count)
 {
-  std::scoped_lock lock(game_data_mutex);
-  cached_shield_expiry_epoch = active_expiry_epoch;
-  cached_shield_token_count  = token_count;
-  spdlog::info("GameState: Captured peace shield expiry={}, tokens={}",
-               active_expiry_epoch, token_count);
-  request_immediate_export();
+  bool expiry_changed = false;
+  bool first_real_expiry = false;
+  {
+    std::scoped_lock lock(game_data_mutex);
+    // Sentinels: -1 means "don't update this field"
+    // - token_count == -1: called from StarbaseDetailedScan, expiry-only update
+    // - active_expiry_epoch == -1: called from inventory path, token-count-only update
+    if (token_count >= 0) {
+      cached_shield_token_count = token_count;
+    }
+    if (active_expiry_epoch >= 0 && active_expiry_epoch != cached_shield_expiry_epoch) {
+      first_real_expiry      = (cached_shield_expiry_epoch == 0 && active_expiry_epoch > 0);
+      cached_shield_expiry_epoch = active_expiry_epoch;
+      expiry_changed = true;
+    }
+    spdlog::info("GameState: Captured peace shield expiry={}, tokens={}",
+                 cached_shield_expiry_epoch, cached_shield_token_count);
+  }
+  // Mark that we've received at least one real scan so alerts are now valid.
+  if (active_expiry_epoch >= 0) {
+    std::scoped_lock lock(game_data_mutex);
+    shield_scan_received = true;
+  }
+
+  // First time we learn a real expiry: force a full export so the JSON file
+  // reflects the shield state immediately rather than waiting for next interval.
+  // Subsequent changes go through the differential path.
+  if (first_real_expiry) {
+    request_full_export();
+  } else if (expiry_changed) {
+    request_immediate_export();
+  }
 }
 
 void capture_drydock_assignments(const std::vector<std::pair<int32_t, int64_t>>& assignments)
@@ -429,6 +457,23 @@ json build_differential_json()
     total_changes += resources_changed;
   }
 
+  // Peace shield change
+  if (previous_shield_expiry_epoch != -1 &&
+      cached_shield_expiry_epoch != previous_shield_expiry_epoch) {
+    auto now_epoch = std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+    bool was_active = previous_shield_expiry_epoch > now_epoch;
+    bool is_active  = cached_shield_expiry_epoch   > now_epoch;
+    changes["peace_shield"] = {
+      {"expiry_epoch",          cached_shield_expiry_epoch},
+      {"previous_expiry_epoch", previous_shield_expiry_epoch},
+      {"active",                is_active},
+      {"was_active",            was_active}
+    };
+    categories_changed.push_back("peace_shield");
+    total_changes++;
+  }
+
   // Summary
   j["changes"] = changes;
   j["summary"] = {
@@ -442,11 +487,12 @@ json build_differential_json()
 // Update previous state snapshots
 static void update_previous_state()
 {
-  previous_buildings = cached_buildings;
-  previous_research = cached_research;
-  previous_ships = cached_ships;
-  previous_officers = cached_officers;
-  previous_resources = cached_resources;
+  previous_buildings            = cached_buildings;
+  previous_research             = cached_research;
+  previous_ships                = cached_ships;
+  previous_officers             = cached_officers;
+  previous_resources            = cached_resources;
+  previous_shield_expiry_epoch  = cached_shield_expiry_epoch;
 }
 
 json build_gamestate_json()
@@ -949,7 +995,7 @@ static void process_battle_csv(const std::string& csv_path)
 // --- Peace shield warning state ---
 static std::chrono::steady_clock::time_point last_shield_down_warn_tp;
 static std::chrono::steady_clock::time_point last_shield_expiry_warn_tp;
-static int last_shield_expiry_threshold_hours = -1; // which threshold fired last
+static int  last_shield_expiry_threshold_hours = -1; // which threshold fired last
 
 static void check_shield_warnings()
 {
@@ -962,11 +1008,17 @@ static void check_shield_warnings()
 
   int64_t expiry_epoch;
   int64_t token_count;
+  bool    scan_received;
   {
     std::scoped_lock lock(game_data_mutex);
-    expiry_epoch = cached_shield_expiry_epoch;
-    token_count  = cached_shield_token_count;
+    expiry_epoch  = cached_shield_expiry_epoch;
+    token_count   = cached_shield_token_count;
+    scan_received = shield_scan_received;
   }
+
+  // Don't warn until we've received at least one StarbaseDetailedScan for
+  // the player's own station — we simply don't know the shield state yet.
+  if (!scan_received) return;
 
   const auto reminder_dur =
       std::chrono::minutes(cfg.resource_alerts.reminder_interval_minutes);
