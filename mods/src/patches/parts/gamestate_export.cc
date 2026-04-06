@@ -27,6 +27,7 @@ namespace gamestate_export
 static std::thread export_thread;
 static bool        should_stop = false;
 static bool        should_export_now = false;
+static bool        should_force_full_export = false;
 static std::mutex  export_request_mutex;
 static std::condition_variable export_cv;
 
@@ -38,6 +39,8 @@ static std::unordered_map<int64_t, int32_t> cached_buildings;
 static std::unordered_map<int64_t, json> cached_ships;
 static std::unordered_map<int64_t, int32_t> cached_research;
 static std::unordered_map<uint64_t, json> cached_officers;
+// officer_id -> { trait_id -> level }
+static std::unordered_map<uint64_t, std::unordered_map<uint64_t, int32_t>> cached_officer_traits;
 
 // Previous state for differential tracking
 static std::unordered_map<int64_t, int64_t> previous_resources;
@@ -71,6 +74,18 @@ static void request_immediate_export()
   export_cv.notify_one();
 }
 
+static void request_full_export()
+{
+  auto now = std::chrono::steady_clock::now();
+  auto seconds_since_startup = std::chrono::duration_cast<std::chrono::seconds>(now - startup_time).count();
+  if (seconds_since_startup < STARTUP_GRACE_PERIOD_SECONDS) return;
+
+  std::scoped_lock lock(export_request_mutex);
+  should_force_full_export = true;
+  should_export_now = true;
+  export_cv.notify_one();
+}
+
 std::string get_iso8601_timestamp()
 {
   auto        now       = std::chrono::system_clock::now();
@@ -95,7 +110,24 @@ std::string get_iso8601_timestamp()
 void capture_player_data(const nlohmann::json& data)
 {
   std::scoped_lock lock(game_data_mutex);
-  cached_player_data = data;
+  // Merge fields rather than overwrite - different sources populate different fields
+  if (cached_player_data.is_null()) {
+    cached_player_data = {{"name", ""}, {"alliance", ""}, {"ops_level", 0}, {"power", 0}, {"server", 0}};
+  }
+  for (const auto& [key, value] : data.items()) {
+    // Don't overwrite ops_level with 0 if we already have it from the OPERATIONS building
+    if (key == "ops_level" && value == 0 && cached_player_data.value("ops_level", 0) > 0) continue;
+    cached_player_data[key] = value;
+  }
+  request_full_export();
+}
+
+void capture_player_alliance(const std::string& alliance_name, const std::string& alliance_tag)
+{
+  std::scoped_lock lock(game_data_mutex);
+  if (!cached_player_data.is_null()) {
+    cached_player_data["alliance"] = alliance_name + " [" + alliance_tag + "]";
+  }
 }
 
 void capture_resources(const nlohmann::json& data)
@@ -119,6 +151,15 @@ void capture_buildings(const nlohmann::json& data)
     const auto id = module["id"].get<int64_t>();
     const auto level = module["level"].get<int32_t>();
     cached_buildings[id] = level;
+
+    // Building id=0 is OPERATIONS - its level is the player's ops level
+    if (id == 0) {
+      if (cached_player_data.is_null()) {
+        cached_player_data = {{"name", ""}, {"alliance", ""}, {"power", 0}, {"server", 0}};
+      }
+      cached_player_data["ops_level"] = level;
+      spdlog::info("GameState: Derived ops_level={} from OPERATIONS building", level);
+    }
   }
 
   spdlog::info("GameState capture_buildings: After capture, cached_buildings has {} entries", cached_buildings.size());
@@ -172,6 +213,12 @@ void capture_officers(uint64_t id, int32_t rank, int32_t level, int32_t shards)
   if (++officer_count % 10 == 0) {
     request_immediate_export();
   }
+}
+
+void capture_officer_trait(uint64_t officer_id, uint64_t trait_id, int32_t level)
+{
+  std::scoped_lock lock(game_data_mutex);
+  cached_officer_traits[officer_id][trait_id] = level;
 }
 
 // Helper function to calculate change percentage
@@ -401,12 +448,23 @@ json build_gamestate_json()
     j["ships"].push_back(ship_entry);
   }
 
-  // Officers - enrich with names
+  // Officers - enrich with names and inject trait ability levels
   j["officers"] = json::array();
   for (const auto& [id, officer_data] : cached_officers) {
     json officer_entry = officer_data;
     officer_entry["id"] = id;
     id_mappings::MappingCache::Get().enrich_officer(officer_entry);
+
+    // Inject player's trait ability levels into the traits array
+    auto it = cached_officer_traits.find(id);
+    if (it != cached_officer_traits.end() && officer_entry.contains("traits")) {
+      for (auto& trait : officer_entry["traits"]) {
+        uint64_t trait_id = trait["id"].get<uint64_t>();
+        auto level_it = it->second.find(trait_id);
+        trait["ability_level"] = (level_it != it->second.end()) ? level_it->second : 0;
+      }
+    }
+
     j["officers"].push_back(officer_entry);
   }
 
@@ -421,9 +479,38 @@ json build_gamestate_json()
     j["resources"].push_back(resource);
   }
 
-  // Placeholders for future implementation
+  // Faction reputation - extracted from resources named Resource_FactionPoint_*
   j["faction_reputation"] = json::array();
+  for (const auto& [id, amount] : cached_resources) {
+    auto mapping = id_mappings::MappingCache::Get().get_resource(id);
+    if (!mapping) continue;
+    const std::string& name = mapping->name;
+    // Match resource names like "Resource_FactionPoint_Federation"
+    const std::string prefix = "Resource_FactionPoint_";
+    if (name.rfind(prefix, 0) == 0) {
+      std::string faction = name.substr(prefix.size());
+      j["faction_reputation"].push_back({
+        {"faction", faction},
+        {"resource_id", id},
+        {"points", amount}
+      });
+    }
+  }
+
+  // Blueprint parts - resources named Resource_Parts_* or Resource_*_Parts_*
   j["blueprints"] = json::array();
+  for (const auto& [id, amount] : cached_resources) {
+    auto mapping = id_mappings::MappingCache::Get().get_resource(id);
+    if (!mapping) continue;
+    const std::string& name = mapping->name;
+    if (name.find("_Parts_") != std::string::npos || name.find("_Parts") == name.size() - 6) {
+      j["blueprints"].push_back({
+        {"resource_id", id},
+        {"name", name},
+        {"amount", amount}
+      });
+    }
+  }
 
   spdlog::info("GameState JSON structure built: {} buildings, {} research, {} ships, {} officers, {} resources",
                 cached_buildings.size(), cached_research.size(), cached_ships.size(), 
@@ -619,11 +706,13 @@ void export_thread_func()
 
     // Decide whether to export full or differential
     bool should_export_full = false;
+    bool force_full = should_force_full_export;
+    should_force_full_export = false;
     auto now = std::chrono::steady_clock::now();
     auto seconds_since_last_full = std::chrono::duration_cast<std::chrono::seconds>(now - last_full_export_tp).count();
 
-    // Force full export every hour (3600 seconds) or if no baseline exists
-    if (last_full_export_time.empty() || seconds_since_last_full >= 3600) {
+    // Force full export if explicitly requested, every hour, or if no baseline exists
+    if (force_full || last_full_export_time.empty() || seconds_since_last_full >= 3600) {
       should_export_full = true;
     } else {
       // Calculate change percentage

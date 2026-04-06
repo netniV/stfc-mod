@@ -982,6 +982,15 @@ void process_active_officer_traits(std::unique_ptr<std::string>&& bytes)
                                    {"tid", trait.traitid()},
                                    {"level", trait.level()}});
           }
+
+          // Capture for gamestate export (always, not just on change)
+          if (Config::Get().export_gamestate) {
+            gamestate_export::capture_officer_trait(
+              static_cast<uint64_t>(officer_id),
+              static_cast<uint64_t>(trait.traitid()),
+              trait.level()
+            );
+          }
         }
       }
     }
@@ -1584,6 +1593,7 @@ void process_json(std::unique_ptr<std::string>&& bytes)
   try {
     const auto result = json::parse(bytes->begin(), bytes->end());
 
+    const bool export_gs = Config::Get().export_gamestate;
     for (const auto& [key, section] : result.items()) {
       if (key == "battle_result_headers") {
         if (!Config::Get().sync_options.battlelogs) {
@@ -1593,21 +1603,21 @@ void process_json(std::unique_ptr<std::string>&& bytes)
         process_battle_headers(section);
 
       } else if (key == "resources") {
-        if (!Config::Get().sync_options.resources) {
+        if (!Config::Get().sync_options.resources && !export_gs) {
           continue;
         }
 
         process_resources(section);
 
       } else if (key == "starbase_modules") {
-        if (!Config::Get().sync_options.buildings) {
+        if (!Config::Get().sync_options.buildings && !export_gs) {
           continue;
         }
 
         process_starbase_modules(section);
 
       } else if (key == "ships") {
-        if (!Config::Get().sync_options.ships) {
+        if (!Config::Get().sync_options.ships && !export_gs) {
           continue;
         }
 
@@ -1629,6 +1639,23 @@ void cache_player_names(std::unique_ptr<std::string>&& bytes)
 
     for (const auto& profile : response.userprofiles()) {
       names.insert_or_assign(profile.userid(), CachedPlayerData{.name=profile.name(), .alliance=profile.allianceid(), .expires_at=expires_at});
+    }
+
+    // A self-profile response contains exactly 1 profile with militaryMight > 0.
+    // Battle log name lookups return multiple profiles, all with militaryMight = 0.
+    if (Config::Get().export_gamestate && response.userprofiles_size() == 1) {
+      const auto& profile = response.userprofiles(0);
+      if (profile.militarymight() > 0) {
+        nlohmann::json player_data;
+        player_data["name"]       = profile.name();
+        player_data["ops_level"]  = 0; // will be set/preserved from OPERATIONS building
+        player_data["power"]      = static_cast<int64_t>(profile.militarymight());
+        player_data["server"]     = http::headers::instanceId;
+        player_data["alliance_id"] = profile.allianceid();
+        player_data["alliance"]   = "";
+        gamestate_export::capture_player_data(player_data);
+        spdlog::info("GameState: Captured own player name={}, power={}", profile.name(), profile.militarymight());
+      }
     }
 
     {
@@ -1657,6 +1684,19 @@ void cache_alliance_names(std::unique_ptr<std::string>&& bytes)
     {
       std::scoped_lock lk(alliance_data_cache_mtx);
       alliance_data_cache.insert(names.begin(), names.end());
+    }
+
+    // Enrich captured player data with alliance name now that we have it
+    if (Config::Get().export_gamestate) {
+      std::scoped_lock lk(player_data_cache_mtx);
+      for (const auto& [player_id, player] : player_data_cache) {
+        auto it = names.find(player.alliance);
+        if (it != names.end()) {
+          // Re-capture player data with the alliance name filled in
+          // (ops_level, power, server will be re-populated on next UserProfiles update)
+          gamestate_export::capture_player_alliance(it->second.name, it->second.tag);
+        }
+      }
     }
 
   } else {
@@ -1999,7 +2039,7 @@ void HandleEntityGroup(EntityGroup* entity_group)
       }
       break;
     case EntityGroup::Type::ActiveOfficerTraits:
-      if (Config::Get().sync_options.traits) {
+      if (Config::Get().sync_options.traits || Config::Get().export_gamestate) {
         submit_async(process_active_officer_traits);
       }
       break;
@@ -2034,12 +2074,12 @@ void HandleEntityGroup(EntityGroup* entity_group)
       }
       break;
     case EntityGroup::Type::UserProfiles:
-      if (Config::Get().sync_options.battlelogs) {
+      if (Config::Get().sync_options.battlelogs || Config::Get().export_gamestate) {
         submit_async(cache_player_names);
       }
       break;
     case EntityGroup::Type::AllianceProfiles:
-      if (Config::Get().sync_options.battlelogs) {
+      if (Config::Get().sync_options.battlelogs || Config::Get().export_gamestate) {
         submit_async(cache_alliance_names);
       }
       break;
