@@ -106,45 +106,38 @@ player_id = 'y806e96e...'       # your userid for accurate player data matching
 
 ---
 
-### Feature 1b: Gamestate Gist Sync 🔲 NEXT
+### Feature 1b: Gamestate Gist Sync ✅ IMPLEMENTED
 
 **Goal:** Push the gamestate JSON to a GitHub Gist automatically whenever it updates,
 so AI assistants and external tools can read it via a stable public URL — without needing
 a separate Python sync script running in the background.
 
-This mirrors how Spock's Club works: configured as a named sync target in
-`community_patch_settings.toml`, the mod POSTs/PATCHes the data directly.
-
-**Config to add:**
+**Config (`[gamestate_export.gist]` in `community_patch_settings.toml`):**
 ```toml
-[gamestate_export]
-enabled = true
-# ... existing fields ...
-
 [gamestate_export.gist]
 enabled = true
-gist_id = '3d1bd2f24dc5ab3cc79beb9e8387b5e0'
-token = 'ghp_YOUR_GITHUB_TOKEN'
-filename_full  = 'stfc_gamestate_full.json'
+gist_id = 'your_gist_id_here'
+token = 'ghp_your_token_here'
+filename_full  = 'stfc_gamestate_full.json'   # optional, these are defaults
 filename_delta = 'stfc_gamestate_delta.json'
 ```
 
 **Behaviour:**
-- After every successful full or delta file write, PATCH the corresponding Gist file via
+- After every successful full or delta file write, PATCHes the corresponding Gist file via
   the GitHub Gist API (`PATCH https://api.github.com/gists/{gist_id}`)
-- Use `cpr` (already a dependency) for the HTTP call — same pattern as existing sync targets
+- Uses `cpr` (already a dependency) for the HTTP call
 - Token stored only in the local settings file (gitignored); never committed
-- Log the version-agnostic raw URLs on startup so they can be shared with AI assistants:
-  `https://gist.githubusercontent.com/{user}/{gist_id}/raw/{filename}`
+- Logs the raw Gist URLs on startup for sharing with AI assistants
 
-**Implementation approach:**
-- Add `GistSyncConfig` struct to `config.h` alongside `SyncTargetConfig`
-- Read `[gamestate_export.gist]` section in `config.cc`
-- In `gamestate_export.cc`, after each file write call a `sync_to_gist()` helper that
-  PATCHes the Gist — reusing the existing `cpr` HTTP infrastructure from `sync.cc`
-- No separate background thread needed — piggybacks on the existing export thread
+**Raw URLs (example):**
+```
+https://gist.githubusercontent.com/{user}/{gist_id}/raw/stfc_gamestate_full.json
+https://gist.githubusercontent.com/{user}/{gist_id}/raw/stfc_gamestate_delta.json
+```
 
-**Replaces:** `scripts/sync_to_gist_v2.py` (external Python watcher script)
+**Implementation:** `mods/src/patches/parts/gamestate_export.cc` — `sync_to_gist()` helper
+
+**Replaces:** `scripts/sync_to_gist.py` / `scripts/sync_to_gist_v2.py` (now removed)
 
 ---
 

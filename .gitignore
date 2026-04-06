@@ -27,3 +27,14 @@ community_patch_settings.toml
 community_patch.log
 check_export.py
 check_delta.py
+
+# Temp/scratch files
+001-add-capture-traits-header.patch
+requirements.txt
+game_data_maps/officer_traits_template.json
+game_data_maps/ships_stfc_space.json
+scripts/__pycache__/
+scripts/data_extraction/identify_my_ships.py
+scripts/data_extraction/scrape_stfc_space_ships.py
+scripts/data_extraction/selenium_demo.py
+scripts/data_extraction/test_stfc_space_hull_ids.py
