@@ -30,24 +30,27 @@ get written then immediately wiped by the next forced full.
 - Consider: full export should not clear the delta file — delta should
   accumulate until explicitly reset by the user or on a new session
 
-### BUG-2: Peace shield detection incorrect
-**Symptom:** Log reports `SHIELD ALERT: Station peace shield is DOWN` when an
-active peace shield exists.
-**Root cause:** Peace shield data capture is likely not receiving the correct
-expiry epoch, or the game sends it in a different unit/format than expected.
-**Details:**
-- Two types of peace shields exist:
-  1. **Regular shield** — player-applied by consuming a token (30m/3h/8h/24h
-     tokens; using a new token replaces the existing timer, they do not stack)
-  2. **Golden peace shield** — applied by Scopely after maintenance/downtime;
-     has separate UI, name, and countdown from the regular shield
-- Both need to be detected and reported separately in the gamestate JSON
-- Tokens in inventory is a separate resource count (the token items themselves)
-**Fix needed:**
-- Audit what data `capture_peace_shield()` receives and log the raw values
-- Identify the correct field/unit for the expiry epoch
-- Add `shield_type` field: `"regular"` vs `"golden"`
-- Verify token inventory count comes from the right resource ID
+### BUG-2: Peace shield detection incorrect ? (partially fixed)
+**What's fixed:**
+- Shield expiry now read from `StarbaseDetailedScan` (EntityGroup type=57)
+- False SHIELD ALERT at startup suppressed until first scan received
+- `active`, `expires_at`, `expires_epoch`, `seconds_remaining` all correct
+- Peace shield changes tracked in differential export
+- `shield_scan_received` flag prevents false alerts before first scan
+
+**Trigger documented:** tap your station object on the system/galaxy map.
+Interior view, exterior view, and system-button do NOT trigger the scan.
+
+**Still pending:**
+- [ ] Token count is always 0 — shield tokens arrive as
+  `INVENTORYITEMTYPE_INVENTORYCONSUMABLE` (type=8) but we need to match
+  them by `commonParams.refId` to the shield token resource IDs to count
+  them correctly. Known token types: 1h(×3), 4h(×177), 8h(×166),
+  12h(×117), 1day(×66), 3day(×4), 30day(×1), plus auto-10min shield.
+- [ ] Golden peace shield (Scopely-applied after maintenance) — separate
+  UI and countdown from regular shield; not yet identified in proto data.
+- [ ] Document in startup instructions: tap your station on the system
+  map to populate shield data (links to player.name/power investigation).
 
 ### BUG-3: Fleet/hangar ships not populating drydock assignments
 **Symptom:** `drydocks` array is always empty `[]` in the gamestate JSON.
