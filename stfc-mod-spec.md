@@ -6,7 +6,7 @@
 **Language:** C++ (MSVC, C++17)
 **Build system:** XMake → generates VS2022 solution via `xmake project -k vsxmake2022`
 **Game:** Star Trek Fleet Command (Windows PC client, Scopely)
-**Player:** DrCord — Ops 41, Server 709, Alliance [GROW]
+**Player:** SpotTheSpaceCat — Ops 41, Server 709, Alliance [GROW]
 
 ---
 
@@ -51,60 +51,100 @@ and modify game behavior. Configuration is via a TOML file in the same directory
 
 ## Features to Build
 
-### Feature 1: Game State JSON Export ⭐ HIGHEST PRIORITY
+### Feature 1: Game State JSON Export ✅ IMPLEMENTED
 
 **Goal:** Export a structured JSON snapshot of the player's current game state to a file on disk
 while the game is running. This enables external tools (Python scripts, Claude AI) to read
 current game data without manual CSV exports.
 
-**Output file:** `community_patch_gamestate.json` (same directory as the DLL)
+**Output files:**
+- `community_patch_gamestate.json` — full snapshot
+- `community_patch_gamestate_delta.json` — incremental changes since last full export
 
-**Data to include:**
+**Currently exported data:**
 ```json
 {
-  "exported_at": "2026-04-03T09:00:00Z",
+  "export_type": "full",
+  "export_version": "1.1.0",
+  "exported_at": "2026-04-06T07:32:40Z",
+  "meta": { "mod_version": "1.0.0.0", "mappings_loaded": true },
   "player": {
+    "name": "SpotTheSpaceCat",
     "ops_level": 41,
-    "server": 709
+    "power": 19714080,
+    "server": 709,
+    "alliance": "",
+    "alliance_id": 2593778755994805150
   },
-  "buildings": [
-    { "id": 0, "name": "Operations", "level": 41 },
-    { "id": 72, "name": "Mess Hall", "level": 46 }
-  ],
-  "research": [
-    { "id": 12345, "name": "...", "level": 5, "max_level": 10 }
-  ],
-  "ships": [
-    { "id": "defiant", "tier": 4, "level": 20 }
-  ],
-  "faction_rep": [
-    { "faction": "federation", "points": 25258867 }
-  ],
-  "resources": {
-    "parsteel": 0,
-    "tritanium": 0,
-    "dilithium": 0
-  },
-  "bp_progress": [
-    { "ship": "enterprise", "current": 133, "required": 150 }
-  ]
+  "buildings": [ { "id": 0, "name": "OPERATIONS", "level": 41 } ],
+  "research":  [ { "id": 12345, "name": "...", "level": 5 } ],
+  "ships":     [ { "id": 111, "hull_id": 222, "name": "Defiant", "tier": 4, "level": 20 } ],
+  "officers":  [ { "id": 1, "name": "Spock", "rank": 3, "level": 45, "traits": [
+    { "id": 101, "name": "Logical", "ability_level": 3 }
+  ]}],
+  "resources": [ { "id": 1234, "name": "Parsteel", "amount": 1000000 } ],
+  "faction_reputation": [ { "faction": "Romulan", "points": 11077219, "resource_id": 4135751670 } ],
+  "blueprints": [ { "name": "Resource_Parts_Battleship_G3", "amount": 11513, "resource_id": 1779580172 } ]
 }
 ```
 
-**Implementation approach:**
-- Add a configurable export interval to `community_patch_settings.toml` (default: 300 seconds)
-- Hook into the existing sync/object_tracker infrastructure in `sync.cc` and `object_tracker.cc`
-- Use `file.cc` utilities for writing the JSON file
-- Use `nlohmann_json` (already a project dependency) for JSON serialization
-- Trigger export on a timer and also on game close
+**Known gaps (to be filled by future data triggers):**
+- `player.alliance` — populates when alliance profile response arrives in session
+- `officer.traits[].ability_level` — populates when `ActiveOfficerTraits` response arrives
 
-**Config entry to add:**
+**Config (`[gamestate_export]` in `community_patch_settings.toml`):**
 ```toml
-# Game state JSON export
-export_gamestate = true
-export_gamestate_interval = 300  # seconds, 0 = on close only
-export_gamestate_path = ""  # empty = same dir as DLL
+[gamestate_export]
+enabled = true
+export_on_startup = true
+interval = 300                  # seconds between periodic exports; 0 = on-demand only
+path = 'C:\Games\...\game'      # where to write files; empty = game directory
+player_id = 'y806e96e...'       # your userid for accurate player data matching
 ```
+
+**Implementation:** `mods/src/patches/parts/gamestate_export.cc` + `sync.cc`
+
+---
+
+### Feature 1b: Gamestate Gist Sync 🔲 NEXT
+
+**Goal:** Push the gamestate JSON to a GitHub Gist automatically whenever it updates,
+so AI assistants and external tools can read it via a stable public URL — without needing
+a separate Python sync script running in the background.
+
+This mirrors how Spock's Club works: configured as a named sync target in
+`community_patch_settings.toml`, the mod POSTs/PATCHes the data directly.
+
+**Config to add:**
+```toml
+[gamestate_export]
+enabled = true
+# ... existing fields ...
+
+[gamestate_export.gist]
+enabled = true
+gist_id = '3d1bd2f24dc5ab3cc79beb9e8387b5e0'
+token = 'ghp_YOUR_GITHUB_TOKEN'
+filename_full  = 'stfc_gamestate_full.json'
+filename_delta = 'stfc_gamestate_delta.json'
+```
+
+**Behaviour:**
+- After every successful full or delta file write, PATCH the corresponding Gist file via
+  the GitHub Gist API (`PATCH https://api.github.com/gists/{gist_id}`)
+- Use `cpr` (already a dependency) for the HTTP call — same pattern as existing sync targets
+- Token stored only in the local settings file (gitignored); never committed
+- Log the version-agnostic raw URLs on startup so they can be shared with AI assistants:
+  `https://gist.githubusercontent.com/{user}/{gist_id}/raw/{filename}`
+
+**Implementation approach:**
+- Add `GistSyncConfig` struct to `config.h` alongside `SyncTargetConfig`
+- Read `[gamestate_export.gist]` section in `config.cc`
+- In `gamestate_export.cc`, after each file write call a `sync_to_gist()` helper that
+  PATCHes the Gist — reusing the existing `cpr` HTTP infrastructure from `sync.cc`
+- No separate background thread needed — piggybacks on the existing export thread
+
+**Replaces:** `scripts/sync_to_gist_v2.py` (external Python watcher script)
 
 ---
 
