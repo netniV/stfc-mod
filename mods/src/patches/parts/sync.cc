@@ -1723,7 +1723,8 @@ void process_json(std::unique_ptr<std::string>&& bytes)
         if (!export_gs) continue;
 
         // Each entry has drydock_id (server-side) and ship_ids.
-        // Sort by drydock_id ascending and assign letters A-E in that order.
+        // Sort by drydock_id ascending and re-index 1-based so the export
+        // layer maps 1=A, 2=B ... 26=Z, 27=AA etc. Players can have more than 5.
         if (section.is_object() && !section.empty()) {
           std::vector<std::pair<int32_t, int64_t>> assignments; // drydock_id -> ship_id
           for (const auto& [fleet_key, fleet] : section.items()) {

@@ -64,7 +64,18 @@ buildings data and are available immediately.
       (currently arrives automatically ~5s after login in testing, but not always)
 - [ ] Update docs once player profile trigger is fully confirmed
 
-### Feature 2: Battle log — outcome/ship empty on some entries
+### Feature: Syndicate level data
+**Goal:** Export the player's Syndicate level (and ideally XP/progress) to the
+gamestate JSON so AI assistants can use it for planning advice.
+**TODO:**
+- [ ] Identify which JSON key or proto message carries Syndicate level data
+      (candidate: `my_skill_data` seen in the JSON blob key list)
+- [ ] Add `syndicate_level` (and optionally `syndicate_xp`) to the
+      `player` section of the gamestate JSON
+- [ ] Document which in-game action triggers the data if it doesn't arrive
+      automatically at login
+
+
 **Context:** `outcome` and `ship` fields in battlelog entries are resolved by
 matching `Player Name` column in the CSV against `cached_player_data.name`.
 If the player name hasn't arrived yet when the CSV is processed, these are empty.

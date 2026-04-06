@@ -664,12 +664,22 @@ json build_gamestate_json()
   }
 
   // Drydock assignments — letter derived from 1-based drydock_id (1=A … 5=E)
+  // Drydock letter: 1=A, 2=B ... 26=Z, 27=AA, 28=AB ... (spreadsheet column style)
+  auto drydock_letter = [](int32_t id) -> std::string {
+    std::string result;
+    while (id > 0) {
+      id--; // shift to 0-based
+      result = static_cast<char>('A' + (id % 26)) + result;
+      id /= 26;
+    }
+    return result;
+  };
+
   j["drydocks"] = json::array();
   for (const auto& [drydock_id, ship_id] : cached_drydock_assignments) {
-    std::string letter(1, static_cast<char>('A' + drydock_id - 1));
     json entry;
     entry["drydock_id"] = drydock_id;
-    entry["letter"]     = letter;
+    entry["letter"]     = drydock_letter(drydock_id);
     entry["ship_id"]    = ship_id;
     // Enrich with ship name via hull_id lookup if the ship is in the hangar cache
     auto ship_it = cached_ships.find(ship_id);
@@ -687,8 +697,7 @@ json build_gamestate_json()
     int64_t sid = ship_entry["id"].get<int64_t>();
     for (const auto& [drydock_id, ship_id] : cached_drydock_assignments) {
       if (ship_id == sid) {
-        std::string letter(1, static_cast<char>('A' + drydock_id - 1));
-        ship_entry["drydock"]    = letter;
+        ship_entry["drydock"]    = drydock_letter(drydock_id);
         ship_entry["drydock_id"] = drydock_id;
         break;
       }
