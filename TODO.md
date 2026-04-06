@@ -39,15 +39,13 @@ Documented in INSTALL.md and GIST_SETUP_COMPLETE.md.
 - [ ] Auto-10min shield (triggered on first attack when unshielded) — verify
       it shows correctly via the same `StarbaseDetailedScan` path
 
-### BUG-3: Fleet/hangar ships not populating drydock assignments
-**Symptom:** `drydocks` array is always empty `[]` in the gamestate JSON.
-**Terminology (use consistently from now on):**
-- **Fleet** = ships currently deployed/active (in a drydock slot, A–E)
-- **Hangar** = all ships owned by the player (docked or otherwise)
-**Fix needed:**
-- Audit `capture_drydock_assignments()` — verify it is being called and with
-  correct data; add log output showing what assignments arrive
-- Check what game event/response triggers drydock data
+### BUG-3: Fleet/hangar ships not populating drydock assignments — FIXED
+**Was:** Code looked for `SLOTTYPE_FLEETPRESET` (type=7) in `EntitySlots`/
+`EntitySlotsData` proto messages. That slot type is never sent.
+**Fix:** Parse the `fleets` key in the JSON blob (EntityGroup type=42).
+Each entry has a raw server-side `drydock_id` and `ship_ids`. Sort by
+`drydock_id` ascending, re-index 1-5, export layer maps 1=A ... 5=E.
+**Arrives automatically at login — no navigation required.**
 
 ---
 
@@ -58,13 +56,13 @@ Documented in INSTALL.md and GIST_SETUP_COMPLETE.md.
 specific server response arrives. `player.ops_level` and `server` populate from
 buildings data and are available immediately.
 **TODO:**
-- [x] Peace shield trigger identified: tap station on system/galaxy map view
+- [x] Peace shield trigger identified: tap station on system view
 - [x] Documented in INSTALL.md and GIST_SETUP_COMPLETE.md
+- [x] Drydock assignments arrive automatically at login (no navigation needed)
 - [ ] Identify exactly which in-game screens/actions trigger the player profile
       response that populates `name`, `power`, `server`, `alliance`
       (currently arrives automatically ~5s after login in testing, but not always)
-- [ ] Identify what triggers fleet/drydock assignments (BUG-3)
-- [ ] Update docs once BUG-3 resolved
+- [ ] Update docs once player profile trigger is fully confirmed
 
 ### Feature 2: Battle log — outcome/ship empty on some entries
 **Context:** `outcome` and `ship` fields in battlelog entries are resolved by

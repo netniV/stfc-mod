@@ -73,13 +73,15 @@ Installation of the Community Mod is a manual process for Windows (or Wine).
 5. **Navigate in-game to populate full gamestate data.** Most data is captured
    automatically at login, but some requires specific navigation:
 
-   - **Peace shield status** — tap your station object on the system/galaxy map
-     view (not the interior/exterior button — the actual station icon on the map).
-     Until you do this, the shield state is unknown and no alerts will fire.
+   - **Peace shield status** — tap your station in the **system view** of your
+     home system (the actual station icon on the map, not the interior/exterior
+     button and not the system button). Until you do this, shield state is
+     unknown and no alerts will fire.
+
+   - **Drydock assignments** (which ship is in slot A–E) — arrives
+     automatically at login, no navigation required.
 
    - **Player name & power** — arrives automatically a few seconds after login.
-
-   - **Fleet assignments** — under investigation; will be documented once resolved.
 
 6. For first time users of the Community Mod, it recommended to utilise the
    [sample configuration file](example_community_patch_settings.toml), which can

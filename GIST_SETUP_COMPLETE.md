@@ -135,8 +135,8 @@ Do these once per session after login for the most complete export:
 |---|---|
 | `player.name`, `player.power`, `player.server` | Arrives automatically shortly after login |
 | `buildings`, `research`, `resources`, `officers` | Arrives automatically at login |
-| **Peace shield** (`station.peace_shield.active`, `expires_at`) | **Tap your station on the system/galaxy map view** — interior/exterior buttons do NOT trigger this |
-| Fleet assignments (`drydocks`) | Under investigation — see BUG-3 |
+| **Drydock assignments** (`drydocks`) | Arrives automatically at login |
+| **Peace shield** (`station.peace_shield.active`, `expires_at`) | **Tap your station in the system view** (your home system) — interior/exterior buttons and galaxy view do NOT trigger this |
 
 > **Note:** If you do not tap your station, the peace shield will show as unknown
 > and no shield alerts will fire (the mod suppresses alerts until it has real data).
