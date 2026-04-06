@@ -129,12 +129,18 @@ void capture_player_data(const nlohmann::json& data)
   if (cached_player_data.is_null()) {
     cached_player_data = {{"name", ""}, {"alliance", ""}, {"ops_level", 0}, {"power", 0}, {"server", 0}};
   }
+  bool changed = false;
   for (const auto& [key, value] : data.items()) {
     // Don't overwrite ops_level with 0 if we already have it from the OPERATIONS building
     if (key == "ops_level" && value == 0 && cached_player_data.value("ops_level", 0) > 0) continue;
-    cached_player_data[key] = value;
+    if (!cached_player_data.contains(key) || cached_player_data[key] != value) {
+      cached_player_data[key] = value;
+      changed = true;
+    }
   }
-  request_full_export();
+  if (changed) {
+    request_full_export();
+  }
 }
 
 void capture_player_alliance(const std::string& alliance_name, const std::string& alliance_tag)
@@ -162,10 +168,16 @@ void capture_buildings(const nlohmann::json& data)
   spdlog::info("GameState capture_buildings: Received {} buildings, cached_buildings currently has {} entries", 
                data.size(), cached_buildings.size());
 
+  bool changed = false;
   for (const auto& module : data) {
     const auto id = module["id"].get<int64_t>();
     const auto level = module["level"].get<int32_t>();
-    cached_buildings[id] = level;
+
+    auto it = cached_buildings.find(id);
+    if (it == cached_buildings.end() || it->second != level) {
+      cached_buildings[id] = level;
+      changed = true;
+    }
 
     // Building id=0 is OPERATIONS - its level is the player's ops level
     if (id == 0) {
@@ -178,7 +190,9 @@ void capture_buildings(const nlohmann::json& data)
   }
 
   spdlog::info("GameState capture_buildings: After capture, cached_buildings has {} entries", cached_buildings.size());
-  request_immediate_export();
+  if (changed) {
+    request_immediate_export();
+  }
 }
 
 void capture_ships(const nlohmann::json& data)
@@ -187,19 +201,27 @@ void capture_ships(const nlohmann::json& data)
   spdlog::info("GameState capture_ships: Received {} ships, cached_ships currently has {} entries", 
                data.size(), cached_ships.size());
 
+  bool changed = false;
   for (const auto& ship : data) {
     const auto id = ship["id"].get<int64_t>();
-    cached_ships[id] = {
+    json entry = {
       {"hull_id", ship["hull_id"]},
       {"tier", ship["tier"]},
       {"level", ship["level"]},
       {"level_percentage", ship["level_percentage"]},
       {"components", ship.value("components", json::array())}
     };
+    auto it = cached_ships.find(id);
+    if (it == cached_ships.end() || it->second != entry) {
+      cached_ships[id] = std::move(entry);
+      changed = true;
+    }
   }
 
   spdlog::info("GameState capture_ships: After capture, cached_ships has {} entries", cached_ships.size());
-  request_immediate_export();
+  if (changed) {
+    request_immediate_export();
+  }
 }
 
 void capture_research(int64_t id, int32_t level)
