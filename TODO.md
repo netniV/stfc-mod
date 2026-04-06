@@ -71,7 +71,7 @@ Syndicate level and XP read from `cached_resources` at export time:
 Both arrive automatically at login. Exported as `player.syndicate_level`
 and `player.syndicate_xp` in the gamestate JSON.
 
-
+### Feature 2: Battle log — outcome/ship empty on some entries
 **Context:** `outcome` and `ship` fields in battlelog entries are resolved by
 matching `Player Name` column in the CSV against `cached_player_data.name`.
 If the player name hasn't arrived yet when the CSV is processed, these are empty.
@@ -79,6 +79,32 @@ If the player name hasn't arrived yet when the CSV is processed, these are empty
 - [ ] Re-resolve outcome/ship lazily when player name becomes available, or
 - [ ] Always populate from the combatants array directly (find the player's row
       by `player_id` config value rather than name string matching)
+
+### Feature: Missions — completed and in progress
+**Goal:** Export mission state so AI assistants can track progression and
+suggest next steps.
+**TODO:**
+- [ ] Identify which data source carries mission state — `ActiveMissions`
+      (EntityGroup type=61) and `CompletedMissions` (type=64) are already
+      handled in `HandleEntityGroup`; check if `capture_*` calls exist
+- [ ] Export `missions_completed` (array of completed mission IDs/names)
+      and `missions_in_progress` (array with current objective state)
+      to the gamestate JSON
+- [ ] Enrich with mission names from `stfc_id_mappings.json` if available
+- [ ] Arrives automatically at login — no navigation expected
+
+### Feature: Ship upgrade resource planning
+**Goal:** For each ship in the player's hangar, export what resources are
+needed to reach the next tier/level so AI assistants can give specific
+upgrade advice.
+**TODO:**
+- [ ] Identify where ship upgrade cost data lives — likely
+      `ShipTierSpecs` (EntityGroup type=50) or `BaseShipTierSpecs` (type=49)
+- [ ] Cross-reference each ship's current tier/level from `cached_ships`
+      against the spec data to compute what's needed for next upgrade
+- [ ] Add `upgrade_cost` block to each ship entry in the gamestate JSON
+      (or as a separate top-level `ship_upgrade_costs` section)
+- [ ] Only include ships the player actually owns
 
 ---
 
