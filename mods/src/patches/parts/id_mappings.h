@@ -5,6 +5,7 @@
 #include <string>
 #include <unordered_map>
 #include <optional>
+#include <vector>
 
 namespace id_mappings
 {
@@ -15,6 +16,7 @@ struct ItemMapping
   std::string category;  // For research, buildings, etc.
   std::string faction;   // For officers
   std::string rarity;    // For officers, resources
+  std::vector<uint64_t> trait_ids;  // For officers
 };
 
 class MappingCache
@@ -34,6 +36,7 @@ public:
   std::optional<ItemMapping> get_building(int64_t id) const;
   std::optional<ItemMapping> get_resource(int64_t id) const;
   std::optional<ItemMapping> get_ship(int64_t id) const;
+  std::optional<ItemMapping> get_trait(uint64_t id) const;
 
   // Helper to enrich JSON with names
   void enrich_officer(nlohmann::json& officer_json) const;
@@ -51,6 +54,7 @@ private:
   std::unordered_map<int64_t, ItemMapping> building_mappings_;
   std::unordered_map<int64_t, ItemMapping> resource_mappings_;
   std::unordered_map<int64_t, ItemMapping> ship_mappings_;
+  std::unordered_map<uint64_t, ItemMapping> trait_mappings_;
 };
 
 } // namespace id_mappings

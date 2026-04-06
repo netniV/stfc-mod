@@ -41,6 +41,16 @@ void MappingCache::load_mappings(const std::string& file_path)
         mapping.faction = data.value("faction", "");
         mapping.rarity = data.value("rarity", "");
         mapping.category = data.value("synergy", "");
+
+        // Load trait IDs if present
+        if (data.contains("trait_ids") && data["trait_ids"].is_array()) {
+          for (const auto& trait_id : data["trait_ids"]) {
+            if (trait_id.is_number_unsigned()) {
+              mapping.trait_ids.push_back(trait_id.get<uint64_t>());
+            }
+          }
+        }
+
         officer_mappings_[id] = mapping;
       }
       spdlog::info("Loaded {} officer name mappings", officer_mappings_.size());
@@ -85,14 +95,33 @@ void MappingCache::load_mappings(const std::string& file_path)
 
     // Load ships (if available)
     if (mappings_data.contains("ships")) {
-      for (const auto& [id_str, data] : mappings_data["ships"].items()) {
-        int64_t id = std::stoll(id_str);
+      spdlog::debug("Found ships section in mappings");
+      try {
+        for (const auto& [id_str, data] : mappings_data["ships"].items()) {
+          int64_t id = std::stoll(id_str);
+          ItemMapping mapping;
+          mapping.name = data.value("name", "");
+          mapping.category = data.value("class", "");
+          ship_mappings_[id] = mapping;
+        }
+        spdlog::info("Loaded {} ship name mappings", ship_mappings_.size());
+      } catch (const std::exception& e) {
+        spdlog::error("Error loading ships: {}", e.what());
+      }
+    } else {
+      spdlog::warn("No ships section found in mappings file");
+    }
+
+    // Load traits (if available)
+    if (mappings_data.contains("traits")) {
+      for (const auto& [id_str, data] : mappings_data["traits"].items()) {
+        uint64_t id = std::stoull(id_str);
         ItemMapping mapping;
         mapping.name = data.value("name", "");
-        mapping.category = data.value("class", "");
-        ship_mappings_[id] = mapping;
+        mapping.category = data.value("description", "");
+        trait_mappings_[id] = mapping;
       }
-      spdlog::info("Loaded {} ship name mappings", ship_mappings_.size());
+      spdlog::info("Loaded {} trait name mappings", trait_mappings_.size());
     }
 
     loaded_ = true;
@@ -149,6 +178,15 @@ std::optional<ItemMapping> MappingCache::get_ship(int64_t id) const
   return std::nullopt;
 }
 
+std::optional<ItemMapping> MappingCache::get_trait(uint64_t id) const
+{
+  auto it = trait_mappings_.find(id);
+  if (it != trait_mappings_.end()) {
+    return it->second;
+  }
+  return std::nullopt;
+}
+
 void MappingCache::enrich_officer(json& officer_json) const
 {
   if (!officer_json.contains("id")) return;
@@ -166,6 +204,31 @@ void MappingCache::enrich_officer(json& officer_json) const
     }
     if (!mapping->category.empty()) {
       officer_json["synergy"] = mapping->category;
+    }
+
+    // Add traits if available
+    if (!mapping->trait_ids.empty()) {
+      json traits_array = json::array();
+
+      for (uint64_t trait_id : mapping->trait_ids) {
+        json trait_obj;
+        trait_obj["id"] = trait_id;
+
+        // Look up trait name
+        auto trait_mapping = get_trait(trait_id);
+        if (trait_mapping) {
+          trait_obj["name"] = trait_mapping->name;
+          if (!trait_mapping->category.empty()) {
+            trait_obj["description"] = trait_mapping->category;
+          }
+        } else {
+          trait_obj["name"] = "Unknown Trait";
+        }
+
+        traits_array.push_back(trait_obj);
+      }
+
+      officer_json["traits"] = traits_array;
     }
   }
 }
@@ -217,10 +280,11 @@ void MappingCache::enrich_resource(json& resource_json, int64_t id) const
 
 void MappingCache::enrich_ship(json& ship_json) const
 {
-  if (!ship_json.contains("id")) return;
+  // Ships are identified by hull_id, not the instance id
+  if (!ship_json.contains("hull_id")) return;
 
-  int64_t id = ship_json["id"].get<int64_t>();
-  auto mapping = get_ship(id);
+  int64_t hull_id = ship_json["hull_id"].get<int64_t>();
+  auto mapping = get_ship(hull_id);
 
   if (mapping) {
     ship_json["name"] = mapping->name;
