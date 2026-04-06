@@ -432,6 +432,8 @@ static std::shared_ptr<cpr::Session> get_curl_client_scopely()
   return session;
 }
 
+static std::string get_game_server_data(const std::string& path, const std::string& post_data);
+
 static std::string get_scopely_data(const std::string& path, const std::string& post_data)
 {
   static std::once_flag emit_warning;
@@ -444,6 +446,11 @@ static std::string get_scopely_data(const std::string& path, const std::string& 
     return {};
   }
 
+  return get_game_server_data(path, post_data);
+}
+
+static std::string get_game_server_data(const std::string& path, const std::string& post_data)
+{
   Url url(headers::gameServerUrl);
   url.set_path(path);
 
@@ -1596,7 +1603,7 @@ void process_json(std::unique_ptr<std::string>&& bytes)
     const bool export_gs = Config::Get().export_gamestate;
     for (const auto& [key, section] : result.items()) {
       if (key == "battle_result_headers") {
-        if (!Config::Get().sync_options.battlelogs) {
+        if (!Config::Get().sync_options.battlelogs && !Config::Get().export_gamestate) {
           continue;
         }
 
@@ -1845,7 +1852,9 @@ void ship_combat_log_data()
       http::sync_log_trace("PROCESS", "combat log", STR_FORMAT("Fetching combat log for battle {}", journal_id));
 
       const json journals_body{{"journal_id", journal_id}};
-      auto       battle_log = http::get_scopely_data("/journals/get", journals_body.dump());
+      auto       battle_log = (Config::Get().sync_targets.empty() && Config::Get().export_gamestate)
+                                  ? http::get_game_server_data("/journals/get", journals_body.dump())
+                                  : http::get_scopely_data("/journals/get", journals_body.dump());
       json       battle_json;
 
       if (battle_log.empty()) {

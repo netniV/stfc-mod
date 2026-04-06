@@ -109,8 +109,9 @@ public:
   bool        enabled  = false;
   std::string gist_id;
   std::string token;
-  std::string filename_full  = "stfc_gamestate_full.json";
-  std::string filename_delta = "stfc_gamestate_delta.json";
+  std::string filename_full     = "stfc_gamestate_full.json";
+  std::string filename_delta    = "stfc_gamestate_delta.json";
+  std::string filename_battlelog = "stfc_battlelog.json";
 };
 
 class Config final

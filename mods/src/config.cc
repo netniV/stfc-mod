@@ -682,6 +682,7 @@ void Config::Load()
   this->export_gamestate_gist.token          = gist_get("token",          std::string(DCGSEGist::token));
   this->export_gamestate_gist.filename_full  = gist_get("filename_full",  std::string(DCGSEGist::filename_full));
   this->export_gamestate_gist.filename_delta = gist_get("filename_delta", std::string(DCGSEGist::filename_delta));
+  this->export_gamestate_gist.filename_battlelog = gist_get("filename_battlelog", std::string(DCGSEGist::filename_battlelog));
 
   spdlog::debug("config gamestate_export.gist: enabled={}, gist_id={}, token={}",
                 this->export_gamestate_gist.enabled,

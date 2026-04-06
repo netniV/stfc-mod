@@ -193,11 +193,12 @@ namespace GameStateExport
 
   namespace Gist
   {
-    constexpr bool        enabled        = false;
-    constexpr const char* gist_id        = "";
-    constexpr const char* token          = "";
-    constexpr const char* filename_full  = "stfc_gamestate_full.json";
-    constexpr const char* filename_delta = "stfc_gamestate_delta.json";
+    constexpr bool        enabled          = false;
+    constexpr const char* gist_id          = "";
+    constexpr const char* token            = "";
+    constexpr const char* filename_full    = "stfc_gamestate_full.json";
+    constexpr const char* filename_delta   = "stfc_gamestate_delta.json";
+    constexpr const char* filename_battlelog = "stfc_battlelog.json";
   } // namespace Gist
 } // namespace GameStateExport
 

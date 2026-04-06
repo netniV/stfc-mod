@@ -19,6 +19,11 @@
 #include <sstream>
 #include <thread>
 #include <unordered_map>
+#include <unordered_set>
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 using json = nlohmann::json;
 
@@ -713,9 +718,156 @@ void export_differential()
   }
 }
 
+static constexpr int MAX_BATTLELOG_ENTRIES = 500;
+
+// Parse a tab-separated CSV section (header row + data rows) into a JSON array
+static json parse_csv_section(const std::vector<std::string>& lines, size_t& pos)
+{
+  json result = json::array();
+  if (pos >= lines.size() || lines[pos].empty()) return result;
+
+  std::vector<std::string> headers;
+  std::istringstream hss(lines[pos++]);
+  std::string cell;
+  while (std::getline(hss, cell, '\t')) headers.push_back(cell);
+
+  while (pos < lines.size() && !lines[pos].empty()) {
+    std::vector<std::string> values;
+    std::istringstream vss(lines[pos++]);
+    while (std::getline(vss, cell, '\t')) values.push_back(cell);
+    json row = json::object();
+    for (size_t i = 0; i < headers.size(); ++i)
+      row[headers[i]] = (i < values.size()) ? values[i] : "";
+    result.push_back(row);
+  }
+  return result;
+}
+
+static void process_battle_csv(const std::string& csv_path)
+{
+  auto& cfg = Config::Get();
+  try {
+    std::ifstream f(csv_path);
+    if (!f.is_open()) { spdlog::warn("Battlelog CSV: Could not open {}", csv_path); return; }
+
+    std::vector<std::string> lines;
+    std::string line;
+    while (std::getline(f, line)) {
+      if (!line.empty() && line.back() == '\r') line.pop_back();
+      lines.push_back(line);
+    }
+    f.close();
+    if (lines.empty()) return;
+
+    // Four tab-separated sections divided by blank lines:
+    // 0: combatants  1: rewards  2: fleet stats  3: round events
+    size_t pos = 0;
+    json combatants  = parse_csv_section(lines, pos);
+    while (pos < lines.size() && lines[pos].empty()) ++pos;
+    json rewards     = parse_csv_section(lines, pos);
+    while (pos < lines.size() && lines[pos].empty()) ++pos;
+    json fleet_stats = parse_csv_section(lines, pos);
+    while (pos < lines.size() && lines[pos].empty()) ++pos;
+    json rounds      = parse_csv_section(lines, pos);
+
+    if (combatants.empty()) { spdlog::warn("Battlelog CSV: No combatant data in {}", csv_path); return; }
+
+    const std::string filename = std::filesystem::path(csv_path).stem().string();
+    json entry;
+    entry["id"]          = filename;
+    entry["source_file"] = std::filesystem::path(csv_path).filename().string();
+    if (!combatants.empty() && combatants[0].contains("Timestamp"))
+      entry["timestamp"] = combatants[0]["Timestamp"];
+
+    // Find our player's outcome row
+    std::string our_name;
+    {
+      std::scoped_lock lk(game_data_mutex);
+      our_name = cached_player_data.value("name", "");
+    }
+    for (const auto& row : combatants) {
+      if (!our_name.empty() && row.value("Player Name", "") == our_name) {
+        entry["outcome"]  = row.value("Outcome", "");
+        entry["location"] = row.value("Location", "");
+        entry["ship"]     = row.value("Ship Name", "");
+        break;
+      }
+    }
+
+    entry["combatants"]  = combatants;
+    entry["rewards"]     = rewards;
+    entry["fleet_stats"] = fleet_stats;
+    entry["rounds"]      = rounds;
+
+    std::string out_path;
+    if (cfg.export_gamestate_path.empty()) {
+      out_path = "community_patch_battlelog.json";
+    } else {
+      out_path = (std::filesystem::path(cfg.export_gamestate_path) / "community_patch_battlelog.json").string();
+    }
+
+    json entries = json::array();
+    std::ifstream in(out_path);
+    if (in.is_open()) {
+      try { in >> entries; if (!entries.is_array()) entries = json::array(); }
+      catch (...) { entries = json::array(); }
+      in.close();
+    }
+
+    for (const auto& e : entries) {
+      if (e.value("id", "") == filename) { spdlog::debug("Battlelog CSV: duplicate {}", filename); return; }
+    }
+
+    entries.push_back(entry);
+    while (entries.size() > MAX_BATTLELOG_ENTRIES) entries.erase(entries.begin());
+
+    std::ofstream out(out_path, std::ios::trunc);
+    if (!out.is_open()) { spdlog::error("Battlelog CSV: Cannot write {}", out_path); return; }
+    out << entries.dump(2);
+    out.close();
+
+    spdlog::info("Battlelog CSV: Imported {} ({} total entries)", filename, entries.size());
+    sync_to_gist(out_path, cfg.export_gamestate_gist.filename_battlelog);
+
+  } catch (const std::exception& e) {
+    spdlog::error("Battlelog CSV: Exception processing {}: {}", csv_path, e.what());
+  }
+}
+
 void export_thread_func()
 {
   auto& cfg = Config::Get();
+
+  // Track CSV files we've already processed
+  std::unordered_set<std::string> processed_csvs;
+
+  // Pre-populate with any CSVs already on disk so we don't re-import old ones
+  // prime_Data sits alongside the game executable — derive from export_gamestate_path if set,
+  // otherwise fall back to the game module's own directory.
+  std::filesystem::path game_dir;
+  if (!cfg.export_gamestate_path.empty()) {
+    game_dir = std::filesystem::path(cfg.export_gamestate_path);
+  } else {
+#if _WIN32
+    wchar_t module_path[MAX_PATH] = {};
+    GetModuleFileNameW(nullptr, module_path, MAX_PATH);
+    game_dir = std::filesystem::path(module_path).parent_path();
+#else
+    game_dir = std::filesystem::current_path();
+#endif
+  }
+  const std::filesystem::path csv_dir = game_dir / "prime_Data";
+  spdlog::info("Battlelog CSV watcher: watching {}", csv_dir.string());
+  if (std::filesystem::exists(csv_dir)) {
+    for (const auto& entry : std::filesystem::directory_iterator(csv_dir)) {
+      if (entry.path().extension() == ".csv") {
+        processed_csvs.insert(entry.path().string());
+      }
+    }
+    spdlog::info("Battlelog CSV watcher: pre-seeded {} existing CSV files", processed_csvs.size());
+  } else {
+    spdlog::warn("Battlelog CSV watcher: directory not found: {}", csv_dir.string());
+  }
 
   spdlog::info("GameState export thread started");
 
@@ -731,14 +883,15 @@ void export_thread_func()
   auto last_export_time = std::chrono::steady_clock::now();
 
   while (!should_stop) {
-    // Wait for either immediate export request or interval timeout
+    // Wait for either immediate export request, interval timeout, or CSV poll (10s)
     std::unique_lock<std::mutex> lock(export_request_mutex);
 
     if (cfg.export_gamestate_interval > 0) {
-      export_cv.wait_for(lock, std::chrono::seconds(cfg.export_gamestate_interval), 
+      export_cv.wait_for(lock, std::chrono::seconds(std::min(cfg.export_gamestate_interval, 10)), 
                          [] { return should_export_now || should_stop; });
     } else {
-      export_cv.wait(lock, [] { return should_export_now || should_stop; });
+      export_cv.wait_for(lock, std::chrono::seconds(10),
+                         [] { return should_export_now || should_stop; });
     }
 
     if (should_stop) {
@@ -766,8 +919,11 @@ void export_thread_func()
       }
     }
 
-    // Export if requested or interval elapsed
-    if (should_export_now || cfg.export_gamestate_interval > 0) {
+    // Export if explicitly requested or interval has elapsed
+    auto seconds_since_last_export = std::chrono::duration_cast<std::chrono::seconds>(now - last_export_time).count();
+    bool interval_elapsed = cfg.export_gamestate_interval > 0 && seconds_since_last_export >= cfg.export_gamestate_interval;
+
+    if (should_export_now || interval_elapsed) {
       should_export_now = false;
       lock.unlock();
 
@@ -778,6 +934,17 @@ void export_thread_func()
       }
 
       last_export_time = now;
+    }
+
+    // Poll prime_Data/ for new battle CSV files
+    if (std::filesystem::exists(csv_dir)) {
+      for (const auto& entry : std::filesystem::directory_iterator(csv_dir)) {
+        if (entry.path().extension() != ".csv") continue;
+        const std::string csv_path = entry.path().string();
+        if (processed_csvs.count(csv_path)) continue;
+        processed_csvs.insert(csv_path);
+        process_battle_csv(csv_path);
+      }
     }
   }
 
