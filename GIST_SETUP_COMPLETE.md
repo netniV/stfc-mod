@@ -121,9 +121,25 @@ Please review both to understand my current state and recent progression.
 
 1. Launch STFC with mod installed
 2. (Optional) Start sync script in background
-3. Play normally
-4. Gamestate automatically exports and syncs
-5. Share Gist URL with AI when you need planning help
+3. **Navigate in-game to populate full data** (see below)
+4. Play normally
+5. Gamestate automatically exports and syncs
+6. Share Gist URL with AI when you need planning help
+
+### In-Game Navigation for Full Data
+
+Some data only arrives when you visit specific parts of the game.
+Do these once per session after login for the most complete export:
+
+| Data | Required Action |
+|---|---|
+| `player.name`, `player.power`, `player.server` | Arrives automatically shortly after login |
+| `buildings`, `research`, `resources`, `officers` | Arrives automatically at login |
+| **Peace shield** (`station.peace_shield.active`, `expires_at`) | **Tap your station on the system/galaxy map view** — interior/exterior buttons do NOT trigger this |
+| Fleet assignments (`drydocks`) | Under investigation — see BUG-3 |
+
+> **Note:** If you do not tap your station, the peace shield will show as unknown
+> and no shield alerts will fire (the mod suppresses alerts until it has real data).
 
 ### When Planning with AI
 

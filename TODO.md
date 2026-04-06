@@ -71,11 +71,13 @@ Interior view, exterior view, and system-button do NOT trigger the scan.
 specific server response arrives. `player.ops_level` and `server` populate from
 buildings data and are available immediately.
 **TODO:**
+- [x] Peace shield trigger identified: tap station on system/galaxy map view
+- [x] Documented in INSTALL.md and GIST_SETUP_COMPLETE.md
 - [ ] Identify exactly which in-game screens/actions trigger the player profile
       response that populates `name`, `power`, `server`, `alliance`
-- [ ] Document in README/startup instructions: "visit X, Y, Z screens after
-      launch to ensure full player data is exported"
-- [ ] Work through this together by observing log output vs in-game navigation
+      (currently arrives automatically ~5s after login in testing, but not always)
+- [ ] Identify what triggers fleet/drydock assignments (BUG-3)
+- [ ] Update docs once BUG-3 resolved
 
 ### Feature 2: Battle log — outcome/ship empty on some entries
 **Context:** `outcome` and `ship` fields in battlelog entries are resolved by

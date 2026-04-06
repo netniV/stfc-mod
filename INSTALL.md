@@ -70,7 +70,18 @@ Installation of the Community Mod is a manual process for Windows (or Wine).
    create `community_patch_settings.toml` and populate this with the default
    values.
 
-5. For first time users of the Community Mod, it recommended to utilise the
+5. **Navigate in-game to populate full gamestate data.** Most data is captured
+   automatically at login, but some requires specific navigation:
+
+   - **Peace shield status** — tap your station object on the system/galaxy map
+     view (not the interior/exterior button — the actual station icon on the map).
+     Until you do this, the shield state is unknown and no alerts will fire.
+
+   - **Player name & power** — arrives automatically a few seconds after login.
+
+   - **Fleet assignments** — under investigation; will be documented once resolved.
+
+6. For first time users of the Community Mod, it recommended to utilise the
    [sample configuration file](example_community_patch_settings.toml), which can
    be saved to the game folder with the name `community_patch_settings.toml`. This
    sample file contains additional comments that explain the available settings.
