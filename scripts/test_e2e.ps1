@@ -115,10 +115,11 @@ try {
     $resp = Invoke-WebRequest $rawManifest -Headers $headers -UseBasicParsing -TimeoutSec 15
     Check "Gist manifest reachable (HTTP 200)" ($resp.StatusCode -eq 200)
     $gistManifest = $resp.Content | ConvertFrom-Json
-    Check "Gist manifest has files array" ($gistManifest.files.Count -gt 0)
+    Check "Gist manifest has files array"      ($gistManifest.files.Count -gt 0)
+    Check "Gist manifest entries have keys"    (($gistManifest.files | Where-Object { $_.keys.Count -gt 0 }).Count -eq $gistManifest.files.Count)
     $gistManifestAge = ([datetime]::Now - [datetime]$gistManifest.exported_at).TotalSeconds
     Check "Gist manifest: exported_at within last 600s" ($gistManifestAge -lt 600) "Age: ${gistManifestAge}s"
-    Write-Host "    Gist manifest lists $($gistManifest.files.Count) files" -ForegroundColor DarkGray
+    Write-Host "    Gist manifest lists $($gistManifest.files.Count) files, all with keys" -ForegroundColor DarkGray
 } catch {
     Check "Gist manifest reachable" $false $_.Exception.Message
 }

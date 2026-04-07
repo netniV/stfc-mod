@@ -1141,10 +1141,12 @@ void export_game_state()
       manifest["description"]  = "STFC Community Mod \u2014 game state export index";
 
       auto make_entry = [&](const std::string& file, const std::string& gist_name,
-                             const std::string& desc) {
+                             const std::string& desc,
+                             const std::vector<std::string>& keys) {
         json e;
         e["file"]        = file;
         e["description"] = desc;
+        e["keys"]        = keys;
         if (gist.enabled && !gist.gist_id.empty()) {
           e["url"] = "https://gist.githubusercontent.com/" +
                      gist.gist_id + "/raw/" + gist_name;
@@ -1153,15 +1155,33 @@ void export_game_state()
       };
 
       manifest["files"] = json::array({
-        make_entry("player.json",    gist.filename_player,    "Player profile, station peace shield, drydock assignments"),
-        make_entry("ships.json",     gist.filename_ships,     "Ships hangar with hull, tier, level, components and blueprint part counts"),
-        make_entry("resources.json", gist.filename_resources, "Non-zero resource amounts with names"),
-        make_entry("research.json",  gist.filename_research,  "Research tree levels"),
-        make_entry("officers.json",  gist.filename_officers,  "Officers with rank, level and trait levels"),
-        make_entry("missions.json",  gist.filename_missions,  "Active and completed mission IDs"),
-        make_entry("faction.json",   gist.filename_faction,   "Faction reputation, store tokens, armada credits, faction favors and syndicate loyalty buffs"),
-        make_entry("buffs.json",     gist.filename_buffs,     "Full buff catalog (ShipBonusBuffSpecs) with modifier types, operations and per-level values"),
-        make_entry("battlelog.json", gist.filename_battlelog, "Battle history (last 500 battles)"),
+        make_entry("player.json",    gist.filename_player,
+          "Player profile, station, and drydock assignments",
+          {"player", "station", "drydocks"}),
+        make_entry("ships.json",     gist.filename_ships,
+          "Ships in the hangar (hull, tier, level, components) and blueprint part counts",
+          {"ships", "blueprints"}),
+        make_entry("resources.json", gist.filename_resources,
+          "All non-zero resource amounts with names (raw materials, tokens, consumables, etc.)",
+          {"resources"}),
+        make_entry("research.json",  gist.filename_research,
+          "All unlocked research nodes with their current level and tree name",
+          {"research"}),
+        make_entry("officers.json",  gist.filename_officers,
+          "Officers with rank, level, shard count and all trait levels",
+          {"officers"}),
+        make_entry("missions.json",  gist.filename_missions,
+          "Active mission instances and completed mission IDs",
+          {"missions_active", "missions_completed"}),
+        make_entry("faction.json",   gist.filename_faction,
+          "Faction reputation points, store tokens, armada credits, per-faction store favors (all tiers, tier=0 means not yet purchased), and Syndicate Loyalty track buffs",
+          {"faction_reputation", "faction_store_tokens", "armada_credits", "faction_favors", "syndicate_loyalty_buffs"}),
+        make_entry("buffs.json",     gist.filename_buffs,
+          "Full buff catalog from ShipBonusBuffSpecs: every buff with its modifier type, operation, per-level ranked values and faction affiliation where applicable",
+          {"buff_catalog"}),
+        make_entry("battlelog.json", gist.filename_battlelog,
+          "Battle history (last 500 battles) with outcomes, ship IDs and resource changes",
+          {"battlelog"}),
       });
 
       write_json_file(dir / "manifest.json", manifest);
