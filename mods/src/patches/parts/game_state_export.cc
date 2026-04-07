@@ -82,6 +82,12 @@ static std::unordered_map<int64_t, CachedBuffSpec> cached_buff_specs;
 // Faction specs: factionId -> human-readable name (from FactionSpecs type 8)
 static std::unordered_map<int64_t, std::string> cached_faction_specs;
 
+// Faction favors spec: researchId -> { faction_prefix, favor_name, max_tier }
+// Built from ConsumableSpecs (type 114) RESEARCH_UNLOCK entries.
+// Multiple consumables share the same researchId (one per tier); max_tier is the highest seen.
+struct FavorInfo { std::string faction_prefix; std::string favor_name; int32_t max_tier; };
+static std::unordered_map<int64_t, FavorInfo> cached_favor_specs; // researchId -> info
+
 // Change tracking
 static std::string last_full_export_time;
 static std::chrono::steady_clock::time_point last_full_export_tp;
@@ -424,7 +430,23 @@ void capture_faction_specs(const std::vector<std::pair<int64_t, std::string>>& s
   spdlog::info("GameState: capture_faction_specs: {} factions cached", cached_faction_specs.size());
 }
 
-// Human-readable name for a CLIENTMODIFIERTYPE_* code
+void capture_favor_specs(const std::vector<FavorSpecEntry>& specs)
+{
+  std::scoped_lock lock(game_data_mutex);
+  for (const auto& s : specs) {
+    auto& info = cached_favor_specs[s.research_id];
+    info.faction_prefix = s.faction_prefix;
+    info.favor_name     = s.favor_name;
+    info.max_tier       = std::max(info.max_tier, s.tier);
+  }
+  // Count unique factions
+  std::unordered_set<std::string> factions;
+  for (const auto& [id, info] : cached_favor_specs) factions.insert(info.faction_prefix);
+  spdlog::info("GameState: capture_favor_specs: {} favor types across {} factions",
+               cached_favor_specs.size(), factions.size());
+}
+
+
 static std::string modifier_code_name(int32_t code)
 {
   switch (code) {
@@ -685,46 +707,32 @@ json build_game_state_json()
   }
 
   // Faction favors — permanent buffs bought in per-faction stores.
-  // Active buffs (no expiry) whose BuffSpec.factionId > 0 are faction-store purchases.
+  // Faction favors — permanent bonuses purchased in per-faction stores.
+  // Each favor corresponds to a research node (from ConsumableSpecs RESEARCH_UNLOCK entries).
+  // The player's current tier = the level of that research node in cached_research.
   {
+    // Group by faction prefix, sorted alphabetically
     std::map<std::string, json> by_faction;
-    for (const auto& [buff_id, level] : cached_active_buffs) {
-      auto spec_it = cached_buff_specs.find(buff_id);
-      if (spec_it == cached_buff_specs.end()) continue;
-      const auto& spec = spec_it->second;
-      if (spec.faction_id <= 0) continue; // not faction-affiliated
+    for (const auto& [research_id, info] : cached_favor_specs) {
+      // Look up player's current level for this research node
+      auto res_it = cached_research.find(research_id);
+      if (res_it == cached_research.end()) continue;   // not in player's research = not purchased
+      const int32_t player_tier = res_it->second;
+      if (player_tier <= 0) continue;                  // level 0 = not started
 
-      // Resolve faction name
-      std::string faction_name;
-      auto fac_it = cached_faction_specs.find(spec.faction_id);
-      if (fac_it != cached_faction_specs.end())
-        faction_name = fac_it->second;
-      else
-        faction_name = "faction_" + std::to_string(spec.faction_id);
-
-      // Current value = rankedValues[level-1] if available
-      double current_value = 0.0;
-      if (level > 0 && static_cast<size_t>(level) <= spec.ranked_values.size())
-        current_value = spec.ranked_values[static_cast<size_t>(level) - 1];
-
-      by_faction[faction_name].push_back({
-        {"buff_id",        buff_id},
-        {"modifier",       modifier_code_name(spec.modifier_code)},
-        {"modifier_code",  spec.modifier_code},
-        {"operation",      spec.operation},
-        {"level",          level},
-        {"max_level",      static_cast<int32_t>(spec.ranked_values.size())},
-        {"value",          current_value},
-        {"show_percentage", spec.show_percentage},
-        {"all_values",     spec.ranked_values}
+      by_faction[info.faction_prefix].push_back({
+        {"favor",       info.favor_name},
+        {"tier",        player_tier},
+        {"max_tier",    info.max_tier},
+        {"research_id", research_id}
       });
     }
     j["faction_favors"] = json::array();
-    for (auto& [faction, buffs] : by_faction) {
-      std::sort(buffs.begin(), buffs.end(), [](const json& a, const json& b) {
-        return a["modifier"].get<std::string>() < b["modifier"].get<std::string>();
+    for (auto& [faction, favors] : by_faction) {
+      std::sort(favors.begin(), favors.end(), [](const json& a, const json& b) {
+        return a["favor"].get<std::string>() < b["favor"].get<std::string>();
       });
-      j["faction_favors"].push_back({{"faction", faction}, {"buffs", buffs}});
+      j["faction_favors"].push_back({{"faction", faction}, {"favors", favors}});
     }
   }
 

@@ -1081,6 +1081,53 @@ void process_faction_specs(std::unique_ptr<std::string>&& bytes)
   }
 }
 
+void process_consumable_specs(std::unique_ptr<std::string>&& bytes)
+{
+  if (!Config::Get().export_gamestate) return;
+
+  if (auto response = Digit::PrimeServer::Models::StaticSyncConsumableSpecsResponse(); response.ParseFromString(*bytes)) {
+    std::vector<game_state_export::FavorSpecEntry> specs;
+    for (const auto& s : response.spec()) {
+      // Faction favors are RESEARCH_UNLOCK consumables with name pattern Consumable_{prefix}_{favor}_{tier}
+      if (s.consumabletype() != Digit::PrimeServer::Models::ConsumableType::CONSUMABLETYPE_UNLOCK) continue;
+      if (!s.has_consumableunlockspecparams()) continue;
+      const auto& unlock = s.consumableunlockspecparams();
+      if (unlock.unlocktype() != "RESEARCH_UNLOCK" || !unlock.has_researchproject()) continue;
+
+      // Parse name: "Consumable_{prefix}_{favor_body}_{tier}"
+      const std::string& name = s.name();
+      static const std::string consumable_pfx = "Consumable_";
+      if (name.rfind(consumable_pfx, 0) != 0) continue;
+      const std::string body = name.substr(consumable_pfx.size()); // e.g. "Baj_Weapon_Damage_3"
+
+      // Split into prefix (first segment), favor body (middle), tier (last segment)
+      auto first_us = body.find('_');
+      auto last_us  = body.rfind('_');
+      if (first_us == std::string::npos || last_us == first_us) continue;
+
+      const std::string faction_prefix = body.substr(0, first_us);
+      const std::string tier_str       = body.substr(last_us + 1);
+      const std::string favor_name     = body.substr(first_us + 1, last_us - first_us - 1);
+
+      int32_t tier = 0;
+      try { tier = std::stoi(tier_str); } catch (...) { continue; }
+      if (tier <= 0) continue;
+
+      specs.push_back({
+        unlock.researchproject().researchid(),
+        tier,
+        faction_prefix,
+        favor_name
+      });
+    }
+    spdlog::info("GameState: ConsumableSpecs: {} faction favor specs parsed", specs.size());
+    game_state_export::capture_favor_specs(specs);
+  } else {
+    spdlog::error("GameState: Failed to parse ConsumableSpecs");
+  }
+}
+
+
 void process_ship_bonus_buff_specs(std::unique_ptr<std::string>&& bytes)
 {
   if (!Config::Get().export_gamestate) return;
@@ -2310,6 +2357,11 @@ void HandleEntityGroup(EntityGroup* entity_group)
     case EntityGroup::Type::FactionSpecs:
       if (Config::Get().export_gamestate) {
         submit_async(process_faction_specs);
+      }
+      break;
+    case EntityGroup::Type::ConsumableSpecs:
+      if (Config::Get().export_gamestate) {
+        submit_async(process_consumable_specs);
       }
       break;
     case EntityGroup::Type::ShipBonusBuffSpecs:

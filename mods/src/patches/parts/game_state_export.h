@@ -56,4 +56,16 @@ namespace game_state_export
 
   // Active buffs snapshot (GlobalActiveBuffs, type 69) — {buffId, level}
   void capture_active_buffs(const std::vector<std::pair<int64_t, int32_t>>& buffs);
+
+  // Faction favors (ConsumableSpecs, type 114)
+  // Each favor is a RESEARCH_UNLOCK consumable: purchasing tier N unlocks researchId at level N.
+  // faction_prefix: e.g. "Baj", "EXB", "S31"   favor_name: e.g. "Weapon_Damage"
+  // max_tier: highest tier index seen for this researchId across all consumable entries
+  struct FavorSpecEntry {
+    int64_t     research_id;
+    int32_t     tier;        // 1-based tier this consumable unlocks
+    std::string faction_prefix;
+    std::string favor_name;  // human-readable portion of the consumable name
+  };
+  void capture_favor_specs(const std::vector<FavorSpecEntry>& specs);
 } // namespace game_state_export
