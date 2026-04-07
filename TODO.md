@@ -1,4 +1,4 @@
-# ??? STFC Community Mod - TODO List
+ï»¿# ??? STFC Community Mod - TODO List
 
 ## ? Completed
 
@@ -13,20 +13,20 @@
 
 ## ?? Active Bugs (fix before next release)
 
-### BUG-1: Full export fires too frequently, constantly wiping delta file — FIXED
+### BUG-1: Full export fires too frequently, constantly wiping delta file ï¿½ FIXED
 **Was:** `capture_player_data/buildings/ships` called `request_full_export()` /
 `request_immediate_export()` unconditionally on every call. Game sends repeated
 identical payloads at login, flooding full exports that wiped the delta file.
 **Fix:** All three capture functions now compare incoming values against cached
 state and only request an export when something actually changed.
 
-### BUG-2: Peace shield detection incorrect — FULLY FIXED
+### BUG-2: Peace shield detection incorrect ï¿½ FULLY FIXED
 **What's fixed:**
 - Shield expiry read from `StarbaseDetailedScan` (EntityGroup type=57)
 - False SHIELD ALERT at startup suppressed until first scan received
 - `active`, `expires_at`, `expires_epoch`, `seconds_remaining` all correct
-- Token count read from `cached_resources` using known resource IDs — verified
-  534 tokens (1h×3 + 4h×177 + 8h×166 + 12h×117 + 1d×66 + 3d×4 + 30d×1)
+- Token count read from `cached_resources` using known resource IDs ï¿½ verified
+  534 tokens (1hï¿½3 + 4hï¿½177 + 8hï¿½166 + 12hï¿½117 + 1dï¿½66 + 3dï¿½4 + 30dï¿½1)
 - Peace shield changes tracked in differential export
 
 **Trigger documented:** tap your station in the **system view** of your home
@@ -34,24 +34,24 @@ system. NOT the galaxy view, NOT interior/exterior button, NOT system button.
 Documented in INSTALL.md and GIST_SETUP_COMPLETE.md.
 
 **Still open (follow-up):**
-- [ ] Golden peace shield (Scopely-applied after maintenance) — separate UI
+- [ ] Golden peace shield (Scopely-applied after maintenance) ï¿½ separate UI
       and countdown; not yet identified in proto data
-- [ ] Auto-10min shield (triggered on first attack when unshielded) — verify
+- [ ] Auto-10min shield (triggered on first attack when unshielded) ï¿½ verify
       it shows correctly via the same `StarbaseDetailedScan` path
 
-### BUG-3: Fleet/hangar ships not populating drydock assignments — FIXED
+### BUG-3: Fleet/hangar ships not populating drydock assignments ï¿½ FIXED
 **Was:** Code looked for `SLOTTYPE_FLEETPRESET` (type=7) in `EntitySlots`/
 `EntitySlotsData` proto messages. That slot type is never sent.
 **Fix:** Parse the `fleets` key in the JSON blob (EntityGroup type=42).
 Each entry has a raw server-side `drydock_id` and `ship_ids`. Sort by
 `drydock_id` ascending, re-index 1-5, export layer maps 1=A ... 5=E.
-**Arrives automatically at login — no navigation required.**
+**Arrives automatically at login ï¿½ no navigation required.**
 
 ---
 
 ## ?? Pending Work
 
-### Player profile data population — documentation needed
+### Player profile data population ï¿½ documentation needed
 **Context:** `player.name` and `player.power` are empty on fresh login until a
 specific server response arrives. `player.ops_level` and `server` populate from
 buildings data and are available immediately.
@@ -64,14 +64,14 @@ buildings data and are available immediately.
       (currently arrives automatically ~5s after login in testing, but not always)
 - [ ] Update docs once player profile trigger is fully confirmed
 
-### Feature: Syndicate level data — DONE
+### Feature: Syndicate level data ï¿½ DONE
 Syndicate level and XP read from `cached_resources` at export time:
 - `Resource_Loyalty_Tier_HiddenToken` (id `1141922149`) = syndicate level
 - `Resource_Loyalty_Points` (id `3374607211`) = syndicate XP
 Both arrive automatically at login. Exported as `player.syndicate_level`
 and `player.syndicate_xp` in the gamestate JSON.
 
-### Feature 2: Battle log — outcome/ship empty on some entries — FIXED
+### Feature 2: Battle log ï¿½ outcome/ship empty on some entries ï¿½ FIXED
 **Was:** `outcome`, `ship`, and `location` resolved by matching `Player Name`
 in the CSV against `cached_player_data.name`. If the name hadn't arrived yet
 when the CSV was processed, those fields were left empty.
@@ -80,12 +80,12 @@ when the CSV was processed, those fields were left empty.
 non-empty name, `resolve_pending_battlelog_outcomes` re-scans the battlelog
 file and back-fills the missing fields, then re-syncs to Gist.
 
-### Feature: Missions — completed and in progress — DONE
+### Feature: Missions ï¿½ completed and in progress ï¿½ DONE
 - `missions_active` array: each entry has `instance_id` and `mission_id`;
   29 active missions captured at login
 - `missions_completed` array: flat list of completed mission IDs;
   1433 completed missions captured at login
-- Both arrive automatically at login — no navigation required
+- Both arrive automatically at login ï¿½ no navigation required
 - Note: no name enrichment yet (missions not in `stfc_id_mappings.json`)
 - Fix: `HandleEntityGroup` gate updated to also trigger on `export_gamestate`
   (previously only fired when `sync_options.missions` was enabled)
@@ -95,7 +95,7 @@ file and back-fills the missing fields, then re-syncs to Gist.
 needed to reach the next tier/level so AI assistants can give specific
 upgrade advice.
 **TODO:**
-- [ ] Identify where ship upgrade cost data lives — likely
+- [ ] Identify where ship upgrade cost data lives ï¿½ likely
       `ShipTierSpecs` (EntityGroup type=50) or `BaseShipTierSpecs` (type=49)
 - [ ] Cross-reference each ship's current tier/level from `cached_ships`
       against the spec data to compute what's needed for next upgrade
@@ -103,23 +103,21 @@ upgrade advice.
       (or as a separate top-level `ship_upgrade_costs` section)
 - [ ] Only include ships the player actually owns
 
-### Feature: Faction favors
-**Goal:** Export the player's current faction favor counts so AI assistants
-can advise on which factions to prioritise and what rewards are within reach.
-**TODO:**
-- [ ] Identify the resource IDs for each faction's favor currency —
-      likely `Resource_FactionFavor_*` pattern in `stfc_id_mappings.json`
-- [ ] Check whether they already arrive in `cached_resources` at login
-      (faction reputation does, so faction favors likely do too)
-- [ ] Add `faction_favors` section to the gamestate JSON alongside the
-      existing `faction_reputation` section, keyed by faction name with
-      current favor count
+### Feature: Faction store tokens and armada credits â€” DONE
+**What was found:** `Resource_FactionToken_*` (store currencies) and
+`Resource_Faction_SArmada_Credit_*` / `Resource_Faction_SArmadaDir_*`
+(armada directives) were already in `cached_resources` at login.
+No `Resource_FactionFavor_*` pattern exists â€” 'favour' in STFC is
+represented by the `FactionToken` resources.
+**Implemented:** `faction_store_tokens` and `armada_credits` sections added
+to `faction.json`. Only non-zero amounts included. 12 token types and
+6 armada credit types exported. Tests: 55/55.
 
-### Feature: Event data — daily, weekly and other
+### Feature: Event data ï¿½ daily, weekly and other
 **Goal:** Export current active events (daily goals, weekly missions, limited
 time events, etc.) so AI assistants can factor them into planning advice.
 **TODO:**
-- [ ] Identify which data source carries active event state — candidates:
+- [ ] Identify which data source carries active event state ï¿½ candidates:
       `marauder_quick_scan_data` and `hazard_result_headers` seen in the
       JSON blob key list; also check EntityGroup types for event responses
 - [ ] Distinguish event types: daily goals, weekly events, limited-time
@@ -138,15 +136,15 @@ can help with territory capture strategy and co-ordination planning.
 - Territory holdings: which systems/zones the alliance controls,
   capture status, fortification level, and any active contests
 - Territory capture windows (when zones are capturable)
-- Alliance diplomacy state (war/peace/NAP relationships) — already
+- Alliance diplomacy state (war/peace/NAP relationships) ï¿½ already
   partially in the `alliance_diplomacy_relationships` JSON key
 **TODO:**
-- [ ] Audit what already arrives in the JSON blob — known candidates:
+- [ ] Audit what already arrives in the JSON blob ï¿½ known candidates:
       `alliance`, `alliance_container`, `alliance_members`,
       `alliance_member_activity`, `alliance_diplomacy_relationships`,
       `alliances_info` (all seen in the key list at login)
 - [ ] Identify which key/proto carries territory holdings and capture
-      windows — likely requires navigating to the Territory screen
+      windows ï¿½ likely requires navigating to the Territory screen
 - [ ] Export `alliance` section to gamestate JSON (name, tag, level,
       member count, power)
 - [ ] Export `territory` section: controlled zones with fortification
@@ -164,16 +162,16 @@ which store purchases are within reach.
 - Faction stores: per-faction store items, their costs, and whether the
   player has enough reputation + currency to buy them
 **TODO:**
-- [ ] Identify which data source carries refinery state — likely a
+- [ ] Identify which data source carries refinery state ï¿½ likely a
       dedicated EntityGroup type or a JSON blob key; check for
       `refinery`, `refinery_slots`, or `RefineryResponse` in the proto
-- [ ] Identify faction store data source — likely `FactionStoreResponse`
+- [ ] Identify faction store data source ï¿½ likely `FactionStoreResponse`
       or similar EntityGroup; check proto definitions
 - [ ] Export `refinery.json` with current refineable resources and queue
 - [ ] Export `faction_stores.json` (or add to `faction.json`) with
       per-faction purchasable items and player's affordability
 
-### Reorganisation: Consolidate all mod output into a single folder — DONE
+### Reorganisation: Consolidate all mod output into a single folder ï¿½ DONE
 **Decision:** `community_patch_settings.toml` and `community_patch_runtime.vars`
 stay at game root (alongside `prime.exe`) to keep the diff with upstream minimal
 and make merging easier.
@@ -197,11 +195,11 @@ and make merging easier.
 
 ## ??? Stale / Superseded items (kept for reference)
 
-- Ships ID mappings — 113 ships now in stfc_id_mappings.json ?
-- Officer traits mappings — 84 traits in stfc_id_mappings.json ?
-- Faction reputation export — implemented via Resource_FactionPoint_* ?
-- Blueprint parts export — implemented via Resource_*_Parts_* ?
-- Feature 3: Discord TC webhooks — moved to stfc-discord-tc-notifications repo
+- Ships ID mappings ï¿½ 113 ships now in stfc_id_mappings.json ?
+- Officer traits mappings ï¿½ 84 traits in stfc_id_mappings.json ?
+- Faction reputation export ï¿½ implemented via Resource_FactionPoint_* ?
+- Blueprint parts export ï¿½ implemented via Resource_*_Parts_* ?
+- Feature 3: Discord TC webhooks ï¿½ moved to stfc-discord-tc-notifications repo
 
 
 **Next Immediate Steps:**
