@@ -64,15 +64,16 @@ function Check-ExportFile($name, $desc) {
     return $null
 }
 
-$gsPlayer   = Check-ExportFile "player.json"    "player"
-$gsShips    = Check-ExportFile "ships.json"     "ships"
-$gsRes      = Check-ExportFile "resources.json" "resources"
-$gsResearch = Check-ExportFile "research.json"  "research"
-$gsOfficers = Check-ExportFile "officers.json"  "officers"
-$gsMissions = Check-ExportFile "missions.json"  "missions"
-$gsFaction  = Check-ExportFile "faction.json"   "faction"
-$gsBuffs    = Check-ExportFile "buffs.json"     "buffs"
-$gsManifest = Check-ExportFile "manifest.json"  "manifest"
+$gsPlayer    = Check-ExportFile "player.json"    "player"
+$gsShips     = Check-ExportFile "ships.json"     "ships"
+$gsRes       = Check-ExportFile "resources.json" "resources"
+$gsResearch  = Check-ExportFile "research.json"  "research"
+$gsOfficers  = Check-ExportFile "officers.json"  "officers"
+$gsMissions  = Check-ExportFile "missions.json"  "missions"
+$gsFaction   = Check-ExportFile "faction.json"   "faction"
+$gsBuffs     = Check-ExportFile "buffs.json"     "buffs"
+$gsTerritory = Check-ExportFile "territory.json" "territory"
+$gsManifest  = Check-ExportFile "manifest.json"  "manifest"
 
 if ($gsPlayer) {
     Check "player.ops_level > 0" ($gsPlayer.player.ops_level -gt 0)
@@ -109,9 +110,26 @@ if ($gsFaction)  { Check "faction_reputation present"    ($gsFaction.faction_rep
                    Check "faction_store_tokens present" ($gsFaction.faction_store_tokens -ne $null);  Check "faction_favors key present" ($null -ne $gsFaction.PSObject.Properties['faction_favors'])
                    Check "faction_favors non-empty"     ($gsFaction.faction_favors.Count -gt 0)
                    Write-Host "    faction tokens: $($gsFaction.faction_store_tokens.Count) entries, armada credits: $($gsFaction.armada_credits.Count) entries, faction favors: $($gsFaction.faction_favors.Count) factions ($($gsFaction.faction_favors | ForEach-Object { "$($_.faction):$($_.favors.Count)" } | Join-String -Separator ', '))" -ForegroundColor DarkGray }
-if ($gsBuffs)    { Check "buff_catalog present"         ($gsBuffs.buff_catalog -ne $null)
-                   Check "buff_catalog non-empty"        ($gsBuffs.buff_catalog.Count -gt 0)
+if ($gsBuffs)     { Check "buff_catalog present"          ($gsBuffs.buff_catalog -ne $null)
+                   Check "buff_catalog non-empty"         ($gsBuffs.buff_catalog.Count -gt 0)
                    Write-Host "    buff catalog: $($gsBuffs.buff_catalog.Count) entries" -ForegroundColor DarkGray }
+if ($gsTerritory) {
+    Check "territory object present"         ($gsTerritory.territory -ne $null)
+    Check "territory.total_slots >= 0"       ($gsTerritory.territory.total_slots -ge 0)
+    Check "territory.used_slots >= 0"        ($gsTerritory.territory.used_slots -ge 0)
+    Check "territory.held is array"          ($null -ne $gsTerritory.territory.held)
+    if ($gsTerritory.territory.held.Count -gt 0) {
+        $first = $gsTerritory.territory.held[0]
+        Check "territory.held[0].territory_id set" ($first.territory_id -gt 0)
+        Check "territory.held[0].state non-empty" ($first.state -ne "")
+        Check "territory.held[0].tier >= 0"        ($first.tier -ge 0)
+        Check "territory.held[0].takeover_windows present" ($null -ne $first.takeover_windows)
+    } else {
+        Write-Host "  [INFO] alliance holds no territory (or data not yet received)" -ForegroundColor Yellow
+        $script:pass += 4
+    }
+    Write-Host "    territory: $($gsTerritory.territory.used_slots)/$($gsTerritory.territory.total_slots) slots, $($gsTerritory.territory.held.Count) held zones" -ForegroundColor DarkGray
+}
 # -----------------------------------------------------------------------
 Write-Host "`n=== 3. GIST SYNC - MANIFEST & PLAYER ===" -ForegroundColor Cyan
 

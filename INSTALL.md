@@ -88,6 +88,7 @@ Installation of the Community Mod is a manual process for Windows (or Wine).
           missions.json
           faction.json
           buffs.json
+          territory.json
           battlelog.json
           manifest.json               ← index with Gist URLs
    ```
@@ -119,6 +120,7 @@ Installation of the Community Mod is a manual process for Windows (or Wine).
    | `game_state_exports/missions.json` | Active and completed mission IDs | ✅ Yes | None |
    | `game_state_exports/faction.json` | Faction reputation, store tokens, armada credits, per-faction store favors (all tiers), syndicate loyalty buffs | ✅ Yes | None |
    | `game_state_exports/buffs.json` | Full buff catalog with modifier types, operations and per-level values | ✅ Yes | None |
+   | `game_state_exports/territory.json` | Alliance territory holdings: held zones with tier and takeover windows; total vs used slot count | ✅ Yes | None |
    | `game_state_exports/battlelog.json` | Battle history (last 500 battles) | N/A | Created when a new battle CSV appears in `prime_Data/` |
    | `game_state_exports/manifest.json` | Index of all above files with Gist URLs and key lists | ✅ Yes | None |
 

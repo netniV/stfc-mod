@@ -143,7 +143,7 @@ Do these once per session after login for the most complete export:
 | Data | Required action |
 |---|---|
 | `player.name`, `player.power`, `player.server`, `player.alliance` (name, tag, level, member count, power) | Arrives automatically at login — requires `player_id` set in `community_patch_settings.toml` under `[gamestate_export]` |
-| `player.ops_level`, `player.syndicate_level`, drydock assignments, ships, research, resources, officers, missions, faction, buffs | Arrives automatically at login — no action needed |
+| `player.ops_level`, `player.syndicate_level`, drydock assignments, ships, research, resources, officers, missions, faction, buffs, territory | Arrives automatically at login — no action needed |
 | **Peace shield** (`station.peace_shield.active`, `expires_at`) | **Tap your station icon in the system view** of your home system — interior/exterior buttons and the galaxy view do NOT trigger this |
 
 > **Note:** If you do not tap your station, the peace shield will show as unknown

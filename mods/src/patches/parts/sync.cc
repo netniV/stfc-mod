@@ -1198,6 +1198,55 @@ void process_ship_bonus_buff_specs(std::unique_ptr<std::string>&& bytes)
   }
 }
 
+void process_territory_static_data(std::unique_ptr<std::string>&& bytes)
+{
+  if (!Config::Get().export_gamestate) return;
+
+  if (auto r = Digit::PrimeServer::Models::TerritoriesStaticDataResponse(); r.ParseFromString(*bytes)) {
+    std::unordered_map<int64_t, game_state_export::TerritorySpec> specs;
+    for (const auto& [tid, t] : r.territories()) {
+      game_state_export::TerritorySpec spec;
+      spec.territory_id = tid;
+      spec.tier         = t.tier();
+      for (const auto& p : t.takeoverperiods()) {
+        spec.takeover_windows.push_back({
+          .weekday      = p.weekday(),
+          .start_hour   = p.starthour(),
+          .duration_mins = p.duration(),
+        });
+      }
+      specs[tid] = std::move(spec);
+    }
+    spdlog::info("GameState: TerritoryStaticData: {} territory specs", specs.size());
+    game_state_export::capture_territory_specs(std::move(specs));
+  } else {
+    spdlog::error("GameState: Failed to parse TerritoryStaticData");
+  }
+}
+
+void process_territory_alliance_slots(std::unique_ptr<std::string>&& bytes)
+{
+  if (!Config::Get().export_gamestate) return;
+
+  if (auto r = Digit::PrimeServer::Models::AllianceTerritorySlotsResponse(); r.ParseFromString(*bytes)) {
+    const auto& slots = r.allianceterritoryslots();
+    std::vector<game_state_export::TerritorySlot> held;
+    for (const auto& [slot_idx, slot] : slots.assignedslots()) {
+      using State = Digit::PrimeServer::Models::AllianceAssignedTerritorySlot_TerritorySlotState;
+      held.push_back({
+        .territory_id = slot.territoryid(),
+        .state        = (slot.state() == State::AllianceAssignedTerritorySlot_TerritorySlotState_TERRITORYSLOTSTATE_OWNED)
+                          ? "owned" : "takeover",
+      });
+    }
+    spdlog::info("GameState: TerritoryAllianceSlots: {} held / {} total slots",
+                 held.size(), slots.slotsize());
+    game_state_export::capture_territory_slots(std::move(held), static_cast<int32_t>(slots.slotsize()));
+  } else {
+    spdlog::error("GameState: Failed to parse TerritoryAllianceSlots");
+  }
+}
+
 void process_loyalty_specs(std::unique_ptr<std::string>&& bytes)
 {
   if (!Config::Get().export_gamestate) return;
@@ -2442,6 +2491,16 @@ void HandleEntityGroup(EntityGroup* entity_group)
     case EntityGroup::Type::AllianceGetGameProperties:
       if (Config::Get().sync_options.buffs) {
         submit_async(process_alliance_games_props);
+      }
+      break;
+    case EntityGroup::Type::TerritoryStaticData:
+      if (Config::Get().export_gamestate) {
+        submit_async(process_territory_static_data);
+      }
+      break;
+    case EntityGroup::Type::TerritoryAllianceSlots:
+      if (Config::Get().export_gamestate) {
+        submit_async(process_territory_alliance_slots);
       }
       break;
     case EntityGroup::Type::UserProfiles:

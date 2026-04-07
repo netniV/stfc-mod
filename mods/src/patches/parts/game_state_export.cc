@@ -92,6 +92,11 @@ static std::unordered_map<int64_t, FavorInfo> cached_favor_specs; // researchId 
 static std::unordered_map<int32_t, int32_t> cached_tier_level_caps;    // tier -> max ship level
 static std::unordered_map<int64_t, int32_t> cached_hull_tier_durations; // hull_id -> duration secs
 
+// Territory (TerritoryStaticData type 96 + TerritoryAllianceSlots type 105)
+static std::unordered_map<int64_t, TerritorySpec> cached_territory_specs; // territory_id -> spec
+static std::vector<TerritorySlot>                 cached_territory_slots; // alliance held slots
+static int32_t                                    cached_territory_total_slots = 0;
+
 // Change tracking
 static std::string last_full_export_time;
 static std::chrono::steady_clock::time_point last_full_export_tp;
@@ -467,6 +472,24 @@ void capture_ship_tier_specs(const std::unordered_map<int32_t, int32_t>& tier_le
     cached_hull_tier_durations[hull_id] = dur;
   spdlog::info("GameState: capture_ship_tier_specs: {} tier caps, {} hull durations total",
                cached_tier_level_caps.size(), cached_hull_tier_durations.size());
+}
+
+void capture_territory_specs(std::unordered_map<int64_t, TerritorySpec>&& specs)
+{
+  std::scoped_lock lock(game_data_mutex);
+  cached_territory_specs = std::move(specs);
+  spdlog::info("GameState: capture_territory_specs: {} territory specs cached",
+               cached_territory_specs.size());
+}
+
+void capture_territory_slots(std::vector<TerritorySlot>&& held, int32_t total_slots)
+{
+  std::scoped_lock lock(game_data_mutex);
+  cached_territory_slots       = std::move(held);
+  cached_territory_total_slots = total_slots;
+  spdlog::info("GameState: capture_territory_slots: {}/{} slots held",
+               cached_territory_slots.size(), cached_territory_total_slots);
+  request_immediate_export();
 }
 
 // Human-readable name for a CLIENTMODIFIERTYPE_* code
@@ -912,6 +935,37 @@ json build_game_state_json()
                 cached_buildings.size(), cached_research.size(), cached_ships.size(),
                 cached_officers.size(), cached_resources.size(), cached_drydock_assignments.size());
 
+  // Alliance territory — held zones cross-referenced against static spec data
+  {
+    static const std::unordered_map<int32_t, std::string> WEEKDAY_NAMES = {
+      {0,"Sun"},{1,"Mon"},{2,"Tue"},{3,"Wed"},{4,"Thu"},{5,"Fri"},{6,"Sat"}
+    };
+    j["territory"]["total_slots"] = cached_territory_total_slots;
+    j["territory"]["used_slots"]  = static_cast<int>(cached_territory_slots.size());
+    j["territory"]["held"]        = json::array();
+    for (const auto& slot : cached_territory_slots) {
+      json entry;
+      entry["territory_id"] = slot.territory_id;
+      entry["state"]        = slot.state;
+      auto spec_it = cached_territory_specs.find(slot.territory_id);
+      if (spec_it != cached_territory_specs.end()) {
+        const auto& spec = spec_it->second;
+        entry["tier"] = spec.tier;
+        entry["takeover_windows"] = json::array();
+        for (const auto& w : spec.takeover_windows) {
+          auto day_it = WEEKDAY_NAMES.find(w.weekday);
+          json win;
+          win["weekday"]       = w.weekday;
+          win["weekday_name"]  = (day_it != WEEKDAY_NAMES.end()) ? day_it->second : "";
+          win["start_hour_utc"] = w.start_hour;
+          win["duration_mins"] = w.duration_mins;
+          entry["takeover_windows"].push_back(std::move(win));
+        }
+      }
+      j["territory"]["held"].push_back(std::move(entry));
+    }
+  }
+
   return j;
 }
 
@@ -997,6 +1051,7 @@ static void sync_all_to_gist(const std::filesystem::path& dir)
     {gist.filename_missions,  dir / "missions.json"},
     {gist.filename_faction,   dir / "faction.json"},
     {gist.filename_buffs,     dir / "buffs.json"},
+    {gist.filename_territory, dir / "territory.json"},
     {gist.filename_manifest,  dir / "manifest.json"},
   };
 
@@ -1168,6 +1223,14 @@ void export_game_state()
       write_json_file(dir / "buffs.json", j);
     }
 
+    // --- territory.json ---
+    {
+      json j;
+      j["exported_at"] = ts;
+      j["territory"]   = gs["territory"];
+      write_json_file(dir / "territory.json", j);
+    }
+
     // --- manifest.json ---
     {
       json manifest;
@@ -1214,6 +1277,9 @@ void export_game_state()
         make_entry("buffs.json",     gist.filename_buffs,
           "Full buff catalog from ShipBonusBuffSpecs: every buff with its modifier type, operation, per-level ranked values and faction affiliation where applicable",
           {"buff_catalog"}),
+        make_entry("territory.json", gist.filename_territory,
+          "Alliance territory holdings: held zones with tier and takeover windows, plus total/used slot counts",
+          {"territory"}),
         make_entry("battlelog.json", gist.filename_battlelog,
           "Battle history (last 500 battles) with outcomes, ship IDs and resource changes",
           {"battlelog"}),
@@ -1633,7 +1699,8 @@ void init()
                  gist.gist_id, gist.filename_manifest);
     for (const auto* fn : {&gist.filename_player, &gist.filename_ships, &gist.filename_resources,
                             &gist.filename_research, &gist.filename_officers, &gist.filename_missions,
-                            &gist.filename_faction, &gist.filename_buffs, &gist.filename_battlelog}) {
+                            &gist.filename_faction, &gist.filename_buffs, &gist.filename_territory,
+                            &gist.filename_battlelog}) {
       spdlog::info("GameState Gist sync:   https://gist.githubusercontent.com/raw/{}/{}", gist.gist_id, *fn);
     }
   } else {

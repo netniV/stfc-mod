@@ -76,4 +76,24 @@ namespace game_state_export
   // hull_tier_durations: hull_id -> tier-up build time in seconds (per-hull override)
   void capture_ship_tier_specs(const std::unordered_map<int32_t, int32_t>& tier_level_caps,
                                 const std::unordered_map<int64_t, int32_t>& hull_tier_durations);
+
+  // Territory specs (TerritoryStaticData type 96)
+  struct TerritoryWindow {
+    int32_t weekday;       // 0=Sun … 6=Sat
+    int32_t start_hour;    // UTC hour (0-23)
+    int32_t duration_mins; // window length in minutes
+  };
+  struct TerritorySpec {
+    int64_t                      territory_id = 0;
+    int32_t                      tier         = 0;
+    std::vector<TerritoryWindow> takeover_windows;
+  };
+  void capture_territory_specs(std::unordered_map<int64_t, TerritorySpec>&& specs);
+
+  // Territory alliance slots (TerritoryAllianceSlots type 105)
+  struct TerritorySlot {
+    int64_t     territory_id = 0;
+    std::string state;       // "owned" or "takeover"
+  };
+  void capture_territory_slots(std::vector<TerritorySlot>&& held, int32_t total_slots);
 } // namespace game_state_export

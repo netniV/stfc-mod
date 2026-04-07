@@ -688,6 +688,8 @@ void Config::Load()
   this->export_gamestate_gist.filename_officers  = gist_get("filename_officers",  std::string(DCGSEGist::filename_officers));
   this->export_gamestate_gist.filename_missions  = gist_get("filename_missions",  std::string(DCGSEGist::filename_missions));
   this->export_gamestate_gist.filename_faction   = gist_get("filename_faction",   std::string(DCGSEGist::filename_faction));
+  this->export_gamestate_gist.filename_buffs     = gist_get("filename_buffs",     std::string(DCGSEGist::filename_buffs));
+  this->export_gamestate_gist.filename_territory = gist_get("filename_territory", std::string(DCGSEGist::filename_territory));
   this->export_gamestate_gist.filename_battlelog = gist_get("filename_battlelog", std::string(DCGSEGist::filename_battlelog));
   this->export_gamestate_gist.filename_manifest  = gist_get("filename_manifest",  std::string(DCGSEGist::filename_manifest));
 

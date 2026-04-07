@@ -197,14 +197,16 @@ namespace GameStateExport
     constexpr const char* gist_id            = "";
     constexpr const char* token              = "";
     constexpr const char* filename_player    = "stfc_player.json";
-    constexpr const char* filename_ships     = "stfc_ships.json";
-    constexpr const char* filename_resources = "stfc_resources.json";
-    constexpr const char* filename_research  = "stfc_research.json";
-    constexpr const char* filename_officers  = "stfc_officers.json";
-    constexpr const char* filename_missions  = "stfc_missions.json";
-    constexpr const char* filename_faction   = "stfc_faction.json";
-    constexpr const char* filename_battlelog = "stfc_battlelog.json";
-    constexpr const char* filename_manifest  = "stfc_manifest.json";
+      constexpr const char* filename_ships     = "stfc_ships.json";
+      constexpr const char* filename_resources = "stfc_resources.json";
+      constexpr const char* filename_research  = "stfc_research.json";
+      constexpr const char* filename_officers  = "stfc_officers.json";
+      constexpr const char* filename_missions  = "stfc_missions.json";
+      constexpr const char* filename_faction   = "stfc_faction.json";
+      constexpr const char* filename_buffs     = "stfc_buffs.json";
+      constexpr const char* filename_territory = "stfc_territory.json";
+      constexpr const char* filename_battlelog = "stfc_battlelog.json";
+      constexpr const char* filename_manifest  = "stfc_manifest.json";
   } // namespace Gist
 } // namespace GameStateExport
 

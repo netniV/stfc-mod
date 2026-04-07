@@ -169,17 +169,20 @@ time events, etc.) so AI assistants can factor them into planning advice.
 - [ ] Determine whether data arrives at login or requires navigating to
       the events screen
 
-### Feature: Alliance info and territory — PARTIALLY DONE
+### Feature: Alliance info and territory — DONE
 **What was implemented:**
-- Alliance name, tag, level, member count and total power now exported as a
-  structured `player.alliance` object in `player.json` (was a flat string before)
-- Data comes from `AllianceProfiles` (type 71) which arrives automatically at login
-**TODO (still open):**
-- [ ] Territory holdings: which systems/zones the alliance controls, capture status,
-      fortification level, and next capture window — likely requires navigating to
-      the Territory screen; data source not yet identified
-- [ ] Diplomacy state: war/peace/NAP relationships — `alliance_diplomacy_relationships`\r
-      JSON key seen at login but not yet parsed or exported
+- Alliance name, tag, level, member count, power exported as structured `player.alliance`\r
+  object in `player.json` (from `AllianceProfiles` type 71, arrives at login)
+- `territory.json` — alliance held zones from `TerritoryAllianceSlots` (type 105)
+  cross-referenced with `TerritoryStaticData` (type 96), both arrive at login
+  Each held zone includes: `territory_id`, `tier`, `state` (owned/takeover),
+  `takeover_windows` (weekday, start_hour_utc, duration_mins)
+  Root fields: `total_slots`, `used_slots`\r
+**Remaining non-starters:**
+- Territory owner map (which alliance owns each of the 55 zones): `TerritoryAllOwners`\r
+  (type 97) does NOT arrive at login — requires navigating to Territory screen
+- Alliance diplomacy (war/peace/NAP): no bulk-get proto exists — only a push
+  notification (`SetAllianceDiplomacy` type 89) when diplomacy *changes*. Not feasible.
 ### Feature: Refinery and faction store inventory
 **Goal:** Export the player's current refinery inputs/outputs and faction
 store stock so AI assistants can suggest optimal resources to gather and
