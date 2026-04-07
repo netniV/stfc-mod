@@ -470,6 +470,43 @@ json build_game_state_json()
     }
   }
 
+  // Faction store tokens - resources named Resource_FactionToken_*
+  // These are the currencies spent in each faction's store.
+  j["faction_store_tokens"] = json::array();
+  for (const auto& [id, amount] : cached_resources) {
+    if (amount == 0) continue;
+    auto mapping = id_mappings::MappingCache::Get().get_resource(id);
+    if (!mapping) continue;
+    const std::string& name = mapping->name;
+    const std::string ft_prefix = "Resource_FactionToken_";
+    if (name.rfind(ft_prefix, 0) == 0) {
+      std::string token_name = name.substr(ft_prefix.size());
+      j["faction_store_tokens"].push_back({
+        {"token", token_name},
+        {"resource_id", id},
+        {"amount", amount}
+      });
+    }
+  }
+
+  // Super-armada credits (Bronze/Silver/Gold/Elite) and armada directives (Uncommon/Rare/Epic)
+  j["armada_credits"] = json::array();
+  for (const auto& [id, amount] : cached_resources) {
+    if (amount == 0) continue;
+    auto mapping = id_mappings::MappingCache::Get().get_resource(id);
+    if (!mapping) continue;
+    const std::string& name = mapping->name;
+    const std::string sa_prefix  = "Resource_Faction_SArmada_Credit_";
+    const std::string dir_prefix = "Resource_Faction_SArmadaDir_";
+    if (name.rfind(sa_prefix, 0) == 0 || name.rfind(dir_prefix, 0) == 0) {
+      j["armada_credits"].push_back({
+        {"resource_id", id},
+        {"name", name},
+        {"amount", amount}
+      });
+    }
+  }
+
   // Blueprint parts - resources named Resource_Parts_* or Resource_*_Parts_*
   j["blueprints"] = json::array();
   for (const auto& [id, amount] : cached_resources) {
@@ -831,6 +868,8 @@ void export_game_state()
       json j;
       j["exported_at"]        = ts;
       j["faction_reputation"] = gs["faction_reputation"];
+      j["faction_store_tokens"] = gs["faction_store_tokens"];
+      j["armada_credits"]     = gs["armada_credits"];
       j["blueprints"]         = gs["blueprints"];
       write_json_file(dir / "faction.json", j);
     }
@@ -861,7 +900,7 @@ void export_game_state()
         make_entry("research.json",  gist.filename_research,  "Research tree levels"),
         make_entry("officers.json",  gist.filename_officers,  "Officers with rank, level and trait levels"),
         make_entry("missions.json",  gist.filename_missions,  "Active and completed mission IDs"),
-        make_entry("faction.json",   gist.filename_faction,   "Faction reputation and blueprint part counts"),
+        make_entry("faction.json",   gist.filename_faction,   "Faction reputation, store tokens, armada credits and blueprint part counts"),
         make_entry("battlelog.json", gist.filename_battlelog, "Battle history (last 500 battles)"),
       });
 
