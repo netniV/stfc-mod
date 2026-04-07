@@ -80,18 +80,15 @@ when the CSV was processed, those fields were left empty.
 non-empty name, `resolve_pending_battlelog_outcomes` re-scans the battlelog
 file and back-fills the missing fields, then re-syncs to Gist.
 
-### Feature: Missions — completed and in progress
-**Goal:** Export mission state so AI assistants can track progression and
-suggest next steps.
-**TODO:**
-- [ ] Identify which data source carries mission state — `ActiveMissions`
-      (EntityGroup type=61) and `CompletedMissions` (type=64) are already
-      handled in `HandleEntityGroup`; check if `capture_*` calls exist
-- [ ] Export `missions_completed` (array of completed mission IDs/names)
-      and `missions_in_progress` (array with current objective state)
-      to the gamestate JSON
-- [ ] Enrich with mission names from `stfc_id_mappings.json` if available
-- [ ] Arrives automatically at login — no navigation expected
+### Feature: Missions — completed and in progress — DONE
+- `missions_active` array: each entry has `instance_id` and `mission_id`;
+  29 active missions captured at login
+- `missions_completed` array: flat list of completed mission IDs;
+  1433 completed missions captured at login
+- Both arrive automatically at login — no navigation required
+- Note: no name enrichment yet (missions not in `stfc_id_mappings.json`)
+- Fix: `HandleEntityGroup` gate updated to also trigger on `export_gamestate`
+  (previously only fired when `sync_options.missions` was enabled)
 
 ### Feature: Ship upgrade resource planning
 **Goal:** For each ship in the player's hangar, export what resources are

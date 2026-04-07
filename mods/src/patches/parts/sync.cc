@@ -786,6 +786,14 @@ void process_active_missions(std::unique_ptr<std::string>&& bytes)
     }
 
     if (changed && !active_mission_states.empty()) {
+      if (Config::Get().export_gamestate) {
+        std::vector<std::pair<int64_t, int64_t>> gs_missions;
+        for (const auto& mission : response.activemissions()) {
+          gs_missions.emplace_back(mission.id(), mission.missionid());
+        }
+        gamestate_export::capture_missions_active(gs_missions);
+      }
+
       auto mission_array = json::array();
 
       for (const auto mission : active_mission_states) {
@@ -815,16 +823,22 @@ void process_completed_missions(std::unique_ptr<std::string>&& bytes)
     std::vector<int64_t> diff;
 
     // Assume the completed missions list is append-only: new entries may be added, but existing ones are never removed.
+    std::vector<int64_t> completed_snapshot;
     {
       std::scoped_lock lk(completed_mission_states_mtx);
       std::ranges::set_difference(completed_missions, completed_mission_states, std::back_inserter(diff));
 
       if (!diff.empty()) {
         completed_mission_states = std::move(completed_missions);
+        completed_snapshot       = completed_mission_states;
       }
     }
 
     if (!diff.empty()) {
+      if (Config::Get().export_gamestate) {
+        gamestate_export::capture_missions_completed(completed_snapshot);
+      }
+
       auto mission_array = json::array();
 
       for (const auto mission : diff) {
@@ -2137,12 +2151,12 @@ void HandleEntityGroup(EntityGroup* entity_group)
 
   switch (entity_group->Type_) {
     case EntityGroup::Type::ActiveMissions:
-      if (Config::Get().sync_options.missions) {
+      if (Config::Get().sync_options.missions || Config::Get().export_gamestate) {
         submit_async(process_active_missions);
       }
       break;
     case EntityGroup::Type::CompletedMissions:
-      if (Config::Get().sync_options.missions) {
+      if (Config::Get().sync_options.missions || Config::Get().export_gamestate) {
         submit_async(process_completed_missions);
       }
       break;

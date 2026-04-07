@@ -57,6 +57,10 @@ static int64_t cached_shield_token_count  = 0;
 // Drydock assignments: drydock_id (1-based) -> player ship id
 static std::vector<std::pair<int32_t, int64_t>> cached_drydock_assignments;
 
+// Missions
+static std::vector<std::pair<int64_t, int64_t>> cached_missions_active;    // {instance_id, mission_id}
+static std::vector<int64_t>                     cached_missions_completed;
+
 // Previous state for differential tracking
 static std::unordered_map<int64_t, int64_t> previous_resources;
 static std::unordered_map<int64_t, int32_t> previous_buildings;
@@ -329,6 +333,24 @@ void capture_drydock_assignments(const std::vector<std::pair<int32_t, int64_t>>&
   std::scoped_lock lock(game_data_mutex);
   cached_drydock_assignments = assignments;
   spdlog::info("GameState: Captured {} drydock assignments", assignments.size());
+  request_immediate_export();
+}
+
+void capture_missions_active(const std::vector<std::pair<int64_t, int64_t>>& missions)
+{
+  std::scoped_lock lock(game_data_mutex);
+  if (cached_missions_active == missions) return;
+  cached_missions_active = missions;
+  spdlog::info("GameState: Captured {} active missions", missions.size());
+  request_immediate_export();
+}
+
+void capture_missions_completed(const std::vector<int64_t>& mission_ids)
+{
+  std::scoped_lock lock(game_data_mutex);
+  if (cached_missions_completed == mission_ids) return;
+  cached_missions_completed = mission_ids;
+  spdlog::info("GameState: Captured {} completed missions", mission_ids.size());
   request_immediate_export();
 }
 
@@ -704,6 +726,18 @@ json build_gamestate_json()
   }
 
   // Drydock assignments — letter derived from 1-based drydock_id (1=A … 5=E)
+  // Active missions
+  j["missions_active"] = json::array();
+  for (const auto& [instance_id, mission_id] : cached_missions_active) {
+    j["missions_active"].push_back({{"instance_id", instance_id}, {"mission_id", mission_id}});
+  }
+
+  // Completed missions
+  j["missions_completed"] = json::array();
+  for (const auto mission_id : cached_missions_completed) {
+    j["missions_completed"].push_back(mission_id);
+  }
+
   // Drydock letter: 1=A, 2=B ... 26=Z, 27=AA, 28=AB ... (spreadsheet column style)
   auto drydock_letter = [](int32_t id) -> std::string {
     std::string result;
