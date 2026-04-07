@@ -678,12 +678,18 @@ void Config::Load()
     return default_val;
   };
 
-  this->export_gamestate_gist.enabled        = gist_get("enabled",        DCGSEGist::enabled);
-  this->export_gamestate_gist.gist_id        = gist_get("gist_id",        std::string(DCGSEGist::gist_id));
-  this->export_gamestate_gist.token          = gist_get("token",          std::string(DCGSEGist::token));
-  this->export_gamestate_gist.filename_full  = gist_get("filename_full",  std::string(DCGSEGist::filename_full));
-  this->export_gamestate_gist.filename_delta = gist_get("filename_delta", std::string(DCGSEGist::filename_delta));
+  this->export_gamestate_gist.enabled            = gist_get("enabled",            DCGSEGist::enabled);
+  this->export_gamestate_gist.gist_id            = gist_get("gist_id",            std::string(DCGSEGist::gist_id));
+  this->export_gamestate_gist.token              = gist_get("token",              std::string(DCGSEGist::token));
+  this->export_gamestate_gist.filename_player    = gist_get("filename_player",    std::string(DCGSEGist::filename_player));
+  this->export_gamestate_gist.filename_ships     = gist_get("filename_ships",     std::string(DCGSEGist::filename_ships));
+  this->export_gamestate_gist.filename_resources = gist_get("filename_resources", std::string(DCGSEGist::filename_resources));
+  this->export_gamestate_gist.filename_research  = gist_get("filename_research",  std::string(DCGSEGist::filename_research));
+  this->export_gamestate_gist.filename_officers  = gist_get("filename_officers",  std::string(DCGSEGist::filename_officers));
+  this->export_gamestate_gist.filename_missions  = gist_get("filename_missions",  std::string(DCGSEGist::filename_missions));
+  this->export_gamestate_gist.filename_faction   = gist_get("filename_faction",   std::string(DCGSEGist::filename_faction));
   this->export_gamestate_gist.filename_battlelog = gist_get("filename_battlelog", std::string(DCGSEGist::filename_battlelog));
+  this->export_gamestate_gist.filename_manifest  = gist_get("filename_manifest",  std::string(DCGSEGist::filename_manifest));
 
   spdlog::debug("config gamestate_export.gist: enabled={}, gist_id={}, token={}",
                 this->export_gamestate_gist.enabled,

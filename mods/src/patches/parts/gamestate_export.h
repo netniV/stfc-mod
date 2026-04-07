@@ -11,8 +11,7 @@ namespace gamestate_export
   void export_now();  // Force immediate full export
 
   // Export functions
-  void export_gamestate();     // Full snapshot export
-  void export_differential();  // Differential export (changes only)
+  void export_gamestate();     // Full snapshot export (all per-section files)
 
   // Data capture functions called from sync hooks
   void capture_player_data(const nlohmann::json& data);

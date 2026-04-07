@@ -35,7 +35,6 @@ namespace gamestate_export
 static std::thread export_thread;
 static bool        should_stop = false;
 static bool        should_export_now = false;
-static bool        should_force_full_export = false;
 static std::mutex  export_request_mutex;
 static std::condition_variable export_cv;
 
@@ -61,19 +60,9 @@ static std::vector<std::pair<int32_t, int64_t>> cached_drydock_assignments;
 static std::vector<std::pair<int64_t, int64_t>> cached_missions_active;    // {instance_id, mission_id}
 static std::vector<int64_t>                     cached_missions_completed;
 
-// Previous state for differential tracking
-static std::unordered_map<int64_t, int64_t> previous_resources;
-static std::unordered_map<int64_t, int32_t> previous_buildings;
-static std::unordered_map<int64_t, json> previous_ships;
-static std::unordered_map<int64_t, int32_t> previous_research;
-static std::unordered_map<uint64_t, json> previous_officers;
-static int64_t previous_shield_expiry_epoch = -1; // -1 = not yet tracked
-
 // Change tracking
 static std::string last_full_export_time;
-static std::string last_differential_export_time;
 static std::chrono::steady_clock::time_point last_full_export_tp;
-static std::chrono::steady_clock::time_point last_differential_export_tp;
 static std::chrono::steady_clock::time_point startup_time;
 static constexpr int STARTUP_GRACE_PERIOD_SECONDS = 15;
 static bool shield_scan_received = false; // suppresses alerts until first StarbaseDetailedScan
@@ -83,6 +72,7 @@ static std::unordered_set<std::string> pending_battlelog_resolution;
 static std::mutex                      pending_battlelog_mtx;
 static void resolve_pending_battlelog_outcomes(const std::string& our_name,
                                                const std::string& out_path);
+static std::filesystem::path get_export_dir();
 
 static void request_immediate_export()
 {
@@ -108,7 +98,6 @@ static void request_full_export()
   if (seconds_since_startup < STARTUP_GRACE_PERIOD_SECONDS) return;
 
   std::scoped_lock lock(export_request_mutex);
-  should_force_full_export = true;
   should_export_now = true;
   export_cv.notify_one();
 }
@@ -157,11 +146,8 @@ void capture_player_data(const nlohmann::json& data)
       request_full_export();
     }
     // Capture name and battlelog path for pending resolution outside the lock
-    resolved_name = cached_player_data.value("name", "");
-    auto& cfg = Config::Get();
-    battlelog_path = cfg.export_gamestate_path.empty()
-      ? "community_patch_battlelog.json"
-      : (std::filesystem::path(cfg.export_gamestate_path) / "community_patch_battlelog.json").string();
+    resolved_name  = cached_player_data.value("name", "");
+    battlelog_path = (get_export_dir() / "battlelog.json").string();
   }
 
   // If name just became known and there are pending battlelog entries, resolve them
@@ -352,197 +338,6 @@ void capture_missions_completed(const std::vector<int64_t>& mission_ids)
   cached_missions_completed = mission_ids;
   spdlog::info("GameState: Captured {} completed missions", mission_ids.size());
   request_immediate_export();
-}
-
-// Helper function to calculate change percentage
-static double calculate_change_percentage()
-{
-  size_t total_items = cached_buildings.size() + cached_research.size() + 
-                       cached_ships.size() + cached_officers.size() + cached_resources.size();
-  size_t changed_items = 0;
-
-  // Count changed buildings
-  for (const auto& [id, level] : cached_buildings) {
-    if (previous_buildings.find(id) == previous_buildings.end() || previous_buildings[id] != level) {
-      changed_items++;
-    }
-  }
-
-  // Count changed research
-  for (const auto& [id, level] : cached_research) {
-    if (previous_research.find(id) == previous_research.end() || previous_research[id] != level) {
-      changed_items++;
-    }
-  }
-
-  // Count changed ships
-  for (const auto& [id, data] : cached_ships) {
-    if (previous_ships.find(id) == previous_ships.end() || previous_ships[id] != data) {
-      changed_items++;
-    }
-  }
-
-  // Count changed officers
-  for (const auto& [id, data] : cached_officers) {
-    if (previous_officers.find(id) == previous_officers.end() || previous_officers[id] != data) {
-      changed_items++;
-    }
-  }
-
-  // Count changed resources
-  for (const auto& [id, amount] : cached_resources) {
-    if (previous_resources.find(id) == previous_resources.end() || previous_resources[id] != amount) {
-      changed_items++;
-    }
-  }
-
-  return total_items > 0 ? (static_cast<double>(changed_items) / total_items) : 0.0;
-}
-
-// Build differential export JSON
-json build_differential_json()
-{
-  std::scoped_lock lock(game_data_mutex);
-
-  json j;
-  j["export_type"] = "differential";
-  j["export_version"] = "1.1.0";
-  j["exported_at"] = get_iso8601_timestamp();
-  j["base_export_at"] = last_full_export_time;
-  j["mod_version"] = VER_FILE_VERSION_STR;
-
-  json changes;
-  int total_changes = 0;
-  std::vector<std::string> categories_changed;
-
-  // Buildings changes
-  json buildings_changes;
-  buildings_changes["modified"] = json::array();
-  buildings_changes["added"] = json::array();
-  buildings_changes["removed"] = json::array();
-
-  for (const auto& [id, level] : cached_buildings) {
-    auto prev_it = previous_buildings.find(id);
-    if (prev_it == previous_buildings.end()) {
-      // New building
-      json building = {{"id", id}, {"level", level}};
-      id_mappings::MappingCache::Get().enrich_building(building);
-      buildings_changes["added"].push_back(building);
-      total_changes++;
-    } else if (prev_it->second != level) {
-      // Modified building
-      json building = {{"id", id}, {"level", level}, {"previous_level", prev_it->second}};
-      id_mappings::MappingCache::Get().enrich_building(building);
-      buildings_changes["modified"].push_back(building);
-      total_changes++;
-    }
-  }
-
-  // Check for removed buildings
-  for (const auto& [id, level] : previous_buildings) {
-    if (cached_buildings.find(id) == cached_buildings.end()) {
-      json building = {{"id", id}, {"level", level}};
-      id_mappings::MappingCache::Get().enrich_building(building);
-      buildings_changes["removed"].push_back(building);
-      total_changes++;
-    }
-  }
-
-  if (total_changes > 0) {
-    changes["buildings"] = buildings_changes;
-    categories_changed.push_back("buildings");
-  }
-
-  // Research changes
-  json research_changes;
-  research_changes["modified"] = json::array();
-  research_changes["added"] = json::array();
-
-  int research_changed = 0;
-  for (const auto& [id, level] : cached_research) {
-    auto prev_it = previous_research.find(id);
-    if (prev_it == previous_research.end()) {
-      // New research
-      json research = {{"id", id}, {"level", level}};
-      id_mappings::MappingCache::Get().enrich_research(research);
-      research_changes["added"].push_back(research);
-      research_changed++;
-    } else if (prev_it->second != level) {
-      // Modified research
-      json research = {{"id", id}, {"level", level}, {"previous_level", prev_it->second}};
-      id_mappings::MappingCache::Get().enrich_research(research);
-      research_changes["modified"].push_back(research);
-      research_changed++;
-    }
-  }
-
-  if (research_changed > 0) {
-    changes["research"] = research_changes;
-    categories_changed.push_back("research");
-    total_changes += research_changed;
-  }
-
-  // Resource changes
-  json resources_changes;
-  int resources_changed = 0;
-
-  for (const auto& [id, amount] : cached_resources) {
-    auto prev_it = previous_resources.find(id);
-    if (prev_it != previous_resources.end() && prev_it->second != amount) {
-      json resource = {
-        {"id", id},
-        {"current", amount},
-        {"previous", prev_it->second},
-        {"delta", amount - prev_it->second}
-      };
-      id_mappings::MappingCache::Get().enrich_resource(resource, id);
-      resources_changes[std::to_string(id)] = resource;
-      resources_changed++;
-    }
-  }
-
-  if (resources_changed > 0) {
-    changes["resources"] = resources_changes;
-    categories_changed.push_back("resources");
-    total_changes += resources_changed;
-  }
-
-  // Peace shield change
-  if (previous_shield_expiry_epoch != -1 &&
-      cached_shield_expiry_epoch != previous_shield_expiry_epoch) {
-    auto now_epoch = std::chrono::duration_cast<std::chrono::seconds>(
-        std::chrono::system_clock::now().time_since_epoch()).count();
-    bool was_active = previous_shield_expiry_epoch > now_epoch;
-    bool is_active  = cached_shield_expiry_epoch   > now_epoch;
-    changes["peace_shield"] = {
-      {"expiry_epoch",          cached_shield_expiry_epoch},
-      {"previous_expiry_epoch", previous_shield_expiry_epoch},
-      {"active",                is_active},
-      {"was_active",            was_active}
-    };
-    categories_changed.push_back("peace_shield");
-    total_changes++;
-  }
-
-  // Summary
-  j["changes"] = changes;
-  j["summary"] = {
-    {"total_changes", total_changes},
-    {"categories_changed", categories_changed}
-  };
-
-  return j;
-}
-
-// Update previous state snapshots
-static void update_previous_state()
-{
-  previous_buildings            = cached_buildings;
-  previous_research             = cached_research;
-  previous_ships                = cached_ships;
-  previous_officers             = cached_officers;
-  previous_resources            = cached_resources;
-  previous_shield_expiry_epoch  = cached_shield_expiry_epoch;
 }
 
 json build_gamestate_json()
@@ -823,158 +618,164 @@ static void sync_to_gist(const std::string& file_path, const std::string& gist_f
   }
 }
 
+// Returns the export directory (always a community_patch/ subfolder), creating it if needed.
+static std::filesystem::path get_export_dir()
+{
+  auto& cfg = Config::Get();
+  std::filesystem::path base = cfg.export_gamestate_path.empty()
+    ? std::filesystem::path(".")
+    : std::filesystem::path(cfg.export_gamestate_path);
+  auto dir = base / "community_patch";
+  std::error_code ec;
+  std::filesystem::create_directories(dir, ec);
+  if (ec) {
+    spdlog::error("GameState export: Failed to create directory {}: {}", dir.string(), ec.message());
+    // Fall back to current directory subfolder
+    dir = std::filesystem::path("community_patch");
+    std::filesystem::create_directories(dir, ec);
+  }
+  return dir;
+}
+
+// Write a JSON object to a file; returns true on success.
+static bool write_json_file(const std::filesystem::path& path, const json& j)
+{
+  std::filesystem::create_directories(path.parent_path());
+  std::ofstream out(path, std::ios::trunc);
+  if (!out.is_open()) {
+    spdlog::error("GameState export: Failed to open {} for writing", path.string());
+    return false;
+  }
+  out << j.dump(2);
+  out.close();
+  return true;
+}
+
 void export_gamestate()
 {
   try {
-    auto& cfg = Config::Get();
+    auto& cfg   = Config::Get();
+    auto  dir   = get_export_dir();
+    auto  ts    = get_iso8601_timestamp();
+    auto& gist  = cfg.export_gamestate_gist;
 
-    std::string export_path;
-    if (cfg.export_gamestate_path.empty()) {
-      export_path = "community_patch_gamestate.json";
-    } else {
-      std::filesystem::path export_dir(cfg.export_gamestate_path);
-      if (!std::filesystem::exists(export_dir)) {
-        std::error_code ec;
-        std::filesystem::create_directories(export_dir, ec);
-        if (ec) {
-          spdlog::error("GameState export: Failed to create directory {}: {}", cfg.export_gamestate_path, ec.message());
-          export_path = "community_patch_gamestate.json";
-        } else {
-          export_path = (export_dir / "community_patch_gamestate.json").string();
-        }
-      } else {
-        export_path = (export_dir / "community_patch_gamestate.json").string();
+    json gs = build_gamestate_json();
+
+    // --- player.json ---
+    {
+      json j;
+      j["exported_at"]   = ts;
+      j["player"]        = gs["player"];
+      j["station"]       = gs["station"];
+      j["drydocks"]      = gs["drydocks"];
+      auto path = dir / "player.json";
+      if (write_json_file(path, j)) sync_to_gist(path.string(), gist.filename_player);
+    }
+
+    // --- ships.json ---
+    {
+      json j;
+      j["exported_at"] = ts;
+      j["ships"]       = gs["ships"];
+      auto path = dir / "ships.json";
+      if (write_json_file(path, j)) sync_to_gist(path.string(), gist.filename_ships);
+    }
+
+    // --- resources.json (non-zero only) ---
+    {
+      json j;
+      j["exported_at"] = ts;
+      json res = json::array();
+      for (const auto& r : gs["resources"]) {
+        if (r.value("amount", 0LL) != 0) res.push_back(r);
       }
+      j["resources"] = res;
+      auto path = dir / "resources.json";
+      if (write_json_file(path, j)) sync_to_gist(path.string(), gist.filename_resources);
     }
 
-    json gamestate = build_gamestate_json();
-
-    // Add export_type metadata
-    gamestate["export_type"] = "full";
-    gamestate["export_version"] = "1.1.0";
-
-    std::ofstream out(export_path);
-    if (!out.is_open()) {
-      spdlog::error("GameState export: Failed to open file for writing: {}", export_path);
-      return;
+    // --- research.json ---
+    {
+      json j;
+      j["exported_at"] = ts;
+      j["research"]    = gs["research"];
+      auto path = dir / "research.json";
+      if (write_json_file(path, j)) sync_to_gist(path.string(), gist.filename_research);
     }
 
-    out << gamestate.dump(2);
-    out.close();
-
-    // Update tracking
-    last_full_export_time = gamestate["meta"]["exported_at"];
-    last_full_export_tp = std::chrono::steady_clock::now();
-    update_previous_state();
-
-    // Clear the differential file since we just did a full export
-    std::string delta_path;
-    if (cfg.export_gamestate_path.empty()) {
-      delta_path = "community_patch_gamestate_delta.json";
-    } else {
-      delta_path = (std::filesystem::path(cfg.export_gamestate_path) / "community_patch_gamestate_delta.json").string();
+    // --- officers.json ---
+    {
+      json j;
+      j["exported_at"] = ts;
+      j["officers"]    = gs["officers"];
+      auto path = dir / "officers.json";
+      if (write_json_file(path, j)) sync_to_gist(path.string(), gist.filename_officers);
     }
 
-    // Create empty array for deltas
-    std::ofstream delta_out(delta_path, std::ios::trunc);
-    if (delta_out.is_open()) {
-      delta_out << "[]";
-      delta_out.close();
-      spdlog::debug("GameState export: Cleared delta file for new baseline");
+    // --- missions.json ---
+    {
+      json j;
+      j["exported_at"]        = ts;
+      j["missions_active"]    = gs["missions_active"];
+      j["missions_completed"] = gs["missions_completed"];
+      auto path = dir / "missions.json";
+      if (write_json_file(path, j)) sync_to_gist(path.string(), gist.filename_missions);
     }
 
-    spdlog::info("GameState export: Successfully exported FULL snapshot to {}", export_path);
-    sync_to_gist(export_path, Config::Get().export_gamestate_gist.filename_full);
+    // --- faction.json ---
+    {
+      json j;
+      j["exported_at"]        = ts;
+      j["faction_reputation"] = gs["faction_reputation"];
+      j["blueprints"]         = gs["blueprints"];
+      auto path = dir / "faction.json";
+      if (write_json_file(path, j)) sync_to_gist(path.string(), gist.filename_faction);
+    }
+
+    // --- manifest.json ---
+    {
+      json manifest;
+      manifest["exported_at"]  = ts;
+      manifest["mod_version"]  = VER_FILE_VERSION_STR;
+      manifest["description"]  = "STFC Community Mod — game state export index";
+
+      auto make_entry = [&](const std::string& file, const std::string& gist_name,
+                             const std::string& desc) {
+        json e;
+        e["file"]        = file;
+        e["description"] = desc;
+        if (gist.enabled && !gist.gist_id.empty()) {
+          e["url"] = "https://gist.githubusercontent.com/" +
+                     gist.gist_id + "/raw/" + gist_name;
+        }
+        return e;
+      };
+
+      manifest["files"] = json::array({
+        make_entry("player.json",    gist.filename_player,    "Player profile, station peace shield, drydock assignments"),
+        make_entry("ships.json",     gist.filename_ships,     "Ships hangar with hull, tier, level and drydock slot"),
+        make_entry("resources.json", gist.filename_resources, "Non-zero resource amounts with names"),
+        make_entry("research.json",  gist.filename_research,  "Research tree levels"),
+        make_entry("officers.json",  gist.filename_officers,  "Officers with rank, level and trait levels"),
+        make_entry("missions.json",  gist.filename_missions,  "Active and completed mission IDs"),
+        make_entry("faction.json",   gist.filename_faction,   "Faction reputation and blueprint part counts"),
+        make_entry("battlelog.json", gist.filename_battlelog, "Battle history (last 500 battles)"),
+      });
+
+      auto path = dir / "manifest.json";
+      if (write_json_file(path, manifest)) sync_to_gist(path.string(), gist.filename_manifest);
+    }
+
+    last_full_export_time = ts;
+    last_full_export_tp   = std::chrono::steady_clock::now();
+
+    spdlog::info("GameState export: Exported all sections to {}/  (ships={} resources={} research={} officers={} missions_active={} missions_completed={})",
+                 dir.string(),
+                 gs["ships"].size(), gs["resources"].size(), gs["research"].size(),
+                 gs["officers"].size(), gs["missions_active"].size(), gs["missions_completed"].size());
 
   } catch (const std::exception& e) {
     spdlog::error("GameState export: Exception during export: {}", e.what());
-  }
-}
-
-void export_differential()
-{
-  try {
-    auto& cfg = Config::Get();
-
-    // Need a baseline full export first
-    if (last_full_export_time.empty()) {
-      spdlog::warn("GameState differential export: No baseline full export exists, exporting full instead");
-      export_gamestate();
-      return;
-    }
-
-    std::string export_path;
-    if (cfg.export_gamestate_path.empty()) {
-      export_path = "community_patch_gamestate_delta.json";
-    } else {
-      std::filesystem::path export_dir(cfg.export_gamestate_path);
-      if (!std::filesystem::exists(export_dir)) {
-        std::error_code ec;
-        std::filesystem::create_directories(export_dir, ec);
-        if (ec) {
-          spdlog::error("GameState export: Failed to create directory {}: {}", cfg.export_gamestate_path, ec.message());
-          export_path = "community_patch_gamestate_delta.json";
-        } else {
-          export_path = (export_dir / "community_patch_gamestate_delta.json").string();
-        }
-      } else {
-        export_path = (export_dir / "community_patch_gamestate_delta.json").string();
-      }
-    }
-
-    json differential = build_differential_json();
-
-    // Check if there are actually any changes
-    {
-      int total_changes = differential["summary"]["total_changes"];
-      if (total_changes == 0) {
-        spdlog::debug("GameState export: No changes detected, skipping differential export");
-        return;
-      }
-    }
-
-    // Read existing deltas array (if file exists)
-    json deltas_array = json::array();
-    std::ifstream in(export_path);
-    if (in.is_open()) {
-      try {
-        in >> deltas_array;
-        if (!deltas_array.is_array()) {
-          spdlog::warn("GameState differential export: Existing delta file was not an array, recreating");
-          deltas_array = json::array();
-        }
-      } catch (const std::exception& e) {
-        spdlog::warn("GameState differential export: Failed to parse existing delta file: {}, recreating", e.what());
-        deltas_array = json::array();
-      }
-      in.close();
-    }
-
-    // Append new differential to array
-    deltas_array.push_back(differential);
-
-    // Write updated array back
-    std::ofstream out(export_path, std::ios::trunc);
-    if (!out.is_open()) {
-      spdlog::error("GameState differential export: Failed to open file for writing: {}", export_path);
-      return;
-    }
-
-    out << deltas_array.dump(2);
-    out.close();
-
-    // Update tracking
-    last_differential_export_time = differential["exported_at"];
-    last_differential_export_tp = std::chrono::steady_clock::now();
-    update_previous_state();
-
-    int total_changes = differential["summary"]["total_changes"];
-    spdlog::info("GameState export: Successfully APPENDED DIFFERENTIAL with {} changes ({} total deltas in file)", 
-                 total_changes, deltas_array.size());
-    sync_to_gist(export_path, Config::Get().export_gamestate_gist.filename_delta);
-
-  } catch (const std::exception& e) {
-    spdlog::error("GameState differential export: Exception during export: {}", e.what());
   }
 }
 
@@ -1119,12 +920,7 @@ static void process_battle_csv(const std::string& csv_path)
     entry["fleet_stats"] = fleet_stats;
     entry["rounds"]      = rounds;
 
-    std::string out_path;
-    if (cfg.export_gamestate_path.empty()) {
-      out_path = "community_patch_battlelog.json";
-    } else {
-      out_path = (std::filesystem::path(cfg.export_gamestate_path) / "community_patch_battlelog.json").string();
-    }
+    const auto out_path = (get_export_dir() / "battlelog.json").string();
 
     json entries = json::array();
     std::ifstream in(out_path);
@@ -1294,26 +1090,7 @@ void export_thread_func()
       break;
     }
 
-    // Decide whether to export full or differential
-    bool should_export_full = false;
-    bool force_full = should_force_full_export;
-    should_force_full_export = false;
     auto now = std::chrono::steady_clock::now();
-    auto seconds_since_last_full = std::chrono::duration_cast<std::chrono::seconds>(now - last_full_export_tp).count();
-
-    // Force full export if explicitly requested, every hour, or if no baseline exists
-    if (force_full || last_full_export_time.empty() || seconds_since_last_full >= 3600) {
-      should_export_full = true;
-    } else {
-      // Calculate change percentage
-      double change_pct = calculate_change_percentage();
-
-      // Export full if more than 10% of data changed
-      if (change_pct >= 0.10) {
-        spdlog::debug("GameState export: {:.1f}% of data changed, triggering full export", change_pct * 100.0);
-        should_export_full = true;
-      }
-    }
 
     // Export if explicitly requested or interval has elapsed
     auto seconds_since_last_export = std::chrono::duration_cast<std::chrono::seconds>(now - last_export_time).count();
@@ -1323,11 +1100,7 @@ void export_thread_func()
       should_export_now = false;
       lock.unlock();
 
-      if (should_export_full) {
-        export_gamestate();
-      } else {
-        export_differential();
-      }
+      export_gamestate();
 
       last_export_time = now;
     } else {
@@ -1379,11 +1152,15 @@ void init()
                cfg.export_gamestate_on_startup);
 
   if (cfg.export_gamestate_gist.enabled) {
-    spdlog::info("GameState Gist sync: Enabled for gist_id={}", cfg.export_gamestate_gist.gist_id);
-    spdlog::info("GameState Gist sync: Full URL: https://gist.githubusercontent.com/raw/{}/{}",
-                 cfg.export_gamestate_gist.gist_id, cfg.export_gamestate_gist.filename_full);
-    spdlog::info("GameState Gist sync: Delta URL: https://gist.githubusercontent.com/raw/{}/{}",
-                 cfg.export_gamestate_gist.gist_id, cfg.export_gamestate_gist.filename_delta);
+    auto& gist = cfg.export_gamestate_gist;
+    spdlog::info("GameState Gist sync: Enabled for gist_id={}", gist.gist_id);
+    spdlog::info("GameState Gist sync: Manifest URL: https://gist.githubusercontent.com/raw/{}/{}",
+                 gist.gist_id, gist.filename_manifest);
+    for (const auto* fn : {&gist.filename_player, &gist.filename_ships, &gist.filename_resources,
+                            &gist.filename_research, &gist.filename_officers, &gist.filename_missions,
+                            &gist.filename_faction, &gist.filename_battlelog}) {
+      spdlog::info("GameState Gist sync:   https://gist.githubusercontent.com/raw/{}/{}", gist.gist_id, *fn);
+    }
   } else {
     spdlog::info("GameState Gist sync: Disabled (set [gamestate_export.gist] enabled=true to activate)");
   }

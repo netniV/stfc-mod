@@ -109,9 +109,15 @@ public:
   bool        enabled  = false;
   std::string gist_id;
   std::string token;
-  std::string filename_full     = "stfc_gamestate_full.json";
-  std::string filename_delta    = "stfc_gamestate_delta.json";
+  std::string filename_player    = "stfc_player.json";
+  std::string filename_ships     = "stfc_ships.json";
+  std::string filename_resources = "stfc_resources.json";
+  std::string filename_research  = "stfc_research.json";
+  std::string filename_officers  = "stfc_officers.json";
+  std::string filename_missions  = "stfc_missions.json";
+  std::string filename_faction   = "stfc_faction.json";
   std::string filename_battlelog = "stfc_battlelog.json";
+  std::string filename_manifest  = "stfc_manifest.json";
 };
 
 class ResourceAlertsConfig
