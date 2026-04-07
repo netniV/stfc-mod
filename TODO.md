@@ -106,6 +106,21 @@ upgrade advice.
       (or as a separate top-level `ship_upgrade_costs` section)
 - [ ] Only include ships the player actually owns
 
+### Feature: Event data — daily, weekly and other
+**Goal:** Export current active events (daily goals, weekly missions, limited
+time events, etc.) so AI assistants can factor them into planning advice.
+**TODO:**
+- [ ] Identify which data source carries active event state — candidates:
+      `marauder_quick_scan_data` and `hazard_result_headers` seen in the
+      JSON blob key list; also check EntityGroup types for event responses
+- [ ] Distinguish event types: daily goals, weekly events, limited-time
+      events, alliance events, and recurring events (e.g. Armada, Faction)
+- [ ] Export `events` section to gamestate JSON with at minimum:
+      event name, type (daily/weekly/other), active window (start/end),
+      and player progress if available
+- [ ] Determine whether data arrives at login or requires navigating to
+      the events screen
+
 ---
 
 ## ??? Stale / Superseded items (kept for reference)
