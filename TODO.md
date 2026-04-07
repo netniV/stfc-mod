@@ -71,14 +71,14 @@ Syndicate level and XP read from `cached_resources` at export time:
 Both arrive automatically at login. Exported as `player.syndicate_level`
 and `player.syndicate_xp` in the gamestate JSON.
 
-### Feature 2: Battle log — outcome/ship empty on some entries
-**Context:** `outcome` and `ship` fields in battlelog entries are resolved by
-matching `Player Name` column in the CSV against `cached_player_data.name`.
-If the player name hasn't arrived yet when the CSV is processed, these are empty.
-**TODO:**
-- [ ] Re-resolve outcome/ship lazily when player name becomes available, or
-- [ ] Always populate from the combatants array directly (find the player's row
-      by `player_id` config value rather than name string matching)
+### Feature 2: Battle log — outcome/ship empty on some entries — FIXED
+**Was:** `outcome`, `ship`, and `location` resolved by matching `Player Name`
+in the CSV against `cached_player_data.name`. If the name hadn't arrived yet
+when the CSV was processed, those fields were left empty.
+**Fix:** When name is unknown at import time, the entry ID is added to
+`pending_battlelog_resolution`. When `capture_player_data` fires with a
+non-empty name, `resolve_pending_battlelog_outcomes` re-scans the battlelog
+file and back-fills the missing fields, then re-syncs to Gist.
 
 ### Feature: Missions — completed and in progress
 **Goal:** Export mission state so AI assistants can track progression and

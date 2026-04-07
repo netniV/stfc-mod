@@ -74,6 +74,12 @@ static std::chrono::steady_clock::time_point startup_time;
 static constexpr int STARTUP_GRACE_PERIOD_SECONDS = 15;
 static bool shield_scan_received = false; // suppresses alerts until first StarbaseDetailedScan
 
+// Battlelog pending resolution — forward declarations so capture_player_data can call them
+static std::unordered_set<std::string> pending_battlelog_resolution;
+static std::mutex                      pending_battlelog_mtx;
+static void resolve_pending_battlelog_outcomes(const std::string& our_name,
+                                               const std::string& out_path);
+
 static void request_immediate_export()
 {
   // Don't trigger exports during startup grace period
@@ -126,22 +132,44 @@ std::string get_iso8601_timestamp()
 
 void capture_player_data(const nlohmann::json& data)
 {
-  std::scoped_lock lock(game_data_mutex);
-  // Merge fields rather than overwrite - different sources populate different fields
-  if (cached_player_data.is_null()) {
-    cached_player_data = {{"name", ""}, {"alliance", ""}, {"ops_level", 0}, {"power", 0}, {"server", 0}};
-  }
-  bool changed = false;
-  for (const auto& [key, value] : data.items()) {
-    // Don't overwrite ops_level with 0 if we already have it from the OPERATIONS building
-    if (key == "ops_level" && value == 0 && cached_player_data.value("ops_level", 0) > 0) continue;
-    if (!cached_player_data.contains(key) || cached_player_data[key] != value) {
-      cached_player_data[key] = value;
-      changed = true;
+  std::string resolved_name;
+  std::string battlelog_path;
+  {
+    std::scoped_lock lock(game_data_mutex);
+    // Merge fields rather than overwrite - different sources populate different fields
+    if (cached_player_data.is_null()) {
+      cached_player_data = {{"name", ""}, {"alliance", ""}, {"ops_level", 0}, {"power", 0}, {"server", 0}};
     }
+    bool changed = false;
+    for (const auto& [key, value] : data.items()) {
+      // Don't overwrite ops_level with 0 if we already have it from the OPERATIONS building
+      if (key == "ops_level" && value == 0 && cached_player_data.value("ops_level", 0) > 0) continue;
+      if (!cached_player_data.contains(key) || cached_player_data[key] != value) {
+        cached_player_data[key] = value;
+        changed = true;
+      }
+    }
+    if (changed) {
+      request_full_export();
+    }
+    // Capture name and battlelog path for pending resolution outside the lock
+    resolved_name = cached_player_data.value("name", "");
+    auto& cfg = Config::Get();
+    battlelog_path = cfg.export_gamestate_path.empty()
+      ? "community_patch_battlelog.json"
+      : (std::filesystem::path(cfg.export_gamestate_path) / "community_patch_battlelog.json").string();
   }
-  if (changed) {
-    request_full_export();
+
+  // If name just became known and there are pending battlelog entries, resolve them
+  if (!resolved_name.empty()) {
+    bool has_pending;
+    {
+      std::scoped_lock lk(pending_battlelog_mtx);
+      has_pending = !pending_battlelog_resolution.empty();
+    }
+    if (has_pending) {
+      resolve_pending_battlelog_outcomes(resolved_name, battlelog_path);
+    }
   }
 }
 
@@ -918,6 +946,58 @@ void export_differential()
 
 static constexpr int MAX_BATTLELOG_ENTRIES = 500;
 
+// Attempt to fill outcome/ship/location for any entries that were imported
+// before the player name was known. Called from capture_player_data.
+static void resolve_pending_battlelog_outcomes(const std::string& our_name,
+                                               const std::string& out_path)
+{
+  std::unordered_set<std::string> still_pending;
+  json entries = json::array();
+  {
+    std::ifstream in(out_path);
+    if (!in.is_open()) return;
+    try { in >> entries; if (!entries.is_array()) return; }
+    catch (...) { return; }
+  }
+
+  bool any_resolved = false;
+  for (auto& entry : entries) {
+    const auto id = entry.value("id", "");
+    {
+      std::scoped_lock lk(pending_battlelog_mtx);
+      if (!pending_battlelog_resolution.count(id)) continue;
+    }
+    // Try to resolve from the stored combatants array
+    if (entry.contains("combatants") && entry["combatants"].is_array()) {
+      for (const auto& row : entry["combatants"]) {
+        if (row.value("Player Name", "") == our_name) {
+          entry["outcome"]  = row.value("Outcome", "");
+          entry["location"] = row.value("Location", "");
+          entry["ship"]     = row.value("Ship Name", "");
+          any_resolved = true;
+          spdlog::info("Battlelog: resolved outcome for entry {} -> outcome={} ship={}",
+                       id, entry["outcome"].get<std::string>(),
+                       entry["ship"].get<std::string>());
+          break;
+        }
+      }
+    }
+    // Whether or not we resolved it, remove from pending
+    {
+      std::scoped_lock lk(pending_battlelog_mtx);
+      pending_battlelog_resolution.erase(id);
+    }
+  }
+
+  if (!any_resolved) return;
+
+  std::ofstream out(out_path, std::ios::trunc);
+  if (!out.is_open()) { spdlog::error("Battlelog: Cannot rewrite {} for resolution", out_path); return; }
+  out << entries.dump(2);
+  out.close();
+  sync_to_gist(out_path, Config::Get().export_gamestate_gist.filename_battlelog);
+}
+
 // Parse a tab-separated CSV section (header row + data rows) into a JSON array
 static json parse_csv_section(const std::vector<std::string>& lines, size_t& pos)
 {
@@ -983,13 +1063,21 @@ static void process_battle_csv(const std::string& csv_path)
       std::scoped_lock lk(game_data_mutex);
       our_name = cached_player_data.value("name", "");
     }
+    bool resolved = false;
     for (const auto& row : combatants) {
       if (!our_name.empty() && row.value("Player Name", "") == our_name) {
         entry["outcome"]  = row.value("Outcome", "");
         entry["location"] = row.value("Location", "");
         entry["ship"]     = row.value("Ship Name", "");
+        resolved = true;
         break;
       }
+    }
+    if (!resolved) {
+      // Name not yet known — mark for resolution when capture_player_data fires
+      std::scoped_lock lk(pending_battlelog_mtx);
+      pending_battlelog_resolution.insert(filename);
+      spdlog::info("Battlelog: outcome unresolved for {} (player name not yet known), will retry", filename);
     }
 
     entry["combatants"]  = combatants;
