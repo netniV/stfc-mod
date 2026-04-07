@@ -1063,6 +1063,37 @@ void process_active_officer_traits(std::unique_ptr<std::string>&& bytes)
   }
 }
 
+void process_loyalty_specs(std::unique_ptr<std::string>&& bytes)
+{
+  if (!Config::Get().export_gamestate) return;
+
+  if (auto response = Digit::PrimeServer::Models::StaticSyncLoyaltyResponse(); response.ParseFromString(*bytes)) {
+    const auto& specs = response.loyaltyspecs();
+
+    // This is the global Syndicate Loyalty track (Resource_Loyalty_Points).
+    // All tiers belong to the same single track — not per-faction.
+    std::vector<game_state_export::LoyaltyBuffEntry> entries;
+    std::vector<int64_t>                             buff_ids;
+
+    const int32_t max_tiers = specs.loyaltytiers_size();
+    for (const auto& tier : specs.loyaltytiers()) {
+      for (const auto& collection : tier.buffrewardcollections()) {
+        for (const auto& reward : collection.buffrewards()) {
+          entries.push_back({"Syndicate", tier.tier(), max_tiers});
+          buff_ids.push_back(reward.buffid());
+        }
+      }
+    }
+
+    if (!buff_ids.empty()) {
+      spdlog::info("GameState: LoyaltySpecs (Syndicate) tiers={} buffs={}", max_tiers, buff_ids.size());
+      game_state_export::capture_loyalty_specs(entries, buff_ids);
+    }
+  } else {
+    spdlog::error("GameState: Failed to parse LoyaltySpecs");
+  }
+}
+
 void process_global_active_buffs(std::unique_ptr<std::string>&& bytes)
 {
   using json = nlohmann::json;
@@ -1115,6 +1146,16 @@ void process_global_active_buffs(std::unique_ptr<std::string>&& bytes)
     if (!buff_array.empty()) {
       const bool first_sync = is_first_sync.exchange(false, std::memory_order_acq_rel);
       queue_data(SyncConfig::Type::Buffs, buff_array, first_sync);
+    }
+
+    // Capture full buff snapshot for faction favors cross-reference
+    if (Config::Get().export_gamestate) {
+      std::vector<std::pair<int64_t, int32_t>> all_buffs;
+      all_buffs.reserve(static_cast<size_t>(response.globalactivebuffs_size()));
+      for (const auto& buff : response.globalactivebuffs()) {
+        all_buffs.emplace_back(buff.buffid(), buff.level());
+      }
+      game_state_export::capture_active_buffs(all_buffs);
     }
   } else {
     spdlog::error("Failed to parse global active buffs");
@@ -2195,8 +2236,13 @@ void HandleEntityGroup(EntityGroup* entity_group)
       }
       break;
     case EntityGroup::Type::GlobalActiveBuffs:
-      if (Config::Get().sync_options.buffs) {
+      if (Config::Get().sync_options.buffs || Config::Get().export_gamestate) {
         submit_async(process_global_active_buffs);
+      }
+      break;
+    case EntityGroup::Type::LoyaltySpecs:
+      if (Config::Get().export_gamestate) {
+        submit_async(process_loyalty_specs);
       }
       break;
     case EntityGroup::Type::EntitySlots:

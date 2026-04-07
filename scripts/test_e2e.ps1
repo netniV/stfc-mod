@@ -95,7 +95,8 @@ if ($gsOfficers) { Check "officers > 0"             ($gsOfficers.officers.Count 
 if ($gsMissions) { Check "missions_completed > 0"   ($gsMissions.missions_completed.Count -gt 0);  Write-Host "    missions: $($gsMissions.missions_active.Count) active, $($gsMissions.missions_completed.Count) completed" -ForegroundColor DarkGray }
 if ($gsFaction)  { Check "faction_reputation present"    ($gsFaction.faction_reputation -ne $null);   Check "blueprints present" ($gsFaction.blueprints -ne $null)
                    Check "faction_store_tokens present" ($gsFaction.faction_store_tokens -ne $null);  Check "armada_credits present" ($gsFaction.armada_credits -ne $null)
-                   Write-Host "    faction tokens: $($gsFaction.faction_store_tokens.Count) entries, armada credits: $($gsFaction.armada_credits.Count) entries" -ForegroundColor DarkGray }
+                   Check "faction_favors present"       ($gsFaction.faction_favors -ne $null)
+                   Write-Host "    faction tokens: $($gsFaction.faction_store_tokens.Count) entries, armada credits: $($gsFaction.armada_credits.Count) entries, syndicate loyalty buffs: $($gsFaction.faction_favors.Count) entries" -ForegroundColor DarkGray }
 if ($gsManifest) { Check "manifest has files array"  ($gsManifest.files.Count -gt 0);              Write-Host "    manifest lists $($gsManifest.files.Count) files" -ForegroundColor DarkGray }
 
 # -----------------------------------------------------------------------

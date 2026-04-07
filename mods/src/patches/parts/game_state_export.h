@@ -34,4 +34,12 @@ namespace game_state_export
   // Missions
   void capture_missions_active(const std::vector<std::pair<int64_t, int64_t>>& missions); // {instance_id, mission_id}
   void capture_missions_completed(const std::vector<int64_t>& mission_ids);
+
+  // Faction favors (Loyalty system)
+  // loyalty_specs: map of buffId -> { faction, tier_index (1-based), max_tiers }
+  struct LoyaltyBuffEntry { std::string faction; int32_t tier_index; int32_t max_tiers; };
+  void capture_loyalty_specs(const std::vector<LoyaltyBuffEntry>& buff_map_entries,
+                             const std::vector<int64_t>&           buff_ids);
+  // active_buff_ids: all currently active buff IDs (from GlobalActiveBuffs)
+  void capture_active_buffs(const std::vector<std::pair<int64_t, int32_t>>& buffs); // {buffId, level}
 } // namespace game_state_export

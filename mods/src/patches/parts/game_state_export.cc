@@ -62,6 +62,13 @@ static std::vector<std::pair<int32_t, int64_t>> cached_drydock_assignments;
 static std::vector<std::pair<int64_t, int64_t>> cached_missions_active;    // {instance_id, mission_id}
 static std::vector<int64_t>                     cached_missions_completed;
 
+// Faction favors (Loyalty system)
+// Maps buffId -> { faction name, tier_index (1-based), max_tiers_for_this_faction }
+struct LoyaltyBuffInfo { std::string faction; int32_t tier_index; int32_t max_tiers; };
+static std::unordered_map<int64_t, LoyaltyBuffInfo> cached_loyalty_buff_map; // buffId -> info
+// Active buff snapshot: buffId -> level
+static std::unordered_map<int64_t, int32_t> cached_active_buffs;
+
 // Change tracking
 static std::string last_full_export_time;
 static std::chrono::steady_clock::time_point last_full_export_tp;
@@ -355,6 +362,36 @@ void capture_missions_completed(const std::vector<int64_t>& mission_ids)
   request_immediate_export();
 }
 
+void capture_loyalty_specs(const std::vector<LoyaltyBuffEntry>& entries,
+                            const std::vector<int64_t>&          buff_ids)
+{
+  std::scoped_lock lock(game_data_mutex);
+  if (entries.size() != buff_ids.size()) {
+    spdlog::warn("GameState: capture_loyalty_specs size mismatch ({} entries, {} ids)",
+                 entries.size(), buff_ids.size());
+    return;
+  }
+  // Accumulate across factions — each call covers one faction's full tier set.
+  for (size_t i = 0; i < buff_ids.size(); ++i) {
+    cached_loyalty_buff_map[buff_ids[i]] = {entries[i].faction, entries[i].tier_index, entries[i].max_tiers};
+  }
+  spdlog::info("GameState: capture_loyalty_specs: {} buff->faction mappings total",
+               cached_loyalty_buff_map.size());
+}
+
+void capture_active_buffs(const std::vector<std::pair<int64_t, int32_t>>& buffs)
+{
+  std::scoped_lock lock(game_data_mutex);
+  cached_active_buffs.clear();
+  for (const auto& [id, level] : buffs) {
+    cached_active_buffs[id] = level;
+  }
+  // Only request export if we have loyalty specs to cross-reference
+  if (!cached_loyalty_buff_map.empty()) {
+    request_immediate_export();
+  }
+}
+
 json build_game_state_json()
 {
   std::scoped_lock lock(game_data_mutex);
@@ -503,6 +540,33 @@ json build_game_state_json()
         {"resource_id", id},
         {"name", name},
         {"amount", amount}
+      });
+    }
+  }
+
+  // Syndicate loyalty buffs — active tiers claimed on the global Syndicate Loyalty track.
+  // Built by cross-referencing cached_active_buffs against cached_loyalty_buff_map.
+  {
+    std::map<std::string, json> by_faction;
+    for (const auto& [buff_id, level] : cached_active_buffs) {
+      auto it = cached_loyalty_buff_map.find(buff_id);
+      if (it == cached_loyalty_buff_map.end()) continue;
+      const auto& info = it->second;
+      by_faction[info.faction].push_back({
+        {"tier",      info.tier_index},
+        {"max_tiers", info.max_tiers},
+        {"buff_id",   buff_id},
+        {"level",     level}
+      });
+    }
+    j["syndicate_loyalty_buffs"] = json::array();
+    for (auto& [faction, tiers] : by_faction) {
+      std::sort(tiers.begin(), tiers.end(), [](const json& a, const json& b) {
+        return a["tier"].get<int32_t>() < b["tier"].get<int32_t>();
+      });
+      j["syndicate_loyalty_buffs"].push_back({
+        {"faction", faction},
+        {"tiers",   tiers}
       });
     }
   }
@@ -866,11 +930,12 @@ void export_game_state()
     // --- faction.json ---
     {
       json j;
-      j["exported_at"]        = ts;
-      j["faction_reputation"] = gs["faction_reputation"];
+      j["exported_at"]          = ts;
+      j["faction_reputation"]   = gs["faction_reputation"];
       j["faction_store_tokens"] = gs["faction_store_tokens"];
-      j["armada_credits"]     = gs["armada_credits"];
-      j["blueprints"]         = gs["blueprints"];
+      j["armada_credits"]       = gs["armada_credits"];
+      j["faction_favors"]       = gs["syndicate_loyalty_buffs"];
+      j["blueprints"]           = gs["blueprints"];
       write_json_file(dir / "faction.json", j);
     }
 
@@ -900,7 +965,7 @@ void export_game_state()
         make_entry("research.json",  gist.filename_research,  "Research tree levels"),
         make_entry("officers.json",  gist.filename_officers,  "Officers with rank, level and trait levels"),
         make_entry("missions.json",  gist.filename_missions,  "Active and completed mission IDs"),
-        make_entry("faction.json",   gist.filename_faction,   "Faction reputation, store tokens, armada credits and blueprint part counts"),
+        make_entry("faction.json",   gist.filename_faction,   "Faction reputation, store tokens, armada credits, syndicate loyalty buffs and blueprint part counts"),
         make_entry("battlelog.json", gist.filename_battlelog, "Battle history (last 500 battles)"),
       });
 
