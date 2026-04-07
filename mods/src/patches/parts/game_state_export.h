@@ -35,11 +35,25 @@ namespace game_state_export
   void capture_missions_active(const std::vector<std::pair<int64_t, int64_t>>& missions); // {instance_id, mission_id}
   void capture_missions_completed(const std::vector<int64_t>& mission_ids);
 
-  // Faction favors (Loyalty system)
-  // loyalty_specs: map of buffId -> { faction, tier_index (1-based), max_tiers }
+  // Buff catalog (ShipBonusBuffSpecs, type 51)
+  struct BuffSpecEntry {
+    int64_t  buff_id;
+    int32_t  modifier_code;    // CLIENTMODIFIERTYPE_* enum value
+    int32_t  operation;        // BuffOperation enum value
+    int64_t  faction_id;       // 0 = not faction-specific
+    bool     show_percentage;
+    std::vector<double> ranked_values; // per-level bonus values
+  };
+  void capture_buff_specs(const std::vector<BuffSpecEntry>& specs);
+
+  // Faction specs (FactionSpecs, type 8) — factionId -> human-readable name
+  void capture_faction_specs(const std::vector<std::pair<int64_t, std::string>>& specs); // {id, name}
+
+  // Syndicate loyalty tier specs (LoyaltySpecs, type 122)
   struct LoyaltyBuffEntry { std::string faction; int32_t tier_index; int32_t max_tiers; };
   void capture_loyalty_specs(const std::vector<LoyaltyBuffEntry>& buff_map_entries,
                              const std::vector<int64_t>&           buff_ids);
-  // active_buff_ids: all currently active buff IDs (from GlobalActiveBuffs)
-  void capture_active_buffs(const std::vector<std::pair<int64_t, int32_t>>& buffs); // {buffId, level}
+
+  // Active buffs snapshot (GlobalActiveBuffs, type 69) — {buffId, level}
+  void capture_active_buffs(const std::vector<std::pair<int64_t, int32_t>>& buffs);
 } // namespace game_state_export

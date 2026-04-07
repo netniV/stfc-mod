@@ -1063,6 +1063,53 @@ void process_active_officer_traits(std::unique_ptr<std::string>&& bytes)
   }
 }
 
+void process_faction_specs(std::unique_ptr<std::string>&& bytes)
+{
+  if (!Config::Get().export_gamestate) return;
+
+  if (auto response = Digit::PrimeServer::Models::StaticSyncFactionSpecsResponse(); response.ParseFromString(*bytes)) {
+    std::vector<std::pair<int64_t, std::string>> specs;
+    specs.reserve(static_cast<size_t>(response.factionspecs_size()));
+    for (const auto& [id, spec] : response.factionspecs()) {
+      if (!spec.name().empty())
+        specs.emplace_back(id, spec.name());
+    }
+    spdlog::info("GameState: FactionSpecs: {} factions", specs.size());
+    game_state_export::capture_faction_specs(specs);
+  } else {
+    spdlog::error("GameState: Failed to parse FactionSpecs");
+  }
+}
+
+void process_ship_bonus_buff_specs(std::unique_ptr<std::string>&& bytes)
+{
+  if (!Config::Get().export_gamestate) return;
+
+  if (auto response = Digit::PrimeServer::Models::StaticSyncShipBonusSpecsResponse(); response.ParseFromString(*bytes)) {
+    std::vector<game_state_export::BuffSpecEntry> specs;
+    specs.reserve(static_cast<size_t>(response.shipbonusspecs_size()));
+    for (const auto& [id, spec] : response.shipbonusspecs()) {
+      game_state_export::BuffSpecEntry entry;
+      entry.buff_id       = spec.buffid();
+      entry.modifier_code = spec.modifiercode();
+      entry.operation     = static_cast<int32_t>(spec.op());
+      entry.faction_id    = spec.has_attributes() ? spec.attributes().factionid() : 0;
+      entry.show_percentage = spec.showpercentage();
+      for (const auto v : spec.rankedbuffvalues())
+        entry.ranked_values.push_back(v);
+      if (entry.ranked_values.empty()) {
+        for (const auto v : spec.rankedvalues())
+          entry.ranked_values.push_back(static_cast<double>(v));
+      }
+      specs.push_back(std::move(entry));
+    }
+    spdlog::info("GameState: ShipBonusBuffSpecs: {} buff specs", specs.size());
+    game_state_export::capture_buff_specs(specs);
+  } else {
+    spdlog::error("GameState: Failed to parse ShipBonusBuffSpecs");
+  }
+}
+
 void process_loyalty_specs(std::unique_ptr<std::string>&& bytes)
 {
   if (!Config::Get().export_gamestate) return;
@@ -2258,6 +2305,16 @@ void HandleEntityGroup(EntityGroup* entity_group)
     case EntityGroup::Type::StarbaseDetailedScan:
       if (Config::Get().export_gamestate) {
         submit_async(process_starbase_detailed_scan);
+      }
+      break;
+    case EntityGroup::Type::FactionSpecs:
+      if (Config::Get().export_gamestate) {
+        submit_async(process_faction_specs);
+      }
+      break;
+    case EntityGroup::Type::ShipBonusBuffSpecs:
+      if (Config::Get().export_gamestate) {
+        submit_async(process_ship_bonus_buff_specs);
       }
       break;
     case EntityGroup::Type::AllianceGetGameProperties:

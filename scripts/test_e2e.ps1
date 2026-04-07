@@ -71,6 +71,7 @@ $gsResearch = Check-ExportFile "research.json"  "research"
 $gsOfficers = Check-ExportFile "officers.json"  "officers"
 $gsMissions = Check-ExportFile "missions.json"  "missions"
 $gsFaction  = Check-ExportFile "faction.json"   "faction"
+$gsBuffs    = Check-ExportFile "buffs.json"     "buffs"
 $gsManifest = Check-ExportFile "manifest.json"  "manifest"
 
 if ($gsPlayer) {
@@ -95,10 +96,11 @@ if ($gsOfficers) { Check "officers > 0"             ($gsOfficers.officers.Count 
 if ($gsMissions) { Check "missions_completed > 0"   ($gsMissions.missions_completed.Count -gt 0);  Write-Host "    missions: $($gsMissions.missions_active.Count) active, $($gsMissions.missions_completed.Count) completed" -ForegroundColor DarkGray }
 if ($gsFaction)  { Check "faction_reputation present"    ($gsFaction.faction_reputation -ne $null);   Check "blueprints present" ($gsFaction.blueprints -ne $null)
                    Check "faction_store_tokens present" ($gsFaction.faction_store_tokens -ne $null);  Check "armada_credits present" ($gsFaction.armada_credits -ne $null)
-                   Check "faction_favors present"       ($gsFaction.faction_favors -ne $null)
-                   Write-Host "    faction tokens: $($gsFaction.faction_store_tokens.Count) entries, armada credits: $($gsFaction.armada_credits.Count) entries, syndicate loyalty buffs: $($gsFaction.faction_favors.Count) entries" -ForegroundColor DarkGray }
-if ($gsManifest) { Check "manifest has files array"  ($gsManifest.files.Count -gt 0);              Write-Host "    manifest lists $($gsManifest.files.Count) files" -ForegroundColor DarkGray }
-
+                   Check "faction_favors key present"   ($null -ne $gsFaction.PSObject.Properties['faction_favors'])
+                   Write-Host "    faction tokens: $($gsFaction.faction_store_tokens.Count) entries, armada credits: $($gsFaction.armada_credits.Count) entries, faction favors: $($gsFaction.faction_favors.Count) factions" -ForegroundColor DarkGray }
+if ($gsBuffs)    { Check "buff_catalog present"         ($gsBuffs.buff_catalog -ne $null)
+                   Check "buff_catalog non-empty"        ($gsBuffs.buff_catalog.Count -gt 0)
+                   Write-Host "    buff catalog: $($gsBuffs.buff_catalog.Count) entries" -ForegroundColor DarkGray }
 # -----------------------------------------------------------------------
 Write-Host "`n=== 3. GIST SYNC - MANIFEST & PLAYER ===" -ForegroundColor Cyan
 

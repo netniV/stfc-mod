@@ -113,31 +113,33 @@ represented by the `FactionToken` resources.
 to `faction.json`. Only non-zero amounts included. 12 token types and
 6 armada credit types exported. Tests: 55/55.
 
-### Feature: Faction favors (per-faction store bonuses) — NEEDS PROTO INVESTIGATION
-**What was implemented:** The `LoyaltySpecs` (EntityGroup type 122) +
-`GlobalActiveBuffs` (type 69) pipeline is now hooked and exports
-`faction_favors` in `faction.json` — but this turned out to be the global
-**Syndicate Loyalty** track (65 tiers, measured in `Resource_Loyalty_Points`),
-not the per-faction store bonuses shown in the Bajoran Favors screenshot.
-The exported key was renamed `faction_favors` (containing `faction=Syndicate`,
-77 active buff tiers at the time of testing). Tests: 56/56.
+### Feature: Faction favors (per-faction store bonuses) — NEEDS FURTHER INVESTIGATION
+**What was implemented:**
+- `ShipBonusBuffSpecs` (EntityGroup type 51) hooked — exports `buffs.json`
+  with full buff catalog: 1313 entries with modifier type, operation, per-level
+  values, and faction affiliation where applicable.
+- `FactionSpecs` (type 8) hooked — provides human-readable faction names
+  (Faction Federation, Faction Klingon, Faction Romulan etc.) for the catalog.
+- `faction_favors` key added to `faction.json` (currently empty array).
+- Full `modifier_code_name()` mapping with 60+ named modifier types.
+Tests: 60/60.
 
 **Still open — true Bajoran/Federation/etc. per-faction store favors:**
-These are a separate system. Each is a permanently purchased buff from a specific
-faction's store (e.g. USS Newton Hull Plating, Quantum Torpedoes, Bajor's Rage).
-The buff ID is the key; faction ownership comes from `BuffSpec.Attributes.factionId`
-(in `ShipBonusBuffSpecs` / buff catalog, EntityGroup type 51) cross-referenced
-against `FactionSpec.id`.
-**TODO:**
-- [ ] Hook `ShipBonusBuffSpecs` (type 51) or another buff catalog type to cache
-      the mapping: buffId -> faction name (via `BuffSpec.Attributes.factionId`
-      -> `FactionSpec.idStr` / `FactionSpec.name`)
-- [ ] In `capture_active_buffs`, use the buff catalog to annotate each active
-      buff with its faction — filter to only permanent (no-expiry) faction-store buffs
-- [ ] Export per-faction grouping in `faction_favors` with human-readable names
-      and tier progress (e.g. faction=Bajoran, favor=Quantum Torpedoes, tier=4/12)
-- [ ] Verify: screenshot shows Bajoran favors at tiers 4/12, 2/5, 2/5, 1/5 etc.
-      Expect ~10 active Bajoran favor buffs in `GlobalActiveBuffs`
+The `ShipBonusBuffSpecs` faction buffs (42 entries, ~5-6 per big faction) are
+research/meta-progression bonuses, NOT the named per-item store bonuses shown
+in the Bajoran Favors screenshot (Quantum Torpedoes, Bajor's Rage, etc.).
+None of the player's 77 active `GlobalActiveBuffs` IDs appear in the
+`ShipBonusBuffSpecs` catalog — the Bajoran Favors come from a different source.
+**Investigation needed:**
+- [ ] Identify which EntityGroup type carries the named faction-store favor specs.
+      Candidates: `ActivatedAbilitySpecs` (type 128), `OfficerAbilityBuffSpecs`
+      (type 17), or an unhanded type in the switch. Enable debug logging to
+      enumerate all type numbers arriving at login and check against
+      `EntityGroup.h` entries not yet handled.
+- [ ] Alternatively: check if the Bajoran Favors screen is only populated after
+      navigating to the Bajoran faction store — may not arrive at login.
+- [ ] Once source is identified, cross-reference with `GlobalActiveBuffs` to
+      populate `faction_favors` in `faction.json`.
 
 ### Feature: Daily goals / tasks
 **Goal:** Export the player's current daily goals and their completion state so

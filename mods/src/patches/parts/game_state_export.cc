@@ -62,12 +62,25 @@ static std::vector<std::pair<int32_t, int64_t>> cached_drydock_assignments;
 static std::vector<std::pair<int64_t, int64_t>> cached_missions_active;    // {instance_id, mission_id}
 static std::vector<int64_t>                     cached_missions_completed;
 
-// Faction favors (Loyalty system)
-// Maps buffId -> { faction name, tier_index (1-based), max_tiers_for_this_faction }
+// Syndicate loyalty tier specs: buffId -> { tier, max_tiers }
 struct LoyaltyBuffInfo { std::string faction; int32_t tier_index; int32_t max_tiers; };
-static std::unordered_map<int64_t, LoyaltyBuffInfo> cached_loyalty_buff_map; // buffId -> info
-// Active buff snapshot: buffId -> level
+static std::unordered_map<int64_t, LoyaltyBuffInfo> cached_loyalty_buff_map;
+
+// Active buff snapshot: buffId -> level (from GlobalActiveBuffs)
 static std::unordered_map<int64_t, int32_t> cached_active_buffs;
+
+// Buff catalog: buffId -> BuffSpecEntry (from ShipBonusBuffSpecs type 51)
+struct CachedBuffSpec {
+  int32_t              modifier_code;
+  int32_t              operation;
+  int64_t              faction_id;
+  bool                 show_percentage;
+  std::vector<double>  ranked_values;
+};
+static std::unordered_map<int64_t, CachedBuffSpec> cached_buff_specs;
+
+// Faction specs: factionId -> human-readable name (from FactionSpecs type 8)
+static std::unordered_map<int64_t, std::string> cached_faction_specs;
 
 // Change tracking
 static std::string last_full_export_time;
@@ -386,9 +399,109 @@ void capture_active_buffs(const std::vector<std::pair<int64_t, int32_t>>& buffs)
   for (const auto& [id, level] : buffs) {
     cached_active_buffs[id] = level;
   }
-  // Only request export if we have loyalty specs to cross-reference
-  if (!cached_loyalty_buff_map.empty()) {
+  // Request export whenever buff catalog is available (covers both loyalty and faction favors)
+  if (!cached_loyalty_buff_map.empty() || !cached_buff_specs.empty()) {
     request_immediate_export();
+  }
+}
+
+void capture_buff_specs(const std::vector<BuffSpecEntry>& specs)
+{
+  std::scoped_lock lock(game_data_mutex);
+  for (const auto& s : specs) {
+    cached_buff_specs[s.buff_id] = {s.modifier_code, s.operation, s.faction_id,
+                                    s.show_percentage, s.ranked_values};
+  }
+  spdlog::info("GameState: capture_buff_specs: {} total buff specs cached", cached_buff_specs.size());
+}
+
+void capture_faction_specs(const std::vector<std::pair<int64_t, std::string>>& specs)
+{
+  std::scoped_lock lock(game_data_mutex);
+  for (const auto& [id, name] : specs) {
+    cached_faction_specs[id] = name;
+  }
+  spdlog::info("GameState: capture_faction_specs: {} factions cached", cached_faction_specs.size());
+}
+
+// Human-readable name for a CLIENTMODIFIERTYPE_* code
+static std::string modifier_code_name(int32_t code)
+{
+  switch (code) {
+    case 0:   return "energy_damage";
+    case 1:   return "kinetic_damage";
+    case 2:   return "all_damage";
+    case 3:   return "shots_per_attack";
+    case 4:   return "all_load_speed";
+    case 5:   return "all_reload_speed";
+    case 6:   return "accuracy";
+    case 7:   return "armor_piercing";
+    case 8:   return "shield_piercing";
+    case 9:   return "crit_chance";
+    case 10:  return "crit_damage";
+    case 11:  return "dodge";
+    case 12:  return "armor";
+    case 13:  return "shields";
+    case 16:  return "shield_hp_repair";
+    case 17:  return "hull_hp_repair";
+    case 20:  return "parsteel_protection";
+    case 21:  return "tritanium_protection";
+    case 22:  return "dilithium_protection";
+    case 23:  return "combat_parsteel_reward";
+    case 24:  return "combat_tritanium_reward";
+    case 25:  return "combat_dilithium_reward";
+    case 26:  return "combat_intel_reward";
+    case 40:  return "hull_hp";
+    case 41:  return "shield_hp";
+    case 60:  return "shield_hp_max";
+    case 61:  return "hull_hp_max";
+    case 62:  return "impulse_speed";
+    case 63:  return "warp_speed";
+    case 64:  return "warp_distance";
+    case 67:  return "cargo_protection";
+    case 68:  return "impulse_speed_bonus";
+    case 73:  return "all_defenses";
+    case 74:  return "all_piercing";
+    case 75:  return "shield_regen_time";
+    case 76:  return "shield_mitigation";
+    case 100: return "resource_protection";
+    case 105: return "mining_rate";
+    case 107: return "repair_cost";
+    case 108: return "starbase_construction_speed";
+    case 109: return "starbase_construction_cost";
+    case 112: return "building_cost_efficiency";
+    case 113: return "resource_storage";
+    case 117: return "ship_construction_speed";
+    case 118: return "ship_construction_cost";
+    case 119: return "tier_up_speed";
+    case 121: return "faction_store_loot_bonus";
+    case 124: return "scan_ship";
+    case 125: return "scan_station";
+    case 126: return "scan_system";
+    case 129: return "ship_scrap_resource_bonus";
+    case 130: return "ship_scrap_loot_bonus";
+    case 131: return "ship_scrap_speed";
+    case 135: return "resource_producer_storage";
+    case 136: return "warehouse_storage";
+    case 137: return "vault_storage";
+    case 139: return "ship_inventory_size";
+    case 140: return "scan_cost";
+    case 141: return "trade_tax";
+    case 145: return "combat_pve_rewards";
+    case 146: return "combat_outlaws_rewards";
+    case 179: return "solo_armada_elite_credit_rewards";
+    case 223: return "bypass_shields";
+    case 225: return "hull_repair";
+    case 233: return "simultaneous_armada";
+    case 707: return "isolytic_damage";
+    case 808: return "isolytic_defense";
+    case 810: return "hazard_type_a_mitigation";
+    case 811: return "hazard_type_b_mitigation";
+    case 812: return "hazard_type_c_mitigation";
+    case 815: return "hazard_type_e_mitigation";
+    case 78010: return "wok_augment_all_loot_rewards";
+    case 80003: return "m80_transogen_epic_loot";
+    default:  return "modifier_" + std::to_string(code);
   }
 }
 
@@ -569,6 +682,72 @@ json build_game_state_json()
         {"tiers",   tiers}
       });
     }
+  }
+
+  // Faction favors — permanent buffs bought in per-faction stores.
+  // Active buffs (no expiry) whose BuffSpec.factionId > 0 are faction-store purchases.
+  {
+    std::map<std::string, json> by_faction;
+    for (const auto& [buff_id, level] : cached_active_buffs) {
+      auto spec_it = cached_buff_specs.find(buff_id);
+      if (spec_it == cached_buff_specs.end()) continue;
+      const auto& spec = spec_it->second;
+      if (spec.faction_id <= 0) continue; // not faction-affiliated
+
+      // Resolve faction name
+      std::string faction_name;
+      auto fac_it = cached_faction_specs.find(spec.faction_id);
+      if (fac_it != cached_faction_specs.end())
+        faction_name = fac_it->second;
+      else
+        faction_name = "faction_" + std::to_string(spec.faction_id);
+
+      // Current value = rankedValues[level-1] if available
+      double current_value = 0.0;
+      if (level > 0 && static_cast<size_t>(level) <= spec.ranked_values.size())
+        current_value = spec.ranked_values[static_cast<size_t>(level) - 1];
+
+      by_faction[faction_name].push_back({
+        {"buff_id",        buff_id},
+        {"modifier",       modifier_code_name(spec.modifier_code)},
+        {"modifier_code",  spec.modifier_code},
+        {"operation",      spec.operation},
+        {"level",          level},
+        {"max_level",      static_cast<int32_t>(spec.ranked_values.size())},
+        {"value",          current_value},
+        {"show_percentage", spec.show_percentage},
+        {"all_values",     spec.ranked_values}
+      });
+    }
+    j["faction_favors"] = json::array();
+    for (auto& [faction, buffs] : by_faction) {
+      std::sort(buffs.begin(), buffs.end(), [](const json& a, const json& b) {
+        return a["modifier"].get<std::string>() < b["modifier"].get<std::string>();
+      });
+      j["faction_favors"].push_back({{"faction", faction}, {"buffs", buffs}});
+    }
+  }
+
+  // Full buff catalog — all BuffSpecs from ShipBonusBuffSpecs (type 51).
+  // Includes buff ID, modifier type, operation, per-level values, and faction affiliation.
+  j["buff_catalog"] = json::array();
+  for (const auto& [buff_id, spec] : cached_buff_specs) {
+    std::string faction_name;
+    if (spec.faction_id > 0) {
+      auto fac_it = cached_faction_specs.find(spec.faction_id);
+      faction_name = (fac_it != cached_faction_specs.end()) ? fac_it->second
+                                                             : "faction_" + std::to_string(spec.faction_id);
+    }
+    json entry = {
+      {"buff_id",        buff_id},
+      {"modifier",       modifier_code_name(spec.modifier_code)},
+      {"modifier_code",  spec.modifier_code},
+      {"operation",      spec.operation},
+      {"show_percentage", spec.show_percentage},
+      {"ranked_values",  spec.ranked_values}
+    };
+    if (!faction_name.empty()) entry["faction"] = faction_name;
+    j["buff_catalog"].push_back(std::move(entry));
   }
 
   // Blueprint parts - resources named Resource_Parts_* or Resource_*_Parts_*
@@ -777,6 +956,7 @@ static void sync_all_to_gist(const std::filesystem::path& dir)
     {gist.filename_officers,  dir / "officers.json"},
     {gist.filename_missions,  dir / "missions.json"},
     {gist.filename_faction,   dir / "faction.json"},
+    {gist.filename_buffs,     dir / "buffs.json"},
     {gist.filename_manifest,  dir / "manifest.json"},
   };
 
@@ -930,13 +1110,22 @@ void export_game_state()
     // --- faction.json ---
     {
       json j;
-      j["exported_at"]          = ts;
-      j["faction_reputation"]   = gs["faction_reputation"];
-      j["faction_store_tokens"] = gs["faction_store_tokens"];
-      j["armada_credits"]       = gs["armada_credits"];
-      j["faction_favors"]       = gs["syndicate_loyalty_buffs"];
-      j["blueprints"]           = gs["blueprints"];
+      j["exported_at"]            = ts;
+      j["faction_reputation"]     = gs["faction_reputation"];
+      j["faction_store_tokens"]   = gs["faction_store_tokens"];
+      j["armada_credits"]         = gs["armada_credits"];
+      j["faction_favors"]         = gs["faction_favors"];
+      j["syndicate_loyalty_buffs"] = gs["syndicate_loyalty_buffs"];
+      j["blueprints"]             = gs["blueprints"];
       write_json_file(dir / "faction.json", j);
+    }
+
+    // --- buffs.json ---
+    {
+      json j;
+      j["exported_at"]  = ts;
+      j["buff_catalog"] = gs["buff_catalog"];
+      write_json_file(dir / "buffs.json", j);
     }
 
     // --- manifest.json ---
@@ -966,6 +1155,7 @@ void export_game_state()
         make_entry("officers.json",  gist.filename_officers,  "Officers with rank, level and trait levels"),
         make_entry("missions.json",  gist.filename_missions,  "Active and completed mission IDs"),
         make_entry("faction.json",   gist.filename_faction,   "Faction reputation, store tokens, armada credits, syndicate loyalty buffs and blueprint part counts"),
+        make_entry("buffs.json",     gist.filename_buffs,     "Full buff catalog (ShipBonusBuffSpecs) with modifier types, operations and per-level values"),
         make_entry("battlelog.json", gist.filename_battlelog, "Battle history (last 500 battles)"),
       });
 
@@ -1383,7 +1573,7 @@ void init()
                  gist.gist_id, gist.filename_manifest);
     for (const auto* fn : {&gist.filename_player, &gist.filename_ships, &gist.filename_resources,
                             &gist.filename_research, &gist.filename_officers, &gist.filename_missions,
-                            &gist.filename_faction, &gist.filename_battlelog}) {
+                            &gist.filename_faction, &gist.filename_buffs, &gist.filename_battlelog}) {
       spdlog::info("GameState Gist sync:   https://gist.githubusercontent.com/raw/{}/{}", gist.gist_id, *fn);
     }
   } else {

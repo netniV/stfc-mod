@@ -116,6 +116,7 @@ public:
   std::string filename_officers  = "stfc_officers.json";
   std::string filename_missions  = "stfc_missions.json";
   std::string filename_faction   = "stfc_faction.json";
+  std::string filename_buffs     = "stfc_buffs.json";
   std::string filename_battlelog = "stfc_battlelog.json";
   std::string filename_manifest  = "stfc_manifest.json";
 };
