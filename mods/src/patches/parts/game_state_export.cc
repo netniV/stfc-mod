@@ -205,11 +205,18 @@ void capture_player_data(const nlohmann::json& data)
   }
 }
 
-void capture_player_alliance(const std::string& alliance_name, const std::string& alliance_tag)
+void capture_player_alliance(const std::string& alliance_name, const std::string& alliance_tag,
+                              int32_t level, int32_t member_count, int64_t power)
 {
   std::scoped_lock lock(game_data_mutex);
   if (!cached_player_data.is_null()) {
-    cached_player_data["alliance"] = alliance_name + " [" + alliance_tag + "]";
+    cached_player_data["alliance"] = {
+      {"name",         alliance_name},
+      {"tag",          alliance_tag},
+      {"level",        level},
+      {"member_count", member_count},
+      {"power",        power}
+    };
   }
 }
 
@@ -1184,7 +1191,7 @@ void export_game_state()
 
       manifest["files"] = json::array({
         make_entry("player.json",    gist.filename_player,
-          "Player profile, station, and drydock assignments",
+          "Player profile (name, ops level, power, server, syndicate level/XP), station peace shield, drydock assignments, and alliance (name, tag, level, member count, power)",
           {"player", "station", "drydocks"}),
         make_entry("ships.json",     gist.filename_ships,
           "Ships in the hangar (hull, tier, level, components, tier_max_level, tier_up_duration_secs) and blueprint part counts",

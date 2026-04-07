@@ -108,7 +108,7 @@ Installation of the Community Mod is a manual process for Windows (or Wine).
 
    | File | Contents | Arrives at login? | Action required if not |
    |---|---|---|---|
-   | `game_state_exports/player.json` | Player name, OPS level, power, server, alliance, syndicate level/XP | ✅ Yes (requires `player_id` set in config — see note above) | Set `player_id` in `community_patch_settings.toml` |
+   | `game_state_exports/player.json` | Player name, OPS level, power, server, syndicate level/XP, and alliance (name, tag, level, member count, power) | ✅ Yes (requires `player_id` set in config — see note above) | Set `player_id` in `community_patch_settings.toml` |
    | `game_state_exports/player.json` | **Peace shield** — active status, expiry time, token counts | ❌ No | Tap your **station icon** in the **system view** of your home system (not the interior/exterior button, not the system button — the actual station icon on the map) |
    | `game_state_exports/player.json` | **Drydock assignments** — which ship is in slot A, B, C… | ✅ Yes | None |
    | `game_state_exports/ships.json` | All ships in hangar — hull, tier, level, tier max level, tier-up build time, components | ✅ Yes | None |

@@ -80,12 +80,22 @@ if ($gsPlayer) {
         Check "player.name non-empty" $true
         Check "player.power > 0"      ($gsPlayer.player.power -gt 0)
     } else {
-        Write-Host "  [INFO] player.name/power not yet received (needs in-game interaction)" -ForegroundColor Yellow
+        Write-Host "  [INFO] player.name/power not yet received (player_id not set in config?)" -ForegroundColor Yellow
         $script:pass += 2
     }
     Check "player.syndicate_level > 0"     ($gsPlayer.player.syndicate_level -gt 0)
     Check "station.peace_shield present"   ($gsPlayer.station.peace_shield -ne $null)
     Check "drydocks array present"         ($null -ne $gsPlayer.drydocks)
+    if ($gsPlayer.player.alliance -ne $null -and $gsPlayer.player.alliance -isnot [string]) {
+        Check "alliance.name non-empty"   ($gsPlayer.player.alliance.name -ne "")
+        Check "alliance.tag non-empty"    ($gsPlayer.player.alliance.tag -ne "")
+        Check "alliance.level > 0"        ($gsPlayer.player.alliance.level -gt 0)
+        Check "alliance.member_count > 0" ($gsPlayer.player.alliance.member_count -gt 0)
+        Write-Host "    alliance: $($gsPlayer.player.alliance.name) [$($gsPlayer.player.alliance.tag)] lvl=$($gsPlayer.player.alliance.level) members=$($gsPlayer.player.alliance.member_count) power=$($gsPlayer.player.alliance.power)" -ForegroundColor DarkGray
+    } else {
+        Write-Host "  [INFO] alliance not yet received" -ForegroundColor Yellow
+        $script:pass += 4
+    }
     Write-Host "    player: $($gsPlayer.player.name), ops $($gsPlayer.player.ops_level), syndicate $($gsPlayer.player.syndicate_level)" -ForegroundColor DarkGray
     Write-Host "    drydocks: $($gsPlayer.drydocks.Count) ($(($gsPlayer.drydocks | ForEach-Object { $_.letter }) -join ','))" -ForegroundColor DarkGray
 }

@@ -570,6 +570,9 @@ std::mutex                                        player_data_cache_mtx;
 struct CachedAllianceData {
   std::string                           name;
   std::string                           tag;
+  int32_t                               level        = 0;
+  int32_t                               member_count = 0;
+  int64_t                               power        = 0;
   std::chrono::steady_clock::time_point expires_at;
 };
 
@@ -1999,7 +2002,14 @@ void cache_alliance_names(std::unique_ptr<std::string>&& bytes)
 
     for (const auto& alliance : response.allianceprofiles()) {
       if (alliance.id() > 0) {
-        names.insert_or_assign(alliance.id(), CachedAllianceData{.name=alliance.name(), .tag=alliance.tag(), .expires_at=expires_at});
+        names.insert_or_assign(alliance.id(), CachedAllianceData{
+          .name         = alliance.name(),
+          .tag          = alliance.tag(),
+          .level        = alliance.level(),
+          .member_count = alliance.metadata().membercount(),
+          .power        = static_cast<int64_t>(alliance.metadata().militarymight()),
+          .expires_at   = expires_at
+        });
       }
     }
 
@@ -2016,7 +2026,9 @@ void cache_alliance_names(std::unique_ptr<std::string>&& bytes)
         if (it != names.end()) {
           // Re-capture player data with the alliance name filled in
           // (ops_level, power, server will be re-populated on next UserProfiles update)
-          game_state_export::capture_player_alliance(it->second.name, it->second.tag);
+          game_state_export::capture_player_alliance(
+            it->second.name, it->second.tag,
+            it->second.level, it->second.member_count, it->second.power);
         }
       }
     }

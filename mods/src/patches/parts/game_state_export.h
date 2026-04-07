@@ -16,7 +16,8 @@ namespace game_state_export
 
   // Data capture functions called from sync hooks
   void capture_player_data(const nlohmann::json& data);
-  void capture_player_alliance(const std::string& alliance_name, const std::string& alliance_tag);
+  void capture_player_alliance(const std::string& alliance_name, const std::string& alliance_tag,
+                                int32_t level, int32_t member_count, int64_t power);
   void capture_resources(const nlohmann::json& data);
   void capture_buildings(const nlohmann::json& data);
   void capture_ships(const nlohmann::json& data);

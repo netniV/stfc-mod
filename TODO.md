@@ -169,30 +169,17 @@ time events, etc.) so AI assistants can factor them into planning advice.
 - [ ] Determine whether data arrives at login or requires navigating to
       the events screen
 
-### Feature: Alliance info and territory
-**Goal:** Export alliance details and territory holdings so AI assistants
-can help with territory capture strategy and co-ordination planning.
-**Data wanted:**
-- Alliance name, tag, member count, level, total power
-- Territory holdings: which systems/zones the alliance controls,
-  capture status, fortification level, and any active contests
-- Territory capture windows (when zones are capturable)
-- Alliance diplomacy state (war/peace/NAP relationships) � already
-  partially in the `alliance_diplomacy_relationships` JSON key
-**TODO:**
-- [ ] Audit what already arrives in the JSON blob � known candidates:
-      `alliance`, `alliance_container`, `alliance_members`,
-      `alliance_member_activity`, `alliance_diplomacy_relationships`,
-      `alliances_info` (all seen in the key list at login)
-- [ ] Identify which key/proto carries territory holdings and capture
-      windows � likely requires navigating to the Territory screen
-- [ ] Export `alliance` section to gamestate JSON (name, tag, level,
-      member count, power)
-- [ ] Export `territory` section: controlled zones with fortification
-      level and next capture window
-- [ ] Export `diplomacy` section: war/peace/NAP relationships with
-      other alliances
-
+### Feature: Alliance info and territory — PARTIALLY DONE
+**What was implemented:**
+- Alliance name, tag, level, member count and total power now exported as a
+  structured `player.alliance` object in `player.json` (was a flat string before)
+- Data comes from `AllianceProfiles` (type 71) which arrives automatically at login
+**TODO (still open):**
+- [ ] Territory holdings: which systems/zones the alliance controls, capture status,
+      fortification level, and next capture window — likely requires navigating to
+      the Territory screen; data source not yet identified
+- [ ] Diplomacy state: war/peace/NAP relationships — `alliance_diplomacy_relationships`\r
+      JSON key seen at login but not yet parsed or exported
 ### Feature: Refinery and faction store inventory
 **Goal:** Export the player's current refinery inputs/outputs and faction
 store stock so AI assistants can suggest optimal resources to gather and
