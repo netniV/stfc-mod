@@ -96,8 +96,8 @@ Installation of the Community Mod is a manual process for Windows (or Wine).
    > **Gamestate export player ID:** For `player.json` to populate `name` and `power`,
    > you must set your player ID in `community_patch_settings.toml`:
    > ```toml
-   > [gamestate_export]
-   > enabled = true
+   > [sync.game_state]
+   > enabled   = true
    > player_id = 'your-player-id-here'
    > ```
    > If `player_id` is not yet set, the mod logs all seen user IDs on login. Open
@@ -109,8 +109,8 @@ Installation of the Community Mod is a manual process for Windows (or Wine).
    > works regardless of whether Gist sync is configured.
    > To enable Gist sync, add the following to `community_patch_settings.toml`:
    > ```toml
-   > [gamestate_export.gist]
-   > enabled = true
+   > [sync.game_state.github]
+   > enabled  = true
    > gist_id  = 'your-gist-id-here'       # the hex ID from your gist URL
    > username = 'your-github-username'    # used to build raw file URLs in manifest.json
    > token    = 'your-github-pat-here'    # Personal Access Token with gist scope
