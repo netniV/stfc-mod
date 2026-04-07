@@ -34,7 +34,9 @@ namespace gamestate_export
 
 static std::thread export_thread;
 static bool        should_stop = false;
-static bool        should_export_now = false;
+static bool should_export_now = false;
+static std::chrono::steady_clock::time_point last_export_request_tp;
+static constexpr int EXPORT_DEBOUNCE_SECONDS = 10;
 static std::mutex  export_request_mutex;
 static std::condition_variable export_cv;
 
@@ -87,7 +89,8 @@ static void request_immediate_export()
   }
 
   std::scoped_lock lock(export_request_mutex);
-  should_export_now = true;
+  should_export_now        = true;
+  last_export_request_tp   = std::chrono::steady_clock::now();
   export_cv.notify_one();
 }
 
@@ -98,7 +101,8 @@ static void request_full_export()
   if (seconds_since_startup < STARTUP_GRACE_PERIOD_SECONDS) return;
 
   std::scoped_lock lock(export_request_mutex);
-  should_export_now = true;
+  should_export_now      = true;
+  last_export_request_tp = std::chrono::steady_clock::now();
   export_cv.notify_one();
 }
 
@@ -618,6 +622,87 @@ static void sync_to_gist(const std::string& file_path, const std::string& gist_f
   }
 }
 
+// Sync all game state export files to Gist in a single PATCH request.
+// Using one request avoids repeated 403s when new filenames don't yet
+// exist in the gist (GitHub creates missing files on PATCH automatically
+// when all filenames are included together).
+// A minimum interval between syncs is enforced to avoid rate limiting.
+static std::chrono::steady_clock::time_point last_gist_sync_tp;
+static constexpr int GIST_SYNC_MIN_INTERVAL_SECONDS = 30;
+
+static void sync_all_to_gist(const std::filesystem::path& dir)
+{
+  const auto& gist = Config::Get().export_gamestate_gist;
+  if (!gist.enabled || gist.gist_id.empty() || gist.token.empty()) return;
+
+  // Enforce minimum interval between Gist syncs to avoid rate limiting
+  auto now = std::chrono::steady_clock::now();
+  if (last_gist_sync_tp != std::chrono::steady_clock::time_point{}) {
+    auto secs_since_last = std::chrono::duration_cast<std::chrono::seconds>(
+        now - last_gist_sync_tp).count();
+    if (secs_since_last < GIST_SYNC_MIN_INTERVAL_SECONDS) {
+      spdlog::debug("Gist sync: Skipping ({}s since last sync, min interval {}s)",
+                    secs_since_last, GIST_SYNC_MIN_INTERVAL_SECONDS);
+      return;
+    }
+  }
+
+  // Map of gist filename -> local file path
+  const std::vector<std::pair<std::string, std::filesystem::path>> files = {
+    {gist.filename_player,    dir / "player.json"},
+    {gist.filename_ships,     dir / "ships.json"},
+    {gist.filename_resources, dir / "resources.json"},
+    {gist.filename_research,  dir / "research.json"},
+    {gist.filename_officers,  dir / "officers.json"},
+    {gist.filename_missions,  dir / "missions.json"},
+    {gist.filename_faction,   dir / "faction.json"},
+    {gist.filename_manifest,  dir / "manifest.json"},
+  };
+
+  json files_obj = json::object();
+  for (const auto& [gist_name, local_path] : files) {
+    std::ifstream in(local_path);
+    if (!in.is_open()) {
+      spdlog::warn("Gist sync: Could not read {}", local_path.string());
+      continue;
+    }
+    std::string content((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    files_obj[gist_name] = {{"content", content}};
+  }
+
+  if (files_obj.empty()) return;
+
+  const std::string url = "https://api.github.com/gists/" + gist.gist_id;
+  const json body = {{"files", files_obj}};
+
+  auto response = cpr::Patch(
+    cpr::Url{url},
+    cpr::Header{
+      {"Authorization", "token " + gist.token},
+      {"Accept",        "application/vnd.github.v3+json"},
+      {"Content-Type",  "application/json"}
+    },
+    cpr::Body{body.dump()}
+  );
+
+  if (response.status_code == 200) {
+    last_gist_sync_tp = std::chrono::steady_clock::now();
+    spdlog::info("Gist sync: Updated {} game state files in gist {}", files_obj.size(), gist.gist_id);
+  } else if (response.status_code == 403) {
+    // 403 is typically a rate limit — parse message if available
+    std::string reason = "Forbidden";
+    try {
+      auto body_json = nlohmann::json::parse(response.text);
+      if (body_json.contains("message")) reason = body_json["message"].get<std::string>();
+    } catch (...) {}
+    spdlog::warn("Gist sync: Batch update failed (403): {}", reason);
+  } else {
+    spdlog::warn("Gist sync: Batch update failed - HTTP {} {}: {}",
+                 response.status_code, response.status_line,
+                 response.text.substr(0, 200));
+  }
+}
+
 // Returns the export directory (always community_patch/game_state_exports/), creating it if needed.
 static std::filesystem::path get_export_dir()
 {
@@ -664,12 +749,11 @@ void export_gamestate()
     // --- player.json ---
     {
       json j;
-      j["exported_at"]   = ts;
-      j["player"]        = gs["player"];
-      j["station"]       = gs["station"];
-      j["drydocks"]      = gs["drydocks"];
-      auto path = dir / "player.json";
-      if (write_json_file(path, j)) sync_to_gist(path.string(), gist.filename_player);
+      j["exported_at"] = ts;
+      j["player"]      = gs["player"];
+      j["station"]     = gs["station"];
+      j["drydocks"]    = gs["drydocks"];
+      write_json_file(dir / "player.json", j);
     }
 
     // --- ships.json ---
@@ -677,8 +761,7 @@ void export_gamestate()
       json j;
       j["exported_at"] = ts;
       j["ships"]       = gs["ships"];
-      auto path = dir / "ships.json";
-      if (write_json_file(path, j)) sync_to_gist(path.string(), gist.filename_ships);
+      write_json_file(dir / "ships.json", j);
     }
 
     // --- resources.json (non-zero only) ---
@@ -690,8 +773,7 @@ void export_gamestate()
         if (r.value("amount", 0LL) != 0) res.push_back(r);
       }
       j["resources"] = res;
-      auto path = dir / "resources.json";
-      if (write_json_file(path, j)) sync_to_gist(path.string(), gist.filename_resources);
+      write_json_file(dir / "resources.json", j);
     }
 
     // --- research.json ---
@@ -699,8 +781,7 @@ void export_gamestate()
       json j;
       j["exported_at"] = ts;
       j["research"]    = gs["research"];
-      auto path = dir / "research.json";
-      if (write_json_file(path, j)) sync_to_gist(path.string(), gist.filename_research);
+      write_json_file(dir / "research.json", j);
     }
 
     // --- officers.json ---
@@ -708,8 +789,7 @@ void export_gamestate()
       json j;
       j["exported_at"] = ts;
       j["officers"]    = gs["officers"];
-      auto path = dir / "officers.json";
-      if (write_json_file(path, j)) sync_to_gist(path.string(), gist.filename_officers);
+      write_json_file(dir / "officers.json", j);
     }
 
     // --- missions.json ---
@@ -718,8 +798,7 @@ void export_gamestate()
       j["exported_at"]        = ts;
       j["missions_active"]    = gs["missions_active"];
       j["missions_completed"] = gs["missions_completed"];
-      auto path = dir / "missions.json";
-      if (write_json_file(path, j)) sync_to_gist(path.string(), gist.filename_missions);
+      write_json_file(dir / "missions.json", j);
     }
 
     // --- faction.json ---
@@ -728,8 +807,7 @@ void export_gamestate()
       j["exported_at"]        = ts;
       j["faction_reputation"] = gs["faction_reputation"];
       j["blueprints"]         = gs["blueprints"];
-      auto path = dir / "faction.json";
-      if (write_json_file(path, j)) sync_to_gist(path.string(), gist.filename_faction);
+      write_json_file(dir / "faction.json", j);
     }
 
     // --- manifest.json ---
@@ -737,7 +815,7 @@ void export_gamestate()
       json manifest;
       manifest["exported_at"]  = ts;
       manifest["mod_version"]  = VER_FILE_VERSION_STR;
-      manifest["description"]  = "STFC Community Mod — game state export index";
+      manifest["description"]  = "STFC Community Mod \u2014 game state export index";
 
       auto make_entry = [&](const std::string& file, const std::string& gist_name,
                              const std::string& desc) {
@@ -762,9 +840,11 @@ void export_gamestate()
         make_entry("battlelog.json", gist.filename_battlelog, "Battle history (last 500 battles)"),
       });
 
-      auto path = dir / "manifest.json";
-      if (write_json_file(path, manifest)) sync_to_gist(path.string(), gist.filename_manifest);
+      write_json_file(dir / "manifest.json", manifest);
     }
+
+    // Sync all game state files to Gist in a single PATCH request
+    sync_all_to_gist(dir);
 
     last_full_export_time = ts;
     last_full_export_tp   = std::chrono::steady_clock::now();
@@ -1070,6 +1150,13 @@ void export_thread_func()
     std::this_thread::sleep_for(std::chrono::seconds(STARTUP_GRACE_PERIOD_SECONDS));
     spdlog::info("GameState export: Performing startup full export with all captured data");
     export_gamestate();
+    // Clear any requests that queued up during the grace period and reset the
+    // debounce clock so the post-startup data bursts don't fire again immediately.
+    {
+      std::scoped_lock lock(export_request_mutex);
+      should_export_now      = false;
+      last_export_request_tp = std::chrono::steady_clock::now();
+    }
   }
 
   auto last_export_time = std::chrono::steady_clock::now();
@@ -1097,12 +1184,21 @@ void export_thread_func()
     bool interval_elapsed = cfg.export_gamestate_interval > 0 && seconds_since_last_export >= cfg.export_gamestate_interval;
 
     if (should_export_now || interval_elapsed) {
-      should_export_now = false;
-      lock.unlock();
-
-      export_gamestate();
-
-      last_export_time = now;
+      // Debounce: wait until no new request has arrived for EXPORT_DEBOUNCE_SECONDS
+      // so that a burst of captures (e.g. buildings arriving in batches) produces
+      // one export rather than N back-to-back exports.
+      auto time_since_last_request = std::chrono::duration_cast<std::chrono::seconds>(
+          now - last_export_request_tp).count();
+      if (should_export_now && !interval_elapsed &&
+          time_since_last_request < EXPORT_DEBOUNCE_SECONDS) {
+        lock.unlock();
+        // Don't clear should_export_now — re-check on next loop iteration
+      } else {
+        should_export_now = false;
+        lock.unlock();
+        export_gamestate();
+        last_export_time = now;
+      }
     } else {
       lock.unlock();
     }
