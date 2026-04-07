@@ -1075,6 +1075,7 @@ void export_game_state()
       json j;
       j["exported_at"] = ts;
       j["ships"]       = gs["ships"];
+      j["blueprints"]  = gs["blueprints"];
       write_json_file(dir / "ships.json", j);
     }
 
@@ -1124,7 +1125,6 @@ void export_game_state()
       j["armada_credits"]         = gs["armada_credits"];
       j["faction_favors"]         = gs["faction_favors"];
       j["syndicate_loyalty_buffs"] = gs["syndicate_loyalty_buffs"];
-      j["blueprints"]             = gs["blueprints"];
       write_json_file(dir / "faction.json", j);
     }
 
@@ -1157,12 +1157,12 @@ void export_game_state()
 
       manifest["files"] = json::array({
         make_entry("player.json",    gist.filename_player,    "Player profile, station peace shield, drydock assignments"),
-        make_entry("ships.json",     gist.filename_ships,     "Ships hangar with hull, tier, level and drydock slot"),
+        make_entry("ships.json",     gist.filename_ships,     "Ships hangar with hull, tier, level, components and blueprint part counts"),
         make_entry("resources.json", gist.filename_resources, "Non-zero resource amounts with names"),
         make_entry("research.json",  gist.filename_research,  "Research tree levels"),
         make_entry("officers.json",  gist.filename_officers,  "Officers with rank, level and trait levels"),
         make_entry("missions.json",  gist.filename_missions,  "Active and completed mission IDs"),
-        make_entry("faction.json",   gist.filename_faction,   "Faction reputation, store tokens, armada credits, syndicate loyalty buffs and blueprint part counts"),
+        make_entry("faction.json",   gist.filename_faction,   "Faction reputation, store tokens, armada credits, faction favors and syndicate loyalty buffs"),
         make_entry("buffs.json",     gist.filename_buffs,     "Full buff catalog (ShipBonusBuffSpecs) with modifier types, operations and per-level values"),
         make_entry("battlelog.json", gist.filename_battlelog, "Battle history (last 500 battles)"),
       });

@@ -89,14 +89,14 @@ if ($gsPlayer) {
     Write-Host "    player: $($gsPlayer.player.name), ops $($gsPlayer.player.ops_level), syndicate $($gsPlayer.player.syndicate_level)" -ForegroundColor DarkGray
     Write-Host "    drydocks: $($gsPlayer.drydocks.Count) ($(($gsPlayer.drydocks | ForEach-Object { $_.letter }) -join ','))" -ForegroundColor DarkGray
 }
-if ($gsShips)    { Check "ships > 0"                ($gsShips.ships.Count -gt 0);                  Write-Host "    ships: $($gsShips.ships.Count)" -ForegroundColor DarkGray }
+if ($gsShips)    { Check "ships > 0"                ($gsShips.ships.Count -gt 0);                  Check "blueprints present" ($gsShips.blueprints -ne $null)
+                   Write-Host "    ships: $($gsShips.ships.Count), blueprints: $($gsShips.blueprints.Count) part types" -ForegroundColor DarkGray }
 if ($gsRes)      { Check "resources (non-zero) > 0" ($gsRes.resources.Count -gt 0);               Write-Host "    resources (non-zero): $($gsRes.resources.Count)" -ForegroundColor DarkGray }
 if ($gsResearch) { Check "research > 0"             ($gsResearch.research.Count -gt 0);            Write-Host "    research: $($gsResearch.research.Count)" -ForegroundColor DarkGray }
 if ($gsOfficers) { Check "officers > 0"             ($gsOfficers.officers.Count -gt 0);            Write-Host "    officers: $($gsOfficers.officers.Count)" -ForegroundColor DarkGray }
 if ($gsMissions) { Check "missions_completed > 0"   ($gsMissions.missions_completed.Count -gt 0);  Write-Host "    missions: $($gsMissions.missions_active.Count) active, $($gsMissions.missions_completed.Count) completed" -ForegroundColor DarkGray }
-if ($gsFaction)  { Check "faction_reputation present"    ($gsFaction.faction_reputation -ne $null);   Check "blueprints present" ($gsFaction.blueprints -ne $null)
-                   Check "faction_store_tokens present" ($gsFaction.faction_store_tokens -ne $null);  Check "armada_credits present" ($gsFaction.armada_credits -ne $null)
-                   Check "faction_favors key present"   ($null -ne $gsFaction.PSObject.Properties['faction_favors'])
+if ($gsFaction)  { Check "faction_reputation present"    ($gsFaction.faction_reputation -ne $null);   Check "armada_credits present" ($gsFaction.armada_credits -ne $null)
+                   Check "faction_store_tokens present" ($gsFaction.faction_store_tokens -ne $null);  Check "faction_favors key present" ($null -ne $gsFaction.PSObject.Properties['faction_favors'])
                    Check "faction_favors non-empty"     ($gsFaction.faction_favors.Count -gt 0)
                    Write-Host "    faction tokens: $($gsFaction.faction_store_tokens.Count) entries, armada credits: $($gsFaction.armada_credits.Count) entries, faction favors: $($gsFaction.faction_favors.Count) factions ($($gsFaction.faction_favors | ForEach-Object { "$($_.faction):$($_.favors.Count)" } | Join-String -Separator ', '))" -ForegroundColor DarkGray }
 if ($gsBuffs)    { Check "buff_catalog present"         ($gsBuffs.buff_catalog -ne $null)
