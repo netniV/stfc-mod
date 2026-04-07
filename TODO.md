@@ -200,12 +200,25 @@ is idle at login; no data is available without the player actively queuing a ref
 
 **What IS available (already exported):**
 - player.json → uildings array includes the Refinery at its current level
-- esources.json → all raw material quantities are already exported (player can
+- 
+esources.json → all raw material quantities are already exported (player can
   cross-reference against known refinery recipes offline)
 
-**What is NOT available without triggering UI:**
-- Which refinements are currently queued (only in Jobs type 56, only when active)
-- Which raw materials can be refined (no static recipe proto; would need game data files)
+**What is NOT available (confirmed by exhaustive live probe 2026-04-07):**
+- Refinery queue: Jobs type 56 only arrives when a job is active; nothing at login or refinery-open
+- Refinery recipes: no static proto; client uses game data files
+- Opening the refinery screen (Shift-F) was fully probed: every EntityGroup type and every
+  Json blob key was logged before and after navigation. Zero new EG types arrive.
+  Complete set of Json keys ever seen: alliance, alliance_container, alliance_contributions,
+  alliance_diplomacy_relationships, alliance_job_help_info, alliance_member_activity,
+  alliance_members, alliance_notifications, alliances_info, battle_result_headers,
+  current_instance, defenses, deployed_fleets, docking_points, faction_standing, fleets,
+  fulfilled_connection_requirements, gameworld_id, hazard_result_headers, instances,
+  marauder_quick_scan_data, mining_slots, mission_mapping, my_deployed_fleets,
+  my_shield_state, my_skill_data, officer_level_rewards, officer_synergy_factors,
+  outpost_list, parent_system, player_container, resource_harvesters, resource_producers,
+  resources, ships, starbase, starbase_modules, state, static_update, user_history,
+  visited_systems. None contain refinery queue or faction store data.
 
 #### Faction store
 No FactionStoreResponse EntityGroup type exists in the proto (confirmed: all 207+
