@@ -1,4 +1,4 @@
-#include "gamestate_export.h"
+#include "game_state_export.h"
 #include "id_mappings.h"
 #include "../../config.h"
 #include "../../file.h"
@@ -29,7 +29,7 @@
 
 using json = nlohmann::json;
 
-namespace gamestate_export
+namespace game_state_export
 {
 
 static std::thread export_thread;
@@ -347,7 +347,7 @@ void capture_missions_completed(const std::vector<int64_t>& mission_ids)
   request_immediate_export();
 }
 
-json build_gamestate_json()
+json build_game_state_json()
 {
   std::scoped_lock lock(game_data_mutex);
 
@@ -739,7 +739,7 @@ static bool write_json_file(const std::filesystem::path& path, const json& j)
   return true;
 }
 
-void export_gamestate()
+void export_game_state()
 {
   try {
     auto& cfg   = Config::Get();
@@ -747,7 +747,7 @@ void export_gamestate()
     auto  ts    = get_iso8601_timestamp();
     auto& gist  = cfg.export_gamestate_gist;
 
-    json gs = build_gamestate_json();
+    json gs = build_game_state_json();
 
     // --- player.json ---
     {
@@ -1152,7 +1152,7 @@ void export_thread_func()
                  STARTUP_GRACE_PERIOD_SECONDS);
     std::this_thread::sleep_for(std::chrono::seconds(STARTUP_GRACE_PERIOD_SECONDS));
     spdlog::info("GameState export: Performing startup full export with all captured data");
-    export_gamestate();
+    export_game_state();
     // Clear any requests that queued up during the grace period and reset the
     // debounce clock so the post-startup data bursts don't fire again immediately.
     {
@@ -1199,7 +1199,7 @@ void export_thread_func()
       } else {
         should_export_now = false;
         lock.unlock();
-        export_gamestate();
+        export_game_state();
         last_export_time = now;
       }
     } else {
@@ -1290,7 +1290,7 @@ void init()
 
 void export_now()
 {
-  export_gamestate();
+  export_game_state();
 }
 
-} // namespace gamestate_export
+} // namespace game_state_export

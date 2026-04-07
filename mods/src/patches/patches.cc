@@ -36,8 +36,8 @@ void InstallTempCrashFixes();
 void InstallSyncPatches();
 void InstallObjectTrackers();
 
-// Forward declare gamestate_export namespace
-namespace gamestate_export
+// Forward declare game_state_export namespace
+namespace game_state_export
 {
   void init();
 }
@@ -164,7 +164,7 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
 
 void InstallGameStateExport()
 {
-  gamestate_export::init();
+  game_state_export::init();
   spdlog::info("GameState export initialized");
 }
 

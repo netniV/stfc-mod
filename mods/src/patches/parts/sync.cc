@@ -2,7 +2,7 @@
 #include "errormsg.h"
 #include "file.h"
 #include "str_utils.h"
-#include "gamestate_export.h"
+#include "game_state_export.h"
 
 #include <il2cpp-api-types.h>
 #include <Digit.PrimeServer.Models.pb.h>
@@ -753,7 +753,7 @@ void process_starbase_detailed_scan(std::unique_ptr<std::string>&& bytes)
     if (Config::Get().export_gamestate) {
       // token_count stays 0 here — tokens come from InventoryResponse (type=8 consumables).
       // We pass -1 to signal "don't update token count" vs a real 0.
-      gamestate_export::capture_peace_shield(expiry_epoch, -1);
+      game_state_export::capture_peace_shield(expiry_epoch, -1);
     }
   } else {
     spdlog::debug("StarbaseDetailedScan: failed to parse (may be another message type)");
@@ -791,7 +791,7 @@ void process_active_missions(std::unique_ptr<std::string>&& bytes)
         for (const auto& mission : response.activemissions()) {
           gs_missions.emplace_back(mission.id(), mission.missionid());
         }
-        gamestate_export::capture_missions_active(gs_missions);
+        game_state_export::capture_missions_active(gs_missions);
       }
 
       auto mission_array = json::array();
@@ -836,7 +836,7 @@ void process_completed_missions(std::unique_ptr<std::string>&& bytes)
 
     if (!diff.empty()) {
       if (Config::Get().export_gamestate) {
-        gamestate_export::capture_missions_completed(completed_snapshot);
+        game_state_export::capture_missions_completed(completed_snapshot);
       }
 
       auto mission_array = json::array();
@@ -919,7 +919,7 @@ void process_research_trees_state(std::unique_ptr<std::string>&& bytes)
       for (const auto& [id, level] : response.researchprojectlevels()) {
         // Capture for gamestate export
         if (Config::Get().export_gamestate) {
-          gamestate_export::capture_research(id, level);
+          game_state_export::capture_research(id, level);
         }
 
         if (const auto& it = research_states.find(id); it == research_states.end() || it->second != level) {
@@ -956,7 +956,7 @@ void process_officers(std::unique_ptr<std::string>&& bytes)
 
         // Capture for gamestate export
         if (Config::Get().export_gamestate) {
-          gamestate_export::capture_officers(officer.id(), officer.rankindex(), officer.level(), officer.shardcount());
+          game_state_export::capture_officers(officer.id(), officer.rankindex(), officer.level(), officer.shardcount());
         }
 
         if (const auto& it = officer_states.find(officer.id());
@@ -1045,7 +1045,7 @@ void process_active_officer_traits(std::unique_ptr<std::string>&& bytes)
 
           // Capture for gamestate export (always, not just on change)
           if (Config::Get().export_gamestate) {
-            gamestate_export::capture_officer_trait(
+            game_state_export::capture_officer_trait(
               static_cast<uint64_t>(officer_id),
               static_cast<uint64_t>(trait.traitid()),
               trait.level()
@@ -1245,7 +1245,7 @@ void process_entity_slots(std::unique_ptr<std::string>&& bytes)
         }
       }
       if (!assignments.empty()) {
-        gamestate_export::capture_drydock_assignments(assignments);
+        game_state_export::capture_drydock_assignments(assignments);
       }
     }
 
@@ -1297,7 +1297,7 @@ void process_entity_slots_data(std::unique_ptr<std::string>&& bytes)
         }
       }
       if (!assignments.empty()) {
-        gamestate_export::capture_drydock_assignments(assignments);
+        game_state_export::capture_drydock_assignments(assignments);
       }
     }
 
@@ -1589,7 +1589,7 @@ void process_resources(const nlohmann::json& section)
 
   // Capture for gamestate export
   if (Config::Get().export_gamestate) {
-    gamestate_export::capture_resources(section);
+    game_state_export::capture_resources(section);
   }
 
   auto resource_array = json::array();
@@ -1624,7 +1624,7 @@ void process_starbase_modules(const nlohmann::json& section)
 
   // Capture for gamestate export
   if (Config::Get().export_gamestate) {
-    gamestate_export::capture_buildings(section);
+    game_state_export::capture_buildings(section);
     spdlog::info("GameState: Captured {} buildings for export", section.size());
   }
 
@@ -1660,7 +1660,7 @@ void process_ships(const nlohmann::json& section)
 
   // Capture for gamestate export
   if (Config::Get().export_gamestate) {
-    gamestate_export::capture_ships(section);
+    game_state_export::capture_ships(section);
     spdlog::info("GameState: Captured {} ships for export", section.size());
   }
 
@@ -1756,7 +1756,7 @@ void process_json(std::unique_ptr<std::string>&& bytes)
               assignments[i].first = i + 1;
             }
             spdlog::info("process_json fleets: captured {} drydock assignments", assignments.size());
-            gamestate_export::capture_drydock_assignments(assignments);
+            game_state_export::capture_drydock_assignments(assignments);
           }
         }
       }
@@ -1790,7 +1790,7 @@ void cache_player_names(std::unique_ptr<std::string>&& bytes)
           player_data["server"]      = http::headers::instanceId;
           player_data["alliance_id"] = profile.allianceid();
           player_data["alliance"]    = "";
-          gamestate_export::capture_player_data(player_data);
+          game_state_export::capture_player_data(player_data);
           spdlog::info("GameState: Captured own player name={}, power={}", profile.name(), profile.militarymight());
           break;
         }
@@ -1833,7 +1833,7 @@ void cache_alliance_names(std::unique_ptr<std::string>&& bytes)
         if (it != names.end()) {
           // Re-capture player data with the alliance name filled in
           // (ops_level, power, server will be re-populated on next UserProfiles update)
-          gamestate_export::capture_player_alliance(it->second.name, it->second.tag);
+          game_state_export::capture_player_alliance(it->second.name, it->second.tag);
         }
       }
     }

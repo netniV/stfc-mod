@@ -5,13 +5,13 @@
 #include <string>
 #include <vector>
 
-namespace gamestate_export
+namespace game_state_export
 {
   void init();
   void export_now();  // Force immediate full export
 
   // Export functions
-  void export_gamestate();     // Full snapshot export (all per-section files)
+  void export_game_state();     // Full snapshot export (all per-section files)
 
   // Data capture functions called from sync hooks
   void capture_player_data(const nlohmann::json& data);
@@ -34,4 +34,4 @@ namespace gamestate_export
   // Missions
   void capture_missions_active(const std::vector<std::pair<int64_t, int64_t>>& missions); // {instance_id, mission_id}
   void capture_missions_completed(const std::vector<int64_t>& mission_ids);
-} // namespace gamestate_export
+} // namespace game_state_export
