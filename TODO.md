@@ -110,33 +110,34 @@ represented by the `FactionToken` resources.
 to `faction.json`. Only non-zero amounts included. 12 token types and
 6 armada credit types exported. Tests: 55/55.
 
-### Feature: Faction favors (per-faction store bonuses) — NEEDS FURTHER INVESTIGATION
+### Feature: Faction favors (per-faction store bonuses) — DONE
+
 **What was implemented:**
 - `ShipBonusBuffSpecs` (EntityGroup type 51) hooked — exports `buffs.json`
   with full buff catalog: 1313 entries with modifier type, operation, per-level
   values, and faction affiliation where applicable.
-- `FactionSpecs` (type 8) hooked — provides human-readable faction names
-  (Faction Federation, Faction Klingon, Faction Romulan etc.) for the catalog.
-- `faction_favors` key added to `faction.json` (currently empty array).
+- `FactionSpecs` (type 8) hooked — provides human-readable faction names and
+  builds a `researchTreeId -> faction_name` map from `FactionSpec.researchTreeIds`.
+- `ResearchSpecs` (type 66) newly hooked — maps each `ResearchProjectSpec` to
+  its `researchTreeId`, giving a `researchId -> treeId` proxy (246 of 2361
+  projects matched to a faction tree, all arriving at login).
+- `ConsumableSpecs` (type 114) hooked — RESEARCH_UNLOCK entries with name pattern
+  `Consumable_{prefix}_{favor}_{tier}` parsed into per-faction favor catalog.
+- `faction_favors` in `faction.json` now fully populated with human-readable
+  faction names, per-favor `tier` (player's current level, 0=not purchased),
+  and `max_tier`.
 - Full `modifier_code_name()` mapping with 60+ named modifier types.
-Tests: 60/60.
 
-**Still open — true Bajoran/Federation/etc. per-faction store favors:**
-The `ShipBonusBuffSpecs` faction buffs (42 entries, ~5-6 per big faction) are
-research/meta-progression bonuses, NOT the named per-item store bonuses shown
-in the Bajoran Favors screenshot (Quantum Torpedoes, Bajor's Rage, etc.).
-None of the player's 77 active `GlobalActiveBuffs` IDs appear in the
-`ShipBonusBuffSpecs` catalog — the Bajoran Favors come from a different source.
-**Investigation needed:**
-- [ ] Identify which EntityGroup type carries the named faction-store favor specs.
-      Candidates: `ActivatedAbilitySpecs` (type 128), `OfficerAbilityBuffSpecs`
-      (type 17), or an unhanded type in the switch. Enable debug logging to
-      enumerate all type numbers arriving at login and check against
-      `EntityGroup.h` entries not yet handled.
-- [ ] Alternatively: check if the Bajoran Favors screen is only populated after
-      navigating to the Bajoran faction store — may not arrive at login.
-- [ ] Once source is identified, cross-reference with `GlobalActiveBuffs` to
-      populate `faction_favors` in `faction.json`.
+**Live results (2026-04-07):**
+- `Faction Bajoran` — 25 favors, 12 purchased
+- `Faction ExBorg` — 41 favors, 3 purchased
+- `Faction Federation` / `Klingon` / `Romulan` — 9 each
+- `Faction Section31` — 22, `Faction Temporal` — 10, `Faction Terran` — 12
+- `Faction Khan` — 30 (FKR prefix resolved via researchTreeIds)
+- `LoopMuseum` / `Loyalty` / `Unlock` — internal/fake factions, no
+  `researchTreeIds` in FactionSpec, kept as prefix fallback (expected)
+
+Tests: 78/78.
 
 ### Feature: Daily goals / tasks
 **Goal:** Export the player's current daily goals and their completion state so
