@@ -66,7 +66,7 @@ static std::vector<int64_t>                     cached_missions_completed;
 static std::string last_full_export_time;
 static std::chrono::steady_clock::time_point last_full_export_tp;
 static std::chrono::steady_clock::time_point startup_time;
-static constexpr int STARTUP_GRACE_PERIOD_SECONDS = 15;
+static constexpr int STARTUP_GRACE_PERIOD_SECONDS = 20;
 static bool shield_scan_received = false; // suppresses alerts until first StarbaseDetailedScan
 
 // Battlelog pending resolution — forward declarations so capture_player_data can call them
@@ -74,6 +74,9 @@ static std::unordered_set<std::string> pending_battlelog_resolution;
 static std::mutex                      pending_battlelog_mtx;
 static void resolve_pending_battlelog_outcomes(const std::string& our_name,
                                                const std::string& out_path);
+
+// Gist sync state — declared here so capture_player_data can set the flag
+static std::atomic<bool> gist_needs_player_name_sync{false};
 static std::filesystem::path get_export_dir();
 
 static void request_immediate_export()
@@ -147,6 +150,11 @@ void capture_player_data(const nlohmann::json& data)
       }
     }
     if (changed) {
+      // If player name just became known, flag that the Gist needs a fresh sync
+      // regardless of the rate-limit interval so it never serves an empty name.
+      if (cached_player_data.value("name", "") != "") {
+        gist_needs_player_name_sync.store(true);
+      }
       request_full_export();
     }
     // Capture name and battlelog path for pending resolution outside the lock
@@ -631,6 +639,7 @@ static void sync_to_gist(const std::string& file_path, const std::string& gist_f
 // when all filenames are included together).
 // A minimum interval between syncs is enforced to avoid rate limiting.
 static std::chrono::steady_clock::time_point last_gist_sync_tp;
+static bool last_gist_sync_had_empty_name  = false;
 static constexpr int GIST_SYNC_MIN_INTERVAL_SECONDS = 30;
 
 static void sync_all_to_gist(const std::filesystem::path& dir)
@@ -638,9 +647,17 @@ static void sync_all_to_gist(const std::filesystem::path& dir)
   const auto& gist = Config::Get().export_gamestate_gist;
   if (!gist.enabled || gist.gist_id.empty() || gist.token.empty()) return;
 
-  // Enforce minimum interval between Gist syncs to avoid rate limiting
+  // Enforce minimum interval between Gist syncs to avoid rate limiting.
+  // Exception: if the previous sync went out with an empty player name and
+  // we now have a real name, sync immediately so the Gist reflects it.
   auto now = std::chrono::steady_clock::now();
-  if (last_gist_sync_tp != std::chrono::steady_clock::time_point{}) {
+  bool player_name_just_arrived = false;
+  if (last_gist_sync_had_empty_name) {
+    std::scoped_lock lk(game_data_mutex);
+    player_name_just_arrived = !cached_player_data.value("name", "").empty();
+  }
+  bool force_sync = player_name_just_arrived || gist_needs_player_name_sync.load();
+  if (!force_sync && last_gist_sync_tp != std::chrono::steady_clock::time_point{}) {
     auto secs_since_last = std::chrono::duration_cast<std::chrono::seconds>(
         now - last_gist_sync_tp).count();
     if (secs_since_last < GIST_SYNC_MIN_INTERVAL_SECONDS) {
@@ -690,6 +707,11 @@ static void sync_all_to_gist(const std::filesystem::path& dir)
 
   if (response.status_code == 200) {
     last_gist_sync_tp = std::chrono::steady_clock::now();
+    gist_needs_player_name_sync.store(false);
+    {
+      std::scoped_lock lk(game_data_mutex);
+      last_gist_sync_had_empty_name = cached_player_data.value("name", "").empty();
+    }
     spdlog::info("Gist sync: Updated {} game state files in gist {}", files_obj.size(), gist.gist_id);
   } else if (response.status_code == 403) {
     // 403 is typically a rate limit — parse message if available
