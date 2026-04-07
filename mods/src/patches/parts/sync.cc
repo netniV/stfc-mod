@@ -1128,6 +1128,44 @@ void process_consumable_specs(std::unique_ptr<std::string>&& bytes)
 }
 
 
+void process_base_ship_tier_specs(std::unique_ptr<std::string>&& bytes)
+{
+  if (!Config::Get().export_gamestate) return;
+
+  if (auto r = Digit::PrimeServer::Models::StaticSyncBaseShipTierSpecsResponse(); r.ParseFromString(*bytes)) {
+    std::unordered_map<int32_t, int32_t> tier_level_caps;
+    for (const auto& [tier, spec] : r.baseshiptierspecs())
+      tier_level_caps[tier] = spec.maxshiplevel();
+
+    // hull_tier_durations comes from ShipTierSpecs; pass empty map here — combined in process_ship_tier_specs
+    spdlog::info("GameState: BaseShipTierSpecs: {} tiers parsed", tier_level_caps.size());
+    // Store just level caps — hull durations handled by process_ship_tier_specs
+    // Use a partial call: capture with empty hull map (won't overwrite existing hull durations)
+    game_state_export::capture_ship_tier_specs(tier_level_caps, {});
+  } else {
+    spdlog::error("GameState: Failed to parse BaseShipTierSpecs");
+  }
+}
+
+void process_ship_tier_specs(std::unique_ptr<std::string>&& bytes)
+{
+  if (!Config::Get().export_gamestate) return;
+
+  if (auto r = Digit::PrimeServer::Models::StaticSyncShipTierSpecsResponse(); r.ParseFromString(*bytes)) {
+    std::unordered_map<int64_t, int32_t> hull_durations;
+    for (const auto& [hull_id, spec] : r.shiptierspecs()) {
+      const int32_t dur = static_cast<int32_t>(spec.costdurationfactor());
+      if (dur > 0)
+        hull_durations[hull_id] = dur;
+    }
+    spdlog::info("GameState: ShipTierSpecs: {} hull durations parsed", hull_durations.size());
+    // Pass empty tier caps — won't overwrite what BaseShipTierSpecs already stored
+    game_state_export::capture_ship_tier_specs({}, hull_durations);
+  } else {
+    spdlog::error("GameState: Failed to parse ShipTierSpecs");
+  }
+}
+
 void process_ship_bonus_buff_specs(std::unique_ptr<std::string>&& bytes)
 {
   if (!Config::Get().export_gamestate) return;
@@ -2367,6 +2405,16 @@ void HandleEntityGroup(EntityGroup* entity_group)
     case EntityGroup::Type::ShipBonusBuffSpecs:
       if (Config::Get().export_gamestate) {
         submit_async(process_ship_bonus_buff_specs);
+      }
+      break;
+    case EntityGroup::Type::BaseShipTierSpecs:
+      if (Config::Get().export_gamestate) {
+        submit_async(process_base_ship_tier_specs);
+      }
+      break;
+    case EntityGroup::Type::ShipTierSpecs:
+      if (Config::Get().export_gamestate) {
+        submit_async(process_ship_tier_specs);
       }
       break;
     case EntityGroup::Type::AllianceGetGameProperties:

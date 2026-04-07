@@ -88,6 +88,10 @@ static std::unordered_map<int64_t, std::string> cached_faction_specs;
 struct FavorInfo { std::string faction_prefix; std::string favor_name; int32_t max_tier; };
 static std::unordered_map<int64_t, FavorInfo> cached_favor_specs; // researchId -> info
 
+// Ship tier specs (BaseShipTierSpecs type 49 + ShipTierSpecs type 50)
+static std::unordered_map<int32_t, int32_t> cached_tier_level_caps;    // tier -> max ship level
+static std::unordered_map<int64_t, int32_t> cached_hull_tier_durations; // hull_id -> duration secs
+
 // Change tracking
 static std::string last_full_export_time;
 static std::chrono::steady_clock::time_point last_full_export_tp;
@@ -446,7 +450,19 @@ void capture_favor_specs(const std::vector<FavorSpecEntry>& specs)
                cached_favor_specs.size(), factions.size());
 }
 
+void capture_ship_tier_specs(const std::unordered_map<int32_t, int32_t>& tier_level_caps,
+                              const std::unordered_map<int64_t, int32_t>& hull_tier_durations)
+{
+  std::scoped_lock lock(game_data_mutex);
+  for (const auto& [tier, max_level] : tier_level_caps)
+    cached_tier_level_caps[tier] = max_level;
+  for (const auto& [hull_id, dur] : hull_tier_durations)
+    cached_hull_tier_durations[hull_id] = dur;
+  spdlog::info("GameState: capture_ship_tier_specs: {} tier caps, {} hull durations total",
+               cached_tier_level_caps.size(), cached_hull_tier_durations.size());
+}
 
+// Human-readable name for a CLIENTMODIFIERTYPE_* code
 static std::string modifier_code_name(int32_t code)
 {
   switch (code) {
@@ -584,12 +600,24 @@ json build_game_state_json()
     j["research"].push_back(research);
   }
 
-  // Ships - enrich with names
+  // Ships - enrich with names and tier metadata
   j["ships"] = json::array();
   for (const auto& [id, ship_data] : cached_ships) {
     json ship_entry = ship_data;
     ship_entry["id"] = id;
     id_mappings::MappingCache::Get().enrich_ship(ship_entry);
+
+    // Annotate with tier level cap and hull-specific tier-up duration
+    const int32_t tier = ship_entry.value("tier", 0);
+    auto cap_it = cached_tier_level_caps.find(tier);
+    if (cap_it != cached_tier_level_caps.end())
+      ship_entry["tier_max_level"] = cap_it->second;
+
+    const int64_t hull_id = ship_entry.value("hull_id", int64_t{0});
+    auto dur_it = cached_hull_tier_durations.find(hull_id);
+    if (dur_it != cached_hull_tier_durations.end())
+      ship_entry["tier_up_duration_secs"] = dur_it->second;
+
     j["ships"].push_back(ship_entry);
   }
 
@@ -1159,7 +1187,7 @@ void export_game_state()
           "Player profile, station, and drydock assignments",
           {"player", "station", "drydocks"}),
         make_entry("ships.json",     gist.filename_ships,
-          "Ships in the hangar (hull, tier, level, components) and blueprint part counts",
+          "Ships in the hangar (hull, tier, level, components, tier_max_level, tier_up_duration_secs) and blueprint part counts",
           {"ships", "blueprints"}),
         make_entry("resources.json", gist.filename_resources,
           "All non-zero resource amounts with names (raw materials, tokens, consumables, etc.)",

@@ -90,19 +90,17 @@ file and back-fills the missing fields, then re-syncs to Gist.
 - Fix: `HandleEntityGroup` gate updated to also trigger on `export_gamestate`
   (previously only fired when `sync_options.missions` was enabled)
 
-### Feature: Ship upgrade resource planning
-**Goal:** For each ship in the player's hangar, export what resources are
-needed to reach the next tier/level so AI assistants can give specific
-upgrade advice.
-**TODO:**
-- [ ] Identify where ship upgrade cost data lives � likely
-      `ShipTierSpecs` (EntityGroup type=50) or `BaseShipTierSpecs` (type=49)
-- [ ] Cross-reference each ship's current tier/level from `cached_ships`
-      against the spec data to compute what's needed for next upgrade
-- [ ] Add `upgrade_cost` block to each ship entry in the gamestate JSON
-      (or as a separate top-level `ship_upgrade_costs` section)
-- [ ] Only include ships the player actually owns
-
+### Feature: Ship upgrade resource planning — PARTIALLY DONE
+**What was implemented:**
+- `BaseShipTierSpecs` (type 49) and `ShipTierSpecs` (type 50) hooked at login
+- Each ship entry in `ships.json` now includes:
+  - `tier_max_level`: max ship level achievable at the current tier
+  - `tier_up_duration_secs`: seconds to complete a tier-up build for this hull
+**Note:** Raw tier-up resource costs are NOT transmitted to the client —
+they are computed server-side. No cost table is sent.
+**TODO (still open):**
+- [ ] `ShipTierSpec.tierStatModifiers` has cargo stats per tier (66=cargo_capacity,
+      67=cargo_protection); could be exported if useful
 ### Feature: Faction store tokens and armada credits — DONE
 **What was found:** `Resource_FactionToken_*` (store currencies) and
 `Resource_Faction_SArmada_Credit_*` / `Resource_Faction_SArmadaDir_*`

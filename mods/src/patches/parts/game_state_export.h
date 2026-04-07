@@ -3,6 +3,7 @@
 #include <nlohmann/json.hpp>
 #include <cstdint>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace game_state_export
@@ -68,4 +69,10 @@ namespace game_state_export
     std::string favor_name;  // human-readable portion of the consumable name
   };
   void capture_favor_specs(const std::vector<FavorSpecEntry>& specs);
+
+  // Ship tier specs (BaseShipTierSpecs type 49 + ShipTierSpecs type 50)
+  // tier_level_caps: tier -> max ship level for that tier
+  // hull_tier_durations: hull_id -> tier-up build time in seconds (per-hull override)
+  void capture_ship_tier_specs(const std::unordered_map<int32_t, int32_t>& tier_level_caps,
+                                const std::unordered_map<int64_t, int32_t>& hull_tier_durations);
 } // namespace game_state_export
