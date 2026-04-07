@@ -71,6 +71,14 @@ namespace game_state_export
   };
   void capture_favor_specs(const std::vector<FavorSpecEntry>& specs);
 
+  // Research specs (ResearchSpecs type 66)
+  // Builds a researchId -> researchTreeId lookup used to enrich faction_favors output.
+  void capture_research_specs(std::unordered_map<int64_t, int64_t>&& research_faction_map);
+
+  // Research tree -> faction name map (built from FactionSpec.researchTreeIds at login).
+  void capture_tree_faction_map(std::unordered_map<int64_t, std::string>&& tree_faction_map);
+  std::unordered_map<int64_t, std::string> get_research_tree_faction_map();
+
   // Ship tier specs (BaseShipTierSpecs type 49 + ShipTierSpecs type 50)
   // tier_level_caps:    tier    -> max ship level for that tier
   // hull_tier_durations: hull_id -> tier-up build time in seconds (per-hull override)

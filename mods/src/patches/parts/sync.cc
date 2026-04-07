@@ -1072,15 +1072,48 @@ void process_faction_specs(std::unique_ptr<std::string>&& bytes)
 
   if (auto response = Digit::PrimeServer::Models::StaticSyncFactionSpecsResponse(); response.ParseFromString(*bytes)) {
     std::vector<std::pair<int64_t, std::string>> specs;
+    std::unordered_map<int64_t, std::string> tree_faction_map; // researchTreeId -> faction name
     specs.reserve(static_cast<size_t>(response.factionspecs_size()));
     for (const auto& [id, spec] : response.factionspecs()) {
-      if (!spec.name().empty())
+      if (!spec.name().empty()) {
         specs.emplace_back(id, spec.name());
+        // Each researchTreeId on this faction spec maps to this faction's name
+        for (const auto tree_id : spec.researchtreeids())
+          tree_faction_map[tree_id] = spec.name();
+      }
     }
-    spdlog::info("GameState: FactionSpecs: {} factions", specs.size());
+    spdlog::info("GameState: FactionSpecs: {} factions, {} research tree mappings",
+                 specs.size(), tree_faction_map.size());
     game_state_export::capture_faction_specs(specs);
+    game_state_export::capture_tree_faction_map(std::move(tree_faction_map));
   } else {
     spdlog::error("GameState: Failed to parse FactionSpecs");
+  }
+}
+
+void process_research_specs(std::unique_ptr<std::string>&& bytes)
+{
+  if (!Config::Get().export_gamestate) return;
+
+  if (auto response = Digit::PrimeServer::Models::StaticSyncResearchTreeSpecsResponse(); response.ParseFromString(*bytes)) {
+    // Get the researchTreeId -> faction_name map built from FactionSpec.researchTreeIds
+    const auto tree_faction_map = game_state_export::get_research_tree_faction_map();
+
+    // Map each researchProjectId -> faction_name via its researchTreeId
+    std::unordered_map<int64_t, int64_t> research_faction_map;
+    int32_t matched = 0;
+    for (const auto& [project_id, project] : response.researchprojects()) {
+      if (tree_faction_map.count(project.researchtreeid())) {
+        // Store tree_id as proxy; actual name resolution in export via cached_tree_faction_map
+        research_faction_map[project_id] = project.researchtreeid();
+        ++matched;
+      }
+    }
+    spdlog::info("GameState: ResearchSpecs: {} trees, {} projects, {} matched to faction",
+                 response.researchtrees_size(), response.researchprojects_size(), matched);
+    game_state_export::capture_research_specs(std::move(research_faction_map));
+  } else {
+    spdlog::error("GameState: Failed to parse ResearchSpecs");
   }
 }
 
@@ -2478,6 +2511,11 @@ void HandleEntityGroup(EntityGroup* entity_group)
     case EntityGroup::Type::FactionSpecs:
       if (Config::Get().export_gamestate) {
         submit_async(process_faction_specs);
+      }
+      break;
+    case EntityGroup::Type::ResearchSpecs:
+      if (Config::Get().export_gamestate) {
+        submit_async(process_research_specs);
       }
       break;
     case EntityGroup::Type::ConsumableSpecs:

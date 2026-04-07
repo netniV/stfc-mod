@@ -88,6 +88,14 @@ static std::unordered_map<int64_t, std::string> cached_faction_specs;
 struct FavorInfo { std::string faction_prefix; std::string favor_name; int32_t max_tier; };
 static std::unordered_map<int64_t, FavorInfo> cached_favor_specs; // researchId -> info
 
+// Research faction map: researchId -> faction_id
+// Built from ResearchSpecs (type 66): ResearchProjectSpec.researchTreeId -> ResearchTreeSpec.factionId.
+// Resolved to faction name at export time via cached_faction_specs.
+static std::unordered_map<int64_t, int64_t> cached_research_faction_map; // researchId -> faction_id
+
+// Research tree -> faction name: built from FactionSpec.researchTreeIds
+static std::unordered_map<int64_t, std::string> cached_tree_faction_map; // researchTreeId -> faction name
+
 // Ship tier specs (BaseShipTierSpecs type 49 + ShipTierSpecs type 50)
 static std::unordered_map<int32_t, int32_t> cached_tier_level_caps;    // tier -> max ship level
 static std::unordered_map<int64_t, int32_t> cached_hull_tier_durations; // hull_id -> duration secs
@@ -447,6 +455,28 @@ void capture_faction_specs(const std::vector<std::pair<int64_t, std::string>>& s
   spdlog::info("GameState: capture_faction_specs: {} factions cached", cached_faction_specs.size());
 }
 
+void capture_research_specs(std::unordered_map<int64_t, int64_t>&& research_faction_map)
+{
+  std::scoped_lock lock(game_data_mutex);
+  cached_research_faction_map = std::move(research_faction_map);
+  spdlog::info("GameState: capture_research_specs: {} research->faction mappings cached",
+               cached_research_faction_map.size());
+}
+
+void capture_tree_faction_map(std::unordered_map<int64_t, std::string>&& tree_faction_map)
+{
+  std::scoped_lock lock(game_data_mutex);
+  cached_tree_faction_map = std::move(tree_faction_map);
+  spdlog::info("GameState: capture_tree_faction_map: {} tree->faction mappings cached",
+               cached_tree_faction_map.size());
+}
+
+std::unordered_map<int64_t, std::string> get_research_tree_faction_map()
+{
+  std::scoped_lock lock(game_data_mutex);
+  return cached_tree_faction_map;
+}
+
 void capture_favor_specs(const std::vector<FavorSpecEntry>& specs)
 {
   std::scoped_lock lock(game_data_mutex);
@@ -783,14 +813,23 @@ json build_game_state_json()
   // Each favor corresponds to a research node (from ConsumableSpecs RESEARCH_UNLOCK entries).
   // tier=0 means not yet purchased; tier>0 is the current level; max_tier is the highest available.
   {
-    // Group by faction prefix, sorted alphabetically
+    // Group by faction name (from ResearchSpecs lookup), falling back to prefix if not found
     std::map<std::string, json> by_faction;
     for (const auto& [research_id, info] : cached_favor_specs) {
+      // Resolve faction name: researchId -> treeId (proxy) -> faction name
+      std::string faction_name = info.faction_prefix; // fallback to raw prefix
+      auto tree_id_it = cached_research_faction_map.find(research_id);
+      if (tree_id_it != cached_research_faction_map.end()) {
+        auto name_it = cached_tree_faction_map.find(tree_id_it->second);
+        if (name_it != cached_tree_faction_map.end() && !name_it->second.empty())
+          faction_name = name_it->second;
+      }
+
       // Look up player's current level for this research node (0 if never started)
       auto res_it = cached_research.find(research_id);
       const int32_t player_tier = (res_it != cached_research.end()) ? res_it->second : 0;
 
-      by_faction[info.faction_prefix].push_back({
+      by_faction[faction_name].push_back({
         {"favor",       info.favor_name},
         {"tier",        player_tier},
         {"max_tier",    info.max_tier},
