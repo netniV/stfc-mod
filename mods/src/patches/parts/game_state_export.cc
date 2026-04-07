@@ -91,6 +91,7 @@ static std::unordered_map<int64_t, FavorInfo> cached_favor_specs; // researchId 
 // Ship tier specs (BaseShipTierSpecs type 49 + ShipTierSpecs type 50)
 static std::unordered_map<int32_t, int32_t> cached_tier_level_caps;    // tier -> max ship level
 static std::unordered_map<int64_t, int32_t> cached_hull_tier_durations; // hull_id -> duration secs
+static std::unordered_map<int64_t, std::unordered_map<int32_t, CargoStats>> cached_hull_cargo_stats; // hull_id -> tier -> stats
 
 // Territory (TerritoryStaticData type 96 + TerritoryAllianceSlots type 105)
 static std::unordered_map<int64_t, TerritorySpec> cached_territory_specs; // territory_id -> spec
@@ -463,15 +464,19 @@ void capture_favor_specs(const std::vector<FavorSpecEntry>& specs)
 }
 
 void capture_ship_tier_specs(const std::unordered_map<int32_t, int32_t>& tier_level_caps,
-                              const std::unordered_map<int64_t, int32_t>& hull_tier_durations)
+                              const std::unordered_map<int64_t, int32_t>& hull_tier_durations,
+                              const std::unordered_map<int64_t, std::unordered_map<int32_t, CargoStats>>& hull_cargo_stats)
 {
   std::scoped_lock lock(game_data_mutex);
   for (const auto& [tier, max_level] : tier_level_caps)
     cached_tier_level_caps[tier] = max_level;
   for (const auto& [hull_id, dur] : hull_tier_durations)
     cached_hull_tier_durations[hull_id] = dur;
-  spdlog::info("GameState: capture_ship_tier_specs: {} tier caps, {} hull durations total",
-               cached_tier_level_caps.size(), cached_hull_tier_durations.size());
+  for (const auto& [hull_id, tiers] : hull_cargo_stats)
+    for (const auto& [tier, stats] : tiers)
+      cached_hull_cargo_stats[hull_id][tier] = stats;
+  spdlog::info("GameState: capture_ship_tier_specs: {} tier caps, {} hull durations, {} hulls with cargo stats",
+               cached_tier_level_caps.size(), cached_hull_tier_durations.size(), cached_hull_cargo_stats.size());
 }
 
 void capture_territory_specs(std::unordered_map<int64_t, TerritorySpec>&& specs)
@@ -526,6 +531,7 @@ static std::string modifier_code_name(int32_t code)
     case 62:  return "impulse_speed";
     case 63:  return "warp_speed";
     case 64:  return "warp_distance";
+    case 66:  return "cargo_capacity";
     case 67:  return "cargo_protection";
     case 68:  return "impulse_speed_bonus";
     case 73:  return "all_defenses";
@@ -647,6 +653,15 @@ json build_game_state_json()
     auto dur_it = cached_hull_tier_durations.find(hull_id);
     if (dur_it != cached_hull_tier_durations.end())
       ship_entry["tier_up_duration_secs"] = dur_it->second;
+
+    auto cargo_hull_it = cached_hull_cargo_stats.find(hull_id);
+    if (cargo_hull_it != cached_hull_cargo_stats.end()) {
+      auto cargo_tier_it = cargo_hull_it->second.find(tier);
+      if (cargo_tier_it != cargo_hull_it->second.end()) {
+        ship_entry["cargo_capacity"]   = cargo_tier_it->second.capacity;
+        ship_entry["cargo_protection"] = cargo_tier_it->second.protection;
+      }
+    }
 
     j["ships"].push_back(ship_entry);
   }
@@ -1257,7 +1272,7 @@ void export_game_state()
           "Player profile (name, ops level, power, server, syndicate level/XP), station peace shield, drydock assignments, and alliance (name, tag, level, member count, power)",
           {"player", "station", "drydocks"}),
         make_entry("ships.json",     gist.filename_ships,
-          "Ships in the hangar (hull, tier, level, components, tier_max_level, tier_up_duration_secs) and blueprint part counts",
+          "Ships in the hangar (hull, tier, level, components, tier_max_level, tier_up_duration_secs, cargo_capacity, cargo_protection) and blueprint part counts",
           {"ships", "blueprints"}),
         make_entry("resources.json", gist.filename_resources,
           "All non-zero resource amounts with names (raw materials, tokens, consumables, etc.)",

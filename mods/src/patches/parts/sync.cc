@@ -1142,9 +1142,8 @@ void process_base_ship_tier_specs(std::unique_ptr<std::string>&& bytes)
 
     // hull_tier_durations comes from ShipTierSpecs; pass empty map here — combined in process_ship_tier_specs
     spdlog::info("GameState: BaseShipTierSpecs: {} tiers parsed", tier_level_caps.size());
-    // Store just level caps — hull durations handled by process_ship_tier_specs
-    // Use a partial call: capture with empty hull map (won't overwrite existing hull durations)
-    game_state_export::capture_ship_tier_specs(tier_level_caps, {});
+    // Store just level caps — hull durations and cargo stats handled by process_ship_tier_specs
+    game_state_export::capture_ship_tier_specs(tier_level_caps, {}, {});
   } else {
     spdlog::error("GameState: Failed to parse BaseShipTierSpecs");
   }
@@ -1156,14 +1155,27 @@ void process_ship_tier_specs(std::unique_ptr<std::string>&& bytes)
 
   if (auto r = Digit::PrimeServer::Models::StaticSyncShipTierSpecsResponse(); r.ParseFromString(*bytes)) {
     std::unordered_map<int64_t, int32_t> hull_durations;
+    std::unordered_map<int64_t, std::unordered_map<int32_t, game_state_export::CargoStats>> hull_cargo;
+
     for (const auto& [hull_id, spec] : r.shiptierspecs()) {
       const int32_t dur = static_cast<int32_t>(spec.costdurationfactor());
       if (dur > 0)
         hull_durations[hull_id] = dur;
+
+      for (const auto& [tier_key, tier_mod] : spec.tierstatmodifiers()) {
+        const int32_t tier = tier_mod.tier();
+        game_state_export::CargoStats stats;
+        for (const auto& [stat_code, value] : tier_mod.statmodifiers()) {
+          if (stat_code == 66) stats.capacity   = value; // CLIENTMODIFIERTYPE_MODCARGOCAPACITY
+          if (stat_code == 67) stats.protection = value; // CLIENTMODIFIERTYPE_MODCARGOPROTECTION
+        }
+        if (stats.capacity > 0.f || stats.protection > 0.f)
+          hull_cargo[hull_id][tier] = stats;
+      }
     }
-    spdlog::info("GameState: ShipTierSpecs: {} hull durations parsed", hull_durations.size());
-    // Pass empty tier caps — won't overwrite what BaseShipTierSpecs already stored
-    game_state_export::capture_ship_tier_specs({}, hull_durations);
+    spdlog::info("GameState: ShipTierSpecs: {} hull durations, {} hulls with cargo stats",
+                 hull_durations.size(), hull_cargo.size());
+    game_state_export::capture_ship_tier_specs({}, hull_durations, hull_cargo);
   } else {
     spdlog::error("GameState: Failed to parse ShipTierSpecs");
   }

@@ -72,10 +72,13 @@ namespace game_state_export
   void capture_favor_specs(const std::vector<FavorSpecEntry>& specs);
 
   // Ship tier specs (BaseShipTierSpecs type 49 + ShipTierSpecs type 50)
-  // tier_level_caps: tier -> max ship level for that tier
+  // tier_level_caps:    tier    -> max ship level for that tier
   // hull_tier_durations: hull_id -> tier-up build time in seconds (per-hull override)
+  // hull_cargo_stats:    hull_id -> tier -> { cargo_capacity, cargo_protection }
+  struct CargoStats { float capacity = 0.f; float protection = 0.f; };
   void capture_ship_tier_specs(const std::unordered_map<int32_t, int32_t>& tier_level_caps,
-                                const std::unordered_map<int64_t, int32_t>& hull_tier_durations);
+                                const std::unordered_map<int64_t, int32_t>& hull_tier_durations,
+                                const std::unordered_map<int64_t, std::unordered_map<int32_t, CargoStats>>& hull_cargo_stats);
 
   // Territory specs (TerritoryStaticData type 96)
   struct TerritoryWindow {

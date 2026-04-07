@@ -101,6 +101,7 @@ if ($gsPlayer) {
     Write-Host "    drydocks: $($gsPlayer.drydocks.Count) ($(($gsPlayer.drydocks | ForEach-Object { $_.letter }) -join ','))" -ForegroundColor DarkGray
 }
 if ($gsShips)    { Check "ships > 0"                ($gsShips.ships.Count -gt 0);                  Check "blueprints present" ($gsShips.blueprints -ne $null)
+                   Check "ship cargo_capacity present" (($gsShips.ships | Where-Object { $null -ne $_.PSObject.Properties['cargo_capacity'] } | Measure-Object).Count -gt 0)
                    Write-Host "    ships: $($gsShips.ships.Count), blueprints: $($gsShips.blueprints.Count) part types" -ForegroundColor DarkGray }
 if ($gsRes)      { Check "resources (non-zero) > 0" ($gsRes.resources.Count -gt 0);               Write-Host "    resources (non-zero): $($gsRes.resources.Count)" -ForegroundColor DarkGray }
 if ($gsResearch) { Check "research > 0"             ($gsResearch.research.Count -gt 0);            Write-Host "    research: $($gsResearch.research.Count)" -ForegroundColor DarkGray }
