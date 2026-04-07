@@ -114,19 +114,29 @@ to `faction.json`. Only non-zero amounts included. 12 token types and
 6 armada credit types exported. Tests: 55/55.
 
 ### Feature: Faction favors (permanent purchased bonuses)
-**Context:** Faction favors are permanent stat bonuses bought in faction stores
-(e.g. USS Newton Hull Plating from the Federation store, Bajoran hull favors).
-Once purchased they are active permanently. They are NOT resources — they do not
-appear in `cached_resources`. The few `Resource_*_Favor*` entries in the
-mappings are consumable tokens (Queens Favor, FKR Favor Token etc.), not these.
-**Investigation needed:**
-- [ ] Identify the data source — likely a dedicated proto message or EntityGroup
-      type for 'store purchases' or 'active bonuses'; check for `FavorResponse`,
-      `StorePurchase`, `ActiveBonus`, or a `faction_store` key in the JSON blob
-- [ ] Determine if purchased favors arrive at login or need navigation to the
-      faction store screen
-- [ ] Export `faction_favors` section to `faction.json` with favor name,
-      faction, and any quantitative bonus value if available
+**Context:** Faction favors = the **Loyalty system** in the game engine.
+Each faction has `LoyaltySpecs` (EntityGroup type 122) defining tiers, where
+each tier holds `LoyaltyBuffRewardsSpec` entries with a `buffId`. When a player
+purchases/claims a tier, that buff appears permanently in `GlobalActiveBuffs`
+(EntityGroup type 69, already hooked) with no expiry time.
+`LoyaltyConfig.resourceId` points to the faction's token resource (e.g.
+`Resource_FactionToken_Bajoran`) — the currency spent to unlock tiers.
+**Data path (login, no navigation needed):**
+  1. `LoyaltySpecs` (type 122) — static: tier definitions + buff IDs per tier
+  2. `GlobalActiveBuffs` (type 69) — player state: which buff IDs are active
+  3. Cross-reference to get which loyalty tiers/favors are claimed
+**TODO:**
+- [ ] Hook `LoyaltySpecs` in `HandleEntityGroup` (type 122): cache the
+      tier definitions (tier id, idStr faction name, minPoints, buffIds per tier)
+- [ ] In `process_global_active_buffs` (already runs): cross-reference active
+      buff IDs against cached `LoyaltySpecs` to identify which loyalty tier
+      each active buff belongs to, and capture to `game_state_export`
+- [ ] Export `faction_favors` section in `faction.json`:
+      grouped by faction, each entry: tier level (1-N of max), buff name if
+      available from `stfc_id_mappings.json`, and bonus value
+- [ ] Verify: `GlobalActiveBuffs` does carry permanent (no-expiry) loyalty
+      buffs by checking buff count vs expected favor count from screenshot
+      (user has 4/12 Quantum Torpedoes, 2/5 Bajor's Rage, 2/5 Shakaar's Shield etc.)
 
 ### Feature: Daily goals / tasks
 **Goal:** Export the player's current daily goals and their completion state so
