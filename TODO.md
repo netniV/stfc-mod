@@ -106,6 +106,18 @@ upgrade advice.
       (or as a separate top-level `ship_upgrade_costs` section)
 - [ ] Only include ships the player actually owns
 
+### Feature: Faction favors
+**Goal:** Export the player's current faction favor counts so AI assistants
+can advise on which factions to prioritise and what rewards are within reach.
+**TODO:**
+- [ ] Identify the resource IDs for each faction's favor currency —
+      likely `Resource_FactionFavor_*` pattern in `stfc_id_mappings.json`
+- [ ] Check whether they already arrive in `cached_resources` at login
+      (faction reputation does, so faction favors likely do too)
+- [ ] Add `faction_favors` section to the gamestate JSON alongside the
+      existing `faction_reputation` section, keyed by faction name with
+      current favor count
+
 ### Feature: Event data — daily, weekly and other
 **Goal:** Export current active events (daily goals, weekly missions, limited
 time events, etc.) so AI assistants can factor them into planning advice.
