@@ -1555,7 +1555,7 @@ static int  last_shield_expiry_threshold_hours = -1; // which threshold fired la
 static void check_shield_warnings()
 {
   const auto& cfg = Config::Get();
-  if (!cfg.resource_alerts.enabled) return;
+  if (!cfg.shield_alerts.enabled) return;
 
   auto now_steady = std::chrono::steady_clock::now();
   auto now_epoch  = std::chrono::duration_cast<std::chrono::seconds>(
@@ -1576,7 +1576,7 @@ static void check_shield_warnings()
   if (!scan_received) return;
 
   const auto reminder_dur =
-      std::chrono::minutes(cfg.resource_alerts.reminder_interval_minutes);
+      std::chrono::minutes(cfg.shield_alerts.reminder_interval_minutes);
 
   bool shield_active = expiry_epoch > now_epoch;
 
@@ -1596,7 +1596,7 @@ static void check_shield_warnings()
     last_shield_down_warn_tp = std::chrono::steady_clock::time_point{};
 
     // Check each configured expiry threshold (sorted descending so largest fires first)
-    auto thresholds = cfg.resource_alerts.shield_warn_hours;
+    auto thresholds = cfg.shield_alerts.shield_warn_hours;
     std::sort(thresholds.begin(), thresholds.end(), std::greater<int>());
 
     int64_t seconds_remaining = expiry_epoch - now_epoch;
@@ -1733,7 +1733,7 @@ void export_thread_func()
 
     // Peace shield / resource alerts poll
     {
-      const auto& alert_cfg = Config::Get().resource_alerts;
+      const auto& alert_cfg = Config::Get().shield_alerts;
       if (alert_cfg.enabled) {
         static std::chrono::steady_clock::time_point last_alert_check;
         auto now = std::chrono::steady_clock::now();

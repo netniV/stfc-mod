@@ -123,7 +123,7 @@ public:
   std::string filename_manifest   = "stfc_manifest.json";
 };
 
-class ResourceAlertsConfig
+class ShieldAlertsConfig
 {
 public:
   bool enabled                      = false;
@@ -224,7 +224,7 @@ public:
   bool        export_gamestate_on_startup;      // export immediately on mod load
   std::string export_gamestate_player_id;       // player userid for accurate player data capture
   GistSyncConfig       export_gamestate_gist;   // GitHub Gist sync config
-  ResourceAlertsConfig resource_alerts;         // peace shield / resource alert settings
+  ShieldAlertsConfig   shield_alerts;            // peace shield alert settings
 
   bool installUiScaleHooks;
   bool installZoomHooks;
