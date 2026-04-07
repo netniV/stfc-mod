@@ -706,19 +706,16 @@ json build_game_state_json()
     }
   }
 
-  // Faction favors — permanent buffs bought in per-faction stores.
-  // Faction favors — permanent bonuses purchased in per-faction stores.
+  // Faction favors — all possible per-faction store bonuses with the player's current tier.
   // Each favor corresponds to a research node (from ConsumableSpecs RESEARCH_UNLOCK entries).
-  // The player's current tier = the level of that research node in cached_research.
+  // tier=0 means not yet purchased; tier>0 is the current level; max_tier is the highest available.
   {
     // Group by faction prefix, sorted alphabetically
     std::map<std::string, json> by_faction;
     for (const auto& [research_id, info] : cached_favor_specs) {
-      // Look up player's current level for this research node
+      // Look up player's current level for this research node (0 if never started)
       auto res_it = cached_research.find(research_id);
-      if (res_it == cached_research.end()) continue;   // not in player's research = not purchased
-      const int32_t player_tier = res_it->second;
-      if (player_tier <= 0) continue;                  // level 0 = not started
+      const int32_t player_tier = (res_it != cached_research.end()) ? res_it->second : 0;
 
       by_faction[info.faction_prefix].push_back({
         {"favor",       info.favor_name},
