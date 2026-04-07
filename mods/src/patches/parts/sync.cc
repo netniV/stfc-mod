@@ -734,9 +734,9 @@ void process_starbase_detailed_scan(std::unique_ptr<std::string>&& bytes)
     if (!response.has_starbasedetailedscan()) return;
     const auto& scan = response.starbasedetailedscan();
 
-    // Only capture our own station — skip scans of other players' stations
+    // Only capture our own station â€” skip scans of other players' stations
     const auto& owner_id = scan.owneruserid();
-    const auto& my_id    = Config::Get().export_gamestate_player_id;
+    const auto& my_id    = Config::Get().game_state_player_id;
     if (!my_id.empty() && owner_id != my_id) {
       spdlog::debug("StarbaseDetailedScan: skipping scan for owner={} (not our station)", owner_id);
       return;
@@ -753,8 +753,8 @@ void process_starbase_detailed_scan(std::unique_ptr<std::string>&& bytes)
     spdlog::info("StarbaseDetailedScan: owner={} shield_expiry={} now={} active={}",
                  owner_id, expiry_epoch, now_epoch, expiry_epoch > now_epoch);
 
-    if (Config::Get().export_gamestate) {
-      // token_count stays 0 here — tokens come from InventoryResponse (type=8 consumables).
+    if (Config::Get().game_state_enabled) {
+      // token_count stays 0 here â€” tokens come from InventoryResponse (type=8 consumables).
       // We pass -1 to signal "don't update token count" vs a real 0.
       game_state_export::capture_peace_shield(expiry_epoch, -1);
     }
@@ -789,7 +789,7 @@ void process_active_missions(std::unique_ptr<std::string>&& bytes)
     }
 
     if (changed && !active_mission_states.empty()) {
-      if (Config::Get().export_gamestate) {
+      if (Config::Get().game_state_enabled) {
         std::vector<std::pair<int64_t, int64_t>> gs_missions;
         for (const auto& mission : response.activemissions()) {
           gs_missions.emplace_back(mission.id(), mission.missionid());
@@ -838,7 +838,7 @@ void process_completed_missions(std::unique_ptr<std::string>&& bytes)
     }
 
     if (!diff.empty()) {
-      if (Config::Get().export_gamestate) {
+      if (Config::Get().game_state_enabled) {
         game_state_export::capture_missions_completed(completed_snapshot);
       }
 
@@ -869,7 +869,7 @@ void process_player_inventories(std::unique_ptr<std::string>&& bytes)
                          STR_FORMAT("Processing {} inventories", response.inventories_size()));
 
     // Peace shield token counts are read directly from cached_resources at
-    // export time using known resource IDs — no inventory path needed.
+    // export time using known resource IDs â€” no inventory path needed.
     // Shield expiry is captured separately via process_starbase_detailed_scan.
 
     auto inventory_items = json::array();
@@ -921,7 +921,7 @@ void process_research_trees_state(std::unique_ptr<std::string>&& bytes)
 
       for (const auto& [id, level] : response.researchprojectlevels()) {
         // Capture for gamestate export
-        if (Config::Get().export_gamestate) {
+        if (Config::Get().game_state_enabled) {
           game_state_export::capture_research(id, level);
         }
 
@@ -958,7 +958,7 @@ void process_officers(std::unique_ptr<std::string>&& bytes)
         const RankLevelShardsState officer_state{officer.rankindex(), officer.level(), officer.shardcount()};
 
         // Capture for gamestate export
-        if (Config::Get().export_gamestate) {
+        if (Config::Get().game_state_enabled) {
           game_state_export::capture_officers(officer.id(), officer.rankindex(), officer.level(), officer.shardcount());
         }
 
@@ -1047,7 +1047,7 @@ void process_active_officer_traits(std::unique_ptr<std::string>&& bytes)
           }
 
           // Capture for gamestate export (always, not just on change)
-          if (Config::Get().export_gamestate) {
+          if (Config::Get().game_state_enabled) {
             game_state_export::capture_officer_trait(
               static_cast<uint64_t>(officer_id),
               static_cast<uint64_t>(trait.traitid()),
@@ -1068,7 +1068,7 @@ void process_active_officer_traits(std::unique_ptr<std::string>&& bytes)
 
 void process_faction_specs(std::unique_ptr<std::string>&& bytes)
 {
-  if (!Config::Get().export_gamestate) return;
+  if (!Config::Get().game_state_enabled) return;
 
   if (auto response = Digit::PrimeServer::Models::StaticSyncFactionSpecsResponse(); response.ParseFromString(*bytes)) {
     std::vector<std::pair<int64_t, std::string>> specs;
@@ -1093,7 +1093,7 @@ void process_faction_specs(std::unique_ptr<std::string>&& bytes)
 
 void process_research_specs(std::unique_ptr<std::string>&& bytes)
 {
-  if (!Config::Get().export_gamestate) return;
+  if (!Config::Get().game_state_enabled) return;
 
   if (auto response = Digit::PrimeServer::Models::StaticSyncResearchTreeSpecsResponse(); response.ParseFromString(*bytes)) {
     // Get the researchTreeId -> faction_name map built from FactionSpec.researchTreeIds
@@ -1119,7 +1119,7 @@ void process_research_specs(std::unique_ptr<std::string>&& bytes)
 
 void process_consumable_specs(std::unique_ptr<std::string>&& bytes)
 {
-  if (!Config::Get().export_gamestate) return;
+  if (!Config::Get().game_state_enabled) return;
 
   if (auto response = Digit::PrimeServer::Models::StaticSyncConsumableSpecsResponse(); response.ParseFromString(*bytes)) {
     std::vector<game_state_export::FavorSpecEntry> specs;
@@ -1166,16 +1166,16 @@ void process_consumable_specs(std::unique_ptr<std::string>&& bytes)
 
 void process_base_ship_tier_specs(std::unique_ptr<std::string>&& bytes)
 {
-  if (!Config::Get().export_gamestate) return;
+  if (!Config::Get().game_state_enabled) return;
 
   if (auto r = Digit::PrimeServer::Models::StaticSyncBaseShipTierSpecsResponse(); r.ParseFromString(*bytes)) {
     std::unordered_map<int32_t, int32_t> tier_level_caps;
     for (const auto& [tier, spec] : r.baseshiptierspecs())
       tier_level_caps[tier] = spec.maxshiplevel();
 
-    // hull_tier_durations comes from ShipTierSpecs; pass empty map here — combined in process_ship_tier_specs
+    // hull_tier_durations comes from ShipTierSpecs; pass empty map here â€” combined in process_ship_tier_specs
     spdlog::info("GameState: BaseShipTierSpecs: {} tiers parsed", tier_level_caps.size());
-    // Store just level caps — hull durations and cargo stats handled by process_ship_tier_specs
+    // Store just level caps â€” hull durations and cargo stats handled by process_ship_tier_specs
     game_state_export::capture_ship_tier_specs(tier_level_caps, {}, {});
   } else {
     spdlog::error("GameState: Failed to parse BaseShipTierSpecs");
@@ -1184,7 +1184,7 @@ void process_base_ship_tier_specs(std::unique_ptr<std::string>&& bytes)
 
 void process_ship_tier_specs(std::unique_ptr<std::string>&& bytes)
 {
-  if (!Config::Get().export_gamestate) return;
+  if (!Config::Get().game_state_enabled) return;
 
   if (auto r = Digit::PrimeServer::Models::StaticSyncShipTierSpecsResponse(); r.ParseFromString(*bytes)) {
     std::unordered_map<int64_t, int32_t> hull_durations;
@@ -1216,7 +1216,7 @@ void process_ship_tier_specs(std::unique_ptr<std::string>&& bytes)
 
 void process_ship_bonus_buff_specs(std::unique_ptr<std::string>&& bytes)
 {
-  if (!Config::Get().export_gamestate) return;
+  if (!Config::Get().game_state_enabled) return;
 
   if (auto response = Digit::PrimeServer::Models::StaticSyncShipBonusSpecsResponse(); response.ParseFromString(*bytes)) {
     std::vector<game_state_export::BuffSpecEntry> specs;
@@ -1245,7 +1245,7 @@ void process_ship_bonus_buff_specs(std::unique_ptr<std::string>&& bytes)
 
 void process_territory_static_data(std::unique_ptr<std::string>&& bytes)
 {
-  if (!Config::Get().export_gamestate) return;
+  if (!Config::Get().game_state_enabled) return;
 
   if (auto r = Digit::PrimeServer::Models::TerritoriesStaticDataResponse(); r.ParseFromString(*bytes)) {
     std::unordered_map<int64_t, game_state_export::TerritorySpec> specs;
@@ -1271,7 +1271,7 @@ void process_territory_static_data(std::unique_ptr<std::string>&& bytes)
 
 void process_territory_alliance_slots(std::unique_ptr<std::string>&& bytes)
 {
-  if (!Config::Get().export_gamestate) return;
+  if (!Config::Get().game_state_enabled) return;
 
   if (auto r = Digit::PrimeServer::Models::AllianceTerritorySlotsResponse(); r.ParseFromString(*bytes)) {
     const auto& slots = r.allianceterritoryslots();
@@ -1294,13 +1294,13 @@ void process_territory_alliance_slots(std::unique_ptr<std::string>&& bytes)
 
 void process_loyalty_specs(std::unique_ptr<std::string>&& bytes)
 {
-  if (!Config::Get().export_gamestate) return;
+  if (!Config::Get().game_state_enabled) return;
 
   if (auto response = Digit::PrimeServer::Models::StaticSyncLoyaltyResponse(); response.ParseFromString(*bytes)) {
     const auto& specs = response.loyaltyspecs();
 
     // This is the global Syndicate Loyalty track (Resource_Loyalty_Points).
-    // All tiers belong to the same single track — not per-faction.
+    // All tiers belong to the same single track â€” not per-faction.
     std::vector<game_state_export::LoyaltyBuffEntry> entries;
     std::vector<int64_t>                             buff_ids;
 
@@ -1378,7 +1378,7 @@ void process_global_active_buffs(std::unique_ptr<std::string>&& bytes)
     }
 
     // Capture full buff snapshot for faction favors cross-reference
-    if (Config::Get().export_gamestate) {
+    if (Config::Get().game_state_enabled) {
       std::vector<std::pair<int64_t, int32_t>> all_buffs;
       all_buffs.reserve(static_cast<size_t>(response.globalactivebuffs_size()));
       for (const auto& buff : response.globalactivebuffs()) {
@@ -1497,7 +1497,7 @@ void process_entity_slots(std::unique_ptr<std::string>&& bytes)
     http::sync_log_trace("PROCESS", "entity slots", STR_FORMAT("Processing {} slots", response.entityslots__size()));
 
     // Capture drydock assignments for gamestate export
-    if (Config::Get().export_gamestate) {
+    if (Config::Get().game_state_enabled) {
       std::vector<std::pair<int32_t, int64_t>> assignments;
       for (const auto& slot : response.entityslots_()) {
         spdlog::debug("EntitySlots: slot type={} id={} has_fleetpreset={}",
@@ -1545,7 +1545,7 @@ void process_entity_slots_data(std::unique_ptr<std::string>&& bytes)
     http::sync_log_trace("PROCESS", "entity slots data", STR_FORMAT("Processing {} slots", response.entityslots_size()));
 
     // Capture drydock assignments for gamestate export
-    if (Config::Get().export_gamestate) {
+    if (Config::Get().game_state_enabled) {
       std::vector<std::pair<int32_t, int64_t>> assignments;
       for (const auto& slots : response.entityslots()) {
         spdlog::debug("EntitySlotsData: entity_type={} slot_count={}",
@@ -1858,7 +1858,7 @@ void process_resources(const nlohmann::json& section)
   spdlog::info("GameState: Processing {} resources", section.size());
 
   // Capture for gamestate export
-  if (Config::Get().export_gamestate) {
+  if (Config::Get().game_state_enabled) {
     game_state_export::capture_resources(section);
   }
 
@@ -1893,7 +1893,7 @@ void process_starbase_modules(const nlohmann::json& section)
   spdlog::info("GameState: Processing {} starbase modules (buildings)", section.size());
 
   // Capture for gamestate export
-  if (Config::Get().export_gamestate) {
+  if (Config::Get().game_state_enabled) {
     game_state_export::capture_buildings(section);
     spdlog::info("GameState: Captured {} buildings for export", section.size());
   }
@@ -1929,7 +1929,7 @@ void process_ships(const nlohmann::json& section)
   spdlog::info("GameState: Processing {} ships", section.size());
 
   // Capture for gamestate export
-  if (Config::Get().export_gamestate) {
+  if (Config::Get().game_state_enabled) {
     game_state_export::capture_ships(section);
     spdlog::info("GameState: Captured {} ships for export", section.size());
   }
@@ -1972,10 +1972,10 @@ void process_json(std::unique_ptr<std::string>&& bytes)
   try {
     const auto result = json::parse(bytes->begin(), bytes->end());
 
-    const bool export_gs = Config::Get().export_gamestate;
+    const bool export_gs = Config::Get().game_state_enabled;
     for (const auto& [key, section] : result.items()) {
       if (key == "battle_result_headers") {
-        if (!Config::Get().sync_options.battlelogs && !Config::Get().export_gamestate) {
+        if (!Config::Get().sync_options.battlelogs && !Config::Get().game_state_enabled) {
           continue;
         }
 
@@ -2048,14 +2048,14 @@ void cache_player_names(std::unique_ptr<std::string>&& bytes)
       names.insert_or_assign(profile.userid(), CachedPlayerData{.name=profile.name(), .alliance=profile.allianceid(), .expires_at=expires_at});
     }
 
-    if (Config::Get().export_gamestate) {
-      const auto& player_id = Config::Get().export_gamestate_player_id;
+    if (Config::Get().game_state_enabled) {
+      const auto& player_id = Config::Get().game_state_player_id;
       if (player_id.empty()) {
         // Log each unique userid once so the user can identify their own and set player_id in config
         static std::unordered_set<std::string> logged_userids;
         for (const auto& profile : response.userprofiles()) {
           if (logged_userids.insert(profile.userid()).second) {
-            spdlog::info("GameState: UserProfile seen: userid={} name='{}' — set [gamestate_export] player_id in config to enable name/power export",
+            spdlog::info("GameState: UserProfile seen: userid={} name='{}' â€” set [gamestate_export] player_id in config to enable name/power export",
                          profile.userid(), profile.name());
           }
         }
@@ -2113,7 +2113,7 @@ void cache_alliance_names(std::unique_ptr<std::string>&& bytes)
     }
 
     // Enrich captured player data with alliance name now that we have it
-    if (Config::Get().export_gamestate) {
+    if (Config::Get().game_state_enabled) {
       std::scoped_lock lk(player_data_cache_mtx);
       for (const auto& [player_id, player] : player_data_cache) {
         auto it = names.find(player.alliance);
@@ -2271,7 +2271,7 @@ void ship_combat_log_data()
       http::sync_log_trace("PROCESS", "combat log", STR_FORMAT("Fetching combat log for battle {}", journal_id));
 
       const json journals_body{{"journal_id", journal_id}};
-      auto       battle_log = (Config::Get().sync_targets.empty() && Config::Get().export_gamestate)
+      auto       battle_log = (Config::Get().sync_targets.empty() && Config::Get().game_state_enabled)
                                   ? http::get_game_server_data("/journals/get", journals_body.dump())
                                   : http::get_scopely_data("/journals/get", journals_body.dump());
       json       battle_json;
@@ -2439,27 +2439,27 @@ void HandleEntityGroup(EntityGroup* entity_group)
 
   switch (entity_group->Type_) {
     case EntityGroup::Type::ActiveMissions:
-      if (Config::Get().sync_options.missions || Config::Get().export_gamestate) {
+      if (Config::Get().sync_options.missions || Config::Get().game_state_enabled) {
         submit_async(process_active_missions);
       }
       break;
     case EntityGroup::Type::CompletedMissions:
-      if (Config::Get().sync_options.missions || Config::Get().export_gamestate) {
+      if (Config::Get().sync_options.missions || Config::Get().game_state_enabled) {
         submit_async(process_completed_missions);
       }
       break;
     case EntityGroup::Type::PlayerInventories:
-      if (Config::Get().sync_options.inventory || Config::Get().export_gamestate) {
+      if (Config::Get().sync_options.inventory || Config::Get().game_state_enabled) {
         submit_async(process_player_inventories);
       }
       break;
     case EntityGroup::Type::ResearchTreesState:
-      if (Config::Get().sync_options.research || Config::Get().export_gamestate) {
+      if (Config::Get().sync_options.research || Config::Get().game_state_enabled) {
         submit_async(process_research_trees_state);
       }
       break;
     case EntityGroup::Type::Officers:
-      if (Config::Get().sync_options.officer || Config::Get().export_gamestate) {
+      if (Config::Get().sync_options.officer || Config::Get().game_state_enabled) {
         submit_async(process_officers);
       }
       break;
@@ -2469,12 +2469,12 @@ void HandleEntityGroup(EntityGroup* entity_group)
       }
       break;
     case EntityGroup::Type::ActiveOfficerTraits:
-      if (Config::Get().sync_options.traits || Config::Get().export_gamestate) {
+      if (Config::Get().sync_options.traits || Config::Get().game_state_enabled) {
         submit_async(process_active_officer_traits);
       }
       break;
     case EntityGroup::Type::Json:
-      if (const auto& o = Config::Get().sync_options; o.battlelogs || o.resources || o.ships || o.buildings || Config::Get().export_gamestate) {
+      if (const auto& o = Config::Get().sync_options; o.battlelogs || o.resources || o.ships || o.buildings || Config::Get().game_state_enabled) {
         submit_async(process_json);
       }
       break;
@@ -2484,57 +2484,57 @@ void HandleEntityGroup(EntityGroup* entity_group)
       }
       break;
     case EntityGroup::Type::GlobalActiveBuffs:
-      if (Config::Get().sync_options.buffs || Config::Get().export_gamestate) {
+      if (Config::Get().sync_options.buffs || Config::Get().game_state_enabled) {
         submit_async(process_global_active_buffs);
       }
       break;
     case EntityGroup::Type::LoyaltySpecs:
-      if (Config::Get().export_gamestate) {
+      if (Config::Get().game_state_enabled) {
         submit_async(process_loyalty_specs);
       }
       break;
     case EntityGroup::Type::EntitySlots:
-      if (Config::Get().sync_options.slots || Config::Get().export_gamestate) {
+      if (Config::Get().sync_options.slots || Config::Get().game_state_enabled) {
         submit_async(process_entity_slots);
       }
       break;
     case EntityGroup::Type::EntitySlotsData:
-      if (Config::Get().sync_options.slots || Config::Get().export_gamestate) {
+      if (Config::Get().sync_options.slots || Config::Get().game_state_enabled) {
         submit_async(process_entity_slots_data);
       }
       break;
     case EntityGroup::Type::StarbaseDetailedScan:
-      if (Config::Get().export_gamestate) {
+      if (Config::Get().game_state_enabled) {
         submit_async(process_starbase_detailed_scan);
       }
       break;
     case EntityGroup::Type::FactionSpecs:
-      if (Config::Get().export_gamestate) {
+      if (Config::Get().game_state_enabled) {
         submit_async(process_faction_specs);
       }
       break;
     case EntityGroup::Type::ResearchSpecs:
-      if (Config::Get().export_gamestate) {
+      if (Config::Get().game_state_enabled) {
         submit_async(process_research_specs);
       }
       break;
     case EntityGroup::Type::ConsumableSpecs:
-      if (Config::Get().export_gamestate) {
+      if (Config::Get().game_state_enabled) {
         submit_async(process_consumable_specs);
       }
       break;
     case EntityGroup::Type::ShipBonusBuffSpecs:
-      if (Config::Get().export_gamestate) {
+      if (Config::Get().game_state_enabled) {
         submit_async(process_ship_bonus_buff_specs);
       }
       break;
     case EntityGroup::Type::BaseShipTierSpecs:
-      if (Config::Get().export_gamestate) {
+      if (Config::Get().game_state_enabled) {
         submit_async(process_base_ship_tier_specs);
       }
       break;
     case EntityGroup::Type::ShipTierSpecs:
-      if (Config::Get().export_gamestate) {
+      if (Config::Get().game_state_enabled) {
         submit_async(process_ship_tier_specs);
       }
       break;
@@ -2544,22 +2544,22 @@ void HandleEntityGroup(EntityGroup* entity_group)
       }
       break;
     case EntityGroup::Type::TerritoryStaticData:
-      if (Config::Get().export_gamestate) {
+      if (Config::Get().game_state_enabled) {
         submit_async(process_territory_static_data);
       }
       break;
     case EntityGroup::Type::TerritoryAllianceSlots:
-      if (Config::Get().export_gamestate) {
+      if (Config::Get().game_state_enabled) {
         submit_async(process_territory_alliance_slots);
       }
       break;
     case EntityGroup::Type::UserProfiles:
-      if (Config::Get().sync_options.battlelogs || Config::Get().export_gamestate) {
+      if (Config::Get().sync_options.battlelogs || Config::Get().game_state_enabled) {
         submit_async(cache_player_names);
       }
       break;
     case EntityGroup::Type::AllianceProfiles:
-      if (Config::Get().sync_options.battlelogs || Config::Get().export_gamestate) {
+      if (Config::Get().sync_options.battlelogs || Config::Get().game_state_enabled) {
         submit_async(cache_alliance_names);
       }
       break;
@@ -2815,7 +2815,7 @@ void InstallSyncPatches()
     }
 
     // v48084: ParseSlotUpdatedJson/ParseSlotRemovedJson renamed to UpdateSlotData/RemoveSlotData
-    // with new signature (EntitySlot, String channelId) — hook needs rewrite to match.
+    // with new signature (EntitySlot, String channelId) â€” hook needs rewrite to match.
     if (auto *const ptr = slot_data_container.GetMethod("UpdateSlotData"); ptr == nullptr) {
       ErrorMsg::MissingMethod("SlotDataContainer", "UpdateSlotData");
     } else {

@@ -23,7 +23,7 @@ namespace DCC = DefaultConfig::Control;
 namespace DCU = DefaultConfig::UI;
 namespace DCBS = DefaultConfig::Buffs;
 namespace DCS = DefaultConfig::Sync;
-namespace DCGSE = DefaultConfig::GameStateExport;
+namespace DCGS = DefaultConfig::GameState;
 namespace DCSC = DefaultConfig::SystemConfig;
 namespace DCSH = DefaultConfig::Shortcuts;
 namespace DCSA = DefaultConfig::ShieldAlerts;
@@ -667,14 +667,14 @@ void Config::Load()
   }
   const toml::table* gs_table_legacy = config["gamestate_export"].as_table();
 
-  this->export_gamestate            = gs_get(gs_table, gs_table_legacy, "enabled",     DCGSE::export_gamestate);
-  this->export_gamestate_interval   = gs_get(gs_table, gs_table_legacy, "interval",    DCGSE::export_gamestate_interval);
-  this->export_gamestate_path       = gs_get(gs_table, gs_table_legacy, "path",        std::string(DCGSE::export_gamestate_path));
-  this->export_gamestate_on_startup = gs_get(gs_table, gs_table_legacy, "on_startup",  DCGSE::export_gamestate_on_startup);
-  this->export_gamestate_player_id  = gs_get(gs_table, gs_table_legacy, "player_id",   std::string(DCGSE::export_gamestate_player_id));
+  this->game_state_enabled            = gs_get(gs_table, gs_table_legacy, "enabled",     DCGS::game_state_enabled);
+  this->game_state_interval   = gs_get(gs_table, gs_table_legacy, "interval",    DCGS::game_state_interval);
+  this->game_state_path       = gs_get(gs_table, gs_table_legacy, "path",        std::string(DCGS::game_state_path));
+  this->game_state_on_startup = gs_get(gs_table, gs_table_legacy, "on_startup",  DCGS::game_state_on_startup);
+  this->game_state_player_id  = gs_get(gs_table, gs_table_legacy, "player_id",   std::string(DCGS::game_state_player_id));
 
-  // [sync.game_state.github] — GitHub Gist sync (optional)
-  namespace DCGSGithub = DefaultConfig::GameStateExport::Gist;
+  // [sync.game_state.github] â€” GitHub Gist sync (optional)
+  namespace DCGSGithub = DefaultConfig::GameState::Gist;
   const toml::table* github_table = nullptr;
   if (gs_table) {
     if (auto* g = (*gs_table)["github"].as_table()) github_table = g;
@@ -707,7 +707,7 @@ void Config::Load()
 
   spdlog::debug("");
 
-  // [sync.game_state.shield_alerts] — peace shield expiry alerts
+  // [sync.game_state.shield_alerts] â€” peace shield expiry alerts
   const toml::table* shield_table = nullptr;
   if (gs_table) {
     if (auto* s = (*gs_table)["shield_alerts"].as_table()) shield_table = s;

@@ -183,19 +183,19 @@ namespace Sync
   constexpr auto        resolver_cache_ttl = 300;
 } // namespace Sync
 
-namespace GameStateExport
+namespace GameState
 {
-  constexpr bool        export_gamestate            = false;
-  constexpr auto        export_gamestate_interval   = 300; // 5 minutes
-  constexpr const char* export_gamestate_path       = "";
-  constexpr bool        export_gamestate_on_startup = true;
-  constexpr const char* export_gamestate_player_id  = "";  // set to your userid for accurate player data
+  constexpr bool        game_state_enabled            = false;
+  constexpr auto        game_state_interval   = 300; // 5 minutes
+  constexpr const char* game_state_path       = "";
+  constexpr bool        game_state_on_startup = true;
+  constexpr const char* game_state_player_id  = "";  // set to your userid for accurate player data
 
   namespace Gist
   {
     constexpr bool        enabled            = false;
     constexpr const char* gist_id            = "";
-    constexpr const char* username           = "";  // GitHub username — used in manifest URLs; auto-resolved from API if left empty
+    constexpr const char* username           = "";  // GitHub username â€” used in manifest URLs; auto-resolved from API if left empty
     constexpr const char* token              = "";
     constexpr const char* filename_player    = "stfc_player.json";
       constexpr const char* filename_ships     = "stfc_ships.json";
@@ -209,7 +209,7 @@ namespace GameStateExport
       constexpr const char* filename_battlelog = "stfc_battlelog.json";
       constexpr const char* filename_manifest  = "stfc_manifest.json";
   } // namespace Gist
-} // namespace GameStateExport
+} // namespace GameState
 
 namespace ShieldAlerts
 {

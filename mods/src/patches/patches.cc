@@ -125,7 +125,7 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
       {"ResolutionListFix", {InstallResolutionListFix, &cfg.installResolutionListFix}},
       {"SyncPatches", {InstallSyncPatches, &cfg.installSyncPatches}},
       {"ObjectTracker", {InstallObjectTrackers, &cfg.installObjectTracker}},
-      {"GameStateExport", {InstallGameStateExport, &cfg.export_gamestate}},
+      {"GameStateExport", {InstallGameStateExport, &cfg.game_state_enabled}},
   };
   printf("il2cpp_init_hook(%s)\n", domain_name);
 

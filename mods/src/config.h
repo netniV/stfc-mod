@@ -108,7 +108,7 @@ class GitHubSyncConfig
 public:
   bool        enabled  = false;
   std::string gist_id;
-  std::string username;  // GitHub username — auto-populated from API response, or set manually
+  std::string username;  // GitHub username â€” auto-populated from API response, or set manually
   std::string token;
   std::string filename_player    = "stfc_player.json";
   std::string filename_ships     = "stfc_ships.json";
@@ -218,11 +218,11 @@ public:
   std::map<std::string, SyncTargetConfig> sync_targets;
 
   // Game state export settings
-  bool        export_gamestate;
-  int         export_gamestate_interval;        // seconds, 0 = manual/shutdown only
-  std::string export_gamestate_path;            // empty = game directory
-  bool        export_gamestate_on_startup;      // export immediately on mod load
-  std::string export_gamestate_player_id;       // player userid for accurate player data capture
+  bool        game_state_enabled;
+  int         game_state_interval;        // seconds, 0 = manual/shutdown only
+  std::string game_state_path;            // empty = game directory
+  bool        game_state_on_startup;      // export immediately on mod load
+  std::string game_state_player_id;       // player userid for accurate player data capture
   GitHubSyncConfig     game_state_github;        // GitHub Gist sync config
   ShieldAlertsConfig   shield_alerts;            // peace shield alert settings
 

@@ -113,13 +113,13 @@ static std::chrono::steady_clock::time_point startup_time;
 static constexpr int STARTUP_GRACE_PERIOD_SECONDS = 20;
 static bool shield_scan_received = false; // suppresses alerts until first StarbaseDetailedScan
 
-// Battlelog pending resolution — forward declarations so capture_player_data can call them
+// Battlelog pending resolution â€” forward declarations so capture_player_data can call them
 static std::unordered_set<std::string> pending_battlelog_resolution;
 static std::mutex                      pending_battlelog_mtx;
 static void resolve_pending_battlelog_outcomes(const std::string& our_name,
                                                const std::string& out_path);
 
-// Gist sync state — declared here so capture_player_data can set the flag
+// Gist sync state â€” declared here so capture_player_data can set the flag
 static std::atomic<bool> gist_needs_player_name_sync{false};
 static std::filesystem::path get_export_dir();
 
@@ -360,7 +360,7 @@ void capture_peace_shield(int64_t active_expiry_epoch, int64_t token_count)
       cached_shield_expiry_epoch = active_expiry_epoch;
       expiry_changed = true;
     } else if (active_expiry_epoch > 0 && active_expiry_epoch == cached_shield_expiry_epoch) {
-      // Same active expiry as already cached — value hasn't changed but a new scan
+      // Same active expiry as already cached â€” value hasn't changed but a new scan
       // confirmed the shield is still live; force an export so the gist stays current.
       expiry_changed = true;
     }
@@ -419,7 +419,7 @@ void capture_loyalty_specs(const std::vector<LoyaltyBuffEntry>& entries,
                  entries.size(), buff_ids.size());
     return;
   }
-  // Accumulate across factions — each call covers one faction's full tier set.
+  // Accumulate across factions â€” each call covers one faction's full tier set.
   for (size_t i = 0; i < buff_ids.size(); ++i) {
     cached_loyalty_buff_map[buff_ids[i]] = {entries[i].faction, entries[i].tier_index, entries[i].max_tiers};
   }
@@ -636,7 +636,7 @@ json build_game_state_json()
     };
   }
 
-  // Syndicate (Loyalty) level and XP — read from cached_resources
+  // Syndicate (Loyalty) level and XP â€” read from cached_resources
   // Resource_Loyalty_Tier_HiddenToken (1141922149) = current syndicate level
   // Resource_Loyalty_Points           (3374607211) = accumulated XP points
   {
@@ -786,7 +786,7 @@ json build_game_state_json()
     }
   }
 
-  // Syndicate loyalty buffs — active tiers claimed on the global Syndicate Loyalty track.
+  // Syndicate loyalty buffs â€” active tiers claimed on the global Syndicate Loyalty track.
   // Built by cross-referencing cached_active_buffs against cached_loyalty_buff_map.
   {
     std::map<std::string, json> by_faction;
@@ -813,7 +813,7 @@ json build_game_state_json()
     }
   }
 
-  // Faction favors — all possible per-faction store bonuses with the player's current tier.
+  // Faction favors â€” all possible per-faction store bonuses with the player's current tier.
   // Each favor corresponds to a research node (from ConsumableSpecs RESEARCH_UNLOCK entries).
   // tier=0 means not yet purchased; tier>0 is the current level; max_tier is the highest available.
   {
@@ -849,7 +849,7 @@ json build_game_state_json()
     }
   }
 
-  // Full buff catalog — all BuffSpecs from ShipBonusBuffSpecs (type 51).
+  // Full buff catalog â€” all BuffSpecs from ShipBonusBuffSpecs (type 51).
   // Includes buff ID, modifier type, operation, per-level values, and faction affiliation.
   j["buff_catalog"] = json::array();
   for (const auto& [buff_id, spec] : cached_buff_specs) {
@@ -936,7 +936,7 @@ json build_game_state_json()
     j["station"]["peace_shield"] = shield_json;
   }
 
-  // Drydock assignments — letter derived from 1-based drydock_id (1=A … 5=E)
+  // Drydock assignments â€” letter derived from 1-based drydock_id (1=A â€¦ 5=E)
   // Active missions
   j["missions_active"] = json::array();
   for (const auto& [instance_id, mission_id] : cached_missions_active) {
@@ -993,7 +993,7 @@ json build_game_state_json()
                 cached_buildings.size(), cached_research.size(), cached_ships.size(),
                 cached_officers.size(), cached_resources.size(), cached_drydock_assignments.size());
 
-  // Alliance territory — held zones cross-referenced against static spec data
+  // Alliance territory â€” held zones cross-referenced against static spec data
   {
     static const std::unordered_map<int32_t, std::string> WEEKDAY_NAMES = {
       {0,"Sun"},{1,"Mon"},{2,"Tue"},{3,"Wed"},{4,"Thu"},{5,"Fri"},{6,"Sat"}
@@ -1152,7 +1152,7 @@ static void sync_all_to_gist(const std::filesystem::path& dir)
         auto resp_json = nlohmann::json::parse(response.text);
         if (resp_json.contains("owner") && resp_json["owner"].contains("login")) {
           Config::Get().game_state_github.username = resp_json["owner"]["login"].get<std::string>();
-          spdlog::info("Gist sync: Resolved GitHub username='{}' — re-writing manifest with correct URLs",
+          spdlog::info("Gist sync: Resolved GitHub username='{}' â€” re-writing manifest with correct URLs",
                        Config::Get().game_state_github.username);
           // Re-write manifest.json on disk so URLs are correct without waiting for the next full export
           request_immediate_export();
@@ -1161,7 +1161,7 @@ static void sync_all_to_gist(const std::filesystem::path& dir)
     }
     spdlog::info("Gist sync: Updated {} game state files in gist {}", files_obj.size(), gist.gist_id);
   } else if (response.status_code == 403) {
-    // 403 is typically a rate limit — parse message if available
+    // 403 is typically a rate limit â€” parse message if available
     std::string reason = "Forbidden";
     try {
       auto body_json = nlohmann::json::parse(response.text);
@@ -1179,9 +1179,9 @@ static void sync_all_to_gist(const std::filesystem::path& dir)
 static std::filesystem::path get_export_dir()
 {
   auto& cfg = Config::Get();
-  std::filesystem::path base = cfg.export_gamestate_path.empty()
+  std::filesystem::path base = cfg.game_state_path.empty()
     ? std::filesystem::path(".")
-    : std::filesystem::path(cfg.export_gamestate_path);
+    : std::filesystem::path(cfg.game_state_path);
   auto dir = base / "community_patch" / "game_state_exports";
   std::error_code ec;
   std::filesystem::create_directories(dir, ec);
@@ -1506,7 +1506,7 @@ static void process_battle_csv(const std::string& csv_path)
       }
     }
     if (!resolved) {
-      // Name not yet known — mark for resolution when capture_player_data fires
+      // Name not yet known â€” mark for resolution when capture_player_data fires
       std::scoped_lock lk(pending_battlelog_mtx);
       pending_battlelog_resolution.insert(filename);
       spdlog::info("Battlelog: outcome unresolved for {} (player name not yet known), will retry", filename);
@@ -1572,7 +1572,7 @@ static void check_shield_warnings()
   }
 
   // Don't warn until we've received at least one StarbaseDetailedScan for
-  // the player's own station — we simply don't know the shield state yet.
+  // the player's own station â€” we simply don't know the shield state yet.
   if (!scan_received) return;
 
   const auto reminder_dur =
@@ -1631,11 +1631,11 @@ void export_thread_func()
   std::unordered_set<std::string> processed_csvs;
 
   // Pre-populate with any CSVs already on disk so we don't re-import old ones
-  // prime_Data sits alongside the game executable — derive from export_gamestate_path if set,
+  // prime_Data sits alongside the game executable â€” derive from game_state_path if set,
   // otherwise fall back to the game module's own directory.
   std::filesystem::path game_dir;
-  if (!cfg.export_gamestate_path.empty()) {
-    game_dir = std::filesystem::path(cfg.export_gamestate_path);
+  if (!cfg.game_state_path.empty()) {
+    game_dir = std::filesystem::path(cfg.game_state_path);
   } else {
 #if _WIN32
     wchar_t module_path[MAX_PATH] = {};
@@ -1661,7 +1661,7 @@ void export_thread_func()
   spdlog::info("GameState export thread started");
 
   // Always export full snapshot on startup, but wait for grace period first
-  if (cfg.export_gamestate_on_startup) {
+  if (cfg.game_state_on_startup) {
     spdlog::info("GameState export: Waiting {} seconds for all game data to load before startup export", 
                  STARTUP_GRACE_PERIOD_SECONDS);
     std::this_thread::sleep_for(std::chrono::seconds(STARTUP_GRACE_PERIOD_SECONDS));
@@ -1682,8 +1682,8 @@ void export_thread_func()
     // Wait for either immediate export request, interval timeout, or CSV poll (10s)
     std::unique_lock<std::mutex> lock(export_request_mutex);
 
-    if (cfg.export_gamestate_interval > 0) {
-      export_cv.wait_for(lock, std::chrono::seconds(std::min(cfg.export_gamestate_interval, 10)), 
+    if (cfg.game_state_interval > 0) {
+      export_cv.wait_for(lock, std::chrono::seconds(std::min(cfg.game_state_interval, 10)), 
                          [] { return should_export_now || should_stop; });
     } else {
       export_cv.wait_for(lock, std::chrono::seconds(10),
@@ -1698,7 +1698,7 @@ void export_thread_func()
 
     // Export if explicitly requested or interval has elapsed
     auto seconds_since_last_export = std::chrono::duration_cast<std::chrono::seconds>(now - last_export_time).count();
-    bool interval_elapsed = cfg.export_gamestate_interval > 0 && seconds_since_last_export >= cfg.export_gamestate_interval;
+    bool interval_elapsed = cfg.game_state_interval > 0 && seconds_since_last_export >= cfg.game_state_interval;
 
     if (should_export_now || interval_elapsed) {
       // Debounce: wait until no new request has arrived for EXPORT_DEBOUNCE_SECONDS
@@ -1709,7 +1709,7 @@ void export_thread_func()
       if (should_export_now && !interval_elapsed &&
           time_since_last_request < EXPORT_DEBOUNCE_SECONDS) {
         lock.unlock();
-        // Don't clear should_export_now — re-check on next loop iteration
+        // Don't clear should_export_now â€” re-check on next loop iteration
       } else {
         should_export_now = false;
         lock.unlock();
@@ -1754,21 +1754,21 @@ void init()
 {
   auto& cfg = Config::Get();
 
-  if (!cfg.export_gamestate) {
+  if (!cfg.game_state_enabled) {
     spdlog::info("GameState export is disabled in config");
     return;
   }
 
   spdlog::info("GameState export: Enabled with interval={} seconds, path='{}', on_startup={}",
-               cfg.export_gamestate_interval,
-               cfg.export_gamestate_path.empty() ? "<game directory>" : cfg.export_gamestate_path,
-               cfg.export_gamestate_on_startup);
+               cfg.game_state_interval,
+               cfg.game_state_path.empty() ? "<game directory>" : cfg.game_state_path,
+               cfg.game_state_on_startup);
 
   if (cfg.game_state_github.enabled) {
     auto& gist = cfg.game_state_github;
     const std::string user_segment = gist.username.empty() ? "" : gist.username + "/";
     spdlog::info("GameState Gist sync: Enabled for gist_id={}{}", gist.gist_id,
-                 gist.username.empty() ? " (username not set — URLs in manifest may be incomplete)" : "");
+                 gist.username.empty() ? " (username not set â€” URLs in manifest may be incomplete)" : "");
     spdlog::info("GameState Gist sync: Manifest URL: https://gist.githubusercontent.com/{}{}raw/{}",
                  user_segment, gist.gist_id + "/", gist.filename_manifest);
     for (const auto* fn : {&gist.filename_player, &gist.filename_ships, &gist.filename_resources,
@@ -1784,7 +1784,7 @@ void init()
   // Record startup time for grace period
   startup_time = std::chrono::steady_clock::now();
 
-  // Load ID mappings — anchor to the exe directory so this works regardless
+  // Load ID mappings â€” anchor to the exe directory so this works regardless
   // of what the process working directory happens to be.
   // Look for mappings in community_patch/game_data_maps/ first, fall back to legacy game_data_maps/
   std::filesystem::path mappings_path = File::ExeDir() / "community_patch" / "game_data_maps" / "stfc_id_mappings.json";
