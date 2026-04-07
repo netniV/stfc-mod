@@ -1,4 +1,4 @@
-﻿﻿# ??? STFC Community Mod - TODO List
+﻿﻿﻿# ??? STFC Community Mod - TODO List
 
 ## ? Completed
 
@@ -178,37 +178,38 @@ can plan upgrade sequences and know what capacity the player has available.
 - [ ] Note: `Jobs` only fires when at least one job is active; if all queues are
       idle the section will be absent/empty — document this in the export schema
 
-### Feature: Daily goals / tasks
-**Goal:** Export the player's current daily goals and their completion state so
-AI assistants can suggest what to prioritise each day.
-**Context:** `Resource_Daily_Meta1` and `Resource_Daily_Loyalty1` exist in the
-mappings and may track daily progress as hidden tokens. Full goal definitions
-and completion status likely live in a separate proto or EntityGroup.
-**Investigation needed:**
-- [ ] Identify which proto / EntityGroup carries daily goal definitions and
-      progress — check for `DailyGoal`, `DailyTask`, `daily_goals`,
-      `event_goals`, or `MissionDailyTask` in the JSON blob key list
-- [ ] Check if `Resource_Daily_Meta1` / `Resource_Daily_Loyalty1` encode
-      goal completion bitmask or are unrelated tracking tokens
-- [ ] Determine if data arrives at login or requires navigating to the goals screen
-- [ ] Export `daily_goals` section (or separate `daily_goals.json`) with
-      goal name/id, type, progress, target, and completion status
+### Feature: Daily goals / tasks and Event data — AUDITED, NOT FEASIBLE VIA CURRENT INTERCEPT
 
-### Feature: Event data � daily, weekly and other
-**Goal:** Export current active events (daily goals, weekly missions, limited
-time events, etc.) so AI assistants can factor them into planning advice.
-**TODO:**
-- [ ] Identify which data source carries active event state � candidates:
-      `marauder_quick_scan_data` and `hazard_result_headers` seen in the
-      JSON blob key list; also check EntityGroup types for event responses
-- [ ] Distinguish event types: daily goals, weekly events, limited-time
-      events, alliance events, and recurring events (e.g. Armada, Faction)
-- [ ] Export `events` section to gamestate JSON with at minimum:
-      event name, type (daily/weekly/other), active window (start/end),
-      and player progress if available
-- [ ] Determine whether data arrives at login or requires navigating to
-      the events screen
+**Audit findings (2026-04-07):**
 
+Every EntityGroup type and every JSON blob key arriving at login was fully enumerated.
+All unhandled EG types in the range 124-169 were decoded at runtime. Findings per type:
+
+| EG type | Name | Content | Daily goals? |
+|---|---|---|---|
+| 124 | MarauderInfo | Static marauder hull/level ranges per galaxy node | No |
+| 137 | ChallengeLadderSpecs | 12 PvP arena ladder specs with milestone rewards | No |
+| 146 | ChallengeConfig | Single field: minimumLevelRequired | No |
+| 148 | HazardSpecs | Hostile battle hazard type definitions | No |
+| 150 | LoyaltySpecs | Syndicate loyalty track tiers (already exported) | No |
+| 152 | WaveDefenseSyncData | Live wave defense battle state | No |
+| 159 | AllianceLoyaltyStaticData | Alliance loyalty static spec data | No |
+| 161 | LoyaltyTierRewards | Reward items per Syndicate loyalty tier | No |
+| 162 | GameActivityRanksData | PvP arena rank definitions | No |
+| 163 | GameActivity | Live arena/Surge match state | No |
+| 164 | GameActivitySpecs | 3 entries: Activity_Arena_Default, Activity_Arena_Public, Activity_Surge_Default | No |
+| 165 | GameActivityParticipantSpecs | Arena/Surge participant group definitions | No |
+| 167 | GameActivityScheduleSpec | Arena scheduled days (Fri/Sat only) | No |
+
+JSON blob keys checked: marauder_quick_scan_data (only arrives when in-system, not at login),
+hazard_result_headers (recent hostile battle results, not goals), player_container / outpost_list
+(in-system only). No daily_goals, event_goals, challenge, or similar key was ever observed.
+
+**Verdict:** Daily goals, weekly events, and limited-time events are NOT exposed via the
+HandleEntityGroup or JSON blob intercept paths at any point. The game's event/challenge UI
+is driven by the Scopely platform layer (a separate HTTP API), not the PrimeServer proto stream.
+This feature would require a separate intercept of the platform HTTP layer — significant new
+work with no clear proto schema to decode against. Not worth pursuing given what is already exported.
 ### Feature: Alliance info and territory — DONE
 **What was implemented:**
 - Alliance name, tag, level, member count, power exported as structured `player.alliance`\r
