@@ -139,34 +139,42 @@ to `faction.json`. Only non-zero amounts included. 12 token types and
 
 Tests: 78/78.
 
-### Feature: Research and station build queues
-**Goal:** Export the player's active research and station build jobs — including
-which research node / building is being upgraded, what level it's building to,
-how long remains, and how many queue slots the player has unlocked of each type.
-The player can unlock additional queues (default 1, up to 3+ of each type) by
-spending resources; knowing all active jobs and available slots helps AI assistants
-plan upgrade sequences.
+### Feature: Research, build, scrap and repair queues
+**Goal:** Export all active jobs and unlocked queue slot counts so AI assistants
+can plan upgrade sequences and know what capacity the player has available.
+
+**Queue types and their behaviour:**
+| Queue type | Default slots | Purchasable extras | Notes |
+|---|---|---|---|
+| Research | 1 | Yes (player has 3) | Grouped in station queue UI |
+| Station build | 1 | Yes (player has 3) | Grouped in station queue UI |
+| Ship scrap | 1 | No | Grouped in station queue UI |
+| Ship repair | 1 | Yes (max unknown) | One active repair per drydock slot; buying N extras allows N+1 simultaneous repairs |
 
 **Data sources (all arrive via `Jobs`, EntityGroup type 56, only when jobs are active):**
 - `JOBTYPE_RESEARCH = 3` → `ResearchParams { projectId, level }` + `Job.startTime`, `duration`, `reductionInSeconds`
 - `JOBTYPE_STARBASECONSTRUCTION = 4` → `StarbaseConstructionParams { moduleId, level }` + same timing fields
+- `JOBTYPE_SHIPSCRAP = 12` → `ScrapyardParams { hullId, shipId, level, componentIds[] }` + timing fields
+- `JOBTYPE_REPAIRFLEET = 5` → `RepairFleetParams { fleetId }` + timing fields
 
 **Queue slot count** arrives via `EntitySlots`/`EntitySlotsData` (types 117/121):
-- Worker slots with `SlotSpec.workerSlotSpecParams.jobType == 3` = research queues
-- Worker slots with `SlotSpec.workerSlotSpecParams.jobType == 4` = build queues
+- Worker slots with `SlotSpec.workerSlotSpecParams.jobType == 3` = research queue slots
+- Worker slots with `SlotSpec.workerSlotSpecParams.jobType == 4` = build queue slots
+- Worker slots with `SlotSpec.workerSlotSpecParams.jobType == 12` = scrap queue slots (always 1)
+- Worker slots with `SlotSpec.workerSlotSpecParams.jobType == 5` = repair queue slots
 - Empty slots (no `jobId`) = available; occupied slots (has `jobId`) = in use
-- Total slot count per type = number unlocked (player currently has 3 of each)
+- Total slot count per type = number unlocked
 
 **TODO:**
-- [ ] Hook `Jobs` (type 56) for `JOBTYPE_RESEARCH` and `JOBTYPE_STARBASECONSTRUCTION`:
-      export `projectId`/`moduleId`, `level`, `start_time`, `duration_secs`,
-      `reduction_secs`, computed `finish_time` (UTC ISO-8601)
-- [ ] Count research and build worker slots from `EntitySlots`/`EntitySlotsData`
-      (already parsed) — add `research_queues_total` / `build_queues_total` and
-      `research_queues_active` / `build_queues_active` to `player.json`
+- [ ] Hook `Jobs` (type 56) for all four job types; for each active job export:
+      `type`, `start_time`, `duration_secs`, `reduction_secs`, `finish_time` (computed UTC ISO-8601),
+      plus type-specific fields (`projectId`/`moduleId`/`shipId`/`fleetId`, `level`)
+- [ ] Count worker slots per job type from `EntitySlots`/`EntitySlotsData` (already parsed) —
+      export `total` and `active` per queue type
 - [ ] Enrich `projectId` with research name via `stfc_id_mappings.json`
 - [ ] Enrich `moduleId` (building id) with building name via `stfc_id_mappings.json`
-- [ ] Export as `queues` section in `player.json` (or a separate `queues.json`)
+- [ ] Enrich `hullId` (scrap) and `fleetId` (repair) with ship name via `stfc_id_mappings.json`
+- [ ] Export as a `queues` section in `player.json` with sub-keys `research`, `build`, `scrap`, `repair`
 - [ ] Note: `Jobs` only fires when at least one job is active; if all queues are
       idle the section will be absent/empty — document this in the export schema
 
