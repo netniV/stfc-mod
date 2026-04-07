@@ -643,79 +643,84 @@ void Config::Load()
 
   spdlog::debug("");
 
-  // Game state export configuration
-  this->export_gamestate = 
-      get_config_or_default(config, parsed, "gamestate_export", "enabled", 
-                            DCGSE::export_gamestate, write_config);
-  this->export_gamestate_interval = 
-      get_config_or_default(config, parsed, "gamestate_export", "interval", 
-                            DCGSE::export_gamestate_interval, write_config);
-  this->export_gamestate_path = 
-      get_config_or_default<std::string>(config, parsed, "gamestate_export", "path", 
-                                         DCGSE::export_gamestate_path, write_config);
-  this->export_gamestate_on_startup = 
-      get_config_or_default(config, parsed, "gamestate_export", "export_on_startup", 
-                            DCGSE::export_gamestate_on_startup, write_config);
-  this->export_gamestate_player_id =
-      get_config_or_default<std::string>(config, parsed, "gamestate_export", "player_id",
-                                         DCGSE::export_gamestate_player_id, write_config);
-
-  // Gist sync sub-section: [gamestate_export.gist]
-  namespace DCGSGithub = DefaultConfig::GameStateExport::Gist;
-  const toml::table* gist_table = nullptr;
-  if (auto* gse = config["gamestate_export"].as_table()) {
-    if (auto* g = (*gse)["gist"].as_table()) {
-      gist_table = g;
-    }
-  }
-
-  auto gist_get = [&]<typename T>(const char* key, T default_val) -> T {
-    if (gist_table) {
-      if (auto val = (*gist_table)[key].value<T>()) {
-        return *val;
-      }
+  // Game state configuration: [sync.game_state]
+  // All game-state-related config lives under sync.game_state.*
+  // Helper: read a value from a toml::table pointer, falling back to default_val
+  auto tbl_get = [&]<typename T>(const toml::table* tbl, const char* key, T default_val) -> T {
+    if (tbl) {
+      if (auto val = (*tbl)[key].value<T>()) return *val;
     }
     return default_val;
   };
+  // Helper: read from new table, fall back to legacy table, then to default
+  auto gs_get = [&]<typename T>(const toml::table* primary, const toml::table* legacy,
+                                 const char* key, T default_val) -> T {
+    if (primary) { if (auto val = (*primary)[key].value<T>()) return *val; }
+    if (legacy)  { if (auto val = (*legacy)[key].value<T>())  return *val; }
+    return default_val;
+  };
 
-  this->game_state_github.enabled            = gist_get("enabled",            DCGSGithub::enabled);
-  this->game_state_github.gist_id            = gist_get("gist_id",            std::string(DCGSGithub::gist_id));
-  this->game_state_github.username           = gist_get("username",           std::string(""));
-  this->game_state_github.token              = gist_get("token",              std::string(DCGSGithub::token));
-  this->game_state_github.filename_player    = gist_get("filename_player",    std::string(DCGSGithub::filename_player));
-  this->game_state_github.filename_ships     = gist_get("filename_ships",     std::string(DCGSGithub::filename_ships));
-  this->game_state_github.filename_resources = gist_get("filename_resources", std::string(DCGSGithub::filename_resources));
-  this->game_state_github.filename_research  = gist_get("filename_research",  std::string(DCGSGithub::filename_research));
-  this->game_state_github.filename_officers  = gist_get("filename_officers",  std::string(DCGSGithub::filename_officers));
-  this->game_state_github.filename_missions  = gist_get("filename_missions",  std::string(DCGSGithub::filename_missions));
-  this->game_state_github.filename_faction   = gist_get("filename_faction",   std::string(DCGSGithub::filename_faction));
-  this->game_state_github.filename_buffs     = gist_get("filename_buffs",     std::string(DCGSGithub::filename_buffs));
-  this->game_state_github.filename_territory = gist_get("filename_territory", std::string(DCGSGithub::filename_territory));
-  this->game_state_github.filename_battlelog = gist_get("filename_battlelog", std::string(DCGSGithub::filename_battlelog));
-  this->game_state_github.filename_manifest  = gist_get("filename_manifest",  std::string(DCGSGithub::filename_manifest));
+  // Resolve [sync.game_state] (new) and [gamestate_export] (legacy fallback)
+  const toml::table* gs_table = nullptr;
+  if (auto* sync = config["sync"].as_table()) {
+    if (auto* gs = (*sync)["game_state"].as_table()) gs_table = gs;
+  }
+  const toml::table* gs_table_legacy = config["gamestate_export"].as_table();
 
-  spdlog::debug("config gamestate_export.gist: enabled={}, gist_id={}, token={}",
+  this->export_gamestate            = gs_get(gs_table, gs_table_legacy, "enabled",     DCGSE::export_gamestate);
+  this->export_gamestate_interval   = gs_get(gs_table, gs_table_legacy, "interval",    DCGSE::export_gamestate_interval);
+  this->export_gamestate_path       = gs_get(gs_table, gs_table_legacy, "path",        std::string(DCGSE::export_gamestate_path));
+  this->export_gamestate_on_startup = gs_get(gs_table, gs_table_legacy, "on_startup",  DCGSE::export_gamestate_on_startup);
+  this->export_gamestate_player_id  = gs_get(gs_table, gs_table_legacy, "player_id",   std::string(DCGSE::export_gamestate_player_id));
+
+  // [sync.game_state.github] — GitHub Gist sync (optional)
+  namespace DCGSGithub = DefaultConfig::GameStateExport::Gist;
+  const toml::table* github_table = nullptr;
+  if (gs_table) {
+    if (auto* g = (*gs_table)["github"].as_table()) github_table = g;
+  }
+  // Legacy fallback: [gamestate_export.gist]
+  if (!github_table && gs_table_legacy) {
+    if (auto* g = (*gs_table_legacy)["gist"].as_table()) github_table = g;
+  }
+
+  this->game_state_github.enabled            = tbl_get(github_table, "enabled",            DCGSGithub::enabled);
+  this->game_state_github.gist_id            = tbl_get(github_table, "gist_id",            std::string(DCGSGithub::gist_id));
+  this->game_state_github.username           = tbl_get(github_table, "username",           std::string(""));
+  this->game_state_github.token              = tbl_get(github_table, "token",              std::string(DCGSGithub::token));
+  this->game_state_github.filename_player    = tbl_get(github_table, "filename_player",    std::string(DCGSGithub::filename_player));
+  this->game_state_github.filename_ships     = tbl_get(github_table, "filename_ships",     std::string(DCGSGithub::filename_ships));
+  this->game_state_github.filename_resources = tbl_get(github_table, "filename_resources", std::string(DCGSGithub::filename_resources));
+  this->game_state_github.filename_research  = tbl_get(github_table, "filename_research",  std::string(DCGSGithub::filename_research));
+  this->game_state_github.filename_officers  = tbl_get(github_table, "filename_officers",  std::string(DCGSGithub::filename_officers));
+  this->game_state_github.filename_missions  = tbl_get(github_table, "filename_missions",  std::string(DCGSGithub::filename_missions));
+  this->game_state_github.filename_faction   = tbl_get(github_table, "filename_faction",   std::string(DCGSGithub::filename_faction));
+  this->game_state_github.filename_buffs     = tbl_get(github_table, "filename_buffs",     std::string(DCGSGithub::filename_buffs));
+  this->game_state_github.filename_territory = tbl_get(github_table, "filename_territory", std::string(DCGSGithub::filename_territory));
+  this->game_state_github.filename_battlelog = tbl_get(github_table, "filename_battlelog", std::string(DCGSGithub::filename_battlelog));
+  this->game_state_github.filename_manifest  = tbl_get(github_table, "filename_manifest",  std::string(DCGSGithub::filename_manifest));
+
+  spdlog::debug("config sync.game_state.github: enabled={}, gist_id={}, token={}",
                 this->game_state_github.enabled,
                 this->game_state_github.gist_id,
                 this->game_state_github.token.empty() ? "<not set>" : "<set>");
 
   spdlog::debug("");
 
-  // Shield alert configuration
-  this->shield_alerts.enabled =
-      get_config_or_default(config, parsed, "shield_alerts", "enabled",
-                            DCSA::enabled, write_config);
-  this->shield_alerts.poll_interval_seconds =
-      get_config_or_default(config, parsed, "shield_alerts", "poll_interval_seconds",
-                            DCSA::poll_interval_seconds, write_config);
-  this->shield_alerts.reminder_interval_minutes =
-      get_config_or_default(config, parsed, "shield_alerts", "reminder_interval_minutes",
-                            DCSA::reminder_interval_minutes, write_config);
+  // [sync.game_state.shield_alerts] — peace shield expiry alerts
+  const toml::table* shield_table = nullptr;
+  if (gs_table) {
+    if (auto* s = (*gs_table)["shield_alerts"].as_table()) shield_table = s;
+  }
+  // Legacy fallback: [shield_alerts] (top-level)
+  if (!shield_table) shield_table = config["shield_alerts"].as_table();
+
+  this->shield_alerts.enabled                  = tbl_get(shield_table, "enabled",                  DCSA::enabled);
+  this->shield_alerts.poll_interval_seconds     = tbl_get(shield_table, "poll_interval_seconds",    DCSA::poll_interval_seconds);
+  this->shield_alerts.reminder_interval_minutes = tbl_get(shield_table, "reminder_interval_minutes",DCSA::reminder_interval_minutes);
 
   {
-    auto warn_hours_str = get_config_or_default<std::string>(
-        config, parsed, "shield_alerts", "shield_warn_hours",
-        DCSA::shield_warn_hours, write_config);
+    auto warn_hours_str = tbl_get(shield_table, "warn_hours", std::string(DCSA::shield_warn_hours));
     this->shield_alerts.shield_warn_hours.clear();
     for (const auto& tok : StrSplit(warn_hours_str, ',')) {
       auto stripped = StripLeadingAsciiWhitespace(tok);
@@ -729,7 +734,7 @@ void Config::Load()
     }
   }
 
-  spdlog::debug("config shield_alerts: enabled={}, poll={}s, reminder={}min",
+  spdlog::debug("config sync.game_state.shield_alerts: enabled={}, poll={}s, reminder={}min",
                 this->shield_alerts.enabled,
                 this->shield_alerts.poll_interval_seconds,
                 this->shield_alerts.reminder_interval_minutes);
