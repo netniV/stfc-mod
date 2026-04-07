@@ -139,6 +139,37 @@ to `faction.json`. Only non-zero amounts included. 12 token types and
 
 Tests: 78/78.
 
+### Feature: Research and station build queues
+**Goal:** Export the player's active research and station build jobs — including
+which research node / building is being upgraded, what level it's building to,
+how long remains, and how many queue slots the player has unlocked of each type.
+The player can unlock additional queues (default 1, up to 3+ of each type) by
+spending resources; knowing all active jobs and available slots helps AI assistants
+plan upgrade sequences.
+
+**Data sources (all arrive via `Jobs`, EntityGroup type 56, only when jobs are active):**
+- `JOBTYPE_RESEARCH = 3` → `ResearchParams { projectId, level }` + `Job.startTime`, `duration`, `reductionInSeconds`
+- `JOBTYPE_STARBASECONSTRUCTION = 4` → `StarbaseConstructionParams { moduleId, level }` + same timing fields
+
+**Queue slot count** arrives via `EntitySlots`/`EntitySlotsData` (types 117/121):
+- Worker slots with `SlotSpec.workerSlotSpecParams.jobType == 3` = research queues
+- Worker slots with `SlotSpec.workerSlotSpecParams.jobType == 4` = build queues
+- Empty slots (no `jobId`) = available; occupied slots (has `jobId`) = in use
+- Total slot count per type = number unlocked (player currently has 3 of each)
+
+**TODO:**
+- [ ] Hook `Jobs` (type 56) for `JOBTYPE_RESEARCH` and `JOBTYPE_STARBASECONSTRUCTION`:
+      export `projectId`/`moduleId`, `level`, `start_time`, `duration_secs`,
+      `reduction_secs`, computed `finish_time` (UTC ISO-8601)
+- [ ] Count research and build worker slots from `EntitySlots`/`EntitySlotsData`
+      (already parsed) — add `research_queues_total` / `build_queues_total` and
+      `research_queues_active` / `build_queues_active` to `player.json`
+- [ ] Enrich `projectId` with research name via `stfc_id_mappings.json`
+- [ ] Enrich `moduleId` (building id) with building name via `stfc_id_mappings.json`
+- [ ] Export as `queues` section in `player.json` (or a separate `queues.json`)
+- [ ] Note: `Jobs` only fires when at least one job is active; if all queues are
+      idle the section will be absent/empty — document this in the export schema
+
 ### Feature: Daily goals / tasks
 **Goal:** Export the player's current daily goals and their completion state so
 AI assistants can suggest what to prioritise each day.
