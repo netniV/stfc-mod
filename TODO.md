@@ -176,33 +176,38 @@ which store purchases are within reach.
 ### Reorganisation: Consolidate all mod output into a single folder
 **Goal:** Move everything the mod writes into one root-level folder
 (`community_patch/`) so installs are clean and self-contained.
+**Decision:** `community_patch_settings.toml` and `community_patch_runtime.vars`
+stay at game root (alongside `prime.exe`) to keep the diff with upstream minimal
+and make merging easier.
 **Planned structure:**
 ```
-community_patch/
-  game_data_maps/          ? moved from game root
-    stfc_id_mappings.json
-  game_state_exports/      ? moved from community_patch/ root
-    player.json
-    ships.json
-    resources.json
-    research.json
-    officers.json
-    missions.json
-    faction.json
-    battlelog.json
-    manifest.json
-  community_patch.log      ? already here
-  community_patch_settings.toml
-  community_patch_runtime.vars
+<game root>/
+  prime.exe
+  community_patch_settings.toml   ? stays here (upstream compat)
+  community_patch_runtime.vars    ? stays here (upstream compat)
+  community_patch/
+    community_patch.log
+    game_data_maps/                ? moved from game root
+      stfc_id_mappings.json
+    game_state_exports/            ? moved from community_patch/ root
+      player.json
+      ships.json
+      resources.json
+      research.json
+      officers.json
+      missions.json
+      faction.json
+      battlelog.json
+      manifest.json
 ```
 **TODO:**
 - [ ] Update `get_export_dir()` to return `community_patch/game_state_exports/`
 - [ ] Update ID mappings load path to look in
       `community_patch/game_data_maps/stfc_id_mappings.json`
-      (with fallback to old path for backward compatibility)
+      (with fallback to old `game_data_maps/` path for backward compatibility)
 - [ ] Move `game_data_maps/` folder in the repo to
       `community_patch/game_data_maps/`
-- [ ] Update build/install scripts to copy to new location
+- [ ] Update build/install scripts to deploy to new location
 - [ ] Update INSTALL.md with new folder layout
 - [ ] Update `test_e2e.ps1` paths
 
