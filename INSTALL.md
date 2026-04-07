@@ -70,18 +70,27 @@ Installation of the Community Mod is a manual process for Windows (or Wine).
    create `community_patch_settings.toml` and populate this with the default
    values.
 
-5. **Navigate in-game to populate full gamestate data.** Most data is captured
-   automatically at login, but some requires specific navigation:
+5. **Navigate in-game to populate full game state data.** Most data is captured
+   automatically at login. The table below shows what each export file contains
+   and whether any in-game action is needed to populate it:
 
-   - **Peace shield status** — tap your station in the **system view** of your
-     home system (the actual station icon on the map, not the interior/exterior
-     button and not the system button). Until you do this, shield state is
-     unknown and no alerts will fire.
+   | File | Contents | Arrives at login? | Action required if not |
+   |---|---|---|---|
+   | `player.json` | Player name, OPS level, power, server, alliance, syndicate level/XP | ✅ Yes (~5 s after login) | None confirmed |
+   | `player.json` | **Peace shield** — active status, expiry time, token counts | ❌ No | Tap your **station icon** in the **system view** of your home system (not the interior/exterior button, not the system button — the actual station icon on the map) |
+   | `player.json` | **Drydock assignments** — which ship is in slot A, B, C… | ✅ Yes | None |
+   | `ships.json` | All ships in hangar — hull, tier, level, drydock slot | ✅ Yes | None |
+   | `resources.json` | All non-zero resource amounts | ✅ Yes | None |
+   | `research.json` | Research tree levels | ✅ Yes | None |
+   | `officers.json` | Officers — rank, level, trait ability levels | ✅ Yes | None |
+   | `missions.json` | Active and completed mission IDs | ✅ Yes | None |
+   | `faction.json` | Faction reputation points, blueprint part counts | ✅ Yes | None |
+   | `battlelog.json` | Battle history (last 500 battles) | N/A | Created when a new battle CSV appears in `prime_Data/` |
+   | `manifest.json` | Index of all above files with Gist URLs | ✅ Yes | None |
 
-   - **Drydock assignments** (which ship is in slot A–E) — arrives
-     automatically at login, no navigation required.
-
-   - **Player name & power** — arrives automatically a few seconds after login.
+   **In summary:** the only data that requires in-game navigation is the
+   **peace shield status** — tap your station in the system view once per
+   session to populate it.
 
 6. For first time users of the Community Mod, it recommended to utilise the
    [sample configuration file](example_community_patch_settings.toml), which can

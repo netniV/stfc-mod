@@ -273,10 +273,10 @@ void MappingCache::enrich_resource(json& resource_json, int64_t id) const
 
 void MappingCache::enrich_ship(json& ship_json) const
 {
-  if (!ship_json.contains("id")) return;
+  if (!ship_json.contains("hull_id")) return;
 
-  int64_t id = ship_json["id"].get<int64_t>();
-  auto mapping = get_ship(id);
+  int64_t hull_id = ship_json["hull_id"].get<int64_t>();
+  auto mapping = get_ship(hull_id);
 
   if (mapping) {
     ship_json["name"] = mapping->name;
