@@ -42,8 +42,8 @@ if ($errors.Count -gt 0) {
 # -----------------------------------------------------------------------
 Write-Host "`n=== 2. GAME STATE EXPORT (per-file) ===" -ForegroundColor Cyan
 
-$gsDir = "$GameDir\community_patch"
-Check "community_patch/ folder exists" (Test-Path $gsDir)
+$gsDir = "$GameDir\community_patch\game_state_exports"
+Check "community_patch/game_state_exports/ folder exists" (Test-Path $gsDir)
 
 # Helper: load and check a per-file export
 function Check-ExportFile($name, $desc) {

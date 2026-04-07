@@ -173,13 +173,11 @@ which store purchases are within reach.
 - [ ] Export `faction_stores.json` (or add to `faction.json`) with
       per-faction purchasable items and player's affordability
 
-### Reorganisation: Consolidate all mod output into a single folder
-**Goal:** Move everything the mod writes into one root-level folder
-(`community_patch/`) so installs are clean and self-contained.
+### Reorganisation: Consolidate all mod output into a single folder — DONE
 **Decision:** `community_patch_settings.toml` and `community_patch_runtime.vars`
 stay at game root (alongside `prime.exe`) to keep the diff with upstream minimal
 and make merging easier.
-**Planned structure:**
+**Final structure:**
 ```
 <game root>/
   prime.exe
@@ -187,29 +185,13 @@ and make merging easier.
   community_patch_runtime.vars    ? stays here (upstream compat)
   community_patch/
     community_patch.log
-    game_data_maps/                ? moved from game root
+    game_data_maps/                ? moved from game root ?
       stfc_id_mappings.json
-    game_state_exports/            ? moved from community_patch/ root
-      player.json
-      ships.json
-      resources.json
-      research.json
-      officers.json
-      missions.json
-      faction.json
-      battlelog.json
+    game_state_exports/            ? moved from community_patch/ root ?
+      player.json, ships.json, resources.json, research.json,
+      officers.json, missions.json, faction.json, battlelog.json,
       manifest.json
 ```
-**TODO:**
-- [ ] Update `get_export_dir()` to return `community_patch/game_state_exports/`
-- [ ] Update ID mappings load path to look in
-      `community_patch/game_data_maps/stfc_id_mappings.json`
-      (with fallback to old `game_data_maps/` path for backward compatibility)
-- [ ] Move `game_data_maps/` folder in the repo to
-      `community_patch/game_data_maps/`
-- [ ] Update build/install scripts to deploy to new location
-- [ ] Update INSTALL.md with new folder layout
-- [ ] Update `test_e2e.ps1` paths
 
 ---
 

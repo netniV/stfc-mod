@@ -34,8 +34,8 @@ test_results.txt
 # Temp/scratch files
 001-add-capture-traits-header.patch
 requirements.txt
-game_data_maps/officer_traits_template.json
-game_data_maps/ships_stfc_space.json
+community_patch/game_data_maps/officer_traits_template.json
+community_patch/game_data_maps/ships_stfc_space.json
 scripts/__pycache__/
 scripts/data_extraction/identify_my_ships.py
 scripts/data_extraction/scrape_stfc_space_ships.py

@@ -70,23 +70,44 @@ Installation of the Community Mod is a manual process for Windows (or Wine).
    create `community_patch_settings.toml` and populate this with the default
    values.
 
+   The mod creates the following folder structure next to `prime.exe`:
+   ```
+   <game folder>/
+     community_patch_settings.toml   ← mod configuration (edit this)
+     community_patch_runtime.vars    ← finalised config snapshot (read-only)
+     community_patch/
+       community_patch.log           ← mod log
+       game_data_maps/               ← ID → name lookup tables (do not edit)
+         stfc_id_mappings.json
+       game_state_exports/           ← exported game state JSON files
+         player.json
+         ships.json
+         resources.json
+         research.json
+         officers.json
+         missions.json
+         faction.json
+         battlelog.json
+         manifest.json               ← index with Gist URLs
+   ```
+
 5. **Navigate in-game to populate full game state data.** Most data is captured
    automatically at login. The table below shows what each export file contains
    and whether any in-game action is needed to populate it:
 
    | File | Contents | Arrives at login? | Action required if not |
    |---|---|---|---|
-   | `player.json` | Player name, OPS level, power, server, alliance, syndicate level/XP | ✅ Yes (~5 s after login) | None confirmed |
-   | `player.json` | **Peace shield** — active status, expiry time, token counts | ❌ No | Tap your **station icon** in the **system view** of your home system (not the interior/exterior button, not the system button — the actual station icon on the map) |
-   | `player.json` | **Drydock assignments** — which ship is in slot A, B, C… | ✅ Yes | None |
-   | `ships.json` | All ships in hangar — hull, tier, level, drydock slot | ✅ Yes | None |
-   | `resources.json` | All non-zero resource amounts | ✅ Yes | None |
-   | `research.json` | Research tree levels | ✅ Yes | None |
-   | `officers.json` | Officers — rank, level, trait ability levels | ✅ Yes | None |
-   | `missions.json` | Active and completed mission IDs | ✅ Yes | None |
-   | `faction.json` | Faction reputation points, blueprint part counts | ✅ Yes | None |
-   | `battlelog.json` | Battle history (last 500 battles) | N/A | Created when a new battle CSV appears in `prime_Data/` |
-   | `manifest.json` | Index of all above files with Gist URLs | ✅ Yes | None |
+   | `game_state_exports/player.json` | Player name, OPS level, power, server, alliance, syndicate level/XP | ✅ Yes (~5 s after login) | None confirmed |
+   | `game_state_exports/player.json` | **Peace shield** — active status, expiry time, token counts | ❌ No | Tap your **station icon** in the **system view** of your home system (not the interior/exterior button, not the system button — the actual station icon on the map) |
+   | `game_state_exports/player.json` | **Drydock assignments** — which ship is in slot A, B, C… | ✅ Yes | None |
+   | `game_state_exports/ships.json` | All ships in hangar — hull, tier, level, drydock slot | ✅ Yes | None |
+   | `game_state_exports/resources.json` | All non-zero resource amounts | ✅ Yes | None |
+   | `game_state_exports/research.json` | Research tree levels | ✅ Yes | None |
+   | `game_state_exports/officers.json` | Officers — rank, level, trait ability levels | ✅ Yes | None |
+   | `game_state_exports/missions.json` | Active and completed mission IDs | ✅ Yes | None |
+   | `game_state_exports/faction.json` | Faction reputation points, blueprint part counts | ✅ Yes | None |
+   | `game_state_exports/battlelog.json` | Battle history (last 500 battles) | N/A | Created when a new battle CSV appears in `prime_Data/` |
+   | `game_state_exports/manifest.json` | Index of all above files with Gist URLs | ✅ Yes | None |
 
    **In summary:** the only data that requires in-game navigation is the
    **peace shield status** — tap your station in the system view once per

@@ -618,20 +618,20 @@ static void sync_to_gist(const std::string& file_path, const std::string& gist_f
   }
 }
 
-// Returns the export directory (always a community_patch/ subfolder), creating it if needed.
+// Returns the export directory (always community_patch/game_state_exports/), creating it if needed.
 static std::filesystem::path get_export_dir()
 {
   auto& cfg = Config::Get();
   std::filesystem::path base = cfg.export_gamestate_path.empty()
     ? std::filesystem::path(".")
     : std::filesystem::path(cfg.export_gamestate_path);
-  auto dir = base / "community_patch";
+  auto dir = base / "community_patch" / "game_state_exports";
   std::error_code ec;
   std::filesystem::create_directories(dir, ec);
   if (ec) {
     spdlog::error("GameState export: Failed to create directory {}: {}", dir.string(), ec.message());
-    // Fall back to current directory subfolder
-    dir = std::filesystem::path("community_patch");
+    // Fall back to flat subfolder
+    dir = std::filesystem::path("community_patch") / "game_state_exports";
     std::filesystem::create_directories(dir, ec);
   }
   return dir;
@@ -1170,12 +1170,19 @@ void init()
 
   // Load ID mappings — anchor to the exe directory so this works regardless
   // of what the process working directory happens to be.
-  std::filesystem::path mappings_path = File::ExeDir() / "game_data_maps" / "stfc_id_mappings.json";
+  // Look for mappings in community_patch/game_data_maps/ first, fall back to legacy game_data_maps/
+  std::filesystem::path mappings_path = File::ExeDir() / "community_patch" / "game_data_maps" / "stfc_id_mappings.json";
+  if (!std::filesystem::exists(mappings_path)) {
+    mappings_path = File::ExeDir() / "game_data_maps" / "stfc_id_mappings.json";
+    if (std::filesystem::exists(mappings_path)) {
+      spdlog::warn("GameState export: ID mappings found at legacy path {}. Consider moving to community_patch/game_data_maps/",
+                   mappings_path.string());
+    }
+  }
   if (std::filesystem::exists(mappings_path)) {
     id_mappings::MappingCache::Get().load_mappings(mappings_path.string());
   } else {
-    spdlog::warn("GameState export: ID mappings file not found at {}. Exported JSON will only contain IDs.", 
-                 mappings_path.string());
+    spdlog::warn("GameState export: ID mappings file not found. Exported JSON will only contain IDs.");
   }
 
   should_stop = false;
