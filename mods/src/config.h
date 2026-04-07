@@ -103,7 +103,7 @@ public:
   std::string token;
 };
 
-class GistSyncConfig
+class GitHubSyncConfig
 {
 public:
   bool        enabled  = false;
@@ -223,7 +223,7 @@ public:
   std::string export_gamestate_path;            // empty = game directory
   bool        export_gamestate_on_startup;      // export immediately on mod load
   std::string export_gamestate_player_id;       // player userid for accurate player data capture
-  GistSyncConfig       export_gamestate_gist;   // GitHub Gist sync config
+  GitHubSyncConfig     game_state_github;        // GitHub Gist sync config
   ShieldAlertsConfig   shield_alerts;            // peace shield alert settings
 
   bool installUiScaleHooks;

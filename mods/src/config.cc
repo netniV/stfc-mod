@@ -661,7 +661,7 @@ void Config::Load()
                                          DCGSE::export_gamestate_player_id, write_config);
 
   // Gist sync sub-section: [gamestate_export.gist]
-  namespace DCGSEGist = DefaultConfig::GameStateExport::Gist;
+  namespace DCGSGithub = DefaultConfig::GameStateExport::Gist;
   const toml::table* gist_table = nullptr;
   if (auto* gse = config["gamestate_export"].as_table()) {
     if (auto* g = (*gse)["gist"].as_table()) {
@@ -678,26 +678,26 @@ void Config::Load()
     return default_val;
   };
 
-  this->export_gamestate_gist.enabled            = gist_get("enabled",            DCGSEGist::enabled);
-  this->export_gamestate_gist.gist_id            = gist_get("gist_id",            std::string(DCGSEGist::gist_id));
-  this->export_gamestate_gist.username           = gist_get("username",           std::string(""));
-  this->export_gamestate_gist.token              = gist_get("token",              std::string(DCGSEGist::token));
-  this->export_gamestate_gist.filename_player    = gist_get("filename_player",    std::string(DCGSEGist::filename_player));
-  this->export_gamestate_gist.filename_ships     = gist_get("filename_ships",     std::string(DCGSEGist::filename_ships));
-  this->export_gamestate_gist.filename_resources = gist_get("filename_resources", std::string(DCGSEGist::filename_resources));
-  this->export_gamestate_gist.filename_research  = gist_get("filename_research",  std::string(DCGSEGist::filename_research));
-  this->export_gamestate_gist.filename_officers  = gist_get("filename_officers",  std::string(DCGSEGist::filename_officers));
-  this->export_gamestate_gist.filename_missions  = gist_get("filename_missions",  std::string(DCGSEGist::filename_missions));
-  this->export_gamestate_gist.filename_faction   = gist_get("filename_faction",   std::string(DCGSEGist::filename_faction));
-  this->export_gamestate_gist.filename_buffs     = gist_get("filename_buffs",     std::string(DCGSEGist::filename_buffs));
-  this->export_gamestate_gist.filename_territory = gist_get("filename_territory", std::string(DCGSEGist::filename_territory));
-  this->export_gamestate_gist.filename_battlelog = gist_get("filename_battlelog", std::string(DCGSEGist::filename_battlelog));
-  this->export_gamestate_gist.filename_manifest  = gist_get("filename_manifest",  std::string(DCGSEGist::filename_manifest));
+  this->game_state_github.enabled            = gist_get("enabled",            DCGSGithub::enabled);
+  this->game_state_github.gist_id            = gist_get("gist_id",            std::string(DCGSGithub::gist_id));
+  this->game_state_github.username           = gist_get("username",           std::string(""));
+  this->game_state_github.token              = gist_get("token",              std::string(DCGSGithub::token));
+  this->game_state_github.filename_player    = gist_get("filename_player",    std::string(DCGSGithub::filename_player));
+  this->game_state_github.filename_ships     = gist_get("filename_ships",     std::string(DCGSGithub::filename_ships));
+  this->game_state_github.filename_resources = gist_get("filename_resources", std::string(DCGSGithub::filename_resources));
+  this->game_state_github.filename_research  = gist_get("filename_research",  std::string(DCGSGithub::filename_research));
+  this->game_state_github.filename_officers  = gist_get("filename_officers",  std::string(DCGSGithub::filename_officers));
+  this->game_state_github.filename_missions  = gist_get("filename_missions",  std::string(DCGSGithub::filename_missions));
+  this->game_state_github.filename_faction   = gist_get("filename_faction",   std::string(DCGSGithub::filename_faction));
+  this->game_state_github.filename_buffs     = gist_get("filename_buffs",     std::string(DCGSGithub::filename_buffs));
+  this->game_state_github.filename_territory = gist_get("filename_territory", std::string(DCGSGithub::filename_territory));
+  this->game_state_github.filename_battlelog = gist_get("filename_battlelog", std::string(DCGSGithub::filename_battlelog));
+  this->game_state_github.filename_manifest  = gist_get("filename_manifest",  std::string(DCGSGithub::filename_manifest));
 
   spdlog::debug("config gamestate_export.gist: enabled={}, gist_id={}, token={}",
-                this->export_gamestate_gist.enabled,
-                this->export_gamestate_gist.gist_id,
-                this->export_gamestate_gist.token.empty() ? "<not set>" : "<set>");
+                this->game_state_github.enabled,
+                this->game_state_github.gist_id,
+                this->game_state_github.token.empty() ? "<not set>" : "<set>");
 
   spdlog::debug("");
 

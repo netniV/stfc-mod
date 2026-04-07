@@ -1029,7 +1029,7 @@ json build_game_state_json()
 
 static void sync_to_gist(const std::string& file_path, const std::string& gist_filename)
 {
-  const auto& gist = Config::Get().export_gamestate_gist;
+  const auto& gist = Config::Get().game_state_github;
   if (!gist.enabled || gist.gist_id.empty() || gist.token.empty()) {
     return;
   }
@@ -1076,7 +1076,7 @@ static constexpr int GIST_SYNC_MIN_INTERVAL_SECONDS = 30;
 
 static void sync_all_to_gist(const std::filesystem::path& dir)
 {
-  const auto& gist = Config::Get().export_gamestate_gist;
+  const auto& gist = Config::Get().game_state_github;
   if (!gist.enabled || gist.gist_id.empty() || gist.token.empty()) return;
 
   // Enforce minimum interval between Gist syncs to avoid rate limiting.
@@ -1147,13 +1147,13 @@ static void sync_all_to_gist(const std::filesystem::path& dir)
       last_gist_sync_had_empty_name = cached_player_data.value("name", "").empty();
     }
     // Auto-populate username from the API response if not already set
-    if (Config::Get().export_gamestate_gist.username.empty()) {
+    if (Config::Get().game_state_github.username.empty()) {
       try {
         auto resp_json = nlohmann::json::parse(response.text);
         if (resp_json.contains("owner") && resp_json["owner"].contains("login")) {
-          Config::Get().export_gamestate_gist.username = resp_json["owner"]["login"].get<std::string>();
+          Config::Get().game_state_github.username = resp_json["owner"]["login"].get<std::string>();
           spdlog::info("Gist sync: Resolved GitHub username='{}' — re-writing manifest with correct URLs",
-                       Config::Get().export_gamestate_gist.username);
+                       Config::Get().game_state_github.username);
           // Re-write manifest.json on disk so URLs are correct without waiting for the next full export
           request_immediate_export();
         }
@@ -1214,7 +1214,7 @@ void export_game_state()
     auto& cfg   = Config::Get();
     auto  dir   = get_export_dir();
     auto  ts    = get_iso8601_timestamp();
-    auto& gist  = cfg.export_gamestate_gist;
+    auto& gist  = cfg.game_state_github;
 
     json gs = build_game_state_json();
 
@@ -1427,7 +1427,7 @@ static void resolve_pending_battlelog_outcomes(const std::string& our_name,
   if (!out.is_open()) { spdlog::error("Battlelog: Cannot rewrite {} for resolution", out_path); return; }
   out << entries.dump(2);
   out.close();
-  sync_to_gist(out_path, Config::Get().export_gamestate_gist.filename_battlelog);
+  sync_to_gist(out_path, Config::Get().game_state_github.filename_battlelog);
 }
 
 // Parse a tab-separated CSV section (header row + data rows) into a JSON array
@@ -1540,7 +1540,7 @@ static void process_battle_csv(const std::string& csv_path)
     out.close();
 
     spdlog::info("Battlelog CSV: Imported {} ({} total entries)", filename, entries.size());
-    sync_to_gist(out_path, cfg.export_gamestate_gist.filename_battlelog);
+    sync_to_gist(out_path, cfg.game_state_github.filename_battlelog);
 
   } catch (const std::exception& e) {
     spdlog::error("Battlelog CSV: Exception processing {}: {}", csv_path, e.what());
@@ -1764,8 +1764,8 @@ void init()
                cfg.export_gamestate_path.empty() ? "<game directory>" : cfg.export_gamestate_path,
                cfg.export_gamestate_on_startup);
 
-  if (cfg.export_gamestate_gist.enabled) {
-    auto& gist = cfg.export_gamestate_gist;
+  if (cfg.game_state_github.enabled) {
+    auto& gist = cfg.game_state_github;
     const std::string user_segment = gist.username.empty() ? "" : gist.username + "/";
     spdlog::info("GameState Gist sync: Enabled for gist_id={}{}", gist.gist_id,
                  gist.username.empty() ? " (username not set — URLs in manifest may be incomplete)" : "");
