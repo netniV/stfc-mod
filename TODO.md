@@ -113,6 +113,37 @@ represented by the `FactionToken` resources.
 to `faction.json`. Only non-zero amounts included. 12 token types and
 6 armada credit types exported. Tests: 55/55.
 
+### Feature: Faction favors (permanent purchased bonuses)
+**Context:** Faction favors are permanent stat bonuses bought in faction stores
+(e.g. USS Newton Hull Plating from the Federation store, Bajoran hull favors).
+Once purchased they are active permanently. They are NOT resources — they do not
+appear in `cached_resources`. The few `Resource_*_Favor*` entries in the
+mappings are consumable tokens (Queens Favor, FKR Favor Token etc.), not these.
+**Investigation needed:**
+- [ ] Identify the data source — likely a dedicated proto message or EntityGroup
+      type for 'store purchases' or 'active bonuses'; check for `FavorResponse`,
+      `StorePurchase`, `ActiveBonus`, or a `faction_store` key in the JSON blob
+- [ ] Determine if purchased favors arrive at login or need navigation to the
+      faction store screen
+- [ ] Export `faction_favors` section to `faction.json` with favor name,
+      faction, and any quantitative bonus value if available
+
+### Feature: Daily goals / tasks
+**Goal:** Export the player's current daily goals and their completion state so
+AI assistants can suggest what to prioritise each day.
+**Context:** `Resource_Daily_Meta1` and `Resource_Daily_Loyalty1` exist in the
+mappings and may track daily progress as hidden tokens. Full goal definitions
+and completion status likely live in a separate proto or EntityGroup.
+**Investigation needed:**
+- [ ] Identify which proto / EntityGroup carries daily goal definitions and
+      progress — check for `DailyGoal`, `DailyTask`, `daily_goals`,
+      `event_goals`, or `MissionDailyTask` in the JSON blob key list
+- [ ] Check if `Resource_Daily_Meta1` / `Resource_Daily_Loyalty1` encode
+      goal completion bitmask or are unrelated tracking tokens
+- [ ] Determine if data arrives at login or requires navigating to the goals screen
+- [ ] Export `daily_goals` section (or separate `daily_goals.json`) with
+      goal name/id, type, progress, target, and completion status
+
 ### Feature: Event data � daily, weekly and other
 **Goal:** Export current active events (daily goals, weekly missions, limited
 time events, etc.) so AI assistants can factor them into planning advice.
