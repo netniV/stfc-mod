@@ -154,6 +154,58 @@ can help with territory capture strategy and co-ordination planning.
 - [ ] Export `diplomacy` section: war/peace/NAP relationships with
       other alliances
 
+### Feature: Refinery and faction store inventory
+**Goal:** Export the player's current refinery inputs/outputs and faction
+store stock so AI assistants can suggest optimal resources to gather and
+which store purchases are within reach.
+**Data wanted:**
+- Refinery: which raw resources the player has available to refine,
+  current refinery queue/slots, and output resource amounts
+- Faction stores: per-faction store items, their costs, and whether the
+  player has enough reputation + currency to buy them
+**TODO:**
+- [ ] Identify which data source carries refinery state — likely a
+      dedicated EntityGroup type or a JSON blob key; check for
+      `refinery`, `refinery_slots`, or `RefineryResponse` in the proto
+- [ ] Identify faction store data source — likely `FactionStoreResponse`
+      or similar EntityGroup; check proto definitions
+- [ ] Export `refinery.json` with current refineable resources and queue
+- [ ] Export `faction_stores.json` (or add to `faction.json`) with
+      per-faction purchasable items and player's affordability
+
+### Reorganisation: Consolidate all mod output into a single folder
+**Goal:** Move everything the mod writes into one root-level folder
+(`community_patch/`) so installs are clean and self-contained.
+**Planned structure:**
+```
+community_patch/
+  game_data_maps/          ? moved from game root
+    stfc_id_mappings.json
+  game_state_exports/      ? moved from community_patch/ root
+    player.json
+    ships.json
+    resources.json
+    research.json
+    officers.json
+    missions.json
+    faction.json
+    battlelog.json
+    manifest.json
+  community_patch.log      ? already here
+  community_patch_settings.toml
+  community_patch_runtime.vars
+```
+**TODO:**
+- [ ] Update `get_export_dir()` to return `community_patch/game_state_exports/`
+- [ ] Update ID mappings load path to look in
+      `community_patch/game_data_maps/stfc_id_mappings.json`
+      (with fallback to old path for backward compatibility)
+- [ ] Move `game_data_maps/` folder in the repo to
+      `community_patch/game_data_maps/`
+- [ ] Update build/install scripts to copy to new location
+- [ ] Update INSTALL.md with new folder layout
+- [ ] Update `test_e2e.ps1` paths
+
 ---
 
 ## ??? Stale / Superseded items (kept for reference)
