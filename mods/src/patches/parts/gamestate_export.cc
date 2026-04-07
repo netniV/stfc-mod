@@ -179,11 +179,13 @@ void capture_resources(const nlohmann::json& data)
 {
   std::scoped_lock lock(game_data_mutex);
   for (const auto& [str_id, resource] : data.items()) {
-    auto id = std::stoll(str_id);
+    auto id     = std::stoll(str_id);
     auto amount = resource["current_amount"].get<int64_t>();
     cached_resources[id] = amount;
   }
-  request_immediate_export();
+  // No immediate export requested: resource amounts change constantly due to
+  // trickle income and would trigger an export every game tick. The interval
+  // export (default 5 min) keeps resource data fresh enough.
 }
 
 void capture_buildings(const nlohmann::json& data)
@@ -321,6 +323,7 @@ void capture_peace_shield(int64_t active_expiry_epoch, int64_t token_count)
 void capture_drydock_assignments(const std::vector<std::pair<int32_t, int64_t>>& assignments)
 {
   std::scoped_lock lock(game_data_mutex);
+  if (cached_drydock_assignments == assignments) return;
   cached_drydock_assignments = assignments;
   spdlog::info("GameState: Captured {} drydock assignments", assignments.size());
   request_immediate_export();

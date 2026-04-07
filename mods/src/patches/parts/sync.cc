@@ -1590,7 +1590,6 @@ void process_resources(const nlohmann::json& section)
   // Capture for gamestate export
   if (Config::Get().export_gamestate) {
     gamestate_export::capture_resources(section);
-    spdlog::info("GameState: Captured {} resources for export", section.size());
   }
 
   auto resource_array = json::array();
