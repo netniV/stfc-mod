@@ -108,6 +108,7 @@ class GistSyncConfig
 public:
   bool        enabled  = false;
   std::string gist_id;
+  std::string username;  // GitHub username — auto-populated from API response, or set manually
   std::string token;
   std::string filename_player    = "stfc_player.json";
   std::string filename_ships     = "stfc_ships.json";

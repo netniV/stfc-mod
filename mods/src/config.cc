@@ -680,6 +680,7 @@ void Config::Load()
 
   this->export_gamestate_gist.enabled            = gist_get("enabled",            DCGSEGist::enabled);
   this->export_gamestate_gist.gist_id            = gist_get("gist_id",            std::string(DCGSEGist::gist_id));
+  this->export_gamestate_gist.username           = gist_get("username",           std::string(""));
   this->export_gamestate_gist.token              = gist_get("token",              std::string(DCGSEGist::token));
   this->export_gamestate_gist.filename_player    = gist_get("filename_player",    std::string(DCGSEGist::filename_player));
   this->export_gamestate_gist.filename_ships     = gist_get("filename_ships",     std::string(DCGSEGist::filename_ships));

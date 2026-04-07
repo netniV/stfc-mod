@@ -97,11 +97,27 @@ Installation of the Community Mod is a manual process for Windows (or Wine).
    > you must set your player ID in `community_patch_settings.toml`:
    > ```toml
    > [gamestate_export]
+   > enabled = true
    > player_id = 'your-player-id-here'
    > ```
    > If `player_id` is not yet set, the mod logs all seen user IDs on login. Open
    > `community_patch.log` and search for `UserProfile seen` — find the entry with
    > your in-game name and copy the `userid` value shown there.
+
+   > **GitHub Gist sync (optional):** The mod can push all export files to a private
+   > GitHub Gist so AI assistants can read them via URL. Local export to disk always
+   > works regardless of whether Gist sync is configured.
+   > To enable Gist sync, add the following to `community_patch_settings.toml`:
+   > ```toml
+   > [gamestate_export.gist]
+   > enabled = true
+   > gist_id  = 'your-gist-id-here'       # the hex ID from your gist URL
+   > username = 'your-github-username'    # used to build raw file URLs in manifest.json
+   > token    = 'your-github-pat-here'    # Personal Access Token with gist scope
+   > ```
+   > `username` can be left blank — the mod will auto-resolve it from the GitHub API
+   > on the first successful sync and re-write `manifest.json` with correct URLs.
+   > See [GIST_SETUP_COMPLETE.md](GIST_SETUP_COMPLETE.md) for full setup instructions.
 
 5. **Navigate in-game to populate full game state data.** Most data is captured
    automatically at login. The table below shows what each export file contains

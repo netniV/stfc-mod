@@ -359,6 +359,10 @@ void capture_peace_shield(int64_t active_expiry_epoch, int64_t token_count)
       first_real_expiry      = (cached_shield_expiry_epoch == 0 && active_expiry_epoch > 0);
       cached_shield_expiry_epoch = active_expiry_epoch;
       expiry_changed = true;
+    } else if (active_expiry_epoch > 0 && active_expiry_epoch == cached_shield_expiry_epoch) {
+      // Same active expiry as already cached — value hasn't changed but a new scan
+      // confirmed the shield is still live; force an export so the gist stays current.
+      expiry_changed = true;
     }
     spdlog::info("GameState: Captured peace shield expiry={}, tokens={}",
                  cached_shield_expiry_epoch, cached_shield_token_count);
@@ -1142,6 +1146,19 @@ static void sync_all_to_gist(const std::filesystem::path& dir)
       std::scoped_lock lk(game_data_mutex);
       last_gist_sync_had_empty_name = cached_player_data.value("name", "").empty();
     }
+    // Auto-populate username from the API response if not already set
+    if (Config::Get().export_gamestate_gist.username.empty()) {
+      try {
+        auto resp_json = nlohmann::json::parse(response.text);
+        if (resp_json.contains("owner") && resp_json["owner"].contains("login")) {
+          Config::Get().export_gamestate_gist.username = resp_json["owner"]["login"].get<std::string>();
+          spdlog::info("Gist sync: Resolved GitHub username='{}' — re-writing manifest with correct URLs",
+                       Config::Get().export_gamestate_gist.username);
+          // Re-write manifest.json on disk so URLs are correct without waiting for the next full export
+          request_immediate_export();
+        }
+      } catch (...) {}
+    }
     spdlog::info("Gist sync: Updated {} game state files in gist {}", files_obj.size(), gist.gist_id);
   } else if (response.status_code == 403) {
     // 403 is typically a rate limit — parse message if available
@@ -1300,8 +1317,9 @@ void export_game_state()
         e["description"] = desc;
         e["keys"]        = keys;
         if (gist.enabled && !gist.gist_id.empty()) {
+          const std::string user_segment = gist.username.empty() ? "" : gist.username + "/";
           e["url"] = "https://gist.githubusercontent.com/" +
-                     gist.gist_id + "/raw/" + gist_name;
+                     user_segment + gist.gist_id + "/raw/" + gist_name;
         }
         return e;
       };
@@ -1748,14 +1766,16 @@ void init()
 
   if (cfg.export_gamestate_gist.enabled) {
     auto& gist = cfg.export_gamestate_gist;
-    spdlog::info("GameState Gist sync: Enabled for gist_id={}", gist.gist_id);
-    spdlog::info("GameState Gist sync: Manifest URL: https://gist.githubusercontent.com/raw/{}/{}",
-                 gist.gist_id, gist.filename_manifest);
+    const std::string user_segment = gist.username.empty() ? "" : gist.username + "/";
+    spdlog::info("GameState Gist sync: Enabled for gist_id={}{}", gist.gist_id,
+                 gist.username.empty() ? " (username not set — URLs in manifest may be incomplete)" : "");
+    spdlog::info("GameState Gist sync: Manifest URL: https://gist.githubusercontent.com/{}{}raw/{}",
+                 user_segment, gist.gist_id + "/", gist.filename_manifest);
     for (const auto* fn : {&gist.filename_player, &gist.filename_ships, &gist.filename_resources,
                             &gist.filename_research, &gist.filename_officers, &gist.filename_missions,
                             &gist.filename_faction, &gist.filename_buffs, &gist.filename_territory,
                             &gist.filename_battlelog}) {
-      spdlog::info("GameState Gist sync:   https://gist.githubusercontent.com/raw/{}/{}", gist.gist_id, *fn);
+      spdlog::info("GameState Gist sync:   https://gist.githubusercontent.com/{}{}raw/{}", user_segment, gist.gist_id + "/", *fn);
     }
   } else {
     spdlog::info("GameState Gist sync: Disabled (set [gamestate_export.gist] enabled=true to activate)");

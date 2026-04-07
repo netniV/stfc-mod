@@ -195,6 +195,7 @@ namespace GameStateExport
   {
     constexpr bool        enabled            = false;
     constexpr const char* gist_id            = "";
+    constexpr const char* username           = "";  // GitHub username — used in manifest URLs; auto-resolved from API if left empty
     constexpr const char* token              = "";
     constexpr const char* filename_player    = "stfc_player.json";
       constexpr const char* filename_ships     = "stfc_ships.json";
