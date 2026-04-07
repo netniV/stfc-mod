@@ -1953,19 +1953,29 @@ void cache_player_names(std::unique_ptr<std::string>&& bytes)
 
     if (Config::Get().export_gamestate) {
       const auto& player_id = Config::Get().export_gamestate_player_id;
-      for (const auto& profile : response.userprofiles()) {
-        // Match by configured player_id if set, otherwise skip - name/power unknown without it
-        if (!player_id.empty() && profile.userid() == player_id) {
-          nlohmann::json player_data;
-          player_data["name"]        = profile.name();
-          player_data["ops_level"]   = 0; // preserved from OPERATIONS building
-          player_data["power"]       = static_cast<int64_t>(profile.militarymight());
-          player_data["server"]      = http::headers::instanceId;
-          player_data["alliance_id"] = profile.allianceid();
-          player_data["alliance"]    = "";
-          game_state_export::capture_player_data(player_data);
-          spdlog::info("GameState: Captured own player name={}, power={}", profile.name(), profile.militarymight());
-          break;
+      if (player_id.empty()) {
+        // Log each unique userid once so the user can identify their own and set player_id in config
+        static std::unordered_set<std::string> logged_userids;
+        for (const auto& profile : response.userprofiles()) {
+          if (logged_userids.insert(profile.userid()).second) {
+            spdlog::info("GameState: UserProfile seen: userid={} name='{}' — set [gamestate_export] player_id in config to enable name/power export",
+                         profile.userid(), profile.name());
+          }
+        }
+      } else {
+        for (const auto& profile : response.userprofiles()) {
+          if (profile.userid() == player_id) {
+            nlohmann::json player_data;
+            player_data["name"]        = profile.name();
+            player_data["ops_level"]   = 0; // preserved from OPERATIONS building
+            player_data["power"]       = static_cast<int64_t>(profile.militarymight());
+            player_data["server"]      = http::headers::instanceId;
+            player_data["alliance_id"] = profile.allianceid();
+            player_data["alliance"]    = "";
+            game_state_export::capture_player_data(player_data);
+            spdlog::info("GameState: Captured own player name={}, power={}", profile.name(), profile.militarymight());
+            break;
+          }
         }
       }
     }

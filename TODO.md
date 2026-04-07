@@ -51,19 +51,18 @@ Each entry has a raw server-side `drydock_id` and `ship_ids`. Sort by
 
 ## ?? Pending Work
 
-### Player profile data population � documentation needed
-**Context:** `player.name` and `player.power` are empty on fresh login until a
-specific server response arrives. `player.ops_level` and `server` populate from
-buildings data and are available immediately.
-**TODO:**
+### Player profile data population — DONE
+**Trigger confirmed:** UserProfiles (EntityGroup type 0) arrives automatically at login
+but requires player_id to be set in [gamestate_export] for the mod to identify which
+profile entry belongs to the current player.
+**Fixes applied:**
 - [x] Peace shield trigger identified: tap station on system view
 - [x] Documented in INSTALL.md and GIST_SETUP_COMPLETE.md
 - [x] Drydock assignments arrive automatically at login (no navigation needed)
-- [ ] Identify exactly which in-game screens/actions trigger the player profile
-      response that populates `name`, `power`, `server`, `alliance`
-      (currently arrives automatically ~5s after login in testing, but not always)
-- [ ] Update docs once player profile trigger is fully confirmed
-
+- [x] player_id not set: mod now logs all seen userids with player names so the user
+      can identify their own and copy it into the config
+- [x] INSTALL.md and GIST_SETUP_COMPLETE.md updated with player_id setup instructions
+      and how to find the userid from the log
 ### Feature: Syndicate level data � DONE
 Syndicate level and XP read from `cached_resources` at export time:
 - `Resource_Loyalty_Tier_HiddenToken` (id `1141922149`) = syndicate level

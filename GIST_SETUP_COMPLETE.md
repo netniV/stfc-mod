@@ -131,12 +131,20 @@ Please review both to understand my current state and recent progression.
 Some data only arrives when you visit specific parts of the game.
 Do these once per session after login for the most complete export:
 
-| Data | Required Action |
+> **Finding your player ID:** If `player_id` is not set in your config, the mod logs all
+> seen user IDs on login. Open `community_patch.log` and search for `UserProfile seen` —
+> find the entry with your in-game name and copy that `userid` value. Then add it to
+> `community_patch_settings.toml`:
+> ```toml
+> [gamestate_export]
+> player_id = 'your-userid-here'
+> ```
+
+| Data | Required action |
 |---|---|
-| `player.name`, `player.power`, `player.server` | Arrives automatically shortly after login |
-| `buildings`, `research`, `resources`, `officers` | Arrives automatically at login |
-| **Drydock assignments** (`drydocks`) | Arrives automatically at login |
-| **Peace shield** (`station.peace_shield.active`, `expires_at`) | **Tap your station in the system view** (your home system) — interior/exterior buttons and galaxy view do NOT trigger this |
+| `player.name`, `player.power`, `player.server` | Arrives automatically at login — requires `player_id` set in `community_patch_settings.toml` under `[gamestate_export]` |
+| `player.ops_level`, `player.syndicate_level`, drydock assignments, ships, research, resources, officers, missions, faction, buffs | Arrives automatically at login — no action needed |
+| **Peace shield** (`station.peace_shield.active`, `expires_at`) | **Tap your station icon in the system view** of your home system — interior/exterior buttons and the galaxy view do NOT trigger this |
 
 > **Note:** If you do not tap your station, the peace shield will show as unknown
 > and no shield alerts will fire (the mod suppresses alerts until it has real data).
