@@ -1,4 +1,4 @@
-﻿# ??? STFC Community Mod - TODO List
+﻿﻿# ??? STFC Community Mod - TODO List
 
 ## ? Completed
 
@@ -183,25 +183,52 @@ time events, etc.) so AI assistants can factor them into planning advice.
   (type 97) does NOT arrive at login — requires navigating to Territory screen
 - Alliance diplomacy (war/peace/NAP): no bulk-get proto exists — only a push
   notification (`SetAllianceDiplomacy` type 89) when diplomacy *changes*. Not feasible.
-### Feature: Refinery and faction store inventory
-**Goal:** Export the player's current refinery inputs/outputs and faction
-store stock so AI assistants can suggest optimal resources to gather and
-which store purchases are within reach.
-**Data wanted:**
-- Refinery: which raw resources the player has available to refine,
-  current refinery queue/slots, and output resource amounts
-- Faction stores: per-faction store items, their costs, and whether the
-  player has enough reputation + currency to buy them
-**TODO:**
-- [ ] Identify which data source carries refinery state � likely a
-      dedicated EntityGroup type or a JSON blob key; check for
-      `refinery`, `refinery_slots`, or `RefineryResponse` in the proto
-- [ ] Identify faction store data source � likely `FactionStoreResponse`
-      or similar EntityGroup; check proto definitions
-- [ ] Export `refinery.json` with current refineable resources and queue
-- [ ] Export `faction_stores.json` (or add to `faction.json`) with
-      per-faction purchasable items and player's affordability
+### Feature: Refinery and faction store inventory — AUDITED, NOT FEASIBLE
 
+**Audit findings (2026-04-07):**
+
+#### Refinery
+The refinery building (station building id=31) is already exported via uildings in
+player.json at its current level. The refinery queue is driven by Jobs (EntityGroup
+type 56, JOBTYPE_REFINEMENT=6), but Jobs only arrives when there are **active** jobs —
+it does not fire at login when the refinery is idle. The EntitySlots/EntitySlotsData
+worker slots at login carry JOBTYPE_AWAYASSIGNMENT=13 workers and empty slots; no
+JOBTYPE_REFINEMENT slots appear at login. There is no static proto message describing
+available refinement recipes — RefinementParams only carries {refinementId, amount}
+inside a running Job, and no RefinementSpecs EntityGroup type exists. The refinery
+is idle at login; no data is available without the player actively queuing a refinery job.
+
+**What IS available (already exported):**
+- player.json → uildings array includes the Refinery at its current level
+- esources.json → all raw material quantities are already exported (player can
+  cross-reference against known refinery recipes offline)
+
+**What is NOT available without triggering UI:**
+- Which refinements are currently queued (only in Jobs type 56, only when active)
+- Which raw materials can be refined (no static recipe proto; would need game data files)
+
+#### Faction store
+No FactionStoreResponse EntityGroup type exists in the proto (confirmed: all 207+
+type IDs audited). The store is delivered through the Scopely platform layer
+(Digit.Platform.Models.EntityGroup.TYPE_STOREOFFERS=2 or TYPE_JSON=4), but these
+types overlap with PrimeServer EntityGroup type numbers and go through the same
+HandleEntityGroup switch — Platform types (2, 4, 20, 21) map to unrelated PrimeServer
+cases and are silently ignored. The game server URL (cdn-live-us1-web.startrek.digitgaming.com)
+returns 404 for all guessed REST paths (/faction/store/get, /faction/store/state, etc.)
+and /refinery/get. The faction store UI is loaded via the Platform layer on demand, not
+pushed at login.
+
+**What IS available (already exported):**
+- action.json → action_store_tokens (amounts of each faction token the player holds)
+- action.json → action_favors (per-faction store tier unlock levels, all tiers)
+- action.json → action_reputation (current reputation per faction)
+These together let an AI determine what tier of favor the player is at and how many
+tokens they have — just not the live item list or costs from the store itself.
+
+**Verdict:** Both sub-features require either (a) a separate IL2CPP intercept on the
+Platform model layer (significant new work, no clear benefit vs. offline data), or (b)
+static game-data files that enumerate recipes/store items (out of scope for runtime export).
+Neither is worth pursuing given what's already exported covers the underlying resource state.
 ### Reorganisation: Consolidate all mod output into a single folder � DONE
 **Decision:** `community_patch_settings.toml` and `community_patch_runtime.vars`
 stay at game root (alongside `prime.exe`) to keep the diff with upstream minimal
