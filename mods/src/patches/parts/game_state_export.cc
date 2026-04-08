@@ -1689,8 +1689,14 @@ static void check_shield_warnings()
   if (!shield_active) {
     // Warn that shield is down, respecting reminder interval
     auto since_last = now_steady - last_shield_down_warn_tp;
-    if (last_shield_down_warn_tp == std::chrono::steady_clock::time_point{} ||
-        since_last >= reminder_dur) {
+    if (last_shield_down_warn_tp == std::chrono::steady_clock::time_point{}) {
+      // First confirmed reading with no active shield - may just not have navigated
+      // to trigger StarbaseDetailedScan yet; note that in the log rather than alarming.
+      spdlog::info("SHIELD ALERT: Station peace shield confirmed DOWN (first reading). "
+                   "If this is unexpected, navigate in-game to your station to re-confirm. "
+                   "Tokens in inventory: {}", token_count);
+      last_shield_down_warn_tp = now_steady;
+    } else if (since_last >= reminder_dur) {
       spdlog::warn("SHIELD ALERT: Station peace shield is DOWN. Tokens in inventory: {}",
                    token_count);
       last_shield_down_warn_tp = now_steady;

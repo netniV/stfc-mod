@@ -94,6 +94,12 @@ carries alliance starbase info, or if it only arrives on-demand.
 ### TODO-8: example_community_patch_settings.toml - missing show_settings hotkey - DONE
 show_settings = "SHIFT-S" added between show_scrapyard and show_ships.
 
+### TODO-9: TC notification Sunday bug - EXTERNAL REPO REMINDER
+Personal reminder: the TC notification only fired for the daily notification;
+the Sunday takeover notification did not fire. Next occurrence is Thursday.
+Debug before Thursday - check scheduling logic and day-of-week matching.
+This is in a separate repo, not this one.
+
 ---
 
 
