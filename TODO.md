@@ -72,9 +72,14 @@ Data source trigger: unknown - needs investigation.
 
 ### TODO-6: Home system ID in player export
 StarbaseInfo.location is a NodeAddress with a system field (the player home system ID).
+StarbaseInfo.lastRelocation is a Timestamp - seconds since epoch when the station last moved.
 The "starbase" Json blob key (observed at login) contains StarbaseInfo inline.
 - [ ] Add handler for "starbase" key in process_json
-- [ ] Export as player.station.home_system_id
+- [ ] Export player.station.home_system_id (StarbaseInfo.location.system)
+- [ ] Export player.station.last_relocation_at (ISO-8601 from StarbaseInfo.lastRelocation)
+- [ ] Export player.station.days_in_system (derived: now - last_relocation_at)
+- [ ] Export player.station.relocation_tokens (Resource_RelocationToken from cached_resources;
+      already in resources.json but worth surfacing in station section for convenience)
 Data source: auto at login.
 
 ### TODO-7: Alliance starbase info
@@ -86,10 +91,8 @@ StarbaseInfo.state = starbase state (moving, anchored, etc).
 - [ ] Export alliance.starbase_system_id and alliance.starbase_state in player.json
 Data source: likely auto at login via alliance_container blob key.
 
-### TODO-8: example_community_patch_settings.toml - missing show_settings hotkey
-show_settings = "SHIFT-S" present in community_patch_settings_old.toml but missing
-from example_community_patch_settings.toml between show_scrapyard and show_ships.
-- [ ] Add show_settings = "SHIFT-S" in [hotkeys] section
+### TODO-8: example_community_patch_settings.toml - missing show_settings hotkey - DONE
+show_settings = "SHIFT-S" added between show_scrapyard and show_ships.
 
 ---
 
@@ -157,6 +160,10 @@ Already exported: faction tokens, armada credits, reputation, faction favors (ti
          to configured player_id only, and checking cache immediately on UserProfiles
 - BUG-5: Ship unlock blueprint counts missing - fixed by hooking BlueprintSpecs (type 21)
          and routing INVENTORYITEMTYPE_INVENTORYBLUEPRINT items to game state export
+- BUG-6: Duplicate log entries and double-processing - fixed by FNV-1a content hash
+         dedup in HandleEntityGroup; ProcessResultInternal and ParseBinaryObjectsHelper
+         both fire for the same ServiceResponse, causing every entity group to be
+         processed twice (3x for types also hooked via DataContainer_ParseBinaryObject)
 - Config: export_request_mutex held across blocking I/O - fixed
 - Config: all file paths anchored to prime.exe directory
 - Config: TOML structure reorganised to [sync.game_state.*] tree

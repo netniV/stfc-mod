@@ -2532,6 +2532,33 @@ void HandleEntityGroup(EntityGroup* entity_group)
   const auto byteCount = static_cast<size_t>(entity_group->Group->Length);
   const auto *bytesPtr = reinterpret_cast<const char*>(entity_group->Group->bytes->m_Items);
 
+  // Deduplicate: the same entity group can arrive via multiple hooks in the same pipeline
+  // pass (e.g. ProcessResultInternal then ParseBinaryObjectsHelper for the same response).
+  // Skip processing if we have already handled identical bytes for this entity type.
+  {
+    // FNV-1a 64-bit hash of the payload bytes
+    uint64_t hash = 14695981039346656037ULL;
+    for (size_t i = 0; i < byteCount; ++i) {
+      hash ^= static_cast<uint8_t>(bytesPtr[i]);
+      hash *= 1099511628211ULL;
+    }
+
+    static std::mutex                              dedup_mutex;
+    static std::unordered_map<int32_t, uint64_t>  last_hash;
+    const int32_t type_key = static_cast<int32_t>(entity_group->Type_);
+    {
+      std::scoped_lock lk(dedup_mutex);
+      auto [it, inserted] = last_hash.emplace(type_key, hash);
+      if (!inserted) {
+        if (it->second == hash) {
+          spdlog::debug("HandleEntityGroup: skipping duplicate type={} bytes={}", type_key, byteCount);
+          return;
+        }
+        it->second = hash;
+      }
+    }
+  }
+
   spdlog::debug("HandleEntityGroup called with type: {}", static_cast<int>(entity_group->Type_));
 
   // Helper to run processing asynchronously with exception handling
