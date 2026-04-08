@@ -63,6 +63,20 @@ static int64_t cached_relocation_tokens     = 0;
 // Drydock assignments: drydock_id (1-based) -> player ship id
 static std::vector<DrydockEntry> cached_drydock_assignments;
 
+// Fleet -> ships map (fleetId -> ship ids) used to resolve repair jobs
+static std::unordered_map<int64_t, std::vector<int64_t>> cached_fleet_to_ships;
+
+// Repair jobs per-ship (ship_id -> job), refreshed on every JobResponse
+struct RepairJobInfo {
+  int64_t start_epoch = 0;
+  int32_t duration_secs = 0;
+  int32_t reduction_secs = 0;
+};
+static std::unordered_map<int64_t, RepairJobInfo> cached_ship_repairs;
+
+// Active job queues snapshot (research / build / scrap / repair)
+static std::vector<QueueJobEntry> cached_queues;
+
 // Missions
 static std::vector<std::pair<int64_t, int64_t>> cached_missions_active;    // {instance_id, mission_id}
 static std::vector<int64_t>                     cached_missions_completed;
@@ -144,10 +158,18 @@ static void request_immediate_export()
     return;
   }
 
-  std::scoped_lock lock(export_request_mutex);
-  should_export_now        = true;
-  last_export_request_tp   = std::chrono::steady_clock::now();
-  export_cv.notify_one();
+  // Try to acquire the export mutex; if we cannot, set the flags without
+  // blocking to avoid potential lock-order inversion with capture paths.
+  if (export_request_mutex.try_lock()) {
+    should_export_now      = true;
+    last_export_request_tp = std::chrono::steady_clock::now();
+    export_cv.notify_one();
+    export_request_mutex.unlock();
+  } else {
+    should_export_now = true;
+    last_export_request_tp = std::chrono::steady_clock::now();
+    export_cv.notify_one();
+  }
 }
 
 static void request_full_export()
@@ -156,10 +178,16 @@ static void request_full_export()
   auto seconds_since_startup = std::chrono::duration_cast<std::chrono::seconds>(now - startup_time).count();
   if (seconds_since_startup < STARTUP_GRACE_PERIOD_SECONDS) return;
 
-  std::scoped_lock lock(export_request_mutex);
-  should_export_now      = true;
-  last_export_request_tp = std::chrono::steady_clock::now();
-  export_cv.notify_one();
+  if (export_request_mutex.try_lock()) {
+    should_export_now      = true;
+    last_export_request_tp = std::chrono::steady_clock::now();
+    export_cv.notify_one();
+    export_request_mutex.unlock();
+  } else {
+    should_export_now = true;
+    last_export_request_tp = std::chrono::steady_clock::now();
+    export_cv.notify_one();
+  }
 }
 
 std::string get_iso8601_timestamp()
@@ -422,6 +450,68 @@ void capture_drydock_assignments(const std::vector<DrydockEntry>& assignments)
   if (cached_drydock_assignments == assignments) return;
   cached_drydock_assignments = assignments;
   spdlog::info("GameState: Captured {} drydock assignments", assignments.size());
+  request_immediate_export();
+}
+
+void update_drydock_status(const std::unordered_map<int64_t, FleetStatusUpdate>& status_by_ship)
+{
+  std::scoped_lock lock(game_data_mutex);
+  bool changed = false;
+  for (auto& d : cached_drydock_assignments) {
+    auto it = status_by_ship.find(d.ship_id);
+    if (it == status_by_ship.end()) continue;
+    const auto& s = it->second;
+    if (d.state != s.state || d.system_id != s.system_id ||
+        d.is_damaged != s.is_damaged || d.is_mining != s.is_mining) {
+      d.state      = s.state;
+      d.system_id  = s.system_id;
+      d.is_damaged = s.is_damaged;
+      d.is_mining  = s.is_mining;
+      changed = true;
+    }
+  }
+  if (changed) {
+    spdlog::info("GameState: drydock status updated mid-session ({} ships in update)",
+                 status_by_ship.size());
+    request_immediate_export();
+  }
+}
+
+void capture_fleet_ships(int64_t fleet_id, const std::vector<int64_t>& ship_ids)
+{
+  std::scoped_lock lock(game_data_mutex);
+  cached_fleet_to_ships[fleet_id] = ship_ids;
+}
+
+void capture_queues(std::vector<QueueJobEntry>&& jobs)
+{
+  std::scoped_lock lock(game_data_mutex);
+  cached_queues = std::move(jobs);
+
+  // Rebuild per-ship repair cache from the new snapshot so drydock entries
+  // reflect the current repair state (clears stale entries on completion).
+  cached_ship_repairs.clear();
+  for (const auto& e : cached_queues) {
+    if (e.job_type != "repair") continue;
+    auto it = cached_fleet_to_ships.find(e.ref_id);
+    if (it == cached_fleet_to_ships.end()) {
+      spdlog::info("GameState: repair job for fleet {} has no fleet->ships mapping yet", e.ref_id);
+      continue;
+    }
+    for (auto ship_id : it->second) {
+      cached_ship_repairs[ship_id] = RepairJobInfo{e.start_epoch, e.duration_secs, e.reduction_secs};
+    }
+  }
+
+  int research = 0, build = 0, scrap = 0, repair = 0;
+  for (const auto& e : cached_queues) {
+    if      (e.job_type == "research") ++research;
+    else if (e.job_type == "build")    ++build;
+    else if (e.job_type == "scrap")    ++scrap;
+    else if (e.job_type == "repair")   ++repair;
+  }
+  spdlog::info("GameState: queues updated — research={} build={} scrap={} repair={}",
+               research, build, scrap, repair);
   request_immediate_export();
 }
 
@@ -1060,6 +1150,34 @@ json build_game_state_json()
     entry["is_damaged"] = d.is_damaged;
     entry["is_mining"]  = d.is_mining;
     if (d.system_id != 0) entry["system_id"] = d.system_id;
+
+    // Repair info from cached_ship_repairs, if present
+    // (game_data_mutex already held by build_game_state_json outer lock)
+    {
+      auto it = cached_ship_repairs.find(d.ship_id);
+      if (it != cached_ship_repairs.end()) {
+        const auto& r = it->second;
+        entry["repair_active"] = true;
+        int64_t finish = r.start_epoch + r.duration_secs - r.reduction_secs;
+        entry["repair_finish_epoch"] = finish;
+        int64_t now_epoch = static_cast<int64_t>(
+          std::chrono::duration_cast<std::chrono::seconds>(
+            std::chrono::system_clock::now().time_since_epoch()).count());
+        int64_t secs_left = finish > now_epoch ? (finish - now_epoch) : 0;
+        entry["repair_seconds_remaining"] = static_cast<int32_t>(secs_left);
+        double progress = 0.0;
+        if (r.duration_secs > 0) {
+          double done = static_cast<double>(r.duration_secs - (r.reduction_secs + secs_left));
+          progress = std::clamp(done / static_cast<double>(r.duration_secs) * 100.0, 0.0, 100.0);
+        }
+        entry["repair_progress"] = std::round(progress * 10.0) / 10.0; // 1 dp
+      } else {
+        entry["repair_active"] = false;
+        entry["repair_finish_epoch"] = nullptr;
+        entry["repair_seconds_remaining"] = 0;
+        entry["repair_progress"] = 0.0;
+      }
+    }
     if (o.ships) {
       auto ship_it = cached_ships.find(d.ship_id);
       if (ship_it != cached_ships.end() && ship_it->second.contains("hull_id")) {
@@ -1071,20 +1189,127 @@ json build_game_state_json()
     j["drydocks"].push_back(entry);
   }
 
+  // Active job queues (research / build / scrap / repair).
+  // Section is omitted entirely when all queues are idle.
+  if (!cached_queues.empty()) {
+    int64_t q_now = static_cast<int64_t>(
+      std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count());
+
+    auto epoch_to_iso = [](int64_t epoch) -> std::string {
+      std::time_t t  = static_cast<std::time_t>(epoch);
+      std::tm     tm = {};
+#ifdef _WIN32
+      gmtime_s(&tm, &t);
+#else
+      gmtime_r(&t, &tm);
+#endif
+      std::ostringstream oss;
+      oss << std::put_time(&tm, "%Y-%m-%dT%H:%M:%SZ");
+      return oss.str();
+    };
+
+    json queues = json::object();
+    for (const char* key : {"research", "build", "scrap", "repair"})
+      queues[key] = json::array();
+
+    for (const auto& e : cached_queues) {
+      int64_t finish    = (e.start_epoch > 0)
+        ? e.start_epoch + e.duration_secs - e.reduction_secs : 0;
+      int64_t secs_left = (finish > q_now) ? (finish - q_now) : 0;
+
+      json qe;
+      qe["start_time"]        = (e.start_epoch > 0) ? json(epoch_to_iso(e.start_epoch)) : json(nullptr);
+      qe["duration_secs"]     = e.duration_secs;
+      qe["reduction_secs"]    = e.reduction_secs;
+      qe["finish_time"]       = (finish > 0) ? json(epoch_to_iso(finish)) : json(nullptr);
+      qe["seconds_remaining"] = static_cast<int32_t>(secs_left);
+
+      if (e.job_type == "research") {
+        qe["project_id"] = e.ref_id;
+        qe["level"]      = e.level;
+        auto m = id_mappings::MappingCache::Get().get_research(e.ref_id);
+        if (m) qe["project_name"] = m->name;
+      } else if (e.job_type == "build") {
+        qe["module_id"] = e.ref_id;
+        qe["level"]     = e.level;
+        auto m = id_mappings::MappingCache::Get().get_building(e.ref_id);
+        if (m) qe["module_name"] = m->name;
+      } else if (e.job_type == "scrap") {
+        qe["hull_id"]  = e.ref_id;
+        qe["ship_id"]  = e.ref_id2;
+        qe["level"]    = e.level;
+        auto m = id_mappings::MappingCache::Get().get_ship(e.ref_id);
+        if (m) qe["ship_name"] = m->name;
+      } else if (e.job_type == "repair") {
+        qe["fleet_id"] = e.ref_id;
+        auto fit = cached_fleet_to_ships.find(e.ref_id);
+        if (fit != cached_fleet_to_ships.end() && !fit->second.empty()) {
+          int64_t ship_id = fit->second[0];
+          qe["ship_id"] = ship_id;
+          for (const auto& d : cached_drydock_assignments) {
+            if (d.ship_id == ship_id) {
+              qe["drydock"] = drydock_letter(d.drydock_id);
+              break;
+            }
+          }
+          auto ship_it = cached_ships.find(ship_id);
+          if (ship_it != cached_ships.end() && ship_it->second.contains("hull_id")) {
+            int64_t hull_id = ship_it->second["hull_id"].get<int64_t>();
+            auto m = id_mappings::MappingCache::Get().get_ship(hull_id);
+            if (m) qe["ship_name"] = m->name;
+          }
+        }
+      }
+
+      queues[e.job_type].push_back(std::move(qe));
+    }
+    j["queues"] = std::move(queues);
+  }
+
   // Annotate ships array with drydock letter and status
   if (o.ships) {
     for (auto& ship_entry : j["ships"]) {
       int64_t sid = ship_entry["id"].get<int64_t>();
       for (const auto& d : cached_drydock_assignments) {
         if (d.ship_id == sid) {
-          auto state_it = FLEET_STATE_NAMES.find(d.state);
-          std::string status = (state_it != FLEET_STATE_NAMES.end()) ? state_it->second : "unknown";
-          if (d.is_mining) status = "mining";
-          ship_entry["drydock"]    = drydock_letter(d.drydock_id);
-          ship_entry["drydock_id"] = d.drydock_id;
-          ship_entry["status"]     = status;
-          ship_entry["is_mining"]  = d.is_mining;
-          break;
+            auto state_it = FLEET_STATE_NAMES.find(d.state);
+            std::string status = (state_it != FLEET_STATE_NAMES.end()) ? state_it->second : "unknown";
+            if (d.is_mining) status = "mining";
+            ship_entry["drydock"]    = drydock_letter(d.drydock_id);
+            ship_entry["drydock_id"] = d.drydock_id;
+            ship_entry["status"]     = status;
+            ship_entry["is_mining"]  = d.is_mining;
+
+            // Repair info for this ship
+            // (game_data_mutex already held by build_game_state_json outer lock)
+            {
+              auto it = cached_ship_repairs.find(d.ship_id);
+              if (it != cached_ship_repairs.end()) {
+                const auto& r = it->second;
+                ship_entry["repair_active"] = true;
+                int64_t finish = r.start_epoch + r.duration_secs - r.reduction_secs;
+                ship_entry["repair_finish_epoch"] = finish;
+                int64_t now_epoch = static_cast<int64_t>(
+                  std::chrono::duration_cast<std::chrono::seconds>(
+                    std::chrono::system_clock::now().time_since_epoch()).count());
+                int64_t secs_left = finish > now_epoch ? (finish - now_epoch) : 0;
+                ship_entry["repair_seconds_remaining"] = static_cast<int32_t>(secs_left);
+                double progress = 0.0;
+                if (r.duration_secs > 0) {
+                  double done = static_cast<double>(r.duration_secs - (r.reduction_secs + secs_left));
+                  progress = std::clamp(done / static_cast<double>(r.duration_secs) * 100.0, 0.0, 100.0);
+                }
+                ship_entry["repair_progress"] = std::round(progress * 10.0) / 10.0; // 1 dp
+              } else {
+                ship_entry["repair_active"] = false;
+                ship_entry["repair_finish_epoch"] = nullptr;
+                ship_entry["repair_seconds_remaining"] = 0;
+                ship_entry["repair_progress"] = 0.0;
+              }
+            }
+
+            break;
         }
       }
     }
@@ -1327,6 +1552,7 @@ void export_game_state()
       j["player"]      = gs["player"];
       j["station"]     = gs["station"];
       j["drydocks"]    = gs["drydocks"];
+      if (gs.contains("queues")) j["queues"] = gs["queues"];
       if (o.buildings) j["buildings"] = gs["buildings"];
       write_json_file(dir / "player.json", j);
     }

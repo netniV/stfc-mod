@@ -43,9 +43,46 @@ namespace game_state_export
     int32_t system_id  = 0;   // current system (node_address.system), 0 if unknown
     bool    is_damaged = false; // ship_dmg > 0
     bool    is_mining  = false; // is_mining field from my_deployed_fleets
+    // Repair job info (if a repair is active for this ship)
+    bool    repair_active = false;
+    int64_t repair_finish_epoch = 0; // Unix epoch seconds when repair completes
+    int32_t repair_seconds_remaining = 0; // derived at export time
+    double  repair_progress = 0.0; // 0.0..100.0
     bool operator==(const DrydockEntry&) const = default;
   };
   void capture_drydock_assignments(const std::vector<DrydockEntry>& assignments);
+
+  // Mid-session fleet status update: refresh state/system/is_mining/is_damaged
+  // on existing cached drydock entries without requiring the full fleets key.
+  // Map key is ship_id; value fields match DrydockEntry (state, system_id, etc.)
+  struct FleetStatusUpdate {
+    int32_t state      = 0;
+    int32_t system_id  = 0;
+    bool    is_damaged = false;
+    bool    is_mining  = false;
+  };
+  void update_drydock_status(const std::unordered_map<int64_t, FleetStatusUpdate>& status_by_ship);
+
+  // Fleet -> ship mapping used to resolve repair jobs to specific ships.
+  // Called from process_json ("fleets" blob) so that repair jobs can be
+  // resolved fleet_id -> ship_id when the Jobs payload arrives.
+  void capture_fleet_ships(int64_t fleet_id, const std::vector<int64_t>& ship_ids);
+
+  // Active job queues (research / build / scrap / repair).
+  // Called on every JobResponse; replaces the entire queue snapshot.
+  // The section is absent from the export when all four vectors are empty.
+  struct QueueJobEntry {
+    std::string job_type;     // "research" | "build" | "scrap" | "repair"
+    int64_t     start_epoch    = 0;
+    int32_t     duration_secs  = 0;
+    int32_t     reduction_secs = 0;
+    int64_t     ref_id         = 0;  // projectId / moduleId / hull_id / fleet_id
+    int64_t     ref_id2        = 0;  // scrap: ship_id; others unused
+    int32_t     level          = 0;
+  };
+  // Replaces the entire queue snapshot and also refreshes cached_ship_repairs
+  // so that drydock entries show up-to-date repair progress.
+  void capture_queues(std::vector<QueueJobEntry>&& jobs);
 
   // Missions
   void capture_missions_active(const std::vector<std::pair<int64_t, int64_t>>& missions); // {instance_id, mission_id}

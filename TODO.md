@@ -2,7 +2,11 @@
 
 ## Open Bugs
 
-None.
+### BUG-7: is_damaged bleeds between ships in the same fleet - FIXED
+In process_json, `fs.is_damaged` was not reset between ships in a fleet's ship_ids
+loop — damage would bleed from ship A to ship B if B had no ship_dmg key.
+Fixed by rewriting the check as a single expression that always evaluates to true or
+false per ship: `fs.is_damaged = contains(ship_dmg) && contains(sid) && value > 0`.
 
 ---
 
@@ -41,24 +45,25 @@ battle_log = false in [sync.game_state]. Documented in INSTALL.md and
 example_community_patch_settings.toml.
 
 ### TODO-2: Ship status in drydock export - DONE
-Each drydock entry now includes: status, system_id (omitted if 0), is_damaged.
-Status sourced from my_deployed_fleets Json blob key (arrives at login).
+Each drydock entry now includes: status, system_id (omitted if 0), is_damaged, is_mining.
+Status sourced from my_deployed_fleets Json blob — arrives at login AND is re-pushed
+mid-session whenever fleet state changes (warp, recall, mining start/stop, etc.).
+Mid-session updates handled by update_drydock_status() which diffs and triggers export.
 DeployedFleetState enum mapped to player-facing labels:
   0=idle, 1=moving, 2=warping, 3=battling, 4=recalling, 5=stationary, 6=entering_combat
-Note: stationary covers mining AND idle-away - see INV-2 for open investigation.
+is_mining=true overrides label to "mining". Node-exhausted ships still show mining
+until recalled (game reports is_mining=true until the ship moves — known limitation).
 Status also annotated on each ship entry in ships.json.
 
-### TODO-3: Research/build/scrap/repair queue export
+### TODO-3: Research/build/scrap/repair queue export - DONE
 Jobs (EntityGroup type 56) only arrives when at least one job is active.
-Job types: RESEARCH=3, STARBASECONSTRUCTION=4, SHIPSCRAP=12, REPAIRFLEET=5.
-Queue slot counts from EntitySlots/EntitySlotsData (types 117/121) already parsed.
-- [ ] Hook Jobs (type 56) for all four job types
-- [ ] Export type, start_time, duration_secs, reduction_secs, finish_time (UTC ISO-8601)
-      plus type-specific: projectId / moduleId / shipId / fleetId, level
-- [ ] Count worker slots per job type: total and active
-- [ ] Enrich IDs with names via stfc_id_mappings.json
-- [ ] Export as queues section in player.json with sub-keys research, build, scrap, repair
-- [ ] Document that the section is absent when all queues are idle
+Job types handled: RESEARCH=3, STARBASECONSTRUCTION=4, SHIPSCRAP=12, REPAIRFLEET=5.
+Exported as queues section in player.json with sub-keys research, build, scrap, repair.
+Each entry: start_time, duration_secs, reduction_secs, finish_time (UTC ISO-8601),
+seconds_remaining, plus type-specific: project_name/module_name/ship_name + level.
+IDs enriched with names via id_mappings. Section absent when all queues are idle.
+Repair jobs also update drydock entry repair_active/repair_finish_epoch/repair_progress.
+Not implemented: worker slot counts per job type (deferred, needs further investigation).
 
 ### TODO-4: Ship tier cargo stats
 ShipTierSpec.tierStatModifiers has cargo stats per tier (66=cargo_capacity,
@@ -94,11 +99,15 @@ carries alliance starbase info, or if it only arrives on-demand.
 ### TODO-8: example_community_patch_settings.toml - missing show_settings hotkey - DONE
 show_settings = "SHIFT-S" added between show_scrapyard and show_ships.
 
-### TODO-9: TC notification Sunday bug - EXTERNAL REPO REMINDER
-Personal reminder: the TC notification only fired for the daily notification;
-the Sunday takeover notification did not fire. Next occurrence is Thursday.
-Debug before Thursday - check scheduling logic and day-of-week matching.
-This is in a separate repo, not this one.
+### TODO-10: Move buildings out of player.json into its own file
+Currently buildings is written into player.json (when o.buildings is true).
+Move it to a dedicated buildings.json alongside the other per-section files,
+following the same pattern as ships.json, resources.json, etc.
+- [ ] Add buildings.json write in the per-section export block
+- [ ] Remove buildings from player.json
+- [ ] Add buildings.json to the Gist sync manifest
+- [ ] Update test_e2e.ps1 to check buildings.json
+- [ ] Update INSTALL.md / example_community_patch_settings.toml if needed
 
 ---
 

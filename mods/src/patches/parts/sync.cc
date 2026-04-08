@@ -1809,6 +1809,45 @@ void process_jobs(std::unique_ptr<std::string>&& bytes)
       const bool first_sync = is_first_sync.exchange(false, std::memory_order_acq_rel);
       queue_data(SyncConfig::Type::Jobs, job_array, first_sync);
     }
+
+    // Game state queue snapshot — always replace the full snapshot so that
+    // completed jobs are cleared even when the UUID-based legacy emit skips them.
+    if (Config::Get().game_state_enabled) {
+      std::vector<game_state_export::QueueJobEntry> queue_jobs;
+      for (const auto& job : response.jobs()) {
+        game_state_export::QueueJobEntry e;
+        e.start_epoch    = job.has_starttime() ? static_cast<int64_t>(job.starttime().seconds()) : 0;
+        e.duration_secs  = job.duration();
+        e.reduction_secs = job.reductioninseconds();
+
+        switch (job.type()) {
+          case Digit::PrimeServer::Models::JOBTYPE_RESEARCH:
+            e.job_type = "research";
+            e.ref_id   = job.researchparams().projectid();
+            e.level    = job.researchparams().level();
+            break;
+          case Digit::PrimeServer::Models::JOBTYPE_STARBASECONSTRUCTION:
+            e.job_type = "build";
+            e.ref_id   = job.starbaseconstructionparams().moduleid();
+            e.level    = job.starbaseconstructionparams().level();
+            break;
+          case Digit::PrimeServer::Models::JOBTYPE_SHIPSCRAP:
+            e.job_type = "scrap";
+            e.ref_id   = job.scrapyardparams().hullid();
+            e.ref_id2  = job.scrapyardparams().shipid();
+            e.level    = job.scrapyardparams().level();
+            break;
+          case Digit::PrimeServer::Models::JOBTYPE_REPAIRFLEET:
+            e.job_type = "repair";
+            e.ref_id   = job.repairfleetparams().fleetid();
+            break;
+          default:
+            continue;
+        }
+        queue_jobs.push_back(std::move(e));
+      }
+      game_state_export::capture_queues(std::move(queue_jobs));
+    }
   } else {
     spdlog::error("Failed to parse jobs");
   }
@@ -2029,13 +2068,37 @@ void process_json(std::unique_ptr<std::string>&& bytes)
         for (const auto& sid_json : fv["ship_ids"]) {
           int64_t sid = sid_json.get<int64_t>();
           const std::string sid_str = std::to_string(sid);
-          if (fv.contains("ship_dmg") && fv["ship_dmg"].contains(sid_str)) {
-            fs.is_damaged = fv["ship_dmg"][sid_str].get<float>() > 0.f;
-          }
+          fs.is_damaged = fv.contains("ship_dmg") && fv["ship_dmg"].contains(sid_str)
+                          && fv["ship_dmg"][sid_str].get<float>() > 0.f;
           fleet_status_by_ship[sid] = fs;
         }
+        // Also capture fleet_id -> ship_ids mapping so repair jobs referencing
+        // a fleet can be resolved to specific ships.
+        if (fv.contains("fleet_id")) {
+          try {
+            int64_t fleet_id = fv.value("fleet_id", 0LL);
+            if (fleet_id != 0) {
+              std::vector<int64_t> ship_ids;
+              for (const auto& sid_json : fv["ship_ids"]) ship_ids.push_back(sid_json.get<int64_t>());
+              game_state_export::capture_fleet_ships(fleet_id, ship_ids);
+            }
+          } catch (...) {
+            spdlog::warn("GameState: failed to capture fleet->ships mapping");
+          }
+        }
       }
+
+      // When my_deployed_fleets arrives WITHOUT the fleets key (mid-session
+      // updates), push status changes into the existing cached drydock entries
+      // so exports reflect the current state without requiring a relog.
+      if (!result.contains("fleets") && !fleet_status_by_ship.empty()) {
+        std::unordered_map<int64_t, game_state_export::FleetStatusUpdate> updates;
+        for (const auto& [sid, fs] : fleet_status_by_ship) {
+          updates[sid] = {fs.state, fs.system_id, fs.is_damaged, fs.is_mining};
+        }
+        game_state_export::update_drydock_status(updates);
       }
+    }
     for (const auto& [key, section] : result.items()) {
       if (key == "battle_result_headers") {
         if (!Config::Get().sync_options.battlelogs && !Config::Get().game_state_enabled) {
@@ -2675,7 +2738,7 @@ void HandleEntityGroup(EntityGroup* entity_group)
       }
       break;
     case EntityGroup::Type::Jobs:
-      if (Config::Get().sync_options.jobs) {
+      if (Config::Get().sync_options.jobs || Config::Get().game_state_enabled) {
         submit_async(process_jobs);
       }
       break;
