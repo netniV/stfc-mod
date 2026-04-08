@@ -998,9 +998,11 @@ json build_game_state_json()
   };
 
   // DeployedFleetState: 0=idle,1=moving,2=warping,3=battling,4=recall,5=docked,6=prebattle
+  // Note: "docked"(5) in the proto means stationary at a node - covers mining and idle-away.
+  // "idle"(0) means the fleet object exists but is not actively deployed (e.g. just recalled).
   static const std::unordered_map<int32_t, std::string> FLEET_STATE_NAMES = {
     {0, "idle"}, {1, "moving"}, {2, "warping"}, {3, "battling"},
-    {4, "recall"}, {5, "docked"}, {6, "prebattle"}
+    {4, "recalling"}, {5, "stationary"}, {6, "entering_combat"}
   };
 
   j["drydocks"] = json::array();

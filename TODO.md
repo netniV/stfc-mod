@@ -27,14 +27,15 @@ battle_log = false in [sync.game_state]. Documented in INSTALL.md and
 example_community_patch_settings.toml.
 
 ### TODO-2: Ship status in drydock export - DONE
-Each drydock entry now includes: status (idle/moving/warping/battling/recall/docked/prebattle),
-system_id (current system, omitted if 0), is_damaged (ship_dmg > 0).
+Each drydock entry now includes: status, system_id (omitted if 0), is_damaged.
 Status sourced from my_deployed_fleets Json blob key (arrives at login).
-DeployedFleetState enum: 0=idle, 1=moving, 2=warping, 3=battling, 4=recall, 5=docked, 6=prebattle.
+DeployedFleetState enum mapped to player-facing labels:
+  0=idle, 1=moving, 2=warping, 3=battling, 4=recalling, 5=stationary, 6=entering_combat
+Note: state 5 (stationary) covers mining AND idle-away - no field in the login blob
+distinguishes them. mining_slots key does not arrive at login.
 Status also annotated on each ship entry in ships.json.
 
-### TODO-3: Research/build/scrap/repair queue export
-Jobs (EntityGroup type 56) only arrives when at least one job is active.
+### TODO-3: Research/build/scrap/repair queue exportJobs (EntityGroup type 56) only arrives when at least one job is active.
 Job types: RESEARCH=3, STARBASECONSTRUCTION=4, SHIPSCRAP=12, REPAIRFLEET=5.
 Queue slot counts from EntitySlots/EntitySlotsData (types 117/121) already parsed.
 - [ ] Hook Jobs (type 56) for all four job types
@@ -50,9 +51,16 @@ ShipTierSpec.tierStatModifiers has cargo stats per tier (66=cargo_capacity,
 67=cargo_protection). BaseShipTierSpecs (type 49) and ShipTierSpecs (type 50) already
 hooked. Decide whether to export cargo_capacity and cargo_protection per ship.
 
----
+### TODO-5: Artifact data export
+Export both active artifacts with their active buffs and shard counts toward
+unlocking new artifacts and leveling existing ones.
+Needs investigation:
+- What EntityGroup type or Json blob key carries artifact data?
+- Are active artifact buffs in the existing buffs.json flow or separate?
+- Are shard counts in cached_resources or a separate inventory type?
+Data source trigger: unknown - needs investigation.
 
-## Data Sources Reference
+---
 
 All items marked (auto) arrive at login with no navigation required.
 Items marked (trigger: ...) require the user to navigate to a specific screen.

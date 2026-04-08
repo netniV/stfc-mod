@@ -34,7 +34,7 @@ namespace game_state_export
   struct DrydockEntry {
     int32_t drydock_id = 0;   // 1-based sequential
     int64_t ship_id    = 0;
-    int32_t state      = 0;   // DeployedFleetState: 0=idle,1=moving,2=warping,3=battling,4=recall,5=docked,6=prebattle
+    int32_t state      = 0;   // DeployedFleetState: 0=idle,1=moving,2=warping,3=battling,4=recalling,5=stationary,6=entering_combat
     int32_t system_id  = 0;   // current system (node_address.system), 0 if unknown
     bool    is_damaged = false; // ship_dmg > 0
     bool operator==(const DrydockEntry&) const = default;

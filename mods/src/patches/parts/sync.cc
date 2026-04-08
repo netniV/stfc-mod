@@ -2034,7 +2034,7 @@ void process_json(std::unique_ptr<std::string>&& bytes)
           fleet_status_by_ship[sid] = fs;
         }
       }
-    }
+      }
     for (const auto& [key, section] : result.items()) {
       if (key == "battle_result_headers") {
         if (!Config::Get().sync_options.battlelogs && !Config::Get().game_state_enabled) {
@@ -2102,7 +2102,6 @@ void process_json(std::unique_ptr<std::string>&& bytes)
           }
         }
       } else if (key == "my_shield_state") {
-        // my_shield_state arrives in the Json blob with expiry_time as UTC ISO-8601.
         // Parse it and update the peace shield expiry - token count unchanged (-1 = keep).
         try {
           if (section.is_null() || section.empty()) {
