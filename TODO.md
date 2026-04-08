@@ -5,11 +5,13 @@
 ### BUG-2 (partial): Peace shield edge cases
 Fixed: expiry from StarbaseDetailedScan (type 57), tokens from cached_resources.
 Trigger: tap station in system view (NOT galaxy view, NOT interior/exterior button).
-Still open:
+Still open - all require live conditions to test, cannot be verified when shield is inactive:
 - [ ] Golden peace shield (Scopely-applied after maintenance) - not yet in proto data
 - [ ] Auto-10min shield (triggered on first attack) - verify via StarbaseDetailedScan path
-- [ ] Verify whether tapping the peace shield icon on the exterior station screen also
-      triggers StarbaseDetailedScan - if so, document as a second valid trigger
+- [ ] Verify peace shield icon on exterior station screen as a second valid trigger:
+      when shield is active, tap the shield icon and check community_patch.log for
+      "StarbaseDetailedScan: owner=" line. If it appears, document as second valid trigger
+      in INSTALL.md and GIST_SETUP_COMPLETE.md.
 
 ---
 
