@@ -65,10 +65,10 @@ IDs enriched with names via id_mappings. Section absent when all queues are idle
 Repair jobs also update drydock entry repair_active/repair_finish_epoch/repair_progress.
 Not implemented: worker slot counts per job type (deferred, needs further investigation).
 
-### TODO-4: Ship tier cargo stats
+### TODO-4: Ship tier cargo stats - DONE
 ShipTierSpec.tierStatModifiers has cargo stats per tier (66=cargo_capacity,
-67=cargo_protection). BaseShipTierSpecs (type 49) and ShipTierSpecs (type 50) already
-hooked. Decide whether to export cargo_capacity and cargo_protection per ship.
+67=cargo_protection). BaseShipTierSpecs (type 49) and ShipTierSpecs (type 50) hooked.
+cargo_capacity and cargo_protection exported per ship in ships.json, keyed by hull_id+tier.
 
 ### TODO-5: Artifact data export
 Export active artifacts with their buffs and shard counts toward unlocking/leveling.
