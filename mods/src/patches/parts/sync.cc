@@ -3,6 +3,7 @@
 #include "file.h"
 #include "str_utils.h"
 #include "game_state_export.h"
+#include "id_mappings.h"
 
 #include <il2cpp-api-types.h>
 #include <Digit.PrimeServer.Models.pb.h>
@@ -883,6 +884,12 @@ void process_player_inventories(std::unique_ptr<std::string>&& bytes)
             const auto count   = item.count();
             const auto key     = std::make_pair(item.type(), item_id);
 
+            // Route ship unlock BPs to game state export
+            if (Config::Get().game_state_enabled &&
+                item.type() == Digit::PrimeServer::Models::InventoryItemType::INVENTORYITEMTYPE_INVENTORYBLUEPRINT) {
+              game_state_export::capture_ship_blueprints(item_id, count);
+            }
+
             if (const auto& it = inventory_states.find(key); it == inventory_states.end() || it->second != count) {
               inventory_states[key] = count;
               inventory_items.push_back({{"type", SyncConfig::Type::Inventory},
@@ -1063,6 +1070,28 @@ void process_active_officer_traits(std::unique_ptr<std::string>&& bytes)
     }
   } else {
     spdlog::error("Failed to parse active officer traits");
+  }
+}
+
+void process_blueprint_specs(std::unique_ptr<std::string>&& bytes)
+{
+  if (!Config::Get().game_state_enabled) return;
+
+  if (auto response = Digit::PrimeServer::Models::StaticSyncBlueprintSpecsResponse(); response.ParseFromString(*bytes)) {
+    std::vector<game_state_export::BlueprintSpecEntry> specs;
+    specs.reserve(response.blueprintspecs_size());
+    for (const auto& [id, spec] : response.blueprintspecs()) {
+      game_state_export::BlueprintSpecEntry e;
+      e.spec_id      = spec.id();
+      e.name         = spec.name();
+      e.parts_needed = spec.partsneeded();
+      e.hull_id      = spec.outputreference();
+      specs.push_back(std::move(e));
+    }
+    spdlog::info("GameState: process_blueprint_specs: {} specs", specs.size());
+    game_state_export::capture_blueprint_specs(std::move(specs));
+  } else {
+    spdlog::error("Failed to parse blueprint specs");
   }
 }
 
@@ -2529,6 +2558,11 @@ void HandleEntityGroup(EntityGroup* entity_group)
     case EntityGroup::Type::FactionSpecs:
       if (Config::Get().game_state_enabled) {
         submit_async(process_faction_specs);
+      }
+      break;
+    case EntityGroup::Type::BlueprintSpecs:
+      if (Config::Get().game_state_enabled) {
+        submit_async(process_blueprint_specs);
       }
       break;
     case EntityGroup::Type::ResearchSpecs:

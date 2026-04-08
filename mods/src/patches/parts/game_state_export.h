@@ -107,4 +107,18 @@ namespace game_state_export
     std::string state;       // "owned" or "takeover"
   };
   void capture_territory_slots(std::vector<TerritorySlot>&& held, int32_t total_slots);
+
+  // Blueprint specs (BlueprintSpecs type 21) — spec_id -> { name, parts_needed, hull_id }
+  struct BlueprintSpecEntry {
+    int64_t     spec_id     = 0;
+    std::string name;
+    int32_t     parts_needed = 0;  // required BP count to build
+    int64_t     hull_id      = 0;  // outputReference — hull ID of the resulting ship
+  };
+  void capture_blueprint_specs(std::vector<BlueprintSpecEntry>&& specs);
+
+  // Ship unlock blueprint counts from player inventory (INVENTORYITEMTYPE_INVENTORYBLUEPRINT)
+  // spec_id = commonParams.refId, count = owned BP count
+  void capture_ship_blueprints(int64_t spec_id, int64_t count);
+
 } // namespace game_state_export

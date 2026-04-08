@@ -106,6 +106,10 @@ static std::unordered_map<int64_t, TerritorySpec> cached_territory_specs; // ter
 static std::vector<TerritorySlot>                 cached_territory_slots; // alliance held slots
 static int32_t                                    cached_territory_total_slots = 0;
 
+// Blueprint specs (BlueprintSpecs type 21) and ship unlock BP counts from inventory
+static std::unordered_map<int64_t, BlueprintSpecEntry> cached_blueprint_specs; // spec_id -> spec
+static std::unordered_map<int64_t, int64_t>            cached_ship_bp_counts;  // spec_id -> owned count
+
 // Change tracking
 static std::string last_full_export_time;
 static std::chrono::steady_clock::time_point last_full_export_tp;
@@ -531,6 +535,24 @@ void capture_territory_slots(std::vector<TerritorySlot>&& held, int32_t total_sl
   request_immediate_export();
 }
 
+void capture_blueprint_specs(std::vector<BlueprintSpecEntry>&& specs)
+{
+  std::scoped_lock lock(game_data_mutex);
+  cached_blueprint_specs.clear();
+  for (auto& s : specs) {
+    cached_blueprint_specs[s.spec_id] = std::move(s);
+  }
+  spdlog::info("GameState: capture_blueprint_specs: {} specs loaded", cached_blueprint_specs.size());
+}
+
+void capture_ship_blueprints(int64_t spec_id, int64_t count)
+{
+  std::scoped_lock lock(game_data_mutex);
+  if (cached_ship_bp_counts[spec_id] == count) return;
+  cached_ship_bp_counts[spec_id] = count;
+  request_immediate_export();
+}
+
 // Human-readable name for a CLIENTMODIFIERTYPE_* code
 static std::string modifier_code_name(int32_t code)
 {
@@ -886,6 +908,21 @@ json build_game_state_json()
     }
   }
 
+  // Ship unlock blueprint counts (INVENTORYITEMTYPE_INVENTORYBLUEPRINT)
+  j["ship_blueprints"] = json::array();
+  for (const auto& [spec_id, count] : cached_ship_bp_counts) {
+    auto it = cached_blueprint_specs.find(spec_id);
+    json entry;
+    entry["spec_id"] = spec_id;
+    entry["amount"]  = count;
+    if (it != cached_blueprint_specs.end()) {
+      entry["name"]         = it->second.name;
+      entry["parts_needed"] = it->second.parts_needed;
+      if (it->second.hull_id != 0) entry["hull_id"] = it->second.hull_id;
+    }
+    j["ship_blueprints"].push_back(std::move(entry));
+  }
+
   // Station peace shield
   {
     auto now_epoch = std::chrono::duration_cast<std::chrono::seconds>(
@@ -1231,9 +1268,10 @@ void export_game_state()
     // --- ships.json ---
     {
       json j;
-      j["exported_at"] = ts;
-      j["ships"]       = gs["ships"];
-      j["blueprints"]  = gs["blueprints"];
+      j["exported_at"]     = ts;
+      j["ships"]           = gs["ships"];
+      j["blueprints"]      = gs["blueprints"];
+      j["ship_blueprints"] = gs["ship_blueprints"];
       write_json_file(dir / "ships.json", j);
     }
 
@@ -1329,8 +1367,8 @@ void export_game_state()
           "Player profile (name, ops level, power, server, syndicate level/XP), station peace shield, drydock assignments, and alliance (name, tag, level, member count, power)",
           {"player", "station", "drydocks"}),
         make_entry("ships.json",     gist.filename_ships,
-          "Ships in the hangar (hull, tier, level, components, tier_max_level, tier_up_duration_secs, cargo_capacity, cargo_protection) and blueprint part counts",
-          {"ships", "blueprints"}),
+          "Ships in the hangar (hull, tier, level, components, tier_max_level, tier_up_duration_secs, cargo_capacity, cargo_protection), blueprint part counts, and ship unlock blueprint progress",
+          {"ships", "blueprints", "ship_blueprints"}),
         make_entry("resources.json", gist.filename_resources,
           "All non-zero resource amounts with names (raw materials, tokens, consumables, etc.)",
           {"resources"}),
