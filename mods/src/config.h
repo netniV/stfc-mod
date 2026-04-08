@@ -223,6 +223,7 @@ public:
   std::string game_state_path;            // empty = game directory
   bool        game_state_on_startup;      // export immediately on mod load
   std::string game_state_player_id;       // player userid for accurate player data capture
+  bool        game_state_battle_log;      // enable battle log CSV watcher (default: false)
   GitHubSyncConfig     game_state_github;        // GitHub Gist sync config
   ShieldAlertsConfig   shield_alerts;            // peace shield alert settings
 

@@ -22,9 +22,8 @@ community_patch.log for "my_shield_state:" and "StarbaseDetailedScan:" lines.
 
 ## TODO
 
-### TODO-1: Battle log CSV watcher - add enable/disable config
-Add a toml config param under [sync.game_state] (or a new [battle_log] section) to
-enable/disable the CSV watcher. Default: disabled. Document in INSTALL.md and
+### TODO-1: Battle log CSV watcher - add enable/disable config - DONE
+battle_log = false in [sync.game_state]. Documented in INSTALL.md and
 example_community_patch_settings.toml.
 
 ### TODO-2: Ship status in drydock export

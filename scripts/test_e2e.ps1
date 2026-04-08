@@ -224,8 +224,14 @@ if (Test-Path $csvDir) {
     if ($csvs.Count -gt 0) {
         $latestCsv = $csvs | Sort-Object LastWriteTime -Descending | Select-Object -First 1
         Write-Host "    Latest: $($latestCsv.Name) ($($latestCsv.LastWriteTime))" -ForegroundColor DarkGray
-        $logMentions = $log | Where-Object { $_ -match "Battlelog CSV" }
-        Check "Log shows CSV watcher activity" ($logMentions.Count -gt 0)
+        $watcherEnabled  = $log | Where-Object { $_ -match "Battlelog CSV watcher: enabled" }
+        $watcherDisabled = $log | Where-Object { $_ -match "Battlelog CSV watcher: disabled" }
+        if ($watcherDisabled) {
+            Write-Host "    [INFO] CSV watcher is disabled (battle_log = false in config)" -ForegroundColor Yellow
+            Check "Log shows CSV watcher state" $true
+        } else {
+            Check "Log shows CSV watcher enabled" ($watcherEnabled.Count -gt 0)
+        }
     }
 }
 

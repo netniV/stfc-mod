@@ -1684,16 +1684,20 @@ void export_thread_func()
 #endif
   }
   const std::filesystem::path csv_dir = game_dir / "prime_Data";
-  spdlog::info("Battlelog CSV watcher: watching {}", csv_dir.string());
-  if (std::filesystem::exists(csv_dir)) {
-    for (const auto& entry : std::filesystem::directory_iterator(csv_dir)) {
-      if (entry.path().extension() == ".csv") {
-        processed_csvs.insert(entry.path().string());
+  if (cfg.game_state_battle_log) {
+    spdlog::info("Battlelog CSV watcher: enabled, watching {}", csv_dir.string());
+    if (std::filesystem::exists(csv_dir)) {
+      for (const auto& entry : std::filesystem::directory_iterator(csv_dir)) {
+        if (entry.path().extension() == ".csv") {
+          processed_csvs.insert(entry.path().string());
+        }
       }
+      spdlog::info("Battlelog CSV watcher: pre-seeded {} existing CSV files", processed_csvs.size());
+    } else {
+      spdlog::warn("Battlelog CSV watcher: directory not found: {}", csv_dir.string());
     }
-    spdlog::info("Battlelog CSV watcher: pre-seeded {} existing CSV files", processed_csvs.size());
   } else {
-    spdlog::warn("Battlelog CSV watcher: directory not found: {}", csv_dir.string());
+    spdlog::info("Battlelog CSV watcher: disabled (set battle_log = true in [sync.game_state] to enable)");
   }
 
   spdlog::info("GameState export thread started");
@@ -1758,8 +1762,8 @@ void export_thread_func()
       lock.unlock();
     }
 
-    // Poll prime_Data/ for new battle CSV files
-    if (std::filesystem::exists(csv_dir)) {
+    // Poll prime_Data/ for new battle CSV files (only if battle_log enabled)
+    if (cfg.game_state_battle_log && std::filesystem::exists(csv_dir)) {
       for (const auto& entry : std::filesystem::directory_iterator(csv_dir)) {
         if (entry.path().extension() != ".csv") continue;
         const std::string csv_path = entry.path().string();

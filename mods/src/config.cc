@@ -667,11 +667,12 @@ void Config::Load()
   }
   const toml::table* gs_table_legacy = config["gamestate_export"].as_table();
 
-  this->game_state_enabled            = gs_get(gs_table, gs_table_legacy, "enabled",     DCGS::game_state_enabled);
+  this->game_state_enabled    = gs_get(gs_table, gs_table_legacy, "enabled",     DCGS::game_state_enabled);
   this->game_state_interval   = gs_get(gs_table, gs_table_legacy, "interval",    DCGS::game_state_interval);
   this->game_state_path       = gs_get(gs_table, gs_table_legacy, "path",        std::string(DCGS::game_state_path));
   this->game_state_on_startup = gs_get(gs_table, gs_table_legacy, "on_startup",  DCGS::game_state_on_startup);
   this->game_state_player_id  = gs_get(gs_table, gs_table_legacy, "player_id",   std::string(DCGS::game_state_player_id));
+  this->game_state_battle_log = gs_get(gs_table, gs_table_legacy, "battle_log",  DCGS::battle_log_enabled);
 
   // [sync.game_state.github] â€” GitHub Gist sync (optional)
   namespace DCGSGithub = DefaultConfig::GameState::Gist;

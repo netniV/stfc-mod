@@ -468,6 +468,12 @@ enabled = false
 # for "UserProfile seen", find your in-game name and copy the userid value shown.
 # player_id = ""
 
+# Set to true to enable the battle log CSV watcher.
+# When enabled, the mod polls prime_Data/ for new battle CSV files and exports
+# them to battlelog.json (and syncs to Gist if configured).
+# Default: false
+# battle_log = false
+
 #  <[=================================================================================================]>
 #
 #        ****                                                    *                 ****  * *     *         *

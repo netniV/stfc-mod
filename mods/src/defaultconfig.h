@@ -190,6 +190,7 @@ namespace GameState
   constexpr const char* game_state_path       = "";
   constexpr bool        game_state_on_startup = true;
   constexpr const char* game_state_player_id  = "";  // set to your userid for accurate player data
+  constexpr bool        battle_log_enabled    = false;
 
   namespace Gist
   {
