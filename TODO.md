@@ -3,15 +3,14 @@
 ## Open Bugs
 
 ### BUG-2 (partial): Peace shield edge cases
-Fixed: expiry from StarbaseDetailedScan (type 57), tokens from cached_resources.
-Trigger: tap station in system view (NOT galaxy view, NOT interior/exterior button).
-Still open - all require live conditions to test, cannot be verified when shield is inactive:
+Fixed: expiry from my_shield_state Json blob key (arrives automatically at login).
+Also works via StarbaseDetailedScan (type 57) when triggered manually.
+Trigger for StarbaseDetailedScan: tap station in system view (NOT galaxy view, NOT exterior).
+Exterior shield icon confirmed NOT a trigger for StarbaseDetailedScan.
+Tokens from cached_resources (auto at login).
+Still open - all require specific in-game conditions to test:
 - [ ] Golden peace shield (Scopely-applied after maintenance) - not yet in proto data
 - [ ] Auto-10min shield (triggered on first attack) - verify via StarbaseDetailedScan path
-- [ ] Verify peace shield icon on exterior station screen as a second valid trigger:
-      when shield is active, tap the shield icon and check community_patch.log for
-      "StarbaseDetailedScan: owner=" line. If it appears, document as second valid trigger
-      in INSTALL.md and GIST_SETUP_COMPLETE.md.
 
 ---
 
@@ -61,7 +60,7 @@ Items marked (trigger: ...) require the user to navigate to a specific screen.
 | Alliance name/tag/level | player.json | AllianceProfiles type 71 + cache | auto (from cache) |
 | Ops level | player.json | OPERATIONS building in buildings | auto |
 | Syndicate level/XP | player.json | Resource_Loyalty_* IDs in resources | auto |
-| Peace shield expiry | player.json | StarbaseDetailedScan type 57 | tap station in system view |
+| Peace shield expiry | player.json | my_shield_state Json blob key | auto |
 | Peace shield tokens | player.json | cached_resources known IDs | auto |
 | Buildings | player.json | Json blob "starbase_modules" | auto |
 | Drydock assignments | player.json | Json blob "fleets" key | auto |

@@ -48,6 +48,8 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+#include <iomanip>
+#include <sstream>
 
 #ifndef STR_FORMAT
 #if __cpp_lib_format
@@ -2057,6 +2059,36 @@ void process_json(std::unique_ptr<std::string>&& bytes)
             spdlog::info("process_json fleets: captured {} drydock assignments", assignments.size());
             game_state_export::capture_drydock_assignments(assignments);
           }
+        }
+      } else if (key == "my_shield_state") {
+        if (!export_gs) continue;
+        // my_shield_state arrives in the Json blob with expiry_time as UTC ISO-8601.
+        // Parse it and update the peace shield expiry - token count unchanged (-1 = keep).
+        try {
+          if (section.is_null() || section.empty()) {
+            // Null / empty means no active shield
+            game_state_export::capture_peace_shield(0, -1);
+            spdlog::info("GameState: my_shield_state: no active shield");
+          } else {
+            const std::string expiry_str = section.value("expiry_time", "");
+            if (!expiry_str.empty()) {
+              // Parse UTC ISO-8601: "2026-04-08T01:46:01"
+              std::tm tm{};
+              std::istringstream ss(expiry_str);
+              ss >> std::get_time(&tm, "%Y-%m-%dT%H:%M:%S");
+              int64_t expiry_epoch = 0;
+              if (!ss.fail()) {
+                expiry_epoch = static_cast<int64_t>(
+                  std::chrono::duration_cast<std::chrono::seconds>(
+                    std::chrono::system_clock::from_time_t(_mkgmtime(&tm))
+                      .time_since_epoch()).count());
+              }
+              game_state_export::capture_peace_shield(expiry_epoch, -1);
+              spdlog::info("GameState: my_shield_state: expiry={} epoch={}", expiry_str, expiry_epoch);
+            }
+          }
+        } catch (const json::exception& je) {
+          spdlog::warn("GameState: my_shield_state parse error: {}", je.what());
         }
       }
     }
