@@ -18,6 +18,18 @@ Two special cases have not been observed in proto data yet:
 Both require specific in-game conditions to observe. When either occurs, check
 community_patch.log for "my_shield_state:" and "StarbaseDetailedScan:" lines.
 
+### INV-2: Ship status enrichment - needs live data collection
+Current status values come from DeployedFleetState in my_deployed_fleets.
+Open questions requiring live test sessions:
+- stationary vs mining: state=5 covers both. Does my_deployed_fleets gain any new field
+  when a ship starts mining? Does mining_slots arrive in the blob at that point?
+  To test: start a ship mining, re-login, check log for new fields on that fleet entry.
+- warp destination: proto DeployedFleet has warp_data and destination_node_id. Do these
+  appear in my_deployed_fleets when warping? To test: send a ship on a long warp, login
+  mid-warp, check my_deployed_fleets entry for warp_data and destination_node_id.
+- node_id meaning: non-zero for all stationary ships - may identify mining node vs orbit
+  if a node ID to resource type mapping exists in static data.
+
 ---
 
 ## TODO
@@ -31,11 +43,11 @@ Each drydock entry now includes: status, system_id (omitted if 0), is_damaged.
 Status sourced from my_deployed_fleets Json blob key (arrives at login).
 DeployedFleetState enum mapped to player-facing labels:
   0=idle, 1=moving, 2=warping, 3=battling, 4=recalling, 5=stationary, 6=entering_combat
-Note: state 5 (stationary) covers mining AND idle-away - no field in the login blob
-distinguishes them. mining_slots key does not arrive at login.
+Note: stationary covers mining AND idle-away - see INV-2 for open investigation.
 Status also annotated on each ship entry in ships.json.
 
-### TODO-3: Research/build/scrap/repair queue exportJobs (EntityGroup type 56) only arrives when at least one job is active.
+### TODO-3: Research/build/scrap/repair queue export
+Jobs (EntityGroup type 56) only arrives when at least one job is active.
 Job types: RESEARCH=3, STARBASECONSTRUCTION=4, SHIPSCRAP=12, REPAIRFLEET=5.
 Queue slot counts from EntitySlots/EntitySlotsData (types 117/121) already parsed.
 - [ ] Hook Jobs (type 56) for all four job types
@@ -52,17 +64,36 @@ ShipTierSpec.tierStatModifiers has cargo stats per tier (66=cargo_capacity,
 hooked. Decide whether to export cargo_capacity and cargo_protection per ship.
 
 ### TODO-5: Artifact data export
-Export both active artifacts with their active buffs and shard counts toward
-unlocking new artifacts and leveling existing ones.
-Needs investigation:
-- What EntityGroup type or Json blob key carries artifact data?
+Export active artifacts with their buffs and shard counts toward unlocking/leveling.
+Needs investigation - unknown EntityGroup type or Json blob key.
 - Are active artifact buffs in the existing buffs.json flow or separate?
 - Are shard counts in cached_resources or a separate inventory type?
 Data source trigger: unknown - needs investigation.
 
+### TODO-6: Home system ID in player export
+StarbaseInfo.location is a NodeAddress with a system field (the player home system ID).
+The "starbase" Json blob key (observed at login) contains StarbaseInfo inline.
+- [ ] Add handler for "starbase" key in process_json
+- [ ] Export as player.station.home_system_id
+Data source: auto at login.
+
+### TODO-7: Alliance starbase info
+AllianceProfile (type 71) does not include starbase location or state.
+The "alliance_container" Json blob key (observed at login) likely carries this.
+StarbaseInfo.location.system = alliance starbase home system.
+StarbaseInfo.state = starbase state (moving, anchored, etc).
+- [ ] Log raw "alliance_container" to confirm structure
+- [ ] Export alliance.starbase_system_id and alliance.starbase_state in player.json
+Data source: likely auto at login via alliance_container blob key.
+
+### TODO-8: example_community_patch_settings.toml - missing show_settings hotkey
+show_settings = "SHIFT-S" present in community_patch_settings_old.toml but missing
+from example_community_patch_settings.toml between show_scrapyard and show_ships.
+- [ ] Add show_settings = "SHIFT-S" in [hotkeys] section
+
 ---
 
-All items marked (auto) arrive at login with no navigation required.
+
 Items marked (trigger: ...) require the user to navigate to a specific screen.
 
 | Data | File | Source | Trigger |
