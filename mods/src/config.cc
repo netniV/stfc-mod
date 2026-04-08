@@ -716,6 +716,7 @@ void Config::Load()
   this->game_state_github.filename_faction   = tbl_get(github_table, "filename_faction",   std::string(DCGSGithub::filename_faction));
   this->game_state_github.filename_buffs     = tbl_get(github_table, "filename_buffs",     std::string(DCGSGithub::filename_buffs));
   this->game_state_github.filename_territory = tbl_get(github_table, "filename_territory", std::string(DCGSGithub::filename_territory));
+  this->game_state_github.filename_buildings  = tbl_get(github_table, "filename_buildings",  std::string(DCGSGithub::filename_buildings));
   this->game_state_github.filename_battlelog = tbl_get(github_table, "filename_battlelog", std::string(DCGSGithub::filename_battlelog));
   this->game_state_github.filename_manifest  = tbl_get(github_table, "filename_manifest",  std::string(DCGSGithub::filename_manifest));
 

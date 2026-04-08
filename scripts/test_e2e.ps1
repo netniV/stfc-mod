@@ -73,6 +73,7 @@ $gsMissions  = Check-ExportFile "missions.json"  "missions"
 $gsFaction   = Check-ExportFile "faction.json"   "faction"
 $gsBuffs     = Check-ExportFile "buffs.json"     "buffs"
 $gsTerritory = Check-ExportFile "territory.json" "territory"
+$gsBuildings = Check-ExportFile "buildings.json" "buildings"
 $gsManifest  = Check-ExportFile "manifest.json"  "manifest"
 
 if ($gsPlayer) {
@@ -130,6 +131,17 @@ if ($gsTerritory) {
         $script:pass += 4
     }
     Write-Host "    territory: $($gsTerritory.territory.used_slots)/$($gsTerritory.territory.total_slots) slots, $($gsTerritory.territory.held.Count) held zones" -ForegroundColor DarkGray
+}
+if ($gsBuildings) {
+    Check "buildings array present"    ($null -ne $gsBuildings.buildings)
+    Check "buildings count > 0"        ($gsBuildings.buildings.Count -gt 0)
+    $first = $gsBuildings.buildings | Select-Object -First 1
+    if ($first) {
+        Check "building has id"        ($null -ne $first.PSObject.Properties['id'])
+        Check "building has level"     ($null -ne $first.PSObject.Properties['level'])
+        Check "building has name"      ($first.name -ne $null -and $first.name -ne "")
+    }
+    Write-Host "    buildings: $($gsBuildings.buildings.Count)" -ForegroundColor DarkGray
 }
 # -----------------------------------------------------------------------
 Write-Host "`n=== 3. GIST SYNC - MANIFEST & PLAYER ===" -ForegroundColor Cyan

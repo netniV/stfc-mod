@@ -1428,6 +1428,7 @@ static void sync_all_to_gist(const std::filesystem::path& dir)
   // Map of gist filename -> local file path
   const std::vector<std::pair<std::string, std::filesystem::path>> files = {
     {gist.filename_player,    dir / "player.json"},
+    {gist.filename_buildings, dir / "buildings.json"},
     {gist.filename_ships,     dir / "ships.json"},
     {gist.filename_resources, dir / "resources.json"},
     {gist.filename_research,  dir / "research.json"},
@@ -1553,8 +1554,15 @@ void export_game_state()
       j["station"]     = gs["station"];
       j["drydocks"]    = gs["drydocks"];
       if (gs.contains("queues")) j["queues"] = gs["queues"];
-      if (o.buildings) j["buildings"] = gs["buildings"];
       write_json_file(dir / "player.json", j);
+    }
+
+    // --- buildings.json ---
+    if (o.buildings) {
+      json j;
+      j["exported_at"] = ts;
+      j["buildings"]   = gs["buildings"];
+      write_json_file(dir / "buildings.json", j);
     }
 
     // --- ships.json (ships + inventory flags) ---
@@ -1658,8 +1666,11 @@ void export_game_state()
 
       manifest["files"] = json::array({
         make_entry("player.json",    gist.filename_player,
-          "Player profile (name, ops level, power, server, syndicate level/XP), station (home system, last relocation, days in system, relocation tokens, peace shield), drydock assignments, and alliance (name, tag, level, member count, power)",
-          {"player", "station", "drydocks"}),
+          "Player profile (name, ops level, power, server, syndicate level/XP), station (home system, last relocation, days in system, relocation tokens, peace shield), drydock assignments, alliance (name, tag, level, member count, power), and active job queues (research, build, scrap, repair)",
+          {"player", "station", "drydocks", "queues"}),
+        make_entry("buildings.json", gist.filename_buildings,
+          "Station buildings (modules) with their current level",
+          {"buildings"}),
         make_entry("ships.json",     gist.filename_ships,
           "Ships in the hangar (hull, tier, level, components, tier_max_level, tier_up_duration_secs, cargo_capacity, cargo_protection), blueprint part counts, and ship unlock blueprint progress",
           {"ships", "blueprints", "ship_blueprints"}),

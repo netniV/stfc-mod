@@ -119,6 +119,7 @@ public:
   std::string filename_faction    = "stfc_faction.json";
   std::string filename_buffs      = "stfc_buffs.json";
   std::string filename_territory  = "stfc_territory.json";
+  std::string filename_buildings  = "stfc_buildings.json";
   std::string filename_battlelog  = "stfc_battlelog.json";
   std::string filename_manifest   = "stfc_manifest.json";
 };
