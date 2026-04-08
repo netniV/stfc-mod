@@ -112,7 +112,7 @@ if ($gsMissions) { Check "missions_completed > 0"   ($gsMissions.missions_comple
 if ($gsFaction)  { Check "faction_reputation present"    ($gsFaction.faction_reputation -ne $null);   Check "armada_credits present" ($gsFaction.armada_credits -ne $null)
                    Check "faction_store_tokens present" ($gsFaction.faction_store_tokens -ne $null);  Check "faction_favors key present" ($null -ne $gsFaction.PSObject.Properties['faction_favors'])
                    Check "faction_favors non-empty"     ($gsFaction.faction_favors.Count -gt 0)
-                   Write-Host "    faction tokens: $($gsFaction.faction_store_tokens.Count) entries, armada credits: $($gsFaction.armada_credits.Count) entries, faction favors: $($gsFaction.faction_favors.Count) factions ($($gsFaction.faction_favors | ForEach-Object { "$($_.faction):$($_.favors.Count)" } | Join-String -Separator ', '))" -ForegroundColor DarkGray }
+                   Write-Host "    faction tokens: $($gsFaction.faction_store_tokens.Count) entries, armada credits: $($gsFaction.armada_credits.Count) entries, faction favors: $($gsFaction.faction_favors.Count) factions ($(($gsFaction.faction_favors | ForEach-Object { "$($_.faction):$($_.favors.Count)" }) -join ', '))" -ForegroundColor DarkGray }
 if ($gsBuffs)     { Check "buff_catalog present"          ($gsBuffs.buff_catalog -ne $null)
                    Check "buff_catalog non-empty"         ($gsBuffs.buff_catalog.Count -gt 0)
                    Write-Host "    buff catalog: $($gsBuffs.buff_catalog.Count) entries" -ForegroundColor DarkGray }
