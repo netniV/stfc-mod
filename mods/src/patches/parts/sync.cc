@@ -2013,14 +2013,15 @@ void process_json(std::unique_ptr<std::string>&& bytes)
 
     // First pass: build ship_id -> status map from my_deployed_fleets so it is
     // available when we process the fleets key (key order is not guaranteed).
-    struct FleetStatus { int32_t state = 0; int32_t system_id = 0; bool is_damaged = false; };
+    struct FleetStatus { int32_t state = 0; int32_t system_id = 0; bool is_damaged = false; bool is_mining = false; };
     std::unordered_map<int64_t, FleetStatus> fleet_status_by_ship;
     if (export_gs && result.contains("my_deployed_fleets") &&
         result["my_deployed_fleets"].is_object()) {
       for (const auto& [fk, fv] : result["my_deployed_fleets"].items()) {
         if (!fv.contains("ship_ids") || !fv["ship_ids"].is_array()) continue;
         FleetStatus fs;
-        fs.state = fv.value("state", 0);
+        fs.state     = fv.value("state", 0);
+        fs.is_mining = fv.value("is_mining", false);
         if (fv.contains("node_address") && fv["node_address"].contains("system") &&
             !fv["node_address"]["system"].is_null()) {
           fs.system_id = fv["node_address"]["system"].get<int32_t>();
@@ -2085,6 +2086,7 @@ void process_json(std::unique_ptr<std::string>&& bytes)
               e.state      = status_it->second.state;
               e.system_id  = status_it->second.system_id;
               e.is_damaged = status_it->second.is_damaged;
+              e.is_mining  = status_it->second.is_mining;
             }
 
             assignments.push_back(e);

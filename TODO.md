@@ -18,17 +18,19 @@ Two special cases have not been observed in proto data yet:
 Both require specific in-game conditions to observe. When either occurs, check
 community_patch.log for "my_shield_state:" and "StarbaseDetailedScan:" lines.
 
-### INV-2: Ship status enrichment - needs live data collection
-Current status values come from DeployedFleetState in my_deployed_fleets.
-Open questions requiring live test sessions:
-- stationary vs mining: state=5 covers both. Does my_deployed_fleets gain any new field
-  when a ship starts mining? Does mining_slots arrive in the blob at that point?
-  To test: start a ship mining, re-login, check log for new fields on that fleet entry.
-- warp destination: proto DeployedFleet has warp_data and destination_node_id. Do these
-  appear in my_deployed_fleets when warping? To test: send a ship on a long warp, login
-  mid-warp, check my_deployed_fleets entry for warp_data and destination_node_id.
-- node_id meaning: non-zero for all stationary ships - may identify mining node vs orbit
-  if a node ID to resource type mapping exists in static data.
+### INV-2: Ship status enrichment - RESOLVED
+The `is_mining` boolean field in `my_deployed_fleets` cleanly distinguishes
+mining from stationary. Confirmed with Ship A (armada queued, state=0,
+is_mining=false) and Ships B-E (mining, state=5, is_mining=true).
+
+Implemented:
+- `is_mining` captured into `DrydockEntry` and exported on both drydock
+  entries (player.json) and ship entries (ships.json)
+- `status` label overridden to `"mining"` when `is_mining=true`, replacing
+  the ambiguous `"stationary"` label for those ships
+
+Other open questions from the original investigation (warp destination,
+node_id meaning) remain unresolved but are low priority.
 
 ---
 
@@ -110,7 +112,7 @@ Items marked (trigger: ...) require the user to navigate to a specific screen.
 | Station days in system | player.json | derived from last_relocation_at | auto |
 | Relocation tokens | player.json | Resource_RelocationToken in resources | auto |
 | Buildings | player.json | Json blob "starbase_modules" | auto |
-| Drydock assignments + ship status | player.json | Json blob "fleets" + "my_deployed_fleets" | auto |
+| Drydock assignments + ship status | player.json | Json blob "fleets" + "my_deployed_fleets" (is_mining) | auto |
 | Ships in hangar | ships.json | Json blob "ships" key | auto |
 | Blueprint parts | ships.json | cached_resources _Parts_ pattern | auto |
 | Ship unlock BPs | ships.json | PlayerInventories type + BlueprintSpecs type 21 | auto |

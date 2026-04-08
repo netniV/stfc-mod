@@ -1054,8 +1054,11 @@ json build_game_state_json()
     entry["letter"]     = drydock_letter(d.drydock_id);
     entry["ship_id"]    = d.ship_id;
     auto state_it = FLEET_STATE_NAMES.find(d.state);
-    entry["status"]     = (state_it != FLEET_STATE_NAMES.end()) ? state_it->second : "unknown";
+    std::string status = (state_it != FLEET_STATE_NAMES.end()) ? state_it->second : "unknown";
+    if (d.is_mining) status = "mining";
+    entry["status"]     = status;
     entry["is_damaged"] = d.is_damaged;
+    entry["is_mining"]  = d.is_mining;
     if (d.system_id != 0) entry["system_id"] = d.system_id;
     if (o.ships) {
       auto ship_it = cached_ships.find(d.ship_id);
@@ -1075,9 +1078,12 @@ json build_game_state_json()
       for (const auto& d : cached_drydock_assignments) {
         if (d.ship_id == sid) {
           auto state_it = FLEET_STATE_NAMES.find(d.state);
+          std::string status = (state_it != FLEET_STATE_NAMES.end()) ? state_it->second : "unknown";
+          if (d.is_mining) status = "mining";
           ship_entry["drydock"]    = drydock_letter(d.drydock_id);
           ship_entry["drydock_id"] = d.drydock_id;
-          ship_entry["status"]     = (state_it != FLEET_STATE_NAMES.end()) ? state_it->second : "unknown";
+          ship_entry["status"]     = status;
+          ship_entry["is_mining"]  = d.is_mining;
           break;
         }
       }
