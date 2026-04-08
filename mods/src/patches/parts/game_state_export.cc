@@ -638,7 +638,7 @@ static std::string modifier_code_name(int32_t code)
 json build_game_state_json()
 {
   std::scoped_lock lock(game_data_mutex);
-  const auto& o = Config::Get().sync_options; // data-type opt-out flags from [sync]
+  const auto& o = Config::Get().game_state_options; // per-type opt-out flags for game state
 
   json j;
 
@@ -1251,7 +1251,7 @@ void export_game_state()
     auto  dir   = get_export_dir();
     auto  ts    = get_iso8601_timestamp();
     auto& gist  = cfg.game_state_github;
-    const auto& o = cfg.sync_options;
+    const auto& o = cfg.game_state_options;
 
     json gs = build_game_state_json();
 
@@ -1810,7 +1810,7 @@ void init()
                cfg.game_state_on_startup);
 
   // Log which data types are active (set to false in [sync] to suppress)
-  const auto& o = cfg.sync_options;
+  const auto& o = cfg.game_state_options;
   spdlog::info("GameState export: active types - ships={} research={} buildings={} resources={} "
                "officer={} traits={} missions={} buffs={} inventory={} battle_log={}",
                o.ships, o.research, o.buildings, o.resources,

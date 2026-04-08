@@ -226,6 +226,10 @@ public:
   bool        game_state_battle_log;      // enable battle log CSV watcher (default: false)
   GitHubSyncConfig     game_state_github;        // GitHub Gist sync config
   ShieldAlertsConfig   shield_alerts;            // peace shield alert settings
+  // Per-type opt-out flags for game state export. Derived from [sync] flags:
+  // true by default when game_state_enabled=true; false only if explicitly set
+  // to false in [sync]. Completely separate from sync_options (legacy targets).
+  SyncConfig game_state_options;
 
   bool installUiScaleHooks;
   bool installZoomHooks;
