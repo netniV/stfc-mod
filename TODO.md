@@ -70,12 +70,23 @@ ShipTierSpec.tierStatModifiers has cargo stats per tier (66=cargo_capacity,
 67=cargo_protection). BaseShipTierSpecs (type 49) and ShipTierSpecs (type 50) hooked.
 cargo_capacity and cargo_protection exported per ship in ships.json, keyed by hull_id+tier.
 
-### TODO-5: Artifact data export
-Export active artifacts with their buffs and shard counts toward unlocking/leveling.
-Needs investigation - unknown EntityGroup type or Json blob key.
-- Are active artifact buffs in the existing buffs.json flow or separate?
-- Are shard counts in cached_resources or a separate inventory type?
-Data source trigger: unknown - needs investigation.
+### TODO-5: Artifact data export - INVESTIGATED, NOT FEASIBLE
+Shard counts (Resource_Artifact_Pieces_N) are already exported in resources.json under
+the "Other" group. Gacha tokens, hall upgrade tokens, and dust are also already there.
+
+No dedicated artifact entity group type, InventoryItemType, or SlotType exists in the
+proto. The game does not push artifact names, levels, or equipped-per-ship state through
+any intercepted channel.
+
+ResourceAutoConvertSpecs (type 203) + 'resource_auto_convert' blob fire on-demand when
+navigating to the artifact hall — these contain shard overflow conversion specs (shard →
+dust), not names or level data.
+
+Artifact buffs, when active, flow into GlobalActiveBuffs (already in buffs.json) but are
+not tagged as artifact-sourced.
+
+Nothing new to export. Shard counts are readable from resources.json by filtering on the
+Resource_Artifact_Pieces_N name pattern.
 
 ### TODO-6: Home system ID, station duration, relocation tokens in player export - DONE
 All from StarbaseInfo in the "starbase" Json blob key (arrives at login).

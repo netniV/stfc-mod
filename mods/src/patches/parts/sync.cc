@@ -2215,6 +2215,8 @@ void process_json(std::unique_ptr<std::string>&& bytes)
             spdlog::warn("GameState: starbase parse error: {}", je.what());
           }
         }
+      } else if (key == "my_deployed_fleets") {
+        // handled in first pass above — skip here
       } else if (key == "alliance_container") {
         // Parse it and update the peace shield expiry - token count unchanged (-1 = keep).
         try {
