@@ -1189,9 +1189,12 @@ json build_game_state_json()
     j["drydocks"].push_back(entry);
   }
 
-  // Active job queues (research / build / scrap / repair).
+  // Active job queues (research / build / scrap).
+  // Repair jobs are not included here — repair status is reflected per-drydock entry.
   // Section is omitted entirely when all queues are idle.
-  if (!cached_queues.empty()) {
+  const bool has_non_repair_queues = std::any_of(cached_queues.begin(), cached_queues.end(),
+    [](const QueueJobEntry& e) { return e.job_type != "repair"; });
+  if (has_non_repair_queues) {
     int64_t q_now = static_cast<int64_t>(
       std::chrono::duration_cast<std::chrono::seconds>(
         std::chrono::system_clock::now().time_since_epoch()).count());
@@ -1210,10 +1213,11 @@ json build_game_state_json()
     };
 
     json queues = json::object();
-    for (const char* key : {"research", "build", "scrap", "repair"})
+    for (const char* key : {"research", "build", "scrap"})
       queues[key] = json::array();
 
     for (const auto& e : cached_queues) {
+      if (e.job_type == "repair") continue;
       int64_t finish    = (e.start_epoch > 0)
         ? e.start_epoch + e.duration_secs - e.reduction_secs : 0;
       int64_t secs_left = (finish > q_now) ? (finish - q_now) : 0;
@@ -1241,25 +1245,6 @@ json build_game_state_json()
         qe["level"]    = e.level;
         auto m = id_mappings::MappingCache::Get().get_ship(e.ref_id);
         if (m) qe["ship_name"] = m->name;
-      } else if (e.job_type == "repair") {
-        qe["fleet_id"] = e.ref_id;
-        auto fit = cached_fleet_to_ships.find(e.ref_id);
-        if (fit != cached_fleet_to_ships.end() && !fit->second.empty()) {
-          int64_t ship_id = fit->second[0];
-          qe["ship_id"] = ship_id;
-          for (const auto& d : cached_drydock_assignments) {
-            if (d.ship_id == ship_id) {
-              qe["drydock"] = drydock_letter(d.drydock_id);
-              break;
-            }
-          }
-          auto ship_it = cached_ships.find(ship_id);
-          if (ship_it != cached_ships.end() && ship_it->second.contains("hull_id")) {
-            int64_t hull_id = ship_it->second["hull_id"].get<int64_t>();
-            auto m = id_mappings::MappingCache::Get().get_ship(hull_id);
-            if (m) qe["ship_name"] = m->name;
-          }
-        }
       }
 
       queues[e.job_type].push_back(std::move(qe));
@@ -1666,7 +1651,7 @@ void export_game_state()
 
       manifest["files"] = json::array({
         make_entry("player.json",    gist.filename_player,
-          "Player profile (name, ops level, power, server, syndicate level/XP), station (home system, last relocation, days in system, relocation tokens, peace shield), drydock assignments, alliance (name, tag, level, member count, power), and active job queues (research, build, scrap, repair)",
+          "Player profile (name, ops level, power, server, syndicate level/XP), station (home system, last relocation, days in system, relocation tokens, peace shield), drydock assignments (with per-ship repair status), alliance (name, tag, level, member count, power), and active job queues (research, build, scrap)",
           {"player", "station", "drydocks", "queues"}),
         make_entry("buildings.json", gist.filename_buildings,
           "Station buildings (modules) with their current level",
