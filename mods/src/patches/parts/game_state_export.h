@@ -30,6 +30,11 @@ namespace game_state_export
   // Pass active_expiry_epoch = -1 to update token count only (from inventory path).
   void capture_peace_shield(int64_t active_expiry_epoch, int64_t token_count);
 
+  // Station info from "starbase" Json blob key (arrives at login).
+  // last_relocation_epoch = 0 means unknown. relocation_tokens = -1 means no change.
+  void capture_station_info(int32_t home_system_id, int64_t last_relocation_epoch,
+                            int64_t relocation_tokens);
+
   // Drydock assignments with ship status
   struct DrydockEntry {
     int32_t drydock_id = 0;   // 1-based sequential

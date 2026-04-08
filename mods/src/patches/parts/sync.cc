@@ -2101,7 +2101,56 @@ void process_json(std::unique_ptr<std::string>&& bytes)
             game_state_export::capture_drydock_assignments(assignments);
           }
         }
-      } else if (key == "my_shield_state") {
+      } else if (key == "starbase") {
+        if (export_gs) {
+          try {
+            // home system ID
+            int32_t home_system_id = 0;
+            if (section.contains("location") && section["location"].is_object())
+              home_system_id = section["location"].value("system", 0);
+
+            // last_relocation: ISO-8601 UTC string -> epoch
+            int64_t last_relocation_epoch = 0;
+            const std::string reloc_str = section.value("last_relocation", "");
+            if (!reloc_str.empty()) {
+              std::tm tm{};
+              std::istringstream ss(reloc_str);
+              ss >> std::get_time(&tm, "%Y-%m-%dT%H:%M:%S");
+              if (!ss.fail())
+                last_relocation_epoch = static_cast<int64_t>(
+                  std::chrono::duration_cast<std::chrono::seconds>(
+                    std::chrono::system_clock::from_time_t(_mkgmtime(&tm))
+                      .time_since_epoch()).count());
+            }
+
+            game_state_export::capture_station_info(home_system_id, last_relocation_epoch, -1);
+
+            // Also update peace shield from the inline peace_shield field if present;
+            // this is the same data as my_shield_state but available earlier at login.
+            if (section.contains("peace_shield") && section["peace_shield"].is_object()) {
+              const auto& ps = section["peace_shield"];
+              const std::string expiry_str = ps.value("expiry_time", "");
+              if (!expiry_str.empty()) {
+                std::tm tm{};
+                std::istringstream ss(expiry_str);
+                ss >> std::get_time(&tm, "%Y-%m-%dT%H:%M:%S");
+                if (!ss.fail()) {
+                  int64_t expiry_epoch = static_cast<int64_t>(
+                    std::chrono::duration_cast<std::chrono::seconds>(
+                      std::chrono::system_clock::from_time_t(_mkgmtime(&tm))
+                        .time_since_epoch()).count());
+                  game_state_export::capture_peace_shield(expiry_epoch, -1);
+                }
+              }
+            } else if (section.value("state", -1) == 0) {
+              // state=0 with no peace_shield object means no active shield
+              game_state_export::capture_peace_shield(0, -1);
+            }
+          } catch (const json::exception& je) {
+            spdlog::warn("GameState: starbase parse error: {}", je.what());
+          }
+        }
+      } else if (key == "alliance_container") {
         // Parse it and update the peace shield expiry - token count unchanged (-1 = keep).
         try {
           if (section.is_null() || section.empty()) {

@@ -55,6 +55,11 @@ static std::unordered_map<uint64_t, std::unordered_map<uint64_t, int32_t>> cache
 static int64_t cached_shield_expiry_epoch = 0;
 static int64_t cached_shield_token_count  = 0;
 
+// Station info from "starbase" blob key
+static int32_t cached_home_system_id        = 0;
+static int64_t cached_last_relocation_epoch = 0;  // 0 = unknown
+static int64_t cached_relocation_tokens     = 0;
+
 // Drydock assignments: drydock_id (1-based) -> player ship id
 static std::vector<DrydockEntry> cached_drydock_assignments;
 
@@ -383,6 +388,30 @@ void capture_peace_shield(int64_t active_expiry_epoch, int64_t token_count)
   if (first_real_expiry) {
     request_full_export();
   } else if (expiry_changed) {
+    request_immediate_export();
+  }
+}
+
+void capture_station_info(int32_t home_system_id, int64_t last_relocation_epoch,
+                          int64_t relocation_tokens)
+{
+  std::scoped_lock lock(game_data_mutex);
+  bool changed = false;
+  if (home_system_id != 0 && home_system_id != cached_home_system_id) {
+    cached_home_system_id = home_system_id;
+    changed = true;
+  }
+  if (last_relocation_epoch != 0 && last_relocation_epoch != cached_last_relocation_epoch) {
+    cached_last_relocation_epoch = last_relocation_epoch;
+    changed = true;
+  }
+  if (relocation_tokens >= 0 && relocation_tokens != cached_relocation_tokens) {
+    cached_relocation_tokens = relocation_tokens;
+    changed = true;
+  }
+  if (changed) {
+    spdlog::info("GameState: station info: home_system={} last_relocation_epoch={} relocation_tokens={}",
+                 cached_home_system_id, cached_last_relocation_epoch, cached_relocation_tokens);
     request_immediate_export();
   }
 }
@@ -961,6 +990,36 @@ json build_game_state_json()
     j["station"]["peace_shield"] = shield_json;
   }
 
+  // Station info from "starbase" blob key
+  if (cached_home_system_id != 0)
+    j["station"]["home_system_id"] = cached_home_system_id;
+
+  if (cached_last_relocation_epoch != 0) {
+    std::time_t reloc_t  = static_cast<std::time_t>(cached_last_relocation_epoch);
+    std::tm     reloc_tm = {};
+#ifdef _WIN32
+    gmtime_s(&reloc_tm, &reloc_t);
+#else
+    gmtime_r(&reloc_t, &reloc_tm);
+#endif
+    std::ostringstream oss;
+    oss << std::put_time(&reloc_tm, "%Y-%m-%dT%H:%M:%SZ");
+    j["station"]["last_relocation_at"] = oss.str();
+
+    auto now_epoch = std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+    double days = static_cast<double>(now_epoch - cached_last_relocation_epoch) / 86400.0;
+    j["station"]["days_in_system"] = std::round(days * 10.0) / 10.0;  // 1 decimal place
+  }
+
+  j["station"]["relocation_tokens"] = cached_relocation_tokens;
+  if (o.resources) {
+    static constexpr int64_t RELOCATION_TOKEN_RESOURCE_ID = 1638723607LL;
+    auto it = cached_resources.find(RELOCATION_TOKEN_RESOURCE_ID);
+    if (it != cached_resources.end())
+      j["station"]["relocation_tokens"] = it->second;
+  }
+
   // Active missions (always present even when missions flag is false - missions file is separate)
   j["missions_active"] = json::array();
   for (const auto& [instance_id, mission_id] : cached_missions_active) {
@@ -1367,7 +1426,7 @@ void export_game_state()
 
       manifest["files"] = json::array({
         make_entry("player.json",    gist.filename_player,
-          "Player profile (name, ops level, power, server, syndicate level/XP), station peace shield, drydock assignments, and alliance (name, tag, level, member count, power)",
+          "Player profile (name, ops level, power, server, syndicate level/XP), station (home system, last relocation, days in system, relocation tokens, peace shield), drydock assignments, and alliance (name, tag, level, member count, power)",
           {"player", "station", "drydocks"}),
         make_entry("ships.json",     gist.filename_ships,
           "Ships in the hangar (hull, tier, level, components, tier_max_level, tier_up_duration_secs, cargo_capacity, cargo_protection), blueprint part counts, and ship unlock blueprint progress",

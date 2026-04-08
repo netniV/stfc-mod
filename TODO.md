@@ -70,26 +70,24 @@ Needs investigation - unknown EntityGroup type or Json blob key.
 - Are shard counts in cached_resources or a separate inventory type?
 Data source trigger: unknown - needs investigation.
 
-### TODO-6: Home system ID in player export
-StarbaseInfo.location is a NodeAddress with a system field (the player home system ID).
-StarbaseInfo.lastRelocation is a Timestamp - seconds since epoch when the station last moved.
-The "starbase" Json blob key (observed at login) contains StarbaseInfo inline.
-- [ ] Add handler for "starbase" key in process_json
-- [ ] Export player.station.home_system_id (StarbaseInfo.location.system)
-- [ ] Export player.station.last_relocation_at (ISO-8601 from StarbaseInfo.lastRelocation)
-- [ ] Export player.station.days_in_system (derived: now - last_relocation_at)
-- [ ] Export player.station.relocation_tokens (Resource_RelocationToken from cached_resources;
-      already in resources.json but worth surfacing in station section for convenience)
-Data source: auto at login.
+### TODO-6: Home system ID, station duration, relocation tokens in player export - DONE
+All from StarbaseInfo in the "starbase" Json blob key (arrives at login).
+Exported in player.json under station:
+  home_system_id       - StarbaseInfo.location.system
+  last_relocation_at   - ISO-8601 UTC from StarbaseInfo.lastRelocation
+  days_in_system       - derived: (now - last_relocation_at) / 86400, 1 decimal place
+  relocation_tokens    - Resource_RelocationToken (id 1638723607) from cached_resources
+Peace shield also updated from inline peace_shield field in the same blob,
+providing an earlier/more reliable source than my_shield_state.
 
 ### TODO-7: Alliance starbase info
 AllianceProfile (type 71) does not include starbase location or state.
-The "alliance_container" Json blob key (observed at login) likely carries this.
-StarbaseInfo.location.system = alliance starbase home system.
-StarbaseInfo.state = starbase state (moving, anchored, etc).
-- [ ] Log raw "alliance_container" to confirm structure
+The "alliance_container" Json blob key was confirmed empty ({}) at login.
+Alliance starbase data is likely only pushed when navigating to the alliance screen.
+Needs further investigation - check if StarbaseDetailedScan or another EG type
+carries alliance starbase info, or if it only arrives on-demand.
+- [ ] Identify which EG type or navigation triggers alliance starbase data
 - [ ] Export alliance.starbase_system_id and alliance.starbase_state in player.json
-Data source: likely auto at login via alliance_container blob key.
 
 ### TODO-8: example_community_patch_settings.toml - missing show_settings hotkey - DONE
 show_settings = "SHIFT-S" added between show_scrapyard and show_ships.
@@ -105,8 +103,12 @@ Items marked (trigger: ...) require the user to navigate to a specific screen.
 | Alliance name/tag/level | player.json | AllianceProfiles type 71 + cache | auto (from cache) |
 | Ops level | player.json | OPERATIONS building in buildings | auto |
 | Syndicate level/XP | player.json | Resource_Loyalty_* IDs in resources | auto |
-| Peace shield expiry | player.json | my_shield_state Json blob key | auto |
+| Peace shield expiry | player.json | starbase + my_shield_state Json blob keys | auto |
 | Peace shield tokens | player.json | cached_resources known IDs | auto |
+| Station home system | player.json | Json blob "starbase" key (StarbaseInfo.location) | auto |
+| Station last relocation | player.json | Json blob "starbase" key (StarbaseInfo.lastRelocation) | auto |
+| Station days in system | player.json | derived from last_relocation_at | auto |
+| Relocation tokens | player.json | Resource_RelocationToken in resources | auto |
 | Buildings | player.json | Json blob "starbase_modules" | auto |
 | Drydock assignments + ship status | player.json | Json blob "fleets" + "my_deployed_fleets" | auto |
 | Ships in hangar | ships.json | Json blob "ships" key | auto |
