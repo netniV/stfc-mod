@@ -14,13 +14,15 @@ false per ship: `fs.is_damaged = contains(ship_dmg) && contains(sid) && value > 
 
 ### INV-1: Peace shield - special shield types
 Peace shield expiry and tokens are fully working for standard player-applied shields.
+Data source confirmed: my_shield_state JSON blob key (arrives in initial login payload
+AND on station navigation). starbase blob also carries peace_shield at login.
 Two special cases have not been observed in proto data yet:
 - Golden peace shield (Scopely-applied after maintenance) - unknown if it appears in
   my_shield_state or StarbaseDetailedScan, or uses a separate field/type entirely
 - Auto-10min shield (triggered on first attack while unshielded) - unknown if it
   appears via the same my_shield_state path or a different one
 Both require specific in-game conditions to observe. When either occurs, check
-community_patch.log for "my_shield_state:" and "StarbaseDetailedScan:" lines.
+community_patch.log for "GameState: my_shield_state:" and "StarbaseDetailedScan:" lines.
 
 ### INV-2: Ship status enrichment - RESOLVED
 The `is_mining` boolean field in `my_deployed_fleets` cleanly distinguishes
