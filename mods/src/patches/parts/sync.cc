@@ -2071,6 +2071,19 @@ void cache_player_names(std::unique_ptr<std::string>&& bytes)
             player_data["alliance"]    = "";
             game_state_export::capture_player_data(player_data);
             spdlog::info("GameState: Captured own player name={}, power={}", profile.name(), profile.militarymight());
+            // Try to resolve alliance name immediately from cache (if AllianceProfiles
+            // already arrived this session); cache_alliance_names handles the reverse order
+            {
+              std::scoped_lock lk(alliance_data_cache_mtx);
+              auto it = alliance_data_cache.find(profile.allianceid());
+              if (it != alliance_data_cache.end()) {
+                spdlog::info("GameState: Resolved alliance from cache: '{}' [{}]",
+                             it->second.name, it->second.tag);
+                game_state_export::capture_player_alliance(
+                  it->second.name, it->second.tag,
+                  it->second.level, it->second.member_count, it->second.power);
+              }
+            }
             break;
           }
         }
@@ -2114,15 +2127,20 @@ void cache_alliance_names(std::unique_ptr<std::string>&& bytes)
 
     // Enrich captured player data with alliance name now that we have it
     if (Config::Get().game_state_enabled) {
-      std::scoped_lock lk(player_data_cache_mtx);
-      for (const auto& [player_id, player] : player_data_cache) {
-        auto it = names.find(player.alliance);
-        if (it != names.end()) {
-          // Re-capture player data with the alliance name filled in
-          // (ops_level, power, server will be re-populated on next UserProfiles update)
-          game_state_export::capture_player_alliance(
-            it->second.name, it->second.tag,
-            it->second.level, it->second.member_count, it->second.power);
+      const auto& player_id = Config::Get().game_state_player_id;
+      if (!player_id.empty()) {
+        std::scoped_lock lk(player_data_cache_mtx);
+        auto player_it = player_data_cache.find(player_id);
+        if (player_it != player_data_cache.end()) {
+          auto alliance_it = names.find(player_it->second.alliance);
+          if (alliance_it != names.end()) {
+            spdlog::info("GameState: Enriching alliance for player={} -> alliance='{}' [{}]",
+                         player_id, alliance_it->second.name, alliance_it->second.tag);
+            game_state_export::capture_player_alliance(
+              alliance_it->second.name, alliance_it->second.tag,
+              alliance_it->second.level, alliance_it->second.member_count,
+              alliance_it->second.power);
+          }
         }
       }
     }
