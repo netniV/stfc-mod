@@ -2208,8 +2208,10 @@ void process_json(std::unique_ptr<std::string>&& bytes)
                 }
               }
             } else if (section.value("state", -1) == 0) {
-              // state=0 with no peace_shield object means no active shield
-              game_state_export::capture_peace_shield(0, -1);
+              // state=0 with no peace_shield object — log only; don't reset.
+              // Mid-session starbase blob updates omit peace_shield even when a shield
+              // is active — treating absence as "no shield" causes false resets.
+              spdlog::debug("starbase blob: state=0 with no peace_shield (ignoring — not authoritative)");
             }
           } catch (const json::exception& je) {
             spdlog::warn("GameState: starbase parse error: {}", je.what());
@@ -2219,17 +2221,18 @@ void process_json(std::unique_ptr<std::string>&& bytes)
         // handled in first pass above — skip here
       } else if (key == "alliance" || key == "alliance_members") {
         // alliance profile / member roster — no useful game state to capture here
-      } else if (key == "alliance_container") {
-        // Parse it and update the peace shield expiry - token count unchanged (-1 = keep).
+      } else if (key == "alliance_container" || key == "my_shield_state") {
+        // Both keys carry peace shield state. alliance_container arrives at login;
+        // my_shield_state arrives on station navigation and as mid-session updates.
+        // Null/empty = no active shield. Object with expiry_time = shield active.
+        if (!export_gs) continue;
         try {
           if (section.is_null() || section.empty()) {
-            // Null / empty means no active shield
             game_state_export::capture_peace_shield(0, -1);
-            spdlog::info("GameState: my_shield_state: no active shield");
+            spdlog::info("GameState: {}: no active shield", key);
           } else {
             const std::string expiry_str = section.value("expiry_time", "");
             if (!expiry_str.empty()) {
-              // Parse UTC ISO-8601: "2026-04-08T01:46:01"
               std::tm tm{};
               std::istringstream ss(expiry_str);
               ss >> std::get_time(&tm, "%Y-%m-%dT%H:%M:%S");
@@ -2241,11 +2244,11 @@ void process_json(std::unique_ptr<std::string>&& bytes)
                       .time_since_epoch()).count());
               }
               game_state_export::capture_peace_shield(expiry_epoch, -1);
-              spdlog::info("GameState: my_shield_state: expiry={} epoch={}", expiry_str, expiry_epoch);
+              spdlog::info("GameState: {}: expiry={} epoch={}", key, expiry_str, expiry_epoch);
             }
           }
         } catch (const json::exception& je) {
-          spdlog::warn("GameState: my_shield_state parse error: {}", je.what());
+          spdlog::warn("GameState: {} parse error: {}", key, je.what());
         }
       }
     }
