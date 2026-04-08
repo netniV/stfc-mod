@@ -2217,6 +2217,8 @@ void process_json(std::unique_ptr<std::string>&& bytes)
         }
       } else if (key == "my_deployed_fleets") {
         // handled in first pass above — skip here
+      } else if (key == "alliance" || key == "alliance_members") {
+        // alliance profile / member roster — no useful game state to capture here
       } else if (key == "alliance_container") {
         // Parse it and update the peace shield expiry - token count unchanged (-1 = keep).
         try {
@@ -2827,6 +2829,17 @@ void HandleEntityGroup(EntityGroup* entity_group)
     case EntityGroup::Type::AllianceProfiles:
       if (Config::Get().sync_options.battlelogs || Config::Get().game_state_enabled) {
         submit_async(cache_alliance_names);
+      }
+      break;
+    case EntityGroup::Type::AllianceStarbaseConfig:
+      if (Config::Get().game_state_enabled) {
+        submit_async([](std::unique_ptr<std::string>&& bytes) {
+          if (auto r = Digit::PrimeServer::Models::StaticSyncAllianceStarbaseConfResponse();
+              r.ParseFromString(*bytes)) {
+            const int32_t system_id = static_cast<int32_t>(r.alliancestarbaseconfig().originsystemid());
+            game_state_export::capture_alliance_starbase_system(system_id);
+          }
+        });
       }
       break;
     default:

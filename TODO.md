@@ -98,14 +98,13 @@ Exported in player.json under station:
 Peace shield also updated from inline peace_shield field in the same blob,
 providing an earlier/more reliable source than my_shield_state.
 
-### TODO-7: Alliance starbase info
-AllianceProfile (type 71) does not include starbase location or state.
-The "alliance_container" Json blob key was confirmed empty ({}) at login.
-Alliance starbase data is likely only pushed when navigating to the alliance screen.
-Needs further investigation - check if StarbaseDetailedScan or another EG type
-carries alliance starbase info, or if it only arrives on-demand.
-- [ ] Identify which EG type or navigation triggers alliance starbase data
-- [ ] Export alliance.starbase_system_id and alliance.starbase_state in player.json
+### TODO-7: Alliance starbase info - DONE
+AllianceStarbaseConfig (EntityGroup type 125) fires at login and contains
+originsystemid — the system the alliance starbase is located in.
+Exported as player.alliance.starbase_system_id in player.json.
+Note: alliance starbase "state" (under attack, etc.) is not available through
+any intercepted channel — StarbaseDetailedScan only fires for the player's own
+station and has no system location field.
 
 ### TODO-8: example_community_patch_settings.toml - missing show_settings hotkey - DONE
 show_settings = "SHIFT-S" added between show_scrapyard and show_ships.

@@ -159,6 +159,9 @@ namespace game_state_export
   };
   void capture_territory_slots(std::vector<TerritorySlot>&& held, int32_t total_slots);
 
+  // Alliance starbase system ID (AllianceStarbaseConfig type 125, arrives at login)
+  void capture_alliance_starbase_system(int32_t system_id);
+
   // Blueprint specs (BlueprintSpecs type 21) — spec_id -> { name, parts_needed, hull_id }
   struct BlueprintSpecEntry {
     int64_t     spec_id     = 0;

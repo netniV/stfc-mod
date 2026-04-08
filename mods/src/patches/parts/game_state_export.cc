@@ -59,6 +59,7 @@ static int64_t cached_shield_token_count  = 0;
 static int32_t cached_home_system_id        = 0;
 static int64_t cached_last_relocation_epoch = 0;  // 0 = unknown
 static int64_t cached_relocation_tokens     = 0;
+static int32_t cached_alliance_starbase_system_id = 0;
 
 // Drydock assignments: drydock_id (1-based) -> player ship id
 static std::vector<DrydockEntry> cached_drydock_assignments;
@@ -444,6 +445,16 @@ void capture_station_info(int32_t home_system_id, int64_t last_relocation_epoch,
   }
 }
 
+void capture_alliance_starbase_system(int32_t system_id)
+{
+  if (system_id == 0) return;
+  std::scoped_lock lock(game_data_mutex);
+  if (system_id == cached_alliance_starbase_system_id) return;
+  cached_alliance_starbase_system_id = system_id;
+  spdlog::info("GameState: alliance starbase system_id={}", system_id);
+  request_immediate_export();
+}
+
 void capture_drydock_assignments(const std::vector<DrydockEntry>& assignments)
 {
   std::scoped_lock lock(game_data_mutex);
@@ -776,6 +787,12 @@ json build_game_state_json()
       {"alliance", ""},
       {"power", 0}
     };
+  }
+
+  // Alliance starbase system ID (from AllianceStarbaseConfig, arrives at login)
+  if (cached_alliance_starbase_system_id != 0 &&
+      j["player"].is_object() && j["player"]["alliance"].is_object()) {
+    j["player"]["alliance"]["starbase_system_id"] = cached_alliance_starbase_system_id;
   }
 
   // Syndicate level and XP come from resources - gated by resources flag
@@ -1651,7 +1668,7 @@ void export_game_state()
 
       manifest["files"] = json::array({
         make_entry("player.json",    gist.filename_player,
-          "Player profile (name, ops level, power, server, syndicate level/XP), station (home system, last relocation, days in system, relocation tokens, peace shield), drydock assignments (with per-ship repair status), alliance (name, tag, level, member count, power), and active job queues (research, build, scrap)",
+          "Player profile (name, ops level, power, server, syndicate level/XP), station (home system, last relocation, days in system, relocation tokens, peace shield), drydock assignments (with per-ship repair status), alliance (name, tag, level, member count, power, starbase_system_id), and active job queues (research, build, scrap)",
           {"player", "station", "drydocks", "queues"}),
         make_entry("buildings.json", gist.filename_buildings,
           "Station buildings (modules) with their current level",

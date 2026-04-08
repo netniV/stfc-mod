@@ -92,7 +92,8 @@ if ($gsPlayer) {
         Check "alliance.name non-empty"   ($gsPlayer.player.alliance.name -ne "")
         Check "alliance.tag non-empty"    ($gsPlayer.player.alliance.tag -ne "")
         Check "alliance.level > 0"        ($gsPlayer.player.alliance.level -gt 0)
-        Check "alliance.member_count > 0" ($gsPlayer.player.alliance.member_count -gt 0)
+        Check "alliance.member_count > 0"        ($gsPlayer.player.alliance.member_count -gt 0)
+        Check "alliance.starbase_system_id > 0"  ($gsPlayer.player.alliance.starbase_system_id -gt 0)
         Write-Host "    alliance: $($gsPlayer.player.alliance.name) [$($gsPlayer.player.alliance.tag)] lvl=$($gsPlayer.player.alliance.level) members=$($gsPlayer.player.alliance.member_count) power=$($gsPlayer.player.alliance.power)" -ForegroundColor DarkGray
     } else {
         Write-Host "  [INFO] alliance not yet received" -ForegroundColor Yellow
