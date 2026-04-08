@@ -67,6 +67,38 @@ arrives last in the repeated payload wins.
 - [ ] Verify fix: export should consistently show `GROW` across all
       successive exports after login
 
+### BUG-5: Ship unlock blueprint counts not exported
+**Symptom:** `ships.json` -> `blueprints` array contains only ship upgrade
+parts (e.g. `Resource_Parts_Battleship_G4_R2`, `Resource_Defiant_Parts_R3`).
+Ship unlock blueprint counts (BPs accumulated toward building a new ship from
+the faction store, e.g. Augur 35/150, Enterprise 133/150) are absent from all
+10 manifest files. Confirmed: not in resources.json, not in the ships array,
+not in the blueprints array.
+**Root cause:** The existing `blueprints` array in `game_state_export.cc` is
+built from `cached_resources` using a name-pattern filter (`_Parts_`). Ship
+unlock BPs are `INVENTORYITEMTYPE_INVENTORYBLUEPRINT` (type=1) items in
+`InventoryResponse` -- a completely different inventory type.
+`process_player_inventories` iterates them but never routes to
+`game_state_export`. Their `commonParams.refId` is the hull ID; `count` is
+the owned BP count. `MappingCache::get_ship(hull_id)` already provides the
+human-readable ship name.
+**Fix plan:**
+- [ ] In `process_player_inventories` (`sync.cc`), add a branch for
+      `item.type() == INVENTORYITEMTYPE_INVENTORYBLUEPRINT` that calls a new
+      `game_state_export::capture_ship_blueprints()`
+- [ ] Add `capture_ship_blueprints()` in `game_state_export.cc` storing
+      `map<hull_id, count>` in a new `cached_ship_blueprints` cache
+- [ ] Investigate where the required BP count lives -- check static hull
+      build specs (likely a separate EntityGroup not yet parsed) or whether
+      it can be derived from existing HullSpec data
+- [ ] Export as a new `ship_blueprints` array in `ships.json`, distinct from
+      the existing `blueprints` (parts) array. Each entry: `hull_id`, `name`,
+      `amount`, `required` (if resolvable)
+- [ ] Update `manifest.json` description for `ships.json` to mention
+      ship unlock blueprint progress
+**Reported by:** DrCord, Server 709. Verified against
+`stfc_ships.json` exported_at 2026-04-07T16:58:42.
+
 ---
 
 ## ?? Pending Work
