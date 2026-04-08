@@ -2,15 +2,21 @@
 
 ## Open Bugs
 
-### BUG-2 (partial): Peace shield edge cases
-Fixed: expiry from my_shield_state Json blob key (arrives automatically at login).
-Also works via StarbaseDetailedScan (type 57) when triggered manually.
-Trigger for StarbaseDetailedScan: tap station in system view (NOT galaxy view, NOT exterior).
-Exterior shield icon confirmed NOT a trigger for StarbaseDetailedScan.
-Tokens from cached_resources (auto at login).
-Still open - all require specific in-game conditions to test:
-- [ ] Golden peace shield (Scopely-applied after maintenance) - not yet in proto data
-- [ ] Auto-10min shield (triggered on first attack) - verify via StarbaseDetailedScan path
+None.
+
+---
+
+## Investigate / Unknown
+
+### INV-1: Peace shield - special shield types
+Peace shield expiry and tokens are fully working for standard player-applied shields.
+Two special cases have not been observed in proto data yet:
+- Golden peace shield (Scopely-applied after maintenance) - unknown if it appears in
+  my_shield_state or StarbaseDetailedScan, or uses a separate field/type entirely
+- Auto-10min shield (triggered on first attack while unshielded) - unknown if it
+  appears via the same my_shield_state path or a different one
+Both require specific in-game conditions to observe. When either occurs, check
+community_patch.log for "my_shield_state:" and "StarbaseDetailedScan:" lines.
 
 ---
 
