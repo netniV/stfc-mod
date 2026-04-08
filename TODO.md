@@ -99,16 +99,6 @@ carries alliance starbase info, or if it only arrives on-demand.
 ### TODO-8: example_community_patch_settings.toml - missing show_settings hotkey - DONE
 show_settings = "SHIFT-S" added between show_scrapyard and show_ships.
 
-### TODO-10: Move buildings out of player.json into its own file
-Currently buildings is written into player.json (when o.buildings is true).
-Move it to a dedicated buildings.json alongside the other per-section files,
-following the same pattern as ships.json, resources.json, etc.
-- [ ] Add buildings.json write in the per-section export block
-- [ ] Remove buildings from player.json
-- [ ] Add buildings.json to the Gist sync manifest
-- [ ] Update test_e2e.ps1 to check buildings.json
-- [ ] Update INSTALL.md / example_community_patch_settings.toml if needed
-
 ---
 
 
