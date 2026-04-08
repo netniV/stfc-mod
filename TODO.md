@@ -47,6 +47,26 @@ Each entry has a raw server-side `drydock_id` and `ship_ids`. Sort by
 `drydock_id` ascending, re-index 1-5, export layer maps 1=A ... 5=E.
 **Arrives automatically at login � no navigation required.**
 
+### BUG-4: Alliance data overwritten with wrong alliance on successive exports
+**Symptom:** Player is in alliance `GROW`, but successive exports show
+different/incorrect alliance names, as if other players' alliance data is
+overwriting the cached value.
+**Suspected cause:** `AllianceProfiles` (EntityGroup type 71) is a bulk
+response containing profiles for many alliances (the player's own plus
+others seen nearby or in territory). The capture loop likely lacks a filter
+to pick only the alliance the player is a member of, so whichever entry
+arrives last in the repeated payload wins.
+**Investigation needed:**
+- [ ] Read `process_alliance_profiles` in `sync.cc` -- confirm whether
+      the player's own alliance is identified correctly vs all others
+- [ ] Check what field in `AllianceProfile` proto identifies membership
+      (likely `memberUserIds` contains the player's own
+      `Config::Get().game_state_player_id`)
+- [ ] Fix capture to only accept the alliance the player is a member of,
+      ignoring all other profiles in the response
+- [ ] Verify fix: export should consistently show `GROW` across all
+      successive exports after login
+
 ---
 
 ## ?? Pending Work
