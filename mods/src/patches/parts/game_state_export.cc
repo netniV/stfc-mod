@@ -56,7 +56,7 @@ static int64_t cached_shield_expiry_epoch = 0;
 static int64_t cached_shield_token_count  = 0;
 
 // Drydock assignments: drydock_id (1-based) -> player ship id
-static std::vector<std::pair<int32_t, int64_t>> cached_drydock_assignments;
+static std::vector<DrydockEntry> cached_drydock_assignments;
 
 // Missions
 static std::vector<std::pair<int64_t, int64_t>> cached_missions_active;    // {instance_id, mission_id}
@@ -387,7 +387,7 @@ void capture_peace_shield(int64_t active_expiry_epoch, int64_t token_count)
   }
 }
 
-void capture_drydock_assignments(const std::vector<std::pair<int32_t, int64_t>>& assignments)
+void capture_drydock_assignments(const std::vector<DrydockEntry>& assignments)
 {
   std::scoped_lock lock(game_data_mutex);
   if (cached_drydock_assignments == assignments) return;
@@ -997,14 +997,24 @@ json build_game_state_json()
     return result;
   };
 
+  // DeployedFleetState: 0=idle,1=moving,2=warping,3=battling,4=recall,5=docked,6=prebattle
+  static const std::unordered_map<int32_t, std::string> FLEET_STATE_NAMES = {
+    {0, "idle"}, {1, "moving"}, {2, "warping"}, {3, "battling"},
+    {4, "recall"}, {5, "docked"}, {6, "prebattle"}
+  };
+
   j["drydocks"] = json::array();
-  for (const auto& [drydock_id, ship_id] : cached_drydock_assignments) {
+  for (const auto& d : cached_drydock_assignments) {
     json entry;
-    entry["drydock_id"] = drydock_id;
-    entry["letter"]     = drydock_letter(drydock_id);
-    entry["ship_id"]    = ship_id;
+    entry["drydock_id"] = d.drydock_id;
+    entry["letter"]     = drydock_letter(d.drydock_id);
+    entry["ship_id"]    = d.ship_id;
+    auto state_it = FLEET_STATE_NAMES.find(d.state);
+    entry["status"]     = (state_it != FLEET_STATE_NAMES.end()) ? state_it->second : "unknown";
+    entry["is_damaged"] = d.is_damaged;
+    if (d.system_id != 0) entry["system_id"] = d.system_id;
     // Enrich with ship name via hull_id lookup if the ship is in the hangar cache
-    auto ship_it = cached_ships.find(ship_id);
+    auto ship_it = cached_ships.find(d.ship_id);
     if (ship_it != cached_ships.end() && ship_it->second.contains("hull_id")) {
       int64_t hull_id = ship_it->second["hull_id"].get<int64_t>();
       auto mapping = id_mappings::MappingCache::Get().get_ship(hull_id);
@@ -1014,13 +1024,15 @@ json build_game_state_json()
     }
     j["drydocks"].push_back(entry);
   }
-  // Annotate each ship in the ships array with its drydock letter
+  // Annotate each ship in the ships array with its drydock letter and status
   for (auto& ship_entry : j["ships"]) {
     int64_t sid = ship_entry["id"].get<int64_t>();
-    for (const auto& [drydock_id, ship_id] : cached_drydock_assignments) {
-      if (ship_id == sid) {
-        ship_entry["drydock"]    = drydock_letter(drydock_id);
-        ship_entry["drydock_id"] = drydock_id;
+    for (const auto& d : cached_drydock_assignments) {
+      if (d.ship_id == sid) {
+        auto state_it = FLEET_STATE_NAMES.find(d.state);
+        ship_entry["drydock"]    = drydock_letter(d.drydock_id);
+        ship_entry["drydock_id"] = d.drydock_id;
+        ship_entry["status"]     = (state_it != FLEET_STATE_NAMES.end()) ? state_it->second : "unknown";
         break;
       }
     }

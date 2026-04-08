@@ -30,8 +30,16 @@ namespace game_state_export
   // Pass active_expiry_epoch = -1 to update token count only (from inventory path).
   void capture_peace_shield(int64_t active_expiry_epoch, int64_t token_count);
 
-  // Drydock assignments: map of drydock_id (1-based) -> player ship id
-  void capture_drydock_assignments(const std::vector<std::pair<int32_t, int64_t>>& assignments);
+  // Drydock assignments with ship status
+  struct DrydockEntry {
+    int32_t drydock_id = 0;   // 1-based sequential
+    int64_t ship_id    = 0;
+    int32_t state      = 0;   // DeployedFleetState: 0=idle,1=moving,2=warping,3=battling,4=recall,5=docked,6=prebattle
+    int32_t system_id  = 0;   // current system (node_address.system), 0 if unknown
+    bool    is_damaged = false; // ship_dmg > 0
+    bool operator==(const DrydockEntry&) const = default;
+  };
+  void capture_drydock_assignments(const std::vector<DrydockEntry>& assignments);
 
   // Missions
   void capture_missions_active(const std::vector<std::pair<int64_t, int64_t>>& missions); // {instance_id, mission_id}

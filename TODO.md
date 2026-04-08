@@ -26,14 +26,12 @@ community_patch.log for "my_shield_state:" and "StarbaseDetailedScan:" lines.
 battle_log = false in [sync.game_state]. Documented in INSTALL.md and
 example_community_patch_settings.toml.
 
-### TODO-2: Ship status in drydock export
-Currently drydock assignments export only which ship is in which slot.
-Investigate what status data is available per drydock slot. Known possible statuses:
-repairing, defending station (home/idle), away and idle, fighting, mining,
-warping between systems, moving in-system via impulse.
-Data likely in the Json blob "deployed_fleets" or "fleets" keys - check at login
-and after navigating to different views.
-Data source trigger: unknown - needs investigation.
+### TODO-2: Ship status in drydock export - DONE
+Each drydock entry now includes: status (idle/moving/warping/battling/recall/docked/prebattle),
+system_id (current system, omitted if 0), is_damaged (ship_dmg > 0).
+Status sourced from my_deployed_fleets Json blob key (arrives at login).
+DeployedFleetState enum: 0=idle, 1=moving, 2=warping, 3=battling, 4=recall, 5=docked, 6=prebattle.
+Status also annotated on each ship entry in ships.json.
 
 ### TODO-3: Research/build/scrap/repair queue export
 Jobs (EntityGroup type 56) only arrives when at least one job is active.
@@ -68,7 +66,7 @@ Items marked (trigger: ...) require the user to navigate to a specific screen.
 | Peace shield expiry | player.json | my_shield_state Json blob key | auto |
 | Peace shield tokens | player.json | cached_resources known IDs | auto |
 | Buildings | player.json | Json blob "starbase_modules" | auto |
-| Drydock assignments | player.json | Json blob "fleets" key | auto |
+| Drydock assignments + ship status | player.json | Json blob "fleets" + "my_deployed_fleets" | auto |
 | Ships in hangar | ships.json | Json blob "ships" key | auto |
 | Blueprint parts | ships.json | cached_resources _Parts_ pattern | auto |
 | Ship unlock BPs | ships.json | PlayerInventories type + BlueprintSpecs type 21 | auto |

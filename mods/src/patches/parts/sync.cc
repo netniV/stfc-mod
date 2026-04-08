@@ -1529,7 +1529,7 @@ void process_entity_slots(std::unique_ptr<std::string>&& bytes)
 
     // Capture drydock assignments for gamestate export
     if (Config::Get().game_state_enabled) {
-      std::vector<std::pair<int32_t, int64_t>> assignments;
+      std::vector<game_state_export::DrydockEntry> assignments;
       for (const auto& slot : response.entityslots_()) {
         spdlog::debug("EntitySlots: slot type={} id={} has_fleetpreset={}",
                       static_cast<int>(slot.slottype()), slot.id(),
@@ -1540,7 +1540,10 @@ void process_entity_slots(std::unique_ptr<std::string>&& bytes)
             spdlog::info("EntitySlots: FLEETPRESET drydock_id={} ship_count={}",
                          setup.drydockid(), setup.shipids_size());
             if (setup.drydockid() > 0 && !setup.shipids().empty()) {
-              assignments.emplace_back(setup.drydockid(), setup.shipids(0));
+              game_state_export::DrydockEntry e;
+              e.drydock_id = setup.drydockid();
+              e.ship_id    = setup.shipids(0);
+              assignments.push_back(e);
             }
           }
         }
@@ -1577,7 +1580,7 @@ void process_entity_slots_data(std::unique_ptr<std::string>&& bytes)
 
     // Capture drydock assignments for gamestate export
     if (Config::Get().game_state_enabled) {
-      std::vector<std::pair<int32_t, int64_t>> assignments;
+      std::vector<game_state_export::DrydockEntry> assignments;
       for (const auto& slots : response.entityslots()) {
         spdlog::debug("EntitySlotsData: entity_type={} slot_count={}",
                       static_cast<int>(slots.entitytype()), slots.slots_size());
@@ -1591,7 +1594,10 @@ void process_entity_slots_data(std::unique_ptr<std::string>&& bytes)
               spdlog::info("EntitySlotsData: FLEETPRESET drydock_id={} ship_count={}",
                            setup.drydockid(), setup.shipids_size());
               if (setup.drydockid() > 0 && !setup.shipids().empty()) {
-                assignments.emplace_back(setup.drydockid(), setup.shipids(0));
+                game_state_export::DrydockEntry e;
+                e.drydock_id = setup.drydockid();
+                e.ship_id    = setup.shipids(0);
+                assignments.push_back(e);
               }
             }
           }
@@ -2004,6 +2010,31 @@ void process_json(std::unique_ptr<std::string>&& bytes)
     const auto result = json::parse(bytes->begin(), bytes->end());
 
     const bool export_gs = Config::Get().game_state_enabled;
+
+    // First pass: build ship_id -> status map from my_deployed_fleets so it is
+    // available when we process the fleets key (key order is not guaranteed).
+    struct FleetStatus { int32_t state = 0; int32_t system_id = 0; bool is_damaged = false; };
+    std::unordered_map<int64_t, FleetStatus> fleet_status_by_ship;
+    if (export_gs && result.contains("my_deployed_fleets") &&
+        result["my_deployed_fleets"].is_object()) {
+      for (const auto& [fk, fv] : result["my_deployed_fleets"].items()) {
+        if (!fv.contains("ship_ids") || !fv["ship_ids"].is_array()) continue;
+        FleetStatus fs;
+        fs.state = fv.value("state", 0);
+        if (fv.contains("node_address") && fv["node_address"].contains("system") &&
+            !fv["node_address"]["system"].is_null()) {
+          fs.system_id = fv["node_address"]["system"].get<int32_t>();
+        }
+        for (const auto& sid_json : fv["ship_ids"]) {
+          int64_t sid = sid_json.get<int64_t>();
+          const std::string sid_str = std::to_string(sid);
+          if (fv.contains("ship_dmg") && fv["ship_dmg"].contains(sid_str)) {
+            fs.is_damaged = fv["ship_dmg"][sid_str].get<float>() > 0.f;
+          }
+          fleet_status_by_ship[sid] = fs;
+        }
+      }
+    }
     for (const auto& [key, section] : result.items()) {
       if (key == "battle_result_headers") {
         if (!Config::Get().sync_options.battlelogs && !Config::Get().game_state_enabled) {
@@ -2040,28 +2071,37 @@ void process_json(std::unique_ptr<std::string>&& bytes)
         // Sort by drydock_id ascending and re-index 1-based so the export
         // layer maps 1=A, 2=B ... 26=Z, 27=AA etc. Players can have more than 5.
         if (section.is_object() && !section.empty()) {
-          std::vector<std::pair<int32_t, int64_t>> assignments; // drydock_id -> ship_id
+          std::vector<game_state_export::DrydockEntry> assignments;
           for (const auto& [fleet_key, fleet] : section.items()) {
             if (!fleet.contains("drydock_id") || !fleet.contains("ship_ids")) continue;
             if (!fleet["ship_ids"].is_array() || fleet["ship_ids"].empty()) continue;
-            auto drydock_id = fleet["drydock_id"].get<int32_t>();
-            auto ship_id    = fleet["ship_ids"][0].get<int64_t>();
-            assignments.emplace_back(drydock_id, ship_id);
+
+            game_state_export::DrydockEntry e;
+            e.drydock_id = fleet["drydock_id"].get<int32_t>();
+            e.ship_id    = fleet["ship_ids"][0].get<int64_t>();
+            // Enrich with live status from my_deployed_fleets
+            auto status_it = fleet_status_by_ship.find(e.ship_id);
+            if (status_it != fleet_status_by_ship.end()) {
+              e.state      = status_it->second.state;
+              e.system_id  = status_it->second.system_id;
+              e.is_damaged = status_it->second.is_damaged;
+            }
+
+            assignments.push_back(e);
           }
           if (!assignments.empty()) {
             // Sort by raw drydock_id so letters A-E follow server ordering
             std::sort(assignments.begin(), assignments.end(),
-                      [](const auto& a, const auto& b) { return a.first < b.first; });
+                      [](const auto& a, const auto& b) { return a.drydock_id < b.drydock_id; });
             // Re-index to 1-based sequential IDs so the export layer maps 1=A, 2=B etc.
             for (int i = 0; i < static_cast<int>(assignments.size()); ++i) {
-              assignments[i].first = i + 1;
+              assignments[i].drydock_id = i + 1;
             }
             spdlog::info("process_json fleets: captured {} drydock assignments", assignments.size());
             game_state_export::capture_drydock_assignments(assignments);
           }
         }
       } else if (key == "my_shield_state") {
-        if (!export_gs) continue;
         // my_shield_state arrives in the Json blob with expiry_time as UTC ISO-8601.
         // Parse it and update the peace shield expiry - token count unchanged (-1 = keep).
         try {
