@@ -641,6 +641,27 @@ void Config::Load()
         std::ranges::any_of(targets_view, [opt](const auto& target) { return target.*opt.option; });
   }
 
+  // When game_state is enabled, any flag not explicitly set to false in [sync] defaults to true.
+  // This means game_state_enabled = true exports everything without requiring the user to list flags.
+  // A flag explicitly set to false in [sync] suppresses that type from BOTH game state and sync targets.
+  {
+    const toml::table* sync_tbl = config["sync"].as_table();
+    bool gs_enabled = false;
+    if (const toml::table* gs_tbl = sync_tbl ? sync_tbl->get_as<toml::table>("game_state") : nullptr) {
+      if (auto v = (*gs_tbl)["enabled"].value<bool>()) gs_enabled = *v;
+    }
+    if (gs_enabled) {
+      for (const auto& opt : SyncOptions) {
+        // Only override to true if the key was absent from [sync] (i.e. not explicitly false)
+        bool explicitly_false = sync_tbl && sync_tbl->contains(opt.option_str)
+                                && (*sync_tbl)[opt.option_str].value<bool>().value_or(true) == false;
+        if (!explicitly_false) {
+          this->sync_options.*opt.option = true;
+        }
+      }
+    }
+  }
+
   spdlog::debug("");
 
   // Game state configuration: [sync.game_state]

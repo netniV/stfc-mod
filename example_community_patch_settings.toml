@@ -373,22 +373,55 @@ token = ""
 # The url of the server to send data to
 url = ""
 
-# Subgroup: Data
-# --------------
+# Subgroup: Data types
+# --------------------
+# Each flag controls whether that data type is captured and exported.
+# Applies to BOTH local game state export (player.json, ships.json, etc.)
+# AND the legacy sync-target if url/token are set.
+#
+# Default for all flags is true - set to false to suppress a specific type.
+# You do NOT need to list these when game_state_enabled = true; silence = export everything.
+#
+# Flag    Affects
+# ------  ------------------------------------------------------------------
+# ships     ships.json: ships array, drydock status annotation
+#           (also blueprint_parts from resources, and ship_blueprints from inventory)
+# research  research.json + faction_favors in faction.json
+# buildings player.json: buildings array (ops level always included)
+# resources resources.json, blueprint parts in ships.json,
+#           faction_reputation / faction_store_tokens / armada_credits in faction.json,
+#           syndicate level/XP in player.json
+# officer   officers.json: officer list
+# traits    officers.json: trait ability levels within each officer (requires officer=true)
+# missions  missions.json: active and completed missions
+# buffs     buffs.json: full buff catalog
+#           faction.json: syndicate_loyalty_buffs
+#           faction.json: faction_favors (requires research=true as well)
+# inventory ships.json: ship_blueprints (unlock blueprint progress)
+# battlelogs battlelog.json: battle log CSV watcher
+#            (also controlled by battle_log under [sync.game_state])
+#
+# Types below have no game state equivalent yet (legacy sync-target only):
+# jobs      raw jobs queue (TODO-3)
+# slots     entity slot counts
+# tech      forbidden techs
+#
+# player identity, peace shield, drydocks, and territory are always exported
+# when game_state_enabled = true regardless of these flags.
 
-battlelogs = true
-buffs = true
-buildings = true
-inventory = true
-jobs = true
-missions = true
-officer = true
-research = true
-resources = true
-ships = true
-slots = true
-tech = true
-traits = true
+# battlelogs = true
+# buffs = true
+# buildings = true
+# inventory = true
+# jobs = true
+# missions = true
+# officer = true
+# research = true
+# resources = true
+# ships = true
+# slots = true
+# tech = true
+# traits = true
 
 # Subgroup: Diagnostics
 # ---------------------

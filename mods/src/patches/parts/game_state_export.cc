@@ -638,15 +638,16 @@ static std::string modifier_code_name(int32_t code)
 json build_game_state_json()
 {
   std::scoped_lock lock(game_data_mutex);
+  const auto& o = Config::Get().sync_options; // data-type opt-out flags from [sync]
 
   json j;
 
-  j["meta"]["version"] = "1.0.0";
-  j["meta"]["exported_at"] = get_iso8601_timestamp();
-  j["meta"]["mod_version"] = VER_FILE_VERSION_STR;
+  j["meta"]["version"]         = "1.0.0";
+  j["meta"]["exported_at"]     = get_iso8601_timestamp();
+  j["meta"]["mod_version"]     = VER_FILE_VERSION_STR;
   j["meta"]["mappings_loaded"] = id_mappings::MappingCache::Get().is_loaded();
 
-  // Player info
+  // Player identity is always included - no per-type flag covers it
   if (!cached_player_data.is_null()) {
     j["player"] = cached_player_data;
   } else {
@@ -658,10 +659,8 @@ json build_game_state_json()
     };
   }
 
-  // Syndicate (Loyalty) level and XP â€” read from cached_resources
-  // Resource_Loyalty_Tier_HiddenToken (1141922149) = current syndicate level
-  // Resource_Loyalty_Points           (3374607211) = accumulated XP points
-  {
+  // Syndicate level and XP come from resources - gated by resources flag
+  if (o.resources) {
     static constexpr int64_t SYNDICATE_LEVEL_RESOURCE_ID = 1141922149LL;
     static constexpr int64_t SYNDICATE_XP_RESOURCE_ID    = 3374607211LL;
     auto level_it = cached_resources.find(SYNDICATE_LEVEL_RESOURCE_ID);
@@ -670,147 +669,151 @@ json build_game_state_json()
     j["player"]["syndicate_xp"]    = (xp_it    != cached_resources.end()) ? xp_it->second    : 0;
   }
 
-  // Buildings - enrich with names
+  // Buildings - gated by buildings flag
   j["buildings"] = json::array();
-  for (const auto& [id, level] : cached_buildings) {
-    json building = {
-      {"id", id},
-      {"level", level}
-    };
-    id_mappings::MappingCache::Get().enrich_building(building);
-    j["buildings"].push_back(building);
+  if (o.buildings) {
+    for (const auto& [id, level] : cached_buildings) {
+      json building = {{"id", id}, {"level", level}};
+      id_mappings::MappingCache::Get().enrich_building(building);
+      j["buildings"].push_back(building);
+    }
   }
 
-  // Research - enrich with names
+  // Research - gated by research flag
   j["research"] = json::array();
-  for (const auto& [id, level] : cached_research) {
-    json research = {
-      {"id", id},
-      {"level", level}
-    };
-    id_mappings::MappingCache::Get().enrich_research(research);
-    j["research"].push_back(research);
+  if (o.research) {
+    for (const auto& [id, level] : cached_research) {
+      json research = {{"id", id}, {"level", level}};
+      id_mappings::MappingCache::Get().enrich_research(research);
+      j["research"].push_back(research);
+    }
   }
 
-  // Ships - enrich with names and tier metadata
+  // Ships - gated by ships flag
   j["ships"] = json::array();
-  for (const auto& [id, ship_data] : cached_ships) {
-    json ship_entry = ship_data;
-    ship_entry["id"] = id;
-    id_mappings::MappingCache::Get().enrich_ship(ship_entry);
+  if (o.ships) {
+    for (const auto& [id, ship_data] : cached_ships) {
+      json ship_entry = ship_data;
+      ship_entry["id"] = id;
+      id_mappings::MappingCache::Get().enrich_ship(ship_entry);
 
-    // Annotate with tier level cap and hull-specific tier-up duration
-    const int32_t tier = ship_entry.value("tier", 0);
-    auto cap_it = cached_tier_level_caps.find(tier);
-    if (cap_it != cached_tier_level_caps.end())
-      ship_entry["tier_max_level"] = cap_it->second;
+      const int32_t tier    = ship_entry.value("tier", 0);
+      const int64_t hull_id = ship_entry.value("hull_id", int64_t{0});
 
-    const int64_t hull_id = ship_entry.value("hull_id", int64_t{0});
-    auto dur_it = cached_hull_tier_durations.find(hull_id);
-    if (dur_it != cached_hull_tier_durations.end())
-      ship_entry["tier_up_duration_secs"] = dur_it->second;
+      auto cap_it = cached_tier_level_caps.find(tier);
+      if (cap_it != cached_tier_level_caps.end())
+        ship_entry["tier_max_level"] = cap_it->second;
 
-    auto cargo_hull_it = cached_hull_cargo_stats.find(hull_id);
-    if (cargo_hull_it != cached_hull_cargo_stats.end()) {
-      auto cargo_tier_it = cargo_hull_it->second.find(tier);
-      if (cargo_tier_it != cargo_hull_it->second.end()) {
-        ship_entry["cargo_capacity"]   = cargo_tier_it->second.capacity;
-        ship_entry["cargo_protection"] = cargo_tier_it->second.protection;
+      auto dur_it = cached_hull_tier_durations.find(hull_id);
+      if (dur_it != cached_hull_tier_durations.end())
+        ship_entry["tier_up_duration_secs"] = dur_it->second;
+
+      auto cargo_hull_it = cached_hull_cargo_stats.find(hull_id);
+      if (cargo_hull_it != cached_hull_cargo_stats.end()) {
+        auto cargo_tier_it = cargo_hull_it->second.find(tier);
+        if (cargo_tier_it != cargo_hull_it->second.end()) {
+          ship_entry["cargo_capacity"]   = cargo_tier_it->second.capacity;
+          ship_entry["cargo_protection"] = cargo_tier_it->second.protection;
+        }
       }
-    }
 
-    j["ships"].push_back(ship_entry);
+      j["ships"].push_back(ship_entry);
+    }
   }
 
-  // Officers - enrich with names and inject trait ability levels
+  // Officers - gated by officer flag; trait ability levels also gated by traits flag
   j["officers"] = json::array();
-  for (const auto& [id, officer_data] : cached_officers) {
-    json officer_entry = officer_data;
-    officer_entry["id"] = id;
-    id_mappings::MappingCache::Get().enrich_officer(officer_entry);
+  if (o.officer) {
+    for (const auto& [id, officer_data] : cached_officers) {
+      json officer_entry = officer_data;
+      officer_entry["id"] = id;
+      id_mappings::MappingCache::Get().enrich_officer(officer_entry);
 
-    // Inject player's trait ability levels into the traits array
-    auto it = cached_officer_traits.find(id);
-    if (it != cached_officer_traits.end() && officer_entry.contains("traits")) {
-      for (auto& trait : officer_entry["traits"]) {
-        uint64_t trait_id = trait["id"].get<uint64_t>();
-        auto level_it = it->second.find(trait_id);
-        trait["ability_level"] = (level_it != it->second.end()) ? level_it->second : 0;
+      if (o.traits) {
+        auto it = cached_officer_traits.find(id);
+        if (it != cached_officer_traits.end() && officer_entry.contains("traits")) {
+          for (auto& trait : officer_entry["traits"]) {
+            uint64_t trait_id = trait["id"].get<uint64_t>();
+            auto level_it = it->second.find(trait_id);
+            trait["ability_level"] = (level_it != it->second.end()) ? level_it->second : 0;
+          }
+        }
+      }
+
+      j["officers"].push_back(officer_entry);
+    }
+  }
+
+  // Resources - gated by resources flag
+  j["resources"] = json::array();
+  if (o.resources) {
+    for (const auto& [id, amount] : cached_resources) {
+      json resource = {{"id", id}, {"amount", amount}};
+      id_mappings::MappingCache::Get().enrich_resource(resource, id);
+      j["resources"].push_back(resource);
+    }
+  }
+
+  // Faction reputation - from resources, gated by resources flag
+  j["faction_reputation"] = json::array();
+  if (o.resources) {
+    for (const auto& [id, amount] : cached_resources) {
+      auto mapping = id_mappings::MappingCache::Get().get_resource(id);
+      if (!mapping) continue;
+      const std::string& name   = mapping->name;
+      const std::string  prefix = "Resource_FactionPoint_";
+      if (name.rfind(prefix, 0) == 0) {
+        j["faction_reputation"].push_back({
+          {"faction",     name.substr(prefix.size())},
+          {"resource_id", id},
+          {"points",      amount}
+        });
       }
     }
-
-    j["officers"].push_back(officer_entry);
   }
 
-  // Resources - enrich with names
-  j["resources"] = json::array();
-  for (const auto& [id, amount] : cached_resources) {
-    json resource = {
-      {"id", id},
-      {"amount", amount}
-    };
-    id_mappings::MappingCache::Get().enrich_resource(resource, id);
-    j["resources"].push_back(resource);
-  }
-
-  // Faction reputation - extracted from resources named Resource_FactionPoint_*
-  j["faction_reputation"] = json::array();
-  for (const auto& [id, amount] : cached_resources) {
-    auto mapping = id_mappings::MappingCache::Get().get_resource(id);
-    if (!mapping) continue;
-    const std::string& name = mapping->name;
-    // Match resource names like "Resource_FactionPoint_Federation"
-    const std::string prefix = "Resource_FactionPoint_";
-    if (name.rfind(prefix, 0) == 0) {
-      std::string faction = name.substr(prefix.size());
-      j["faction_reputation"].push_back({
-        {"faction", faction},
-        {"resource_id", id},
-        {"points", amount}
-      });
-    }
-  }
-
-  // Faction store tokens - resources named Resource_FactionToken_*
-  // These are the currencies spent in each faction's store.
+  // Faction store tokens - from resources, gated by resources flag
   j["faction_store_tokens"] = json::array();
-  for (const auto& [id, amount] : cached_resources) {
-    if (amount == 0) continue;
-    auto mapping = id_mappings::MappingCache::Get().get_resource(id);
-    if (!mapping) continue;
-    const std::string& name = mapping->name;
-    const std::string ft_prefix = "Resource_FactionToken_";
-    if (name.rfind(ft_prefix, 0) == 0) {
-      std::string token_name = name.substr(ft_prefix.size());
-      j["faction_store_tokens"].push_back({
-        {"token", token_name},
-        {"resource_id", id},
-        {"amount", amount}
-      });
+  if (o.resources) {
+    for (const auto& [id, amount] : cached_resources) {
+      if (amount == 0) continue;
+      auto mapping = id_mappings::MappingCache::Get().get_resource(id);
+      if (!mapping) continue;
+      const std::string& name      = mapping->name;
+      const std::string  ft_prefix = "Resource_FactionToken_";
+      if (name.rfind(ft_prefix, 0) == 0) {
+        j["faction_store_tokens"].push_back({
+          {"token",       name.substr(ft_prefix.size())},
+          {"resource_id", id},
+          {"amount",      amount}
+        });
+      }
     }
   }
 
-  // Super-armada credits (Bronze/Silver/Gold/Elite) and armada directives (Uncommon/Rare/Epic)
+  // Armada credits - from resources, gated by resources flag
   j["armada_credits"] = json::array();
-  for (const auto& [id, amount] : cached_resources) {
-    if (amount == 0) continue;
-    auto mapping = id_mappings::MappingCache::Get().get_resource(id);
-    if (!mapping) continue;
-    const std::string& name = mapping->name;
-    const std::string sa_prefix  = "Resource_Faction_SArmada_Credit_";
-    const std::string dir_prefix = "Resource_Faction_SArmadaDir_";
-    if (name.rfind(sa_prefix, 0) == 0 || name.rfind(dir_prefix, 0) == 0) {
-      j["armada_credits"].push_back({
-        {"resource_id", id},
-        {"name", name},
-        {"amount", amount}
-      });
+  if (o.resources) {
+    for (const auto& [id, amount] : cached_resources) {
+      if (amount == 0) continue;
+      auto mapping = id_mappings::MappingCache::Get().get_resource(id);
+      if (!mapping) continue;
+      const std::string& name       = mapping->name;
+      const std::string  sa_prefix  = "Resource_Faction_SArmada_Credit_";
+      const std::string  dir_prefix = "Resource_Faction_SArmadaDir_";
+      if (name.rfind(sa_prefix, 0) == 0 || name.rfind(dir_prefix, 0) == 0) {
+        j["armada_credits"].push_back({
+          {"resource_id", id},
+          {"name",        name},
+          {"amount",      amount}
+        });
+      }
     }
   }
 
-  // Syndicate loyalty buffs â€” active tiers claimed on the global Syndicate Loyalty track.
-  // Built by cross-referencing cached_active_buffs against cached_loyalty_buff_map.
-  {
+  // Syndicate loyalty buffs - gated by buffs flag
+  j["syndicate_loyalty_buffs"] = json::array();
+  if (o.buffs) {
     std::map<std::string, json> by_faction;
     for (const auto& [buff_id, level] : cached_active_buffs) {
       auto it = cached_loyalty_buff_map.find(buff_id);
@@ -823,38 +826,28 @@ json build_game_state_json()
         {"level",     level}
       });
     }
-    j["syndicate_loyalty_buffs"] = json::array();
     for (auto& [faction, tiers] : by_faction) {
       std::sort(tiers.begin(), tiers.end(), [](const json& a, const json& b) {
         return a["tier"].get<int32_t>() < b["tier"].get<int32_t>();
       });
-      j["syndicate_loyalty_buffs"].push_back({
-        {"faction", faction},
-        {"tiers",   tiers}
-      });
+      j["syndicate_loyalty_buffs"].push_back({{"faction", faction}, {"tiers", tiers}});
     }
   }
 
-  // Faction favors â€” all possible per-faction store bonuses with the player's current tier.
-  // Each favor corresponds to a research node (from ConsumableSpecs RESEARCH_UNLOCK entries).
-  // tier=0 means not yet purchased; tier>0 is the current level; max_tier is the highest available.
-  {
-    // Group by faction name (from ResearchSpecs lookup), falling back to prefix if not found
+  // Faction favors - uses research levels (research flag) and consumable specs (buffs flag)
+  j["faction_favors"] = json::array();
+  if (o.research && o.buffs) {
     std::map<std::string, json> by_faction;
     for (const auto& [research_id, info] : cached_favor_specs) {
-      // Resolve faction name: researchId -> treeId (proxy) -> faction name
-      std::string faction_name = info.faction_prefix; // fallback to raw prefix
+      std::string faction_name = info.faction_prefix;
       auto tree_id_it = cached_research_faction_map.find(research_id);
       if (tree_id_it != cached_research_faction_map.end()) {
         auto name_it = cached_tree_faction_map.find(tree_id_it->second);
         if (name_it != cached_tree_faction_map.end() && !name_it->second.empty())
           faction_name = name_it->second;
       }
-
-      // Look up player's current level for this research node (0 if never started)
       auto res_it = cached_research.find(research_id);
       const int32_t player_tier = (res_it != cached_research.end()) ? res_it->second : 0;
-
       by_faction[faction_name].push_back({
         {"favor",       info.favor_name},
         {"tier",        player_tier},
@@ -862,7 +855,6 @@ json build_game_state_json()
         {"research_id", research_id}
       });
     }
-    j["faction_favors"] = json::array();
     for (auto& [faction, favors] : by_faction) {
       std::sort(favors.begin(), favors.end(), [](const json& a, const json& b) {
         return a["favor"].get<std::string>() < b["favor"].get<std::string>();
@@ -871,81 +863,77 @@ json build_game_state_json()
     }
   }
 
-  // Full buff catalog â€” all BuffSpecs from ShipBonusBuffSpecs (type 51).
-  // Includes buff ID, modifier type, operation, per-level values, and faction affiliation.
+  // Full buff catalog - gated by buffs flag
   j["buff_catalog"] = json::array();
-  for (const auto& [buff_id, spec] : cached_buff_specs) {
-    std::string faction_name;
-    if (spec.faction_id > 0) {
-      auto fac_it = cached_faction_specs.find(spec.faction_id);
-      faction_name = (fac_it != cached_faction_specs.end()) ? fac_it->second
-                                                             : "faction_" + std::to_string(spec.faction_id);
+  if (o.buffs) {
+    for (const auto& [buff_id, spec] : cached_buff_specs) {
+      std::string faction_name;
+      if (spec.faction_id > 0) {
+        auto fac_it = cached_faction_specs.find(spec.faction_id);
+        faction_name = (fac_it != cached_faction_specs.end()) ? fac_it->second
+                                                               : "faction_" + std::to_string(spec.faction_id);
+      }
+      json entry = {
+        {"buff_id",         buff_id},
+        {"modifier",        modifier_code_name(spec.modifier_code)},
+        {"modifier_code",   spec.modifier_code},
+        {"operation",       spec.operation},
+        {"show_percentage", spec.show_percentage},
+        {"ranked_values",   spec.ranked_values}
+      };
+      if (!faction_name.empty()) entry["faction"] = faction_name;
+      j["buff_catalog"].push_back(std::move(entry));
     }
-    json entry = {
-      {"buff_id",        buff_id},
-      {"modifier",       modifier_code_name(spec.modifier_code)},
-      {"modifier_code",  spec.modifier_code},
-      {"operation",      spec.operation},
-      {"show_percentage", spec.show_percentage},
-      {"ranked_values",  spec.ranked_values}
-    };
-    if (!faction_name.empty()) entry["faction"] = faction_name;
-    j["buff_catalog"].push_back(std::move(entry));
   }
 
-  // Blueprint parts - resources named Resource_Parts_* or Resource_*_Parts_*
+  // Blueprint parts - from resources, gated by resources flag
   j["blueprints"] = json::array();
-  for (const auto& [id, amount] : cached_resources) {
-    auto mapping = id_mappings::MappingCache::Get().get_resource(id);
-    if (!mapping) continue;
-    const std::string& name = mapping->name;
-    if (name.find("_Parts_") != std::string::npos || name.find("_Parts") == name.size() - 6) {
-      j["blueprints"].push_back({
-        {"resource_id", id},
-        {"name", name},
-        {"amount", amount}
-      });
+  if (o.resources) {
+    for (const auto& [id, amount] : cached_resources) {
+      auto mapping = id_mappings::MappingCache::Get().get_resource(id);
+      if (!mapping) continue;
+      const std::string& name = mapping->name;
+      if (name.find("_Parts_") != std::string::npos || name.find("_Parts") == name.size() - 6) {
+        j["blueprints"].push_back({
+          {"resource_id", id},
+          {"name",        name},
+          {"amount",      amount}
+        });
+      }
     }
   }
 
-  // Ship unlock blueprint counts (INVENTORYITEMTYPE_INVENTORYBLUEPRINT)
+  // Ship unlock blueprint counts - gated by inventory flag
   j["ship_blueprints"] = json::array();
-  for (const auto& [spec_id, count] : cached_ship_bp_counts) {
-    auto it = cached_blueprint_specs.find(spec_id);
-    json entry;
-    entry["spec_id"] = spec_id;
-    entry["amount"]  = count;
-    if (it != cached_blueprint_specs.end()) {
-      entry["name"]         = it->second.name;
-      entry["parts_needed"] = it->second.parts_needed;
-      if (it->second.hull_id != 0) entry["hull_id"] = it->second.hull_id;
+  if (o.inventory) {
+    for (const auto& [spec_id, count] : cached_ship_bp_counts) {
+      auto it = cached_blueprint_specs.find(spec_id);
+      json entry;
+      entry["spec_id"] = spec_id;
+      entry["amount"]  = count;
+      if (it != cached_blueprint_specs.end()) {
+        entry["name"]         = it->second.name;
+        entry["parts_needed"] = it->second.parts_needed;
+        if (it->second.hull_id != 0) entry["hull_id"] = it->second.hull_id;
+      }
+      j["ship_blueprints"].push_back(std::move(entry));
     }
-    j["ship_blueprints"].push_back(std::move(entry));
   }
 
-  // Station peace shield
+  // Station peace shield (always included)
   {
     auto now_epoch = std::chrono::duration_cast<std::chrono::seconds>(
         std::chrono::system_clock::now().time_since_epoch()).count();
     bool shield_active = cached_shield_expiry_epoch > now_epoch;
 
-    // Sum peace shield tokens from cached_resources using known resource IDs
     static const std::unordered_set<int64_t> shield_token_resource_ids = {
-      3788095604LL, // Consumable_PeaceShield_1h
-      3679054867LL, // Consumable_PeaceShield_2h
-      3058388990LL, // Consumable_PeaceShield_4h
-      3257212914LL, // Consumable_PeaceShield_8h
-      1105830521LL, // Consumable_PeaceShield_12h
-      178169676LL,  // Consumable_PeaceShield_1d
-      1905604904LL, // Consumable_PeaceShield_3d
-      985389969LL,  // Consumable_PeaceShield_7d
-      166906622LL,  // Consumable_PeaceShield_14d
-      676333576LL,  // Consumable_PeaceShield_30d
+      3788095604LL, 3679054867LL, 3058388990LL, 3257212914LL, 1105830521LL,
+      178169676LL,  1905604904LL, 985389969LL,  166906622LL,  676333576LL,
     };
     int64_t token_count = 0;
-    for (const auto& [id, amount] : cached_resources) {
-      if (shield_token_resource_ids.count(id)) {
-        token_count += amount;
+    if (o.resources) {
+      for (const auto& [id, amount] : cached_resources) {
+        if (shield_token_resource_ids.count(id)) token_count += amount;
       }
     }
 
@@ -973,33 +961,28 @@ json build_game_state_json()
     j["station"]["peace_shield"] = shield_json;
   }
 
-  // Drydock assignments â€” letter derived from 1-based drydock_id (1=A â€¦ 5=E)
-  // Active missions
+  // Active missions (always present even when missions flag is false - missions file is separate)
   j["missions_active"] = json::array();
   for (const auto& [instance_id, mission_id] : cached_missions_active) {
     j["missions_active"].push_back({{"instance_id", instance_id}, {"mission_id", mission_id}});
   }
 
-  // Completed missions
   j["missions_completed"] = json::array();
   for (const auto mission_id : cached_missions_completed) {
     j["missions_completed"].push_back(mission_id);
   }
 
-  // Drydock letter: 1=A, 2=B ... 26=Z, 27=AA, 28=AB ... (spreadsheet column style)
+  // Drydock letter: 1=A, 2=B ... 26=Z, 27=AA (spreadsheet column style)
   auto drydock_letter = [](int32_t id) -> std::string {
     std::string result;
     while (id > 0) {
-      id--; // shift to 0-based
+      id--;
       result = static_cast<char>('A' + (id % 26)) + result;
       id /= 26;
     }
     return result;
   };
 
-  // DeployedFleetState: 0=idle,1=moving,2=warping,3=battling,4=recall,5=docked,6=prebattle
-  // Note: "docked"(5) in the proto means stationary at a node - covers mining and idle-away.
-  // "idle"(0) means the fleet object exists but is not actively deployed (e.g. just recalled).
   static const std::unordered_map<int32_t, std::string> FLEET_STATE_NAMES = {
     {0, "idle"}, {1, "moving"}, {2, "warping"}, {3, "battling"},
     {4, "recalling"}, {5, "stationary"}, {6, "entering_combat"}
@@ -1015,27 +998,29 @@ json build_game_state_json()
     entry["status"]     = (state_it != FLEET_STATE_NAMES.end()) ? state_it->second : "unknown";
     entry["is_damaged"] = d.is_damaged;
     if (d.system_id != 0) entry["system_id"] = d.system_id;
-    // Enrich with ship name via hull_id lookup if the ship is in the hangar cache
-    auto ship_it = cached_ships.find(d.ship_id);
-    if (ship_it != cached_ships.end() && ship_it->second.contains("hull_id")) {
-      int64_t hull_id = ship_it->second["hull_id"].get<int64_t>();
-      auto mapping = id_mappings::MappingCache::Get().get_ship(hull_id);
-      if (mapping) {
-        entry["ship_name"] = mapping->name;
+    if (o.ships) {
+      auto ship_it = cached_ships.find(d.ship_id);
+      if (ship_it != cached_ships.end() && ship_it->second.contains("hull_id")) {
+        int64_t hull_id = ship_it->second["hull_id"].get<int64_t>();
+        auto mapping = id_mappings::MappingCache::Get().get_ship(hull_id);
+        if (mapping) entry["ship_name"] = mapping->name;
       }
     }
     j["drydocks"].push_back(entry);
   }
-  // Annotate each ship in the ships array with its drydock letter and status
-  for (auto& ship_entry : j["ships"]) {
-    int64_t sid = ship_entry["id"].get<int64_t>();
-    for (const auto& d : cached_drydock_assignments) {
-      if (d.ship_id == sid) {
-        auto state_it = FLEET_STATE_NAMES.find(d.state);
-        ship_entry["drydock"]    = drydock_letter(d.drydock_id);
-        ship_entry["drydock_id"] = d.drydock_id;
-        ship_entry["status"]     = (state_it != FLEET_STATE_NAMES.end()) ? state_it->second : "unknown";
-        break;
+
+  // Annotate ships array with drydock letter and status
+  if (o.ships) {
+    for (auto& ship_entry : j["ships"]) {
+      int64_t sid = ship_entry["id"].get<int64_t>();
+      for (const auto& d : cached_drydock_assignments) {
+        if (d.ship_id == sid) {
+          auto state_it = FLEET_STATE_NAMES.find(d.state);
+          ship_entry["drydock"]    = drydock_letter(d.drydock_id);
+          ship_entry["drydock_id"] = d.drydock_id;
+          ship_entry["status"]     = (state_it != FLEET_STATE_NAMES.end()) ? state_it->second : "unknown";
+          break;
+        }
       }
     }
   }
@@ -1044,7 +1029,7 @@ json build_game_state_json()
                 cached_buildings.size(), cached_research.size(), cached_ships.size(),
                 cached_officers.size(), cached_resources.size(), cached_drydock_assignments.size());
 
-  // Alliance territory â€” held zones cross-referenced against static spec data
+  // Alliance territory (always included)
   {
     static const std::unordered_map<int32_t, std::string> WEEKDAY_NAMES = {
       {0,"Sun"},{1,"Mon"},{2,"Tue"},{3,"Wed"},{4,"Thu"},{5,"Fri"},{6,"Sat"}
@@ -1064,10 +1049,10 @@ json build_game_state_json()
         for (const auto& w : spec.takeover_windows) {
           auto day_it = WEEKDAY_NAMES.find(w.weekday);
           json win;
-          win["weekday"]       = w.weekday;
-          win["weekday_name"]  = (day_it != WEEKDAY_NAMES.end()) ? day_it->second : "";
+          win["weekday"]        = w.weekday;
+          win["weekday_name"]   = (day_it != WEEKDAY_NAMES.end()) ? day_it->second : "";
           win["start_hour_utc"] = w.start_hour;
-          win["duration_mins"] = w.duration_mins;
+          win["duration_mins"]  = w.duration_mins;
           entry["takeover_windows"].push_back(std::move(win));
         }
       }
@@ -1266,31 +1251,33 @@ void export_game_state()
     auto  dir   = get_export_dir();
     auto  ts    = get_iso8601_timestamp();
     auto& gist  = cfg.game_state_github;
+    const auto& o = cfg.sync_options;
 
     json gs = build_game_state_json();
 
-    // --- player.json ---
+    // --- player.json (always written when game_state_enabled) ---
     {
       json j;
       j["exported_at"] = ts;
       j["player"]      = gs["player"];
       j["station"]     = gs["station"];
       j["drydocks"]    = gs["drydocks"];
+      if (o.buildings) j["buildings"] = gs["buildings"];
       write_json_file(dir / "player.json", j);
     }
 
-    // --- ships.json ---
-    {
+    // --- ships.json (ships + inventory flags) ---
+    if (o.ships || o.inventory) {
       json j;
-      j["exported_at"]     = ts;
-      j["ships"]           = gs["ships"];
-      j["blueprints"]      = gs["blueprints"];
-      j["ship_blueprints"] = gs["ship_blueprints"];
+      j["exported_at"] = ts;
+      if (o.ships)     { j["ships"]           = gs["ships"];           }
+      if (o.resources) { j["blueprints"]       = gs["blueprints"];      }
+      if (o.inventory) { j["ship_blueprints"]  = gs["ship_blueprints"]; }
       write_json_file(dir / "ships.json", j);
     }
 
-    // --- resources.json (non-zero only) ---
-    {
+    // --- resources.json ---
+    if (o.resources) {
       json j;
       j["exported_at"] = ts;
       json res = json::array();
@@ -1302,7 +1289,7 @@ void export_game_state()
     }
 
     // --- research.json ---
-    {
+    if (o.research) {
       json j;
       j["exported_at"] = ts;
       j["research"]    = gs["research"];
@@ -1310,7 +1297,7 @@ void export_game_state()
     }
 
     // --- officers.json ---
-    {
+    if (o.officer) {
       json j;
       j["exported_at"] = ts;
       j["officers"]    = gs["officers"];
@@ -1318,7 +1305,7 @@ void export_game_state()
     }
 
     // --- missions.json ---
-    {
+    if (o.missions) {
       json j;
       j["exported_at"]        = ts;
       j["missions_active"]    = gs["missions_active"];
@@ -1326,27 +1313,29 @@ void export_game_state()
       write_json_file(dir / "missions.json", j);
     }
 
-    // --- faction.json ---
-    {
+    // --- faction.json (resources + buffs + research all contribute) ---
+    if (o.resources || o.buffs || o.research) {
       json j;
-      j["exported_at"]            = ts;
-      j["faction_reputation"]     = gs["faction_reputation"];
-      j["faction_store_tokens"]   = gs["faction_store_tokens"];
-      j["armada_credits"]         = gs["armada_credits"];
-      j["faction_favors"]         = gs["faction_favors"];
-      j["syndicate_loyalty_buffs"] = gs["syndicate_loyalty_buffs"];
+      j["exported_at"] = ts;
+      if (o.resources) {
+        j["faction_reputation"]   = gs["faction_reputation"];
+        j["faction_store_tokens"] = gs["faction_store_tokens"];
+        j["armada_credits"]       = gs["armada_credits"];
+      }
+      if (o.research && o.buffs) j["faction_favors"]         = gs["faction_favors"];
+      if (o.buffs)                j["syndicate_loyalty_buffs"] = gs["syndicate_loyalty_buffs"];
       write_json_file(dir / "faction.json", j);
     }
 
     // --- buffs.json ---
-    {
+    if (o.buffs) {
       json j;
       j["exported_at"]  = ts;
       j["buff_catalog"] = gs["buff_catalog"];
       write_json_file(dir / "buffs.json", j);
     }
 
-    // --- territory.json ---
+    // --- territory.json (always written - no sync flag covers territory) ---
     {
       json j;
       j["exported_at"] = ts;
@@ -1819,6 +1808,14 @@ void init()
                cfg.game_state_interval,
                cfg.game_state_path.empty() ? "<game directory>" : cfg.game_state_path,
                cfg.game_state_on_startup);
+
+  // Log which data types are active (set to false in [sync] to suppress)
+  const auto& o = cfg.sync_options;
+  spdlog::info("GameState export: active types - ships={} research={} buildings={} resources={} "
+               "officer={} traits={} missions={} buffs={} inventory={} battle_log={}",
+               o.ships, o.research, o.buildings, o.resources,
+               o.officer, o.traits, o.missions, o.buffs, o.inventory,
+               cfg.game_state_battle_log);
 
   if (cfg.game_state_github.enabled) {
     auto& gist = cfg.game_state_github;
