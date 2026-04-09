@@ -1,4 +1,4 @@
-/* LCARS-inspired minimal stylesheet */
+﻿/* LCARS-inspired minimal stylesheet */
 :root{
   --bg:#0b0b0f;
   --panel:#1a1a1f;
@@ -27,3 +27,4 @@ button{background:var(--accent);border:none;padding:8px 12px;border-radius:6px;c
 #tabContent{background:rgba(255,255,255,0.02);padding:8px;border-radius:6px;min-height:220px}
 .lcars-bottom{padding:12px;text-align:center;background:linear-gradient(180deg,#0f0f12,#070708);border-top:4px solid var(--accent)}
 @media(max-width:900px){.container{grid-template-columns:1fr;padding:12px}.lcars-top{flex-direction:column;gap:8px}}
+

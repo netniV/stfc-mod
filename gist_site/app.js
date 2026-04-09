@@ -1,4 +1,4 @@
-const exampleBase = 'https://gist.githubusercontent.com/DrCord/3d1bd2f24dc5ab3cc79beb9e8387b5e0/raw';
+ï»¿const exampleBase = 'https://gist.githubusercontent.com/DrCord/3d1bd2f24dc5ab3cc79beb9e8387b5e0/raw';
 
 // Paths to try for an on-disk config (game install) or example config in the repo.
 const repoExamplePath = '../example_community_patch_settings.toml';
@@ -31,11 +31,11 @@ function renderFull(full, delta){
   const summary = el('playerSummary');
   summary.innerHTML = '';
   const items = [];
-  items.push(["Name", player.name || '—'])
-  items.push(["Server", player.server || '—'])
-  items.push(["Power", player.power || '—'])
-  items.push(["Ops level", player.ops_level || '—'])
-  items.push(["Alliance", (player.alliance||{}).name || '—'])
+  items.push(["Name", player.name || '-'])
+  items.push(["Server", player.server || '-'])
+  items.push(["Power", player.power || '-'])
+  items.push(["Ops level", player.ops_level || '-'])
+  items.push(["Alliance", (player.alliance||{}).name || '-'])
   items.push(["Buildings", (full.buildings||[]).length])
   items.push(["Ships", (full.ships||[]).length])
   items.push(["Officers", (full.officers||[]).length])
@@ -67,7 +67,7 @@ function renderTab(name){
     list.slice(0,200).forEach(s=>{
       const row = document.createElement('div');
       row.className = 'summary-item';
-      row.innerHTML = `<strong>${s.name || s.type || 'Ship'}</strong> — Level: ${s.level||'—'} — ID: ${s.id||s.station_id||'—'}`;
+      row.innerHTML = `<strong>${s.name || s.type || 'Ship'}</strong> - Level: ${s.level||'-'} - ID: ${s.id||s.station_id||'-'}`;
       ul.appendChild(row);
     })
     container.appendChild(ul);
@@ -78,7 +78,7 @@ function renderTab(name){
     list.slice(0,200).forEach(o=>{
       const row = document.createElement('div');
       row.className = 'summary-item';
-      row.innerHTML = `<strong>${o.name||o.template||'Officer'}</strong> — Rank: ${o.rank||o.level||'—'}`;
+      row.innerHTML = `<strong>${o.name||o.template||'Officer'}</strong> - Rank: ${o.rank||o.level||'-'}`;
       ul.appendChild(row);
     })
     container.appendChild(ul);
@@ -89,7 +89,7 @@ function renderTab(name){
     list.forEach(r=>{
       const row = document.createElement('div');
       row.className = 'summary-item';
-      row.innerHTML = `<strong>${r.key||r.name||'Research'}</strong> — Level: ${r.level||r.progress||'—'}`;
+      row.innerHTML = `<strong>${r.key||r.name||'Research'}</strong> - Level: ${r.level||r.progress||'-'}`;
       ul.appendChild(row);
     })
     container.appendChild(ul);
@@ -100,7 +100,7 @@ function renderTab(name){
     list.forEach(r=>{
       const row = document.createElement('div');
       row.className = 'summary-item';
-      row.innerHTML = `<strong>${r.key||r.name||'Resource'}</strong> — Amount: ${r.amount||r.value||'—'}`;
+      row.innerHTML = `<strong>${r.key||r.name||'Resource'}</strong> - Amount: ${r.amount||r.value||'-'}`;
       ul.appendChild(row);
     })
     container.appendChild(ul);
@@ -126,7 +126,7 @@ function init(){
   detectGistBase().then(base=>{
     if(base){
       el('rawBase').value = base;
-      setStatus('Detected gist from config — auto-loading');
+      setStatus('Detected gist from config â€” auto-loading');
       loadFromBase(base);
     }else{
       // quick auto-fill example but don't auto-load
@@ -167,7 +167,7 @@ async function detectGistBase(){
         return `https://gist.githubusercontent.com/${gist_id}/raw`;
       }
     }catch(err){
-      // fetch may fail on file:// or cross-origin — ignore and continue
+      // fetch may fail on file:// or cross-origin â€” ignore and continue
       // console.debug('failed to fetch', p, err)
     }
   }
@@ -179,3 +179,5 @@ function parseTomlValue(text, re){
   const m = text.match(re);
   return m ? m[1].trim() : null;
 }
+
+
