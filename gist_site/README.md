@@ -7,6 +7,17 @@ Usage:
 - Paste the gist raw base URL (for example: `https://gist.githubusercontent.com/DrCord/3d1bd2f24dc5ab3cc79beb9e8387b5e0/raw`) into the input and click "Load".
 - The site will fetch `stfc_gamestate_full.json` and `stfc_gamestate_delta.json` from that base and display a summary and detail lists.
 
+Auto-detection
+--------------
+
+The viewer will try to automatically detect the configured gist ID and username from the following locations (in order):
+
+- URL query parameters: `?gist_id=...` and optional `&gist_user=...` (or `gist` / `username`).
+- The repository example config at `../example_community_patch_settings.toml` (when served from the repo).
+- The game config at `C:\Games\Star Trek Fleet Command\...\community_patch_settings.toml` via a `file:///` fetch (may be blocked by the browser).
+
+If a gist ID (and optional username) is found, the site will auto-fill the input and attempt to load the JSON files automatically.
+
 Notes:
 - This is intentionally lightweight and dependency-free. It uses fetch() to retrieve the raw gist JSON files.
 - If the gist is private/secret, the raw URLs must be accessible for the site to fetch them (private gists may require authentication which this static site does not provide).

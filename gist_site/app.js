@@ -1,5 +1,9 @@
 const exampleBase = 'https://gist.githubusercontent.com/DrCord/3d1bd2f24dc5ab3cc79beb9e8387b5e0/raw';
 
+// Paths to try for an on-disk config (game install) or example config in the repo.
+const repoExamplePath = '../example_community_patch_settings.toml';
+const gameConfigFile = 'file:///C:/Games/Star%20Trek%20Fleet%20Command/Star%20Trek%20Fleet%20Command/default/game/community_patch_settings.toml';
+
 function el(id){return document.getElementById(id)}
 function setStatus(t){el('status').textContent = t}
 
@@ -117,8 +121,61 @@ function init(){
       renderTab(btn.dataset.tab);
     })
   })
-  // quick auto-fill example but don't auto-load
-  el('rawBase').value = '';
+  // Attempt to automatically detect gist id from several locations (URL param, repo example TOML,
+  // or local game config). If found, auto-fill and auto-load.
+  detectGistBase().then(base=>{
+    if(base){
+      el('rawBase').value = base;
+      setStatus('Detected gist from config — auto-loading');
+      loadFromBase(base);
+    }else{
+      // quick auto-fill example but don't auto-load
+      el('rawBase').value = '';
+    }
+  }).catch(err=>{
+    console.warn('detectGistBase error', err);
+    el('rawBase').value = '';
+  })
 }
 
 window.addEventListener('DOMContentLoaded', init);
+
+// Try several strategies to find gist id and username in TOML config files or URL params.
+async function detectGistBase(){
+  // 1) Check URL query parameters: ?gist_id=... or ?gist=...
+  try{
+    const url = new URL(window.location.href);
+    const q1 = url.searchParams.get('gist_id') || url.searchParams.get('gist');
+    const quser = url.searchParams.get('gist_user') || url.searchParams.get('username');
+    if(q1){
+      if(quser) return `https://gist.githubusercontent.com/${quser}/${q1}/raw`;
+      return `https://gist.githubusercontent.com/${q1}/raw`;
+    }
+  }catch(e){ /* ignore */ }
+
+  // 2) Try to fetch example TOML shipped with the repo (relative path)
+  const tryPaths = [repoExamplePath, gameConfigFile];
+  for(const p of tryPaths){
+    try{
+      const res = await fetch(p, {cache: 'no-store'});
+      if(!res.ok) continue;
+      const txt = await res.text();
+      const gist_id = parseTomlValue(txt, /gist_id\s*=\s*['"]([^'\"]+)['"]/i);
+      const username = parseTomlValue(txt, /username\s*=\s*['"]([^'\"]+)['"]/i);
+      if(gist_id){
+        if(username) return `https://gist.githubusercontent.com/${username}/${gist_id}/raw`;
+        return `https://gist.githubusercontent.com/${gist_id}/raw`;
+      }
+    }catch(err){
+      // fetch may fail on file:// or cross-origin — ignore and continue
+      // console.debug('failed to fetch', p, err)
+    }
+  }
+
+  return null;
+}
+
+function parseTomlValue(text, re){
+  const m = text.match(re);
+  return m ? m[1].trim() : null;
+}
