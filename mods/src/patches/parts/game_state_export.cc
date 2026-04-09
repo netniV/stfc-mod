@@ -147,6 +147,9 @@ static void resolve_pending_battlelog_outcomes(const std::string& our_name,
 // Gist sync state â€” declared here so capture_player_data can set the flag
 static std::atomic<bool> gist_needs_player_name_sync{false};
 static std::filesystem::path get_export_dir();
+// Track whether site assets have been uploaded to the current gist already.
+static bool site_assets_uploaded = false;
+static std::string last_gist_id_synced;
 
 static void request_immediate_export()
 {
@@ -1478,6 +1481,8 @@ static void sync_all_to_gist(const std::filesystem::path& dir)
 
   // Build file list object. Include regular export files plus any files
   // found under the exported `site/` directory (copied in earlier).
+  // To avoid wasting API calls and bandwidth, include site assets only
+  // on the first successful sync for the configured gist ID.
   json files_obj = json::object();
   for (const auto& [gist_name, local_path] : files) {
     std::ifstream in(local_path);
@@ -1490,18 +1495,24 @@ static void sync_all_to_gist(const std::filesystem::path& dir)
   }
 
   // Include any site assets present under the export dir `site/`.
+  // Only include them if we haven't already uploaded site assets for this gist id.
+  bool included_site_assets = false;
   std::filesystem::path site_dir = dir / "site";
-  if (std::filesystem::exists(site_dir)) {
+  if (!gist.gist_id.empty() && last_gist_id_synced != gist.gist_id) {
+    // New gist id configured since last upload -> reset site flag so initial upload will include site
+    site_assets_uploaded = false;
+  }
+  if (!site_assets_uploaded && std::filesystem::exists(site_dir)) {
     for (auto& entry : std::filesystem::recursive_directory_iterator(site_dir)) {
       if (!entry.is_regular_file()) continue;
       try {
         auto rel = std::filesystem::relative(entry.path(), dir).generic_string();
-        // Ensure POSIX-style path for gist filename
         std::string gist_name = rel;
         std::ifstream in(entry.path());
         if (!in.is_open()) { spdlog::warn("Gist sync: Could not read site asset {}", entry.path().string()); continue; }
         std::string content((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
         files_obj[gist_name] = {{"content", content}};
+        included_site_assets = true;
       } catch (const std::exception& e) {
         spdlog::warn("Gist sync: Exception while adding site asset {}: {}", entry.path().string(), e.what());
       }
@@ -1530,6 +1541,22 @@ static void sync_all_to_gist(const std::filesystem::path& dir)
       std::scoped_lock lk(game_data_mutex);
       last_gist_sync_had_empty_name = cached_player_data.value("name", "").empty();
     }
+    // If we uploaded site assets in this request, mark them as uploaded for this gist id so
+    // subsequent syncs skip uploading the static site files (saves bandwidth and API calls).
+    try {
+      if (files_obj.contains("site/index.html") || files_obj.size() > 0) {
+        // Determine if any of the uploaded filenames start with "site/".
+        for (auto it = files_obj.begin(); it != files_obj.end(); ++it) {
+          const std::string fname = it.key();
+          if (fname.rfind("site/", 0) == 0) {
+            site_assets_uploaded = true;
+            last_gist_id_synced = gist.gist_id;
+            spdlog::info("Gist sync: Marked site assets uploaded for gist {}", gist.gist_id);
+            break;
+          }
+        }
+      }
+    } catch (...) {}
     // Auto-populate username from the API response if not already set
     if (Config::Get().game_state_github.username.empty()) {
       try {
