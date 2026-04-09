@@ -20,7 +20,9 @@ function setStatus(t, ok) {
   s.className = 'status ' + (ok === false ? 'error' : ok === true ? 'ok' : '');
 }
 
-// ── URL param detection ──────────────────────────────────────────────────────
+// ── URL param detection + localStorage persistence ───────────────────────────
+const LS_KEY = 'stfc_gist_base';
+
 function gistBaseFromParams() {
   try {
     const p = new URL(window.location.href).searchParams;
@@ -30,6 +32,14 @@ function gistBaseFromParams() {
     if (id)         return `https://gist.githubusercontent.com/${id}/raw`;
   } catch (_) {}
   return null;
+}
+
+function saveGistBase(base) {
+  try { localStorage.setItem(LS_KEY, base); } catch (_) {}
+}
+
+function loadGistBase() {
+  try { return localStorage.getItem(LS_KEY) || null; } catch (_) { return null; }
 }
 
 // ── Data loading ─────────────────────────────────────────────────────────────
@@ -189,6 +199,7 @@ async function switchTab(name) {
 
 async function loadAll(base) {
   gistBase = base;
+  saveGistBase(base);
   Object.keys(cache).forEach(k => delete cache[k]);
   try {
     await loadSummary();
@@ -212,12 +223,12 @@ window.addEventListener('DOMContentLoaded', () => {
     loadAll(v);
   });
 
-  // Auto-load from URL params if present
-  const base = gistBaseFromParams();
+  // Auto-load: URL params take priority, then localStorage (remembered from last visit)
+  const base = gistBaseFromParams() || loadGistBase();
   if (base) {
     el('rawBase').value = base;
     loadAll(base);
   } else {
-    setStatus('Enter a gist base URL and click Load, or use the URL from your manifest.json');
+    setStatus('Open the viewer URL from your stfc_manifest.json to auto-load your data here.');
   }
 });
