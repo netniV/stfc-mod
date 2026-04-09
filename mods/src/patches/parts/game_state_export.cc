@@ -1508,6 +1508,8 @@ static void sync_all_to_gist(const std::filesystem::path& dir)
       try {
         auto rel = std::filesystem::relative(entry.path(), dir).generic_string();
         std::string gist_name = rel;
+        // GitHub Gist filenames do not accept path separators; convert to a flat name.
+        for (auto& c : gist_name) if (c == '/' || c == '\\') c = '_';
         std::ifstream in(entry.path());
         if (!in.is_open()) { spdlog::warn("Gist sync: Could not read site asset {}", entry.path().string()); continue; }
         std::string content((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
