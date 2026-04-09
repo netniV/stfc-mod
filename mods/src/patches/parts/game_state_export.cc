@@ -1476,6 +1476,8 @@ static void sync_all_to_gist(const std::filesystem::path& dir)
     {gist.filename_manifest,  dir / "manifest.json"},
   };
 
+  // Build file list object. Include regular export files plus any files
+  // found under the exported `site/` directory (copied in earlier).
   json files_obj = json::object();
   for (const auto& [gist_name, local_path] : files) {
     std::ifstream in(local_path);
@@ -1485,6 +1487,25 @@ static void sync_all_to_gist(const std::filesystem::path& dir)
     }
     std::string content((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
     files_obj[gist_name] = {{"content", content}};
+  }
+
+  // Include any site assets present under the export dir `site/`.
+  std::filesystem::path site_dir = dir / "site";
+  if (std::filesystem::exists(site_dir)) {
+    for (auto& entry : std::filesystem::recursive_directory_iterator(site_dir)) {
+      if (!entry.is_regular_file()) continue;
+      try {
+        auto rel = std::filesystem::relative(entry.path(), dir).generic_string();
+        // Ensure POSIX-style path for gist filename
+        std::string gist_name = rel;
+        std::ifstream in(entry.path());
+        if (!in.is_open()) { spdlog::warn("Gist sync: Could not read site asset {}", entry.path().string()); continue; }
+        std::string content((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+        files_obj[gist_name] = {{"content", content}};
+      } catch (const std::exception& e) {
+        spdlog::warn("Gist sync: Exception while adding site asset {}: {}", entry.path().string(), e.what());
+      }
+    }
   }
 
   if (files_obj.empty()) return;
@@ -1734,12 +1755,41 @@ void export_game_state()
         make_entry("battlelog.json", gist.filename_battlelog,
           "Battle history (last 500 battles) with outcomes, ship IDs and resource changes",
           {"battlelog"}),
+        // If a static site is present under community_patch/game_state_site, a copy will be
+        // placed under the export dir as `site/` and uploaded to the gist. The site entry
+        // here points to the index; other site assets are uploaded automatically.
+        make_entry("site/index.html", "site/index.html",
+          "Static LCARS web viewer (index.html)",
+          {"site"}),
       });
 
       write_json_file(dir / "manifest.json", manifest);
     }
 
     // Sync all game state files to Gist in a single PATCH request
+    // If the repo/game contains a static site to ship with the exports, copy it into
+    // the export directory under `site/` so it will be included in the Gist upload.
+    try {
+      std::filesystem::path site_src = File::ExeDir() / "community_patch" / "game_state_site";
+      std::filesystem::path site_dst = dir / "site";
+      if (std::filesystem::exists(site_src)) {
+        std::error_code ec;
+        std::filesystem::create_directories(site_dst, ec);
+        for (auto& entry : std::filesystem::recursive_directory_iterator(site_src)) {
+          if (!entry.is_regular_file()) continue;
+          auto rel = std::filesystem::relative(entry.path(), site_src);
+          auto dstp = site_dst / rel;
+          std::filesystem::create_directories(dstp.parent_path(), ec);
+          std::filesystem::copy_file(entry.path(), dstp, std::filesystem::copy_options::overwrite_existing, ec);
+          if (ec) spdlog::warn("GameState export: Failed to copy site asset {} -> {}: {}",
+                              entry.path().string(), dstp.string(), ec.message());
+        }
+        spdlog::info("GameState export: Included static site from {} into exports", site_src.string());
+      }
+    } catch (const std::exception& e) {
+      spdlog::warn("GameState export: Exception while copying site assets: {}", e.what());
+    }
+
     sync_all_to_gist(dir);
 
     last_full_export_time = ts;
