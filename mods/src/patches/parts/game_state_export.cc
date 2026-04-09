@@ -429,11 +429,20 @@ void capture_station_info(int32_t home_system_id, int64_t last_relocation_epoch,
 {
   std::scoped_lock lock(game_data_mutex);
   bool changed = false;
-  if (home_system_id != 0 && home_system_id != cached_home_system_id) {
-    cached_home_system_id = home_system_id;
-    changed = true;
+  // Only accept a new home system if the accompanying relocation timestamp is at
+  // least as recent as what we already have. The game sends multiple starbase blobs
+  // on login; the later ones can be stale and must not overwrite fresh data.
+  if (home_system_id != 0) {
+    bool epoch_ok = (last_relocation_epoch == 0 ||
+                     cached_last_relocation_epoch == 0 ||
+                     last_relocation_epoch >= cached_last_relocation_epoch);
+    if (epoch_ok && home_system_id != cached_home_system_id) {
+      cached_home_system_id = home_system_id;
+      changed = true;
+    }
   }
-  if (last_relocation_epoch != 0 && last_relocation_epoch != cached_last_relocation_epoch) {
+  // Only advance the relocation epoch forward — never backwards.
+  if (last_relocation_epoch > cached_last_relocation_epoch) {
     cached_last_relocation_epoch = last_relocation_epoch;
     changed = true;
   }
