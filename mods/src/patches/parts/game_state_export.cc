@@ -1907,7 +1907,7 @@ void export_game_state()
         // If a static site is present under community_patch/game_state_site, a copy will be
         // placed under the export dir as `site/` and uploaded to the gist. The site entry
         // here points to the index; other site assets are uploaded automatically.
-        make_entry("site/index.html", "site/index.html",
+        make_entry("site/index.html", "index.html",
           "Static LCARS web viewer (index.html)",
           {"site"}),
       });
