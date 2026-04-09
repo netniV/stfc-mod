@@ -1,0 +1,29 @@
+/* LCARS-inspired minimal stylesheet */
+:root{
+  --bg:#0b0b0f;
+  --panel:#1a1a1f;
+  --accent:#ff8c42; /* orange */
+  --accent-2:#ffb86b;
+  --accent-3:#3a9ad9; /* blue */
+  --text:#f5f5f7;
+}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,Arial,Helvetica,sans-serif}
+.lcars-top{display:flex;align-items:center;justify-content:space-between;padding:18px;background:linear-gradient(90deg,#2b2b30, #151517);border-bottom:6px solid var(--accent)}
+.lcars-left,.lcars-center,.lcars-right{padding:8px 16px;border-radius:6px;background:var(--panel);color:var(--accent-2);font-weight:700}
+.container{display:grid;grid-template-columns:320px 1fr;gap:18px;padding:18px}
+.controls{background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);padding:12px;border-radius:8px;border-left:6px solid var(--accent)}
+.controls label{display:block;font-size:12px;color:var(--accent-2);margin-bottom:6px}
+.controls input{width:100%;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.04);background:#0e0e12;color:var(--text)}
+.row{display:flex;gap:8px;margin-top:8px}
+button{background:var(--accent);border:none;padding:8px 12px;border-radius:6px;color:#111;font-weight:700;cursor:pointer}
+.status{margin-top:8px;font-size:13px;color:var(--accent-2)}
+.panel{background:linear-gradient(180deg,#111,#151515);padding:12px;border-radius:8px;border-left:6px solid var(--accent-3)}
+.panel h2{margin:0 0 8px 0;color:var(--accent-2)}
+#playerSummary{display:flex;flex-direction:column;gap:6px}
+.summary-item{background:rgba(255,255,255,0.02);padding:8px;border-radius:6px}
+.tabs{display:flex;gap:6px;margin-bottom:8px}
+.tabs button{background:transparent;border:1px solid rgba(255,255,255,0.03);color:var(--accent-2);padding:6px 10px;border-radius:6px}
+.tabs button.active{background:var(--accent);color:#111;border:none}
+#tabContent{background:rgba(255,255,255,0.02);padding:8px;border-radius:6px;min-height:220px}
+.lcars-bottom{padding:12px;text-align:center;background:linear-gradient(180deg,#0f0f12,#070708);border-top:4px solid var(--accent)}
+@media(max-width:900px){.container{grid-template-columns:1fr;padding:12px}.lcars-top{flex-direction:column;gap:8px}}
