@@ -125,6 +125,7 @@ static std::unordered_map<int64_t, std::unordered_map<int32_t, CargoStats>> cach
 static std::unordered_map<int64_t, TerritorySpec> cached_territory_specs; // territory_id -> spec
 static std::vector<TerritorySlot>                 cached_territory_slots; // alliance held slots
 static int32_t                                    cached_territory_total_slots = 0;
+static std::unordered_map<int64_t, std::string>   cached_system_names;    // system_id -> name (from stfc_systems.json)
 
 // Blueprint specs (BlueprintSpecs type 21) and ship unlock BP counts from inventory
 static std::unordered_map<int64_t, BlueprintSpecEntry> cached_blueprint_specs; // spec_id -> spec
@@ -793,6 +794,9 @@ json build_game_state_json()
   if (cached_alliance_starbase_system_id != 0 &&
       j["player"].is_object() && j["player"]["alliance"].is_object()) {
     j["player"]["alliance"]["starbase_system_id"] = cached_alliance_starbase_system_id;
+    auto sys_it = cached_system_names.find(static_cast<int64_t>(cached_alliance_starbase_system_id));
+    if (sys_it != cached_system_names.end())
+      j["player"]["alliance"]["starbase_system_name"] = sys_it->second;
   }
 
   // Syndicate level and XP come from resources - gated by resources flag
@@ -1098,8 +1102,12 @@ json build_game_state_json()
   }
 
   // Station info from "starbase" blob key
-  if (cached_home_system_id != 0)
+  if (cached_home_system_id != 0) {
     j["station"]["home_system_id"] = cached_home_system_id;
+    auto sys_it = cached_system_names.find(static_cast<int64_t>(cached_home_system_id));
+    if (sys_it != cached_system_names.end())
+      j["station"]["home_system_name"] = sys_it->second;
+  }
 
   if (cached_last_relocation_epoch != 0) {
     std::time_t reloc_t  = static_cast<std::time_t>(cached_last_relocation_epoch);
@@ -1166,7 +1174,16 @@ json build_game_state_json()
     entry["status"]     = status;
     entry["is_damaged"] = d.is_damaged;
     entry["is_mining"]  = d.is_mining;
-    if (d.system_id != 0) entry["system_id"] = d.system_id;
+    if (d.system_id != 0) {
+      entry["system_id"] = d.system_id;
+      auto sys_it = cached_system_names.find(static_cast<int64_t>(d.system_id));
+      if (sys_it != cached_system_names.end())
+        entry["system_name"] = sys_it->second;
+    }
+    // A ship is docked at home station when it is in the home system and idle (state=0, not mining)
+    entry["is_at_home_station"] = (cached_home_system_id != 0 &&
+                                   d.system_id == cached_home_system_id &&
+                                   d.state == 0 && !d.is_mining);
 
     // Repair info from cached_ship_repairs, if present
     // (game_data_mutex already held by build_game_state_json outer lock)
@@ -1336,7 +1353,24 @@ json build_game_state_json()
       auto spec_it = cached_territory_specs.find(slot.territory_id);
       if (spec_it != cached_territory_specs.end()) {
         const auto& spec = spec_it->second;
+        // Derive territory name from the first node whose system name ends with Alpha/Beta/Gamma.
+        // System names from stfc_systems.json look like "Framtid Alpha (20)" — strip suffix.
+        static const std::vector<std::string> SUFFIXES = {" Alpha", " Beta", " Gamma"};
+        for (int64_t nid : spec.node_ids) {
+          auto sys_it = cached_system_names.find(nid);
+          if (sys_it == cached_system_names.end()) continue;
+          const std::string& sys_name = sys_it->second;
+          for (const auto& sfx : SUFFIXES) {
+            auto pos = sys_name.find(sfx);
+            if (pos != std::string::npos) {
+              entry["name"] = sys_name.substr(0, pos);
+              break;
+            }
+          }
+          if (entry.contains("name")) break;
+        }
         entry["tier"] = spec.tier;
+        entry["node_ids"] = spec.node_ids;
         entry["takeover_windows"] = json::array();
         for (const auto& w : spec.takeover_windows) {
           auto day_it = WEEKDAY_NAMES.find(w.weekday);
@@ -2162,6 +2196,32 @@ void init()
     id_mappings::MappingCache::Get().load_mappings(mappings_path.string());
   } else {
     spdlog::warn("GameState export: ID mappings file not found. Exported JSON will only contain IDs.");
+  }
+
+  // Load system name lookup (stfc_systems.json) for territory name derivation.
+  // File is optional — territory names will simply be absent if not found.
+  std::filesystem::path systems_path = File::ExeDir() / "community_patch" / "game_data_maps" / "stfc_systems.json";
+  spdlog::debug("GameState export: looking for stfc_systems.json at {}", systems_path.string());
+  if (std::filesystem::exists(systems_path)) {
+    try {
+      std::ifstream sf(systems_path.string());
+      if (!sf.is_open()) {
+        spdlog::warn("GameState export: stfc_systems.json exists but could not be opened");
+      } else {
+        nlohmann::json sys_data;
+        sf >> sys_data;
+        for (const auto& [id_str, name] : sys_data.items()) {
+          if (name.is_string()) {
+            cached_system_names[std::stoll(id_str)] = name.get<std::string>();
+          }
+        }
+        spdlog::info("GameState export: loaded {} system names from stfc_systems.json", cached_system_names.size());
+      }
+    } catch (const std::exception& e) {
+      spdlog::warn("GameState export: failed to load stfc_systems.json: {}", e.what());
+    }
+  } else {
+    spdlog::warn("GameState export: stfc_systems.json not found at {}", systems_path.string());
   }
 
   should_stop = false;

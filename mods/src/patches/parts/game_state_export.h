@@ -149,6 +149,7 @@ namespace game_state_export
     int64_t                      territory_id = 0;
     int32_t                      tier         = 0;
     std::vector<TerritoryWindow> takeover_windows;
+    std::vector<int64_t>         node_ids;     // system IDs within this territory
   };
   void capture_territory_specs(std::unordered_map<int64_t, TerritorySpec>&& specs);
 

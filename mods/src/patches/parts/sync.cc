@@ -1291,6 +1291,9 @@ void process_territory_static_data(std::unique_ptr<std::string>&& bytes)
           .duration_mins = p.duration(),
         });
       }
+      for (int64_t nid : t.nodeids()) {
+        spec.node_ids.push_back(nid);
+      }
       specs[tid] = std::move(spec);
     }
     spdlog::info("GameState: TerritoryStaticData: {} territory specs", specs.size());
