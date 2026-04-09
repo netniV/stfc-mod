@@ -1526,6 +1526,17 @@ static void sync_all_to_gist(const std::filesystem::path& dir)
   const std::string url = "https://api.github.com/gists/" + gist.gist_id;
   const json body = {{"files", files_obj}};
 
+  // Log filenames and sizes we're about to upload for diagnostic purposes
+  try {
+    for (auto it = files_obj.begin(); it != files_obj.end(); ++it) {
+      try {
+        const std::string fname = it.key();
+        const std::string content = it.value().value("content", std::string());
+        spdlog::info("Gist sync: Preparing upload file '{}' ({} bytes)", fname, content.size());
+      } catch (...) {}
+    }
+  } catch (...) {}
+
   auto response = cpr::Patch(
     cpr::Url{url},
     cpr::Header{
