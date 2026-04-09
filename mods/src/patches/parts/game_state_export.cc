@@ -268,6 +268,7 @@ static void sync_site_index_to_gist(const std::filesystem::path& dir)
   }
 }
 
+
   // Try to acquire the export mutex; if we cannot, set the flags without
   // blocking to avoid potential lock-order inversion with capture paths.
   if (export_request_mutex.try_lock()) {
