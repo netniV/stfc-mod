@@ -1,0 +1,171 @@
+/* LCARS-inspired stylesheet */
+:root {
+  --bg:       #0b0b0f;
+  --panel:    #1a1a1f;
+  --accent:   #ff8c42;
+  --accent-2: #ffb86b;
+  --accent-3: #3a9ad9;
+  --text:     #f5f5f7;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Inter, "Segoe UI", Arial, Helvetica, sans-serif;
+  font-size: 14px;
+}
+
+/* ── Header ─────────────────────────────────────────────────── */
+.lcars-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: linear-gradient(90deg, #2b2b30, #151517);
+  border-bottom: 6px solid var(--accent);
+}
+.lcars-left, .lcars-center, .lcars-right {
+  padding: 6px 14px;
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--accent-2);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+/* ── Layout ─────────────────────────────────────────────────── */
+.container {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  grid-template-rows: auto 1fr;
+  gap: 14px;
+  padding: 14px;
+}
+
+/* ── Controls ───────────────────────────────────────────────── */
+.controls {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--panel);
+  border-left: 6px solid var(--accent);
+}
+.controls label {
+  font-size: 12px;
+  color: var(--accent-2);
+  white-space: nowrap;
+}
+.controls input {
+  flex: 1;
+  padding: 7px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.07);
+  background: #0e0e12;
+  color: var(--text);
+  font-size: 13px;
+}
+button {
+  background: var(--accent);
+  border: none;
+  padding: 7px 14px;
+  border-radius: 6px;
+  color: #111;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+button:hover { background: var(--accent-2); }
+
+.status {
+  font-size: 12px;
+  color: #888;
+  white-space: nowrap;
+}
+.status.ok    { color: #5f9; }
+.status.error { color: #f66; }
+
+/* ── Panels ─────────────────────────────────────────────────── */
+.panel {
+  background: linear-gradient(180deg, #111, #151515);
+  padding: 12px;
+  border-radius: 8px;
+  border-left: 6px solid var(--accent-3);
+  overflow-y: auto;
+}
+.panel h2 {
+  margin: 0 0 10px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent-2);
+}
+#playerSummary, #drydocksPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* ── Summary items ──────────────────────────────────────────── */
+.summary-item {
+  background: rgba(255,255,255,0.03);
+  padding: 6px 10px;
+  border-radius: 5px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+/* ── Tabs ───────────────────────────────────────────────────── */
+.tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+.tabs button {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.08);
+  color: var(--accent-2);
+  padding: 5px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+}
+.tabs button:hover { background: rgba(255,255,255,0.05); }
+.tabs button.active {
+  background: var(--accent);
+  color: #111;
+  border-color: transparent;
+}
+
+#tabContent {
+  background: rgba(255,255,255,0.02);
+  padding: 8px;
+  border-radius: 6px;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  max-height: 500px;
+}
+
+/* ── Footer ─────────────────────────────────────────────────── */
+.lcars-bottom {
+  padding: 10px;
+  text-align: center;
+  font-size: 11px;
+  color: #555;
+  background: linear-gradient(180deg, #0f0f12, #070708);
+  border-top: 3px solid var(--accent);
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 800px) {
+  .container { grid-template-columns: 1fr; }
+  .lcars-top { flex-direction: column; gap: 6px; }
+  .controls  { flex-wrap: wrap; }
+}
