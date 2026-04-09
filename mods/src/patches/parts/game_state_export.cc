@@ -163,6 +163,111 @@ static void request_immediate_export()
     return;
   }
 
+// Upload a single inlined HTML file named `index.html` to the configured gist.
+// This is performed once per gist_id to avoid repeated large uploads. The
+// inlined file bundles `index.html`, `styles.css` and `app.js` into one HTML
+// document which is uploaded as the gist file `index.html`.
+static void sync_site_index_to_gist(const std::filesystem::path& dir)
+{
+  const auto& gist = Config::Get().game_state_github;
+  if (!gist.enabled || gist.gist_id.empty() || gist.token.empty()) return;
+  if (site_assets_uploaded && last_gist_id_synced == gist.gist_id) return;
+
+  std::filesystem::path site_dir = dir / "site";
+  if (!std::filesystem::exists(site_dir)) return;
+
+  auto slurp = [](const std::filesystem::path& p) -> std::string {
+    std::ifstream in(p, std::ios::binary);
+    if (!in.is_open()) return std::string();
+    std::ostringstream ss;
+    ss << in.rdbuf();
+    return ss.str();
+  };
+
+  std::string index_html = slurp(site_dir / "index.html");
+  if (index_html.empty()) {
+    spdlog::warn("Gist site upload: index.html not found in {}", site_dir.string());
+    return;
+  }
+
+  std::string css = slurp(site_dir / "styles.css");
+  std::string js  = slurp(site_dir / "app.js");
+
+  // Replace stylesheet link and script include with inlined contents. Try a few common tag forms.
+  auto replace_once = [&](std::string& hay, const std::string& needle, const std::string& repl){
+    size_t pos = hay.find(needle);
+    if (pos != std::string::npos) {
+      hay.replace(pos, needle.size(), repl);
+      return true;
+    }
+    return false;
+  };
+
+  bool replaced = false;
+  const std::vector<std::string> linkCandidates = {
+    "<link rel=\"stylesheet\" href=\"styles.css\" />",
+    "<link rel=\"stylesheet\" href=\"styles.css\">",
+    "<link href=\"styles.css\" rel=\"stylesheet\" />",
+    "<link href=\"styles.css\">"
+  };
+  for (const auto& cand : linkCandidates) {
+    if (replace_once(index_html, cand, std::string("<style>\n") + css + "\n</style>")) { replaced = true; break; }
+  }
+
+  const std::vector<std::string> scriptCandidates = {
+    "<script defer src=\"app.js\"></script>",
+    "<script src=\"app.js\"></script>",
+    "<script type=\"module\" src=\"app.js\"></script>"
+  };
+  for (const auto& cand : scriptCandidates) {
+    if (replace_once(index_html, cand, std::string("<script>\n") + js + "\n</script>")) { replaced = true; break; }
+  }
+
+  // If no replacements occurred, still attempt to inline by appending CSS/JS into the head/body
+  if (!replaced) {
+    // Try to insert CSS before </head>
+    size_t headPos = index_html.find("</head>");
+    if (headPos != std::string::npos && !css.empty()) {
+      index_html.insert(headPos, std::string("<style>\n") + css + "\n</style>\n");
+    }
+    // Insert JS before </body>
+    size_t bodyPos = index_html.find("</body>");
+    if (bodyPos != std::string::npos && !js.empty()) {
+      index_html.insert(bodyPos, std::string("<script>\n") + js + "\n</script>\n");
+    }
+  }
+
+  // Prepare PATCH body with a single file named index.html
+  json files_obj = json::object();
+  files_obj["index.html"] = {{"content", index_html}};
+  const std::string url = "https://api.github.com/gists/" + gist.gist_id;
+  const json body = {{"files", files_obj}};
+
+  spdlog::info("Gist site upload: Uploading inlined index.html ({} bytes) to gist {}",
+               index_html.size(), gist.gist_id);
+
+  auto response = cpr::Patch(
+    cpr::Url{url},
+    cpr::Header{
+      {"Authorization", "token " + gist.token},
+      {"Accept",        "application/vnd.github.v3+json"},
+      {"Content-Type",  "application/json"}
+    },
+    cpr::Body{body.dump()}
+  );
+
+  if (response.status_code == 200) {
+    site_assets_uploaded = true;
+    last_gist_id_synced = gist.gist_id;
+    spdlog::info("Gist site upload: Uploaded inlined index.html to gist {}", gist.gist_id);
+    // Re-write manifest so it points to index.html raw URL via username if available
+    request_immediate_export();
+  } else {
+    spdlog::warn("Gist site upload: Failed to upload index.html - HTTP {} {}: {}",
+                 response.status_code, response.status_line, response.text.substr(0, 200));
+  }
+}
+
   // Try to acquire the export mutex; if we cannot, set the flags without
   // blocking to avoid potential lock-order inversion with capture paths.
   if (export_request_mutex.try_lock()) {
@@ -1808,7 +1913,7 @@ void export_game_state()
 
     // Sync all game state files to Gist in a single PATCH request
     // If the repo/game contains a static site to ship with the exports, copy it into
-    // the export directory under `site/` so it will be included in the Gist upload.
+    // the export directory under `site/` so it will be considered for one-time upload.
     try {
       std::filesystem::path site_src = File::ExeDir() / "community_patch" / "game_state_site";
       std::filesystem::path site_dst = dir / "site";
@@ -1830,6 +1935,12 @@ void export_game_state()
       spdlog::warn("GameState export: Exception while copying site assets: {}", e.what());
     }
 
+    // Perform a one-time upload of an inlined index.html containing CSS+JS if needed.
+    try {
+      sync_site_index_to_gist(dir);
+    } catch (...) {}
+
+    // Regular JSON files sync (runs as normal and won't include the site assets repeatedly)
     sync_all_to_gist(dir);
 
     last_full_export_time = ts;
