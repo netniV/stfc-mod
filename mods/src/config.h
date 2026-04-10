@@ -121,6 +121,7 @@ public:
   std::string filename_territory  = "stfc_territory.json";
   std::string filename_buildings  = "stfc_buildings.json";
   std::string filename_battlelog  = "stfc_battlelog.json";
+  std::string filename_summary    = "stfc_summary.json";
   std::string filename_manifest   = "stfc_manifest.json";
 };
 

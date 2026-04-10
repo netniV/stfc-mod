@@ -397,9 +397,17 @@ void capture_peace_shield(int64_t active_expiry_epoch, int64_t token_count)
       cached_shield_token_count = token_count;
     }
     if (active_expiry_epoch >= 0 && active_expiry_epoch != cached_shield_expiry_epoch) {
-      first_real_expiry      = (cached_shield_expiry_epoch == 0 && active_expiry_epoch > 0);
-      cached_shield_expiry_epoch = active_expiry_epoch;
-      expiry_changed = true;
+      // Don't accept expiry=0 ("no shield") if we already have a valid future expiry.
+      // my_shield_state arrives null/empty mid-session even while a shield is active,
+      // so a null update must not overwrite a confirmed active expiry.
+      auto now_epoch = std::chrono::duration_cast<std::chrono::seconds>(
+          std::chrono::system_clock::now().time_since_epoch()).count();
+      bool stale_zero = (active_expiry_epoch == 0 && cached_shield_expiry_epoch > now_epoch);
+      if (!stale_zero) {
+        first_real_expiry      = (cached_shield_expiry_epoch == 0 && active_expiry_epoch > 0);
+        cached_shield_expiry_epoch = active_expiry_epoch;
+        expiry_changed = true;
+      }
     } else if (active_expiry_epoch > 0 && active_expiry_epoch == cached_shield_expiry_epoch) {
       // Same active expiry as already cached â€” value hasn't changed but a new scan
       // confirmed the shield is still live; force an export so the gist stays current.
@@ -1484,6 +1492,7 @@ static void sync_all_to_gist(const std::filesystem::path& dir)
     {gist.filename_faction,   dir / "faction.json"},
     {gist.filename_buffs,     dir / "buffs.json"},
     {gist.filename_territory, dir / "territory.json"},
+    {gist.filename_summary,   dir / "summary.json"},
     {gist.filename_manifest,  dir / "manifest.json"},
   };
 
@@ -1596,6 +1605,143 @@ static bool write_json_file(const std::filesystem::path& path, const json& j)
   return true;
 }
 
+// Build a compact summary JSON for token-efficient AI queries.
+// Contains: player vitals, ship tier breakdown, grouped resource totals,
+// key building levels, and research counts by tree.
+static json build_summary_json(const json& gs, const std::string& ts)
+{
+  json s;
+  s["exported_at"] = ts;
+  s["note"] = "Pre-computed summary for token-efficient queries. Load full files for complete data.";
+
+  if (gs.contains("player"))   s["player"]   = gs["player"];
+  if (gs.contains("station"))  s["station"]  = gs["station"];
+  if (gs.contains("drydocks")) s["drydocks"] = gs["drydocks"];
+
+  // Ships: count, tier distribution, top 5 by tier then level
+  if (gs.contains("ships") && gs["ships"].is_array()) {
+    std::map<int, int> by_tier;
+    std::vector<json>  sorted;
+    for (const auto& ship : gs["ships"]) {
+      by_tier[ship.value("tier", 0)]++;
+      sorted.push_back(ship);
+    }
+    std::sort(sorted.begin(), sorted.end(), [](const json& a, const json& b) {
+      int ta = a.value("tier", 0), tb = b.value("tier", 0);
+      return ta != tb ? ta > tb : a.value("level", 0) > b.value("level", 0);
+    });
+    json tiers = json::object();
+    for (const auto& [t, c] : by_tier) tiers[std::to_string(t)] = c;
+    json top = json::array();
+    for (int i = 0; i < std::min(5, (int)sorted.size()); ++i) {
+      const auto& sh = sorted[i];
+      top.push_back({{"name",  sh.value("name",  "")},
+                     {"tier",  sh.value("tier",   0)},
+                     {"level", sh.value("level",  0)}});
+    }
+    s["ships"] = {{"count", (int)sorted.size()}, {"by_tier", tiers}, {"top5", top}};
+  }
+
+  // Resources: named totals + mining grouped by grade, faction tokens, ship parts
+  if (gs.contains("resources") && gs["resources"].is_array()) {
+    long long parsteel = 0, dilithium = 0, latinum = 0;
+    std::map<std::string, long long> mining_raw;  // "3_Ore" -> total raw
+    std::map<std::string, long long> mining_ref;  // "3_Ore" -> total refined (all R tiers summed)
+    std::map<std::string, long long> faction_tok; // "Klingon" -> total
+    std::map<std::string, long long> ship_parts;  // "Battleship" -> total
+
+    for (const auto& r : gs["resources"]) {
+      const auto amt = r.value("amount", 0LL);
+      if (amt == 0) continue;
+      const auto name = r.value("name", std::string{});
+      std::string_view nv = name;
+
+      if      (name == "Resource_Parsteel")           { parsteel  += amt; }
+      else if (name == "Resource_Dilithium")           { dilithium += amt; }
+      else if (nv.starts_with("Resource_Latinum"))     { latinum   += amt; }
+      else if (nv.starts_with("Resource_FactionToken_")) {
+        auto faction = std::string(nv.substr(22));
+        if (auto p = faction.rfind('_'); p != std::string::npos) {
+          auto suf = faction.substr(p);
+          if (suf == "_R1" || suf == "_R2") faction = faction.substr(0, p);
+        }
+        faction_tok[faction] += amt;
+      }
+      else if (nv.starts_with("Resource_Parts_")) {
+        auto rest = std::string(nv.substr(15));
+        auto p    = rest.find('_');
+        ship_parts[(p != std::string::npos ? rest.substr(0, p) : rest)] += amt;
+      }
+      else if (nv.starts_with("Resource_G") && nv.size() > 12
+               && std::isdigit((unsigned char)nv[10]) && nv[11] == '_') {
+        // Resource_G{N}_{Mat}_{Raw|R1|R2|...}
+        char        grade = nv[10];
+        auto        after = std::string(nv.substr(12));
+        const auto  under = after.find('_');
+        if (under != std::string::npos) {
+          const auto mat    = after.substr(0, under);
+          const auto suffix = after.substr(under + 1);
+          std::string key   = std::string(1, grade) + "_" + mat;
+          if (suffix == "Raw")
+            mining_raw[key] += amt;
+          else if (!suffix.empty() && suffix[0] == 'R'
+                   && suffix.size() >= 2 && std::isdigit((unsigned char)suffix[1]))
+            mining_ref[key] += amt;
+        }
+      }
+    }
+
+    json res;
+    res["parsteel"]  = parsteel;
+    res["dilithium"] = dilithium;
+    res["latinum"]   = latinum;
+
+    json mraw = json::object();
+    for (const auto& [k, v] : mining_raw) mraw[k] = v;
+    res["mining_raw"] = mraw;
+
+    json mref = json::object();
+    for (const auto& [k, v] : mining_ref) mref[k] = v;
+    res["mining_refined"] = mref;
+
+    json ftok = json::object();
+    for (const auto& [k, v] : faction_tok) ftok[k] = v;
+    res["faction_tokens"] = ftok;
+
+    json sparts = json::object();
+    for (const auto& [k, v] : ship_parts) sparts[k] = v;
+    res["ship_parts"] = sparts;
+
+    s["resources"] = res;
+  }
+
+  // Key buildings
+  if (gs.contains("buildings") && gs["buildings"].is_array()) {
+    static const std::unordered_set<std::string> KEY_BLDGS = {
+      "OPERATIONS", "SHIPYARD", "R&D DEPARTMENT", "ACADEMY", "REFINERY",
+      "ARMADA CONTROL CENTER", "SHIP HANGAR", "FOUNDRY", "SCIENCE LAB",
+      "DEFENSE TECHNOLOGIES", "MESS HALL", "TREASURY", "SCRAPYARD"
+    };
+    json bj = json::object();
+    for (const auto& b : gs["buildings"]) {
+      const auto bname = b.value("name", "");
+      if (KEY_BLDGS.count(bname)) bj[bname] = b.value("level", 0);
+    }
+    s["buildings_key"] = bj;
+  }
+
+  // Research: total count and breakdown by tree
+  if (gs.contains("research") && gs["research"].is_array()) {
+    std::map<std::string, int> by_tree;
+    for (const auto& node : gs["research"]) by_tree[node.value("tree", "Unknown")]++;
+    json trees = json::object();
+    for (const auto& [t, c] : by_tree) trees[t] = c;
+    s["research"] = {{"unlocked_count", (int)gs["research"].size()}, {"by_tree", trees}};
+  }
+
+  return s;
+}
+
 void export_game_state()
 {
   try {
@@ -1703,6 +1849,9 @@ void export_game_state()
       write_json_file(dir / "territory.json", j);
     }
 
+    // --- summary.json (always written — compact digest for AI/token-efficient access) ---
+    write_json_file(dir / "summary.json", build_summary_json(gs, ts));
+
     // --- manifest.json ---
     {
       json manifest;
@@ -1759,6 +1908,9 @@ void export_game_state()
         make_entry("battlelog.json", gist.filename_battlelog,
           "Battle history (last 500 battles) with outcomes, ship IDs and resource changes",
           {"battlelog"}),
+        make_entry("summary.json",   gist.filename_summary,
+          "Compact digest for token-efficient AI queries: player vitals, ship tier breakdown, grouped resource totals (mining raw/refined, faction tokens, ship parts), key building levels, research counts by tree",
+          {"player", "station", "drydocks", "ships", "resources", "buildings_key", "research"}),
       });
       // Site viewer is hosted on GitHub Pages; URL includes gist params so it auto-loads.
       if (gist.enabled && !gist.gist_id.empty()) {
@@ -2208,7 +2360,7 @@ void init()
     for (const auto* fn : {&gist.filename_player, &gist.filename_ships, &gist.filename_resources,
                             &gist.filename_research, &gist.filename_officers, &gist.filename_missions,
                             &gist.filename_faction, &gist.filename_buffs, &gist.filename_territory,
-                            &gist.filename_battlelog}) {
+                            &gist.filename_battlelog, &gist.filename_summary}) {
       spdlog::info("GameState Gist sync:   https://gist.githubusercontent.com/{}{}raw/{}", user_segment, gist.gist_id + "/", *fn);
     }
   } else {
