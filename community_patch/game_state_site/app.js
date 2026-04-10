@@ -30,9 +30,20 @@ function esc(s) {
 }
 
 // ── Format helpers ───────────────────────────────────────────────────────────
+
+// Tokens that must remain fully uppercase in ship names
+const SHIP_ALLCAPS = new Set([
+  'U.S.S.', 'I.K.S.', 'I.R.W.', 'R.R.W.', 'I.S.S.',
+  'USS', 'IKS', 'IRW', 'RRW', 'ISS', 'ECS', 'NX', 'NCC',
+]);
+
 function titleCase(str) {
-  // "FRANKLIN-A" → "Franklin-A",  "USS DISCOVERY" → "Uss Discovery"
-  return (str || '').toLowerCase().replace(/(?:^|[\s-])([a-z])/g, m => m.toUpperCase());
+  if (!str) return '';
+  return str.split(/(\s+)/).map(token => {
+    if (/^\s+$/.test(token)) return token;                              // keep whitespace as-is
+    if (SHIP_ALLCAPS.has(token.toUpperCase())) return token.toUpperCase(); // e.g. U.S.S., ECS
+    return token.toLowerCase().replace(/(?:^|-)([a-z])/g, m => m.toUpperCase()); // title-case + hyphen parts
+  }).join('');
 }
 
 function fmtDuration(secs) {
@@ -355,11 +366,13 @@ async function renderResearch() {
 async function renderResources() {
   destroyTable();
   const data = await fetchFile(GIST_FILES.resources);
-  const rows = (data.resources || []).map(r => ({
-    name:   cleanResource(r.name || r.key || '?'),
-    rarity: r.rarity || '—',
-    amount: r.amount ?? 0,
-  }));
+  const rows = (data.resources || [])
+    .filter(r => { const n = cleanResource(r.name || '').trim(); return n && n !== '?'; })
+    .map(r => ({
+      name:   cleanResource(r.name),
+      rarity: r.rarity || '—',
+      amount: r.amount ?? 0,
+    }));
 
   makeTable(el('tabContent'), rows, [
     { title: 'Resource', field: 'name',   sorter: 'string', headerFilter: 'input', formatter: 'plaintext' },
@@ -427,7 +440,7 @@ async function renderBuildings() {
   destroyTable();
   const data = await fetchFile(GIST_FILES.buildings);
   const rows = (data.buildings || [])
-    .filter(b => b.name && b.name !== '?')
+    .filter(b => b.name && b.name !== '?' && (b.id ?? 0) < 1000)  // id >= 1000 = alliance starbase modules
     .map(b => ({
       name:  b.name,
       level: b.level ?? 0,
