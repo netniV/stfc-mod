@@ -73,8 +73,11 @@ function parseSystem(s) {
 }
 
 function shipStatus(s) {
-  if (s.repair_active) return `Repairing — ${fmtDuration(s.repair_seconds_remaining)}`;
-  if (s.is_mining)     return 'Mining';
+  if (s.repair_active) {
+    const dmgPct = (100 - (s.repair_progress ?? 0)).toFixed(1);
+    return `Repairing — ${dmgPct}% damage, ${fmtDuration(s.repair_seconds_remaining)} remaining`;
+  }
+  if (s.is_mining) return 'Mining';
   return s.status || 'Docked';
 }
 
@@ -423,10 +426,12 @@ async function renderTerritory() {
 async function renderBuildings() {
   destroyTable();
   const data = await fetchFile(GIST_FILES.buildings);
-  const rows = (data.buildings || []).map(b => ({
-    name:  b.name  || '?',
-    level: b.level ?? 0,
-  }));
+  const rows = (data.buildings || [])
+    .filter(b => b.name && b.name !== '?')
+    .map(b => ({
+      name:  b.name,
+      level: b.level ?? 0,
+    }));
 
   makeTable(el('tabContent'), rows, [
     { title: 'Building', field: 'name',  sorter: 'string', headerFilter: 'input', formatter: 'plaintext' },
