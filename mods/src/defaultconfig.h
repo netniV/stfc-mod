@@ -183,6 +183,46 @@ namespace Sync
   constexpr auto        resolver_cache_ttl = 300;
 } // namespace Sync
 
+namespace GameState
+{
+  constexpr bool        game_state_enabled            = false;
+  constexpr auto        game_state_interval   = 300; // 5 minutes
+  constexpr const char* game_state_path       = "";
+  constexpr bool        game_state_on_startup = true;
+  constexpr const char* game_state_player_id  = "";  // set to your userid for accurate player data
+  constexpr bool        battle_log_enabled    = false;
+
+  namespace Gist
+  {
+    constexpr bool        enabled            = false;
+    constexpr const char* gist_id            = "";
+    constexpr const char* username           = "";  // GitHub username â€” used in manifest URLs; auto-resolved from API if left empty
+    constexpr const char* token              = "";
+    constexpr const char* filename_player    = "stfc_player.json";
+      constexpr const char* filename_ships     = "stfc_ships.json";
+      constexpr const char* filename_resources = "stfc_resources.json";
+      constexpr const char* filename_research  = "stfc_research.json";
+      constexpr const char* filename_officers  = "stfc_officers.json";
+      constexpr const char* filename_missions  = "stfc_missions.json";
+      constexpr const char* filename_faction   = "stfc_faction.json";
+      constexpr const char* filename_buffs     = "stfc_buffs.json";
+      constexpr const char* filename_territory = "stfc_territory.json";
+      constexpr const char* filename_buildings  = "stfc_buildings.json";
+      constexpr const char* filename_battlelog = "stfc_battlelog.json";
+      constexpr const char* filename_summary   = "stfc_summary.json";
+      constexpr const char* filename_manifest  = "stfc_manifest.json";
+  } // namespace Gist
+} // namespace GameState
+
+namespace ShieldAlerts
+{
+  constexpr bool        enabled                   = false;
+  constexpr auto        poll_interval_seconds      = 60;
+  constexpr auto        reminder_interval_minutes  = 30;
+  // Comma-separated hours-before-expiry thresholds, e.g. "4,2,1"
+  constexpr const char* shield_warn_hours          = "4,2,1";
+} // namespace ShieldAlerts
+
 namespace UI
 {
   constexpr bool        always_skip_reveal_sequence = true;

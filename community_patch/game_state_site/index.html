@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>STFC Gamestate Viewer</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tabulator-tables@6/dist/css/tabulator_midnight.min.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="lcars-top">
+    <div class="lcars-left">STFC</div>
+    <div class="lcars-center">Gamestate Viewer</div>
+    <div class="lcars-right">LCARS</div>
+  </header>
+
+  <main class="container">
+    <div class="controls">
+      <label for="rawBase">Gist raw base URL</label>
+      <input id="rawBase" type="text"
+             placeholder="https://gist.githubusercontent.com/USERNAME/GISTID/raw" />
+      <button id="loadBtn">Load</button>
+      <span id="status" class="status">Ready</span>
+    </div>
+
+    <section class="panel">
+      <h2>Player</h2>
+      <div id="playerSummary">No data loaded</div>
+      <h2 style="margin-top:12px">Drydocks</h2>
+      <div id="drydocksPanel"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Details</h2>
+      <div class="tabs">
+        <button data-tab="ships"     class="active">Ships</button>
+        <button data-tab="officers">Officers</button>
+        <button data-tab="research">Research</button>
+        <button data-tab="resources">Resources</button>
+        <button data-tab="territory">Territory</button>
+        <button data-tab="buildings">Buildings</button>
+      </div>
+      <div id="tabContent">Choose a tab</div>
+    </section>
+  </main>
+
+  <footer class="lcars-bottom">
+    STFC Community Mod &mdash; Gamestate Viewer &mdash;
+    URL from your <code>stfc_manifest.json</code> auto-loads your gist data
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/tabulator-tables@6/dist/js/tabulator.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
