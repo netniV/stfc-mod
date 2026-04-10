@@ -11,6 +11,9 @@ A Windows proxy DLL (`version.dll`) that hooks Star Trek Fleet Command (PC/Scope
 
 **Player:** SpotTheSpaceCat · Ops 41 · Server 709 · Alliance [GROW]
 
+> For AI assistants helping the player with in-game planning, see
+> [`docs/reference/ai-assistant-context.md`](docs/reference/ai-assistant-context.md).
+
 ## Tech Stack
 
 | Layer | Technology |
