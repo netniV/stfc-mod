@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>STFC Gamestate Viewer</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tabulator-tables@6/dist/css/tabulator_midnight.min.css" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -37,6 +38,7 @@
         <button data-tab="research">Research</button>
         <button data-tab="resources">Resources</button>
         <button data-tab="territory">Territory</button>
+        <button data-tab="buildings">Buildings</button>
       </div>
       <div id="tabContent">Choose a tab</div>
     </section>
@@ -47,6 +49,7 @@
     URL from your <code>stfc_manifest.json</code> auto-loads your gist data
   </footer>
 
+  <script src="https://cdn.jsdelivr.net/npm/tabulator-tables@6/dist/js/tabulator.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -143,14 +143,68 @@ button:hover { background: var(--accent-2); }
 
 #tabContent {
   background: rgba(255,255,255,0.02);
-  padding: 8px;
   border-radius: 6px;
   min-height: 200px;
+}
+
+/* Toolbar row above Tabulator tables (e.g. officers toggle) */
+.table-toolbar {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  overflow-y: auto;
-  max-height: 500px;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0 8px;
+}
+.table-toolbar button {
+  font-size: 11px;
+  padding: 4px 10px;
+}
+
+/* ── Tabulator overrides (midnight theme → LCARS palette) ──────────────────── */
+.tabulator {
+  border-color: rgba(255,255,255,0.08) !important;
+  background: transparent !important;
+  font-size: 13px;
+}
+.tabulator .tabulator-header {
+  background: #1a1a1f !important;
+  border-bottom-color: var(--accent) !important;
+}
+.tabulator .tabulator-col {
+  background: #1a1a1f !important;
+  border-right-color: rgba(255,255,255,0.06) !important;
+  color: var(--accent-2) !important;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.tabulator .tabulator-col.tabulator-sortable:hover {
+  background: #222228 !important;
+}
+.tabulator .tabulator-header-filter input {
+  background: #0e0e12 !important;
+  color: var(--text) !important;
+  border-color: rgba(255,255,255,0.1) !important;
+  font-size: 12px;
+}
+.tabulator .tabulator-row {
+  background: transparent !important;
+  border-bottom-color: rgba(255,255,255,0.04) !important;
+  color: var(--text) !important;
+}
+.tabulator .tabulator-row:hover,
+.tabulator .tabulator-row.tabulator-row-even:hover {
+  background: rgba(255,140,66,0.07) !important;
+}
+.tabulator .tabulator-row.tabulator-row-even {
+  background: rgba(255,255,255,0.02) !important;
+}
+.tabulator .tabulator-cell {
+  border-right-color: rgba(255,255,255,0.04) !important;
+}
+.tabulator .tabulator-footer {
+  background: #1a1a1f !important;
+  color: #888 !important;
+  border-top-color: rgba(255,255,255,0.08) !important;
 }
 
 /* ── Footer ─────────────────────────────────────────────────── */
