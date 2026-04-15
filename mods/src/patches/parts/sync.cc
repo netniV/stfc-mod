@@ -2030,6 +2030,8 @@ void InstallSyncPatches()
 {
   load_previously_sent_logs();
 
+  void* process_result_internal_target = nullptr;
+
   if (auto game_server_model_registry =
           il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Core", "GameServerModelRegistry");
       !game_server_model_registry.isValidHelper()) {
@@ -2040,6 +2042,7 @@ void InstallSyncPatches()
       ErrorMsg::MissingMethod("GameServerModelRegistry", "ProcessResultInterval");
     } else {
       SPUD_STATIC_DETOUR(ptr, GameServerModelRegistry_ProcessResultInternal);
+      process_result_internal_target = ptr;
     }
 
     ptr = game_server_model_registry.GetMethod("HandleBinaryObjects");
@@ -2057,6 +2060,8 @@ void InstallSyncPatches()
   } else {
     if (const auto ptr = platform_model_registry.GetMethod("ProcessResultInternal"); ptr == nullptr) {
       ErrorMsg::MissingMethod("PlatformModelRegistry", "ProcessResultInterval");
+    } else if (ptr == process_result_internal_target) {
+      spdlog::info("PlatformModelRegistry::ProcessResultInternal shares address with GameServerModelRegistry — already hooked");
     } else {
       SPUD_STATIC_DETOUR(ptr, GameServerModelRegistry_ProcessResultInternal);
     }
