@@ -336,13 +336,15 @@ void read_sync_targets(toml::table& config, toml::table& new_config,
         continue;
       }
 
-      target.url   = url.value();
-      target.token = token.value();
-      target.proxy = proxy.value_or(defaults.proxy);
+      target.url        = url.value();
+      target.token      = token.value();
+      target.proxy      = proxy.value_or(defaults.proxy);
+      target.verify_ssl = values["verify_ssl"].value<bool>().value_or(defaults.verify_ssl);
 
       parsed_target.insert("url", target.url);
       parsed_target.insert("token", target.token);
       parsed_target.insert("proxy", target.proxy);
+      parsed_target.insert("verify_ssl", target.verify_ssl);
     } else {
       spdlog::warn("Skipping invalid target [{}]. Missing url or token.", target_section);
       continue;
@@ -356,6 +358,7 @@ void read_sync_targets(toml::table& config, toml::table& new_config,
     if (sync_targets.emplace(target_key.str(), target).second) {
       new_config["sync"]["targets"].as_table()->emplace<toml::table>(target_key.str(), parsed_target);
       spdlog::debug("config value {} url: {}, token: {}", target_section, target.url, mask_token(target.token));
+      spdlog::info("target [{}] proxy: '{}', verify_ssl: {}", target_section, target.proxy, target.verify_ssl);
     }
   }
 }
@@ -633,6 +636,9 @@ void Config::Load()
 
   // set global sync options to what's actually used in targets
   const auto targets_view = this->sync_targets | std::views::values;
+
+  this->sync_options.proxy      = sync_defaults.proxy;
+  this->sync_options.verify_ssl = sync_defaults.verify_ssl;
 
   for (const auto& opt : SyncOptions) {
     this->sync_options.*opt.option =
