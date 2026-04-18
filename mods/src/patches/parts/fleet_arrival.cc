@@ -22,25 +22,6 @@
 
 static std::unordered_map<uint64_t, FleetState> s_fleet_bar_states;
 
-static const char* fleet_bar_state_str(FleetState state)
-{
-  switch (state) {
-    case FleetState::Unknown:      return "Unknown";
-    case FleetState::IdleInSpace:  return "IdleInSpace";
-    case FleetState::Docked:       return "Docked";
-    case FleetState::Mining:       return "Mining";
-    case FleetState::Destroyed:    return "Destroyed";
-    case FleetState::TieringUp:    return "TieringUp";
-    case FleetState::Repairing:    return "Repairing";
-    case FleetState::Battling:     return "Battling";
-    case FleetState::WarpCharging: return "WarpCharging";
-    case FleetState::Warping:      return "Warping";
-    case FleetState::Impulsing:    return "Impulsing";
-    case FleetState::Capturing:    return "Capturing";
-    default:                       return "Composite";
-  }
-}
-
 static std::string fleet_bar_ship_name(FleetPlayerData* fleet)
 {
   auto* hull = fleet ? fleet->Hull : nullptr;
@@ -86,10 +67,6 @@ static void maybe_notify_fleet_bar_transition(uint64_t fleetId, const std::strin
     spdlog::info("[FleetBar] ARRIVED_AT_DESTINATION id={} ship='{}'", fleetId, shipName);
     return;
   }
-
-  if (oldState == FleetState::Warping && newState == FleetState::Docked) {
-    spdlog::info("[FleetBar] DOCKED_AFTER_WARP id={} ship='{}'", fleetId, shipName);
-  }
 }
 
 static void FleetStateWidget_SetWidgetData_Hook(auto original, void* self)
@@ -101,14 +78,7 @@ static void FleetStateWidget_SetWidgetData_Hook(auto original, void* self)
     auto shipName     = fleet_bar_ship_name(fleet);
 
     auto it = s_fleet_bar_states.find(fleetId);
-    if (it == s_fleet_bar_states.end()) {
-      spdlog::info("[FleetBar] SetWidgetData snapshot id={} ship='{}' state={}({})",
-                   fleetId, shipName, fleet_bar_state_str(currentState), (int)currentState);
-    } else if (it->second != currentState) {
-      spdlog::info("[FleetBar] SetWidgetData state id={} ship='{}' {}({}) -> {}({})",
-                   fleetId, shipName,
-                   fleet_bar_state_str(it->second), (int)it->second,
-                   fleet_bar_state_str(currentState), (int)currentState);
+    if (it != s_fleet_bar_states.end() && it->second != currentState) {
       maybe_notify_fleet_bar_transition(fleetId, shipName, it->second, currentState);
     }
 
