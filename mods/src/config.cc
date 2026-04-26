@@ -718,6 +718,7 @@ void Config::Load()
   this->game_state_github.filename_territory = tbl_get(github_table, "filename_territory", std::string(DCGSGithub::filename_territory));
   this->game_state_github.filename_buildings  = tbl_get(github_table, "filename_buildings",  std::string(DCGSGithub::filename_buildings));
   this->game_state_github.filename_battlelog = tbl_get(github_table, "filename_battlelog", std::string(DCGSGithub::filename_battlelog));
+  this->game_state_github.filename_summary   = tbl_get(github_table, "filename_summary",   std::string(DCGSGithub::filename_summary));
   this->game_state_github.filename_manifest  = tbl_get(github_table, "filename_manifest",  std::string(DCGSGithub::filename_manifest));
 
   spdlog::debug("config sync.game_state.github: enabled={}, gist_id={}, token={}",

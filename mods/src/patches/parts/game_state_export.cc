@@ -397,9 +397,17 @@ void capture_peace_shield(int64_t active_expiry_epoch, int64_t token_count)
       cached_shield_token_count = token_count;
     }
     if (active_expiry_epoch >= 0 && active_expiry_epoch != cached_shield_expiry_epoch) {
-      first_real_expiry      = (cached_shield_expiry_epoch == 0 && active_expiry_epoch > 0);
-      cached_shield_expiry_epoch = active_expiry_epoch;
-      expiry_changed = true;
+      // Don't accept expiry=0 ("no shield") if we already have a valid future expiry.
+      // my_shield_state arrives null/empty mid-session even while a shield is active,
+      // so a null update must not overwrite a confirmed active expiry.
+      auto now_epoch = std::chrono::duration_cast<std::chrono::seconds>(
+          std::chrono::system_clock::now().time_since_epoch()).count();
+      bool stale_zero = (active_expiry_epoch == 0 && cached_shield_expiry_epoch > now_epoch);
+      if (!stale_zero) {
+        first_real_expiry      = (cached_shield_expiry_epoch == 0 && active_expiry_epoch > 0);
+        cached_shield_expiry_epoch = active_expiry_epoch;
+        expiry_changed = true;
+      }
     } else if (active_expiry_epoch > 0 && active_expiry_epoch == cached_shield_expiry_epoch) {
       // Same active expiry as already cached â€” value hasn't changed but a new scan
       // confirmed the shield is still live; force an export so the gist stays current.
@@ -1484,6 +1492,7 @@ static void sync_all_to_gist(const std::filesystem::path& dir)
     {gist.filename_faction,   dir / "faction.json"},
     {gist.filename_buffs,     dir / "buffs.json"},
     {gist.filename_territory, dir / "territory.json"},
+    {gist.filename_summary,   dir / "summary.json"},
     {gist.filename_manifest,  dir / "manifest.json"},
   };
 
@@ -1596,6 +1605,325 @@ static bool write_json_file(const std::filesystem::path& path, const json& j)
   return true;
 }
 
+// Build a compact summary JSON for token-efficient AI queries.
+// Contains: player vitals, ship top-5 mining/combat, grouped resource totals
+// (with ship parts per grade), key building levels, buildable blueprints,
+// faction reputation (flat points per faction),
+// active queues, and research counts by tree (FC research separated).
+static json build_summary_json(const json& gs, const std::string& ts)
+{
+  json s;
+  s["exported_at"] = ts;
+  s["note"] = "Pre-computed summary for token-efficient queries. Load full files for complete data.";
+
+  if (gs.contains("player"))   s["player"]   = gs["player"];
+  if (gs.contains("drydocks")) s["drydocks"] = gs["drydocks"];
+
+  // Station: strip trailing " (N)" level suffix from home_system_name
+  if (gs.contains("station")) {
+    json station = gs["station"];
+    if (station.contains("home_system_name")) {
+      auto name = station["home_system_name"].get<std::string>();
+      auto paren = name.rfind(" (");
+      if (paren != std::string::npos) name = name.substr(0, paren);
+      station["home_system_name"] = name;
+    }
+    s["station"] = station;
+  }
+
+  // Build hull_id -> ship class map from ship_blueprints
+  // Blueprint name format: Blueprint_Hull_G{N}_{Class}_{Faction}_{Name...}
+  std::unordered_map<std::string, std::string> hull_class; // hull_id_str -> "Survey"|"Explorer"|etc
+  if (gs.contains("ship_blueprints") && gs["ship_blueprints"].is_array()) {
+    for (const auto& bp : gs["ship_blueprints"]) {
+      auto hull_id = bp.value("hull_id", 0);
+      if (hull_id == 0) continue;
+      std::string_view nv = bp.value("name", std::string{});
+      // "Blueprint_Hull_G" = 16 chars, then digit, then '_'
+      if (nv.starts_with("Blueprint_Hull_G") && nv.size() > 18
+          && std::isdigit((unsigned char)nv[16]) && nv[17] == '_') {
+        auto rest = nv.substr(18); // "Survey_Federation_Jellyfish"
+        auto p    = rest.find('_');
+        hull_class[std::to_string(hull_id)] =
+            std::string(p != std::string_view::npos ? rest.substr(0, p) : rest);
+      }
+    }
+  }
+
+  // Build set of hull_ids already owned (ships in hangar)
+  std::unordered_set<std::string> owned_hull_ids;
+  if (gs.contains("ships") && gs["ships"].is_array()) {
+    for (const auto& ship : gs["ships"])
+      owned_hull_ids.insert(std::to_string(ship.value("hull_id", 0)));
+  }
+
+  // Ships: count, top5_mining (survey sorted by cargo_protection desc),
+  //        top5_combat (non-survey sorted by tier*100+level desc — per-ship
+  //        power is not captured from the game sync, tier×100+level is a reliable proxy)
+  if (gs.contains("ships") && gs["ships"].is_array()) {
+    std::vector<json> mining_ships, combat_ships;
+    for (const auto& ship : gs["ships"]) {
+      auto hull_id_str = std::to_string(ship.value("hull_id", 0));
+      auto it          = hull_class.find(hull_id_str);
+      bool is_survey   = (it != hull_class.end())
+                             ? (it->second == "Survey")
+                             : (ship.value("cargo_protection", 0LL) >= 1000LL);
+      if (is_survey) mining_ships.push_back(ship);
+      else           combat_ships.push_back(ship);
+    }
+    std::sort(mining_ships.begin(), mining_ships.end(), [](const json& a, const json& b) {
+      return a.value("cargo_protection", 0LL) > b.value("cargo_protection", 0LL);
+    });
+    std::sort(combat_ships.begin(), combat_ships.end(), [](const json& a, const json& b) {
+      int pa = a.value("tier", 0) * 100 + a.value("level", 0);
+      int pb = b.value("tier", 0) * 100 + b.value("level", 0);
+      return pa > pb;
+    });
+    auto make_mining_entry = [](const json& sh) {
+      return json{{"name",              sh.value("name",              "")},
+                  {"tier",              sh.value("tier",               0)},
+                  {"level",             sh.value("level",              0)},
+                  {"cargo_capacity",    sh.value("cargo_capacity",    0LL)},
+                  {"cargo_protection",  sh.value("cargo_protection",  0LL)}};
+    };
+    auto make_combat_entry = [](const json& sh) {
+      return json{{"name",  sh.value("name",  "")},
+                  {"tier",  sh.value("tier",   0)},
+                  {"level", sh.value("level",  0)}};
+    };
+    json top_mining = json::array();
+    for (int i = 0; i < std::min(5, (int)mining_ships.size()); ++i)
+      top_mining.push_back(make_mining_entry(mining_ships[i]));
+    json top_combat = json::array();
+    for (int i = 0; i < std::min(5, (int)combat_ships.size()); ++i)
+      top_combat.push_back(make_combat_entry(combat_ships[i]));
+    s["ships"] = {
+      {"count",       (int)(mining_ships.size() + combat_ships.size())},
+      {"top5_mining", top_mining},
+      {"top5_combat", top_combat}
+    };
+  }
+
+  // Resources: base totals, mining by grade+material (grade-filtered by ops level),
+  //   mining_refined split by rarity (R1=Common, R2=Uncommon, R3=Rare),
+  //   faction tokens, ship_parts nested by type then grade.
+  // Grade filter: at ops level N, grades below (N/10 - 1) are dropped as obsolete.
+  //   e.g. ops 41 → min_grade=3, so G1/G2 mining resources are excluded.
+  if (gs.contains("resources") && gs["resources"].is_array()) {
+    const int ops_level = gs.value(json::json_pointer("/player/ops_level"), 0);
+    const int min_grade = std::max(1, ops_level / 10 - 1);
+
+    long long parsteel = 0, dilithium = 0, tritanium = 0, latinum = 0;
+    // mining_raw:  "grade_mat" -> total raw ore
+    std::map<std::string, long long>                        mining_raw;
+    // mining_ref:  "grade_mat" -> rarity_label -> total refined
+    //   rarity: R1=Common, R2=Uncommon, R3=Rare
+    std::map<std::string, std::map<std::string, long long>> mining_ref;
+    std::map<std::string, long long>                        faction_tok;
+    std::map<std::string, std::map<std::string, long long>> ship_parts; // type -> grade -> amt
+
+    auto rarity_label = [](std::string_view suffix) -> const char* {
+      if (suffix == "R1") return "Common";
+      if (suffix == "R2") return "Uncommon";
+      if (suffix == "R3") return "Rare";
+      return nullptr;
+    };
+
+    for (const auto& r : gs["resources"]) {
+      const auto amt = r.value("amount", 0LL);
+      if (amt == 0) continue;
+      const auto       name = r.value("name", std::string{});
+      std::string_view nv   = name;
+
+      if      (name == "Resource_Parsteel")              { parsteel  += amt; }
+      else if (name == "Resource_Dilithium")              { dilithium += amt; }
+      else if (nv.starts_with("Resource_Trianium"))       { tritanium += amt; }
+      else if (nv.starts_with("Resource_Latinum"))        { latinum   += amt; }
+      else if (nv.starts_with("Resource_FactionToken_")) {
+        auto faction = std::string(nv.substr(22));
+        if (auto p = faction.rfind('_'); p != std::string::npos) {
+          auto suf = faction.substr(p);
+          if (suf == "_R1" || suf == "_R2") faction = faction.substr(0, p);
+        }
+        faction_tok[faction] += amt;
+      }
+      else if (nv.starts_with("Resource_Parts_")) {
+        // Resource_Parts_{Type}_{Grade}  e.g. Resource_Parts_Battleship_G3
+        auto rest = std::string(nv.substr(15));
+        auto p    = rest.find('_');
+        if (p != std::string::npos) {
+          ship_parts[rest.substr(0, p)][rest.substr(p + 1)] += amt;
+        }
+      }
+      else if (nv.starts_with("Resource_G") && nv.size() > 12
+               && std::isdigit((unsigned char)nv[10]) && nv[11] == '_') {
+        const int grade_n = nv[10] - '0';
+        if (grade_n < min_grade) continue; // below player's relevant resource tier
+        char        grade = nv[10];
+        auto        after = std::string(nv.substr(12));
+        const auto  under = after.find('_');
+        if (under != std::string::npos) {
+          const auto  mat    = after.substr(0, under);
+          const auto  suffix = after.substr(under + 1);
+          std::string key    = std::string(1, grade) + "_" + mat;
+          if (suffix == "Raw") {
+            mining_raw[key] += amt;
+          } else {
+            const char* label = rarity_label(suffix);
+            if (label) mining_ref[key][label] += amt;
+          }
+        }
+      }
+    }
+
+    json res;
+    res["parsteel"]  = parsteel;
+    res["dilithium"] = dilithium;
+    res["tritanium"] = tritanium;
+    res["latinum"]   = latinum;
+
+    json mraw = json::object();
+    for (const auto& [k, v] : mining_raw) mraw[k] = v;
+    res["mining_raw"] = mraw;
+
+    // mining_refined: { "3_Ore": { "Common": N, "Uncommon": N, "Rare": N }, ... }
+    json mref = json::object();
+    for (const auto& [k, rarities] : mining_ref) {
+      json rj = json::object();
+      for (const auto& [label, v] : rarities) rj[label] = v;
+      mref[k] = rj;
+    }
+    res["mining_refined"] = mref;
+
+    json ftok = json::object();
+    for (const auto& [k, v] : faction_tok) ftok[k] = v;
+    res["faction_tokens"] = ftok;
+
+    // Nested: ship_parts.Battleship.G3 = N
+    json sparts = json::object();
+    for (const auto& [type, grades] : ship_parts) {
+      json gj = json::object();
+      for (const auto& [grade, amt] : grades) gj[grade] = amt;
+      sparts[type] = gj;
+    }
+    res["ship_parts"] = sparts;
+
+    s["resources"] = res;
+  }
+
+  // Key buildings — personal station only (id < 1000 excludes alliance starbase).
+  // Criteria: buildings that directly gate ship/research/combat capability.
+  if (gs.contains("buildings") && gs["buildings"].is_array()) {
+    static const std::unordered_set<std::string> KEY_BLDGS = {
+      "OPERATIONS", "SHIPYARD", "R&D DEPARTMENT", "ACADEMY", "REFINERY",
+      "ARMADA CONTROL CENTER", "SHIP HANGAR", "FOUNDRY", "SCIENCE LAB",
+      "DEFENSE TECHNOLOGIES", "MESS HALL", "TREASURY", "SCRAPYARD",
+      "WARP RANGE", "CARGO BAY", "COMMUNICATIONS HUB", "LONG RANGE SENSORS"
+    };
+    json bj = json::object();
+    for (const auto& b : gs["buildings"]) {
+      if (b.value("id", 9999) >= 1000) continue; // skip alliance starbase
+      const auto bname = b.value("name", "");
+      if (KEY_BLDGS.count(bname)) bj[bname] = b.value("level", 0);
+    }
+    s["buildings_key"] = bj;
+  }
+
+  // Ship blueprints: ships not yet in hangar, amount >= 1,
+  // G4+ or named G3 (excludes generic "...Class" placeholders), skips G1/G2.
+  if (gs.contains("ship_blueprints") && gs["ship_blueprints"].is_array()) {
+    json bps = json::array();
+    for (const auto& bp : gs["ship_blueprints"]) {
+      const auto amt = bp.value("amount", 0);
+      if (amt < 1) continue;
+      auto hull_id_str = std::to_string(bp.value("hull_id", 0));
+      if (owned_hull_ids.count(hull_id_str)) continue; // already owned
+
+      std::string_view nv = bp.value("name", std::string{});
+      // Blueprint_Hull_G{N}_{Class}_{Faction}_{Name...}
+      if (!nv.starts_with("Blueprint_Hull_G") || nv.size() <= 18
+          || !std::isdigit((unsigned char)nv[16]) || nv[17] != '_')
+        continue;
+      int  grade    = nv[16] - '0';
+      auto rest_sv  = nv.substr(18); // "Survey_Federation_Jellyfish"
+      if (grade < 3) continue;
+
+      // Split remainder by '_' into [Class, Faction, Name parts...]
+      std::vector<std::string> parts;
+      {
+        std::string cur;
+        for (char c : rest_sv) {
+          if (c == '_') { parts.push_back(cur); cur.clear(); }
+          else          cur += c;
+        }
+        if (!cur.empty()) parts.push_back(cur);
+      }
+      std::string cls       = parts.size() > 0 ? parts[0] : "";
+      // Ship name = parts[2..] joined with space (skips Class and Faction)
+      std::string ship_name;
+      for (size_t i = 2; i < parts.size(); ++i) {
+        if (i > 2) ship_name += ' ';
+        ship_name += parts[i];
+      }
+      // G3 "...Class" blueprints are generic placeholders — skip them
+      if (grade == 3 && (ship_name == "Class" || ship_name.empty())) continue;
+
+      bps.push_back({
+        {"ship_name",    ship_name},
+        {"class",        cls},
+        {"grade",        grade},
+        {"hull_id",      bp.value("hull_id",      0)},
+        {"amount",       amt},
+        {"parts_needed", bp.value("parts_needed", 0)}
+      });
+    }
+    s["ship_blueprints_to_build"] = bps;
+  }
+
+  // Faction reputation: flat map of faction -> points.
+  // Excludes "LoopMuseum" (junk entry) and factions with 0 points.
+  if (gs.contains("faction_reputation") && gs["faction_reputation"].is_array()) {
+    json rep = json::object();
+    for (const auto& entry : gs["faction_reputation"]) {
+      const auto faction = entry.value("faction", std::string{});
+      const auto points  = entry.value("points",  0LL);
+      if (faction.empty() || faction == "LoopMuseum") continue;
+      rep[faction] = points;
+    }
+    s["faction_reputation"] = rep;
+  }
+
+  // Queues: include build/research/scrap queues as-is
+  if (gs.contains("queues")) s["queues"] = gs["queues"];
+
+  // Research: count + by_tree; FC research (tree prefix "FC ") separated
+  if (gs.contains("research") && gs["research"].is_array()) {
+    std::map<std::string, int> by_tree;
+    std::map<std::string, int> fc_by_tree;
+    int fc_count = 0;
+    for (const auto& node : gs["research"]) {
+      auto tree = node.value("tree", "Unknown");
+      if (std::string_view{tree}.starts_with("FC ") || tree == "FC") {
+        fc_by_tree[tree]++;
+        fc_count++;
+      } else {
+        by_tree[tree]++;
+      }
+    }
+    json trees = json::object();
+    for (const auto& [t, c] : by_tree) trees[t] = c;
+    json fc_trees = json::object();
+    for (const auto& [t, c] : fc_by_tree) fc_trees[t] = c;
+    s["research"] = {
+      {"unlocked_count", (int)gs["research"].size() - fc_count},
+      {"by_tree",        trees},
+      {"fc_research",    {{"unlocked_count", fc_count}, {"by_tree", fc_trees}}}
+    };
+  }
+
+  return s;
+}
+
 void export_game_state()
 {
   try {
@@ -1703,6 +2031,9 @@ void export_game_state()
       write_json_file(dir / "territory.json", j);
     }
 
+    // --- summary.json (always written — compact digest for AI/token-efficient access) ---
+    write_json_file(dir / "summary.json", build_summary_json(gs, ts));
+
     // --- manifest.json ---
     {
       json manifest;
@@ -1759,6 +2090,9 @@ void export_game_state()
         make_entry("battlelog.json", gist.filename_battlelog,
           "Battle history (last 500 battles) with outcomes, ship IDs and resource changes",
           {"battlelog"}),
+        make_entry("summary.json",   gist.filename_summary,
+          "Compact digest for token-efficient AI queries: player vitals, ship tier breakdown, grouped resource totals (mining raw/refined, faction tokens, ship parts), key building levels, research counts by tree",
+          {"player", "station", "drydocks", "ships", "resources", "buildings_key", "research"}),
       });
       // Site viewer is hosted on GitHub Pages; URL includes gist params so it auto-loads.
       if (gist.enabled && !gist.gist_id.empty()) {
@@ -2208,7 +2542,7 @@ void init()
     for (const auto* fn : {&gist.filename_player, &gist.filename_ships, &gist.filename_resources,
                             &gist.filename_research, &gist.filename_officers, &gist.filename_missions,
                             &gist.filename_faction, &gist.filename_buffs, &gist.filename_territory,
-                            &gist.filename_battlelog}) {
+                            &gist.filename_battlelog, &gist.filename_summary}) {
       spdlog::info("GameState Gist sync:   https://gist.githubusercontent.com/{}{}raw/{}", user_segment, gist.gist_id + "/", *fn);
     }
   } else {

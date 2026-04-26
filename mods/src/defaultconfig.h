@@ -209,6 +209,7 @@ namespace GameState
       constexpr const char* filename_territory = "stfc_territory.json";
       constexpr const char* filename_buildings  = "stfc_buildings.json";
       constexpr const char* filename_battlelog = "stfc_battlelog.json";
+      constexpr const char* filename_summary   = "stfc_summary.json";
       constexpr const char* filename_manifest  = "stfc_manifest.json";
   } // namespace Gist
 } // namespace GameState
