@@ -190,7 +190,7 @@ void InstallObjectTrackers()
 #else
 #if SPUD_ARCH_ARM64
   auto GC_register_finalizer_inner_matches = spud::find_in_module(
-    "FF 83 02 D1 FC 6F 04 A9 FA 67 05 A9 F8 5F 06 A9 F6 57 07 A9 F4 4F 08 A9 FD 7B 09 A9 FD 43 02 91 E4 0F 03 A9", "GameAssembly.dylib");
+    "FF ? 02 D1 FC 6F ? A9 FA 67 ? A9 F8 5F ? A9 F6 57 ? A9 F4 4F ? A9 FD 7B ? A9 FD ? 02 91 E4 0F ? A9", "GameAssembly.dylib");
 #else
   auto GC_register_finalizer_inner_matches = spud::find_in_module(
       "55 48 89 E5 41 57 41 56 41 55 41 54 53 48 83 EC ? 4C 89 45 ? 48 89 4D ? 83 3D", "GameAssembly.dylib");

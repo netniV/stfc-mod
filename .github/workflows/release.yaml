@@ -14,7 +14,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       # ✅ Step 1 — Check if Build succeeded for this same commit
       - name: Check latest Build success
@@ -38,7 +38,7 @@ jobs:
 
       # ✅ Step 2 — Download the Build artifacts
       - name: Download artifact from Build workflow
-        uses: dawidd6/action-download-artifact@v11
+        uses: dawidd6/action-download-artifact@v18
         with:
           run_id: ${{ steps.check_build.outputs.build_run_id }}
 

@@ -10,7 +10,8 @@ add_configs("zlib", {description = "Enable zlib", default = false, type = "boole
 add_deps("cmake")
 
 on_load(function (package)
-    package:add("deps", "abseil")
+-- pin abseil to the version in https://github.com/protocolbuffers/protobuf/blob/main/protobuf_deps.bzl when you update protobuf
+    package:add("deps", "abseil 20250512.1")
 
     if package:is_plat("windows") then
         package:add("links", "libprotoc", "libprotobuf", "utf8_range", "utf8_validity", "libutf8_range", "libutf8_validity")

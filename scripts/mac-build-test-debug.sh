@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# STFC Community Patch - Development Build Script
+# STFC Community Mod - Development Build Script
 # This script provides an easy way to configure, build, run, and debug the mod during development
 
 set -e  # Exit on error
@@ -47,7 +47,7 @@ print_usage() {
     cat << EOF
 Usage: $(basename "$0") [OPTIONS] [ACTION]
 
-STFC Community Patch Development Script
+STFC Community Mod Development Script
 
 ACTIONS:
     build           Build the project (default)
@@ -137,8 +137,8 @@ esac
 # Update build directory based on architecture
 BUILD_DIR="${PROJECT_ROOT}/build/macosx/${ARCH}/${BUILD_MODE}"
 APP_PATH="${BUILD_DIR}/macOSLauncher.app"
-LOADER_PATH="${BUILD_DIR}/stfc-community-patch-loader"
-STFC_APP_PATH="${BUILD_DIR}/STFC Community Patch.app"
+LOADER_PATH="${BUILD_DIR}/stfc-community-mod-loader"
+STFC_APP_PATH="${BUILD_DIR}/STFC Community Mod.app"
 
 # Configure the project
 configure_project() {
@@ -224,7 +224,7 @@ prepare_app() {
         fi
         
         # Check if dylib was built
-        local dylib_path="${BUILD_DIR}/libstfc-community-patch.dylib"
+        local dylib_path="${BUILD_DIR}/libstfc-community-mod.dylib"
         if [[ ! -f "$dylib_path" ]]; then
             print_warning "Mod library not found at: $dylib_path"
             print_warning "The loader may not work correctly without the mod library"
@@ -282,9 +282,9 @@ show_crash_logs() {
     fi
     
     # Search for loader crashes
-    if compgen -G "${crash_dir}/stfc-community-patch-loader*.crash" > /dev/null 2>&1; then
-        print_info "Recent stfc-community-patch-loader crashes:"
-        ls -lht "${crash_dir}"/stfc-community-patch-loader*.crash 2>/dev/null | head -5 | while read -r line; do
+    if compgen -G "${crash_dir}/stfc-community-mod-loader*.crash" > /dev/null 2>&1; then
+        print_info "Recent stfc-community-mod-loader crashes:"
+        ls -lht "${crash_dir}"/stfc-community-mod-loader*.crash 2>/dev/null | head -5 | while read -r line; do
             echo "  $line"
         done
         echo
@@ -306,7 +306,7 @@ show_crash_logs() {
         echo
     else
         # Get the most recent crash file
-        local most_recent=$(ls -t "${crash_dir}"/{macOSLauncher,stfc-community-patch-loader,*"Star Trek Fleet Command"}*.crash 2>/dev/null | head -1)
+        local most_recent=$(ls -t "${crash_dir}"/{macOSLauncher,stfc-community-mod-loader,*"Star Trek Fleet Command"}*.crash 2>/dev/null | head -1)
         
         if [[ -f "$most_recent" ]]; then
             print_info "Most recent crash log: ${most_recent}"
@@ -386,7 +386,7 @@ LLDB_EOF
 
 # Main execution flow
 main() {
-    print_info "STFC Community Patch Development Script"
+    print_info "STFC Community Mod Development Script"
     
     local exec_type="Loader"
     if [[ "$USE_LAUNCHER" == true ]]; then

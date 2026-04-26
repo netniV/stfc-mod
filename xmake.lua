@@ -1,4 +1,4 @@
-set_project("stfc-community-patch")
+set_project("stfc-community-mod")
 
 set_languages("c++23")
 
@@ -45,4 +45,4 @@ add_requires("simdutf", { system = false })
 includes("mods")
 
 -- add_repositories("local-repo build")
-add_repositories("stfc-community-patch-repo xmake-packages")
+add_repositories("stfc-community-mod-repo xmake-packages")

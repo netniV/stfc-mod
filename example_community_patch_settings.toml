@@ -260,6 +260,7 @@ show_qtrials = "SHIFT-Q"
 show_refinery = "SHIFT-F"
 show_research = "U"
 show_scrapyard = "Y"
+show_settings = "SHIFT-S"
 show_ships = "N"
 show_stationexterior = "SHIFT-G"
 show_stationinterior = "SHIFT-H"
@@ -372,22 +373,55 @@ token = ""
 # The url of the server to send data to
 url = ""
 
-# Subgroup: Data
-# --------------
+# Subgroup: Data types
+# --------------------
+# Each flag controls whether that data type is captured and exported.
+# Applies to BOTH local game state export (player.json, ships.json, etc.)
+# AND the legacy sync-target if url/token are set.
+#
+# Default for all flags is true - set to false to suppress a specific type.
+# You do NOT need to list these when game_state_enabled = true; silence = export everything.
+#
+# Flag    Affects
+# ------  ------------------------------------------------------------------
+# ships     ships.json: ships array, drydock status annotation
+#           (also blueprint_parts from resources, and ship_blueprints from inventory)
+# research  research.json + faction_favors in faction.json
+# buildings player.json: buildings array (ops level always included)
+# resources resources.json, blueprint parts in ships.json,
+#           faction_reputation / faction_store_tokens / armada_credits in faction.json,
+#           syndicate level/XP in player.json
+# officer   officers.json: officer list
+# traits    officers.json: trait ability levels within each officer (requires officer=true)
+# missions  missions.json: active and completed missions
+# buffs     buffs.json: full buff catalog
+#           faction.json: syndicate_loyalty_buffs
+#           faction.json: faction_favors (requires research=true as well)
+# inventory ships.json: ship_blueprints (unlock blueprint progress)
+# battlelogs battlelog.json: battle log CSV watcher
+#            (also controlled by battle_log under [sync.game_state])
+#
+# Types below have no game state equivalent yet (legacy sync-target only):
+# jobs      raw jobs queue (TODO-3)
+# slots     entity slot counts
+# tech      forbidden techs
+#
+# player identity, peace shield, drydocks, and territory are always exported
+# when game_state_enabled = true regardless of these flags.
 
-battlelogs = true
-buffs = true
-buildings = true
-inventory = true
-jobs = true
-missions = true
-officer = true
-research = true
-resources = true
-ships = true
-slots = true
-tech = true
-traits = true
+# battlelogs = true
+# buffs = true
+# buildings = true
+# inventory = true
+# jobs = true
+# missions = true
+# officer = true
+# research = true
+# resources = true
+# ships = true
+# slots = true
+# tech = true
+# traits = true
 
 # Subgroup: Diagnostics
 # ---------------------
@@ -438,3 +472,99 @@ verify_ssl = true
 
 # The url of the server to send data to
 # url = ""
+
+#  <[===================================================================================================================================================]>
+#
+#        ****                                                    *                    *           *                 ****                                  *
+#       *      *   *  ***     ***          ***   ***   *   *  ***  ***          *   *  *    *   *  *              **     *   *  ***     ***    ***   *   *
+#        ***    ****  *  *   *            *      *  *  *   *   *   *  *         *   *  *    *   *  ****          **     *   *  *  *   *      *   *  *   *
+#           *      *  *  *   *             **    *  *   * *    *   *  *          * *   *  ***    *  *   *           **   *   *  *  *   *      *   *  *   *
+#       ****    ***   *  *    ***         ***   *  *     *     **  *  *     *    *     ***     *   ****         ***    ***   *  *    ***    ***   ***
+#                                                                            ****
+#  <[===================================================================================================================================================]>
+
+[sync.game_state]
+# Set to true to enable local export of game state JSON files to disk.
+# Local files are always written regardless of GitHub Gist configuration.
+enabled = false
+
+# Export interval in seconds (default 300 = 5 minutes)
+# interval = 300
+
+# Directory to write exported files to (empty = game directory)
+# path = ""
+
+# Set to true to export immediately when the mod loads at login
+# on_startup = true
+
+# Your player user ID — required for player name and power to be populated.
+# If not set, the mod logs all seen user IDs at login; search community_patch.log
+# for "UserProfile seen", find your in-game name and copy the userid value shown.
+# player_id = ""
+
+# Set to true to enable the battle log CSV watcher.
+# When enabled, the mod polls prime_Data/ for new battle CSV files and exports
+# them to battlelog.json (and syncs to Gist if configured).
+# Default: false
+# battle_log = false
+
+#  <[=================================================================================================]>
+#
+#        ****                                                    *                 ****  * *     *         *
+#       *      *   *  ***     ***          ***   ***   *   *  ***  ***           *      * *    *  *       *
+#        ***    ****  *  *   *            *      *  *  *   *   *   *  *         *      ***    ****       *
+#           *      *  *  *   *             **    *  *   * *    *   *  *        *      *   *  *   *      *
+#       ****    ***   *  *    ***         ***   *  *     *     **  *  *  *     ****  *     * *   *  *  ***
+#                                                                         ****
+#  <[=================================================================================================]>
+
+[sync.game_state.github]
+# Optional — enables syncing exported files to a GitHub Gist so they can be
+# accessed via URL (e.g. by AI assistants). Local export works without this.
+enabled = false
+
+# The hex ID from your Gist URL: https://gist.github.com/{username}/{gist_id}
+# gist_id = ""
+
+# Your GitHub username — used to build raw file URLs in manifest.json.
+# Can be left blank; the mod will auto-resolve it from the API on first sync.
+# username = ""
+
+# GitHub Personal Access Token with 'gist' scope
+# token = ""
+
+# Filenames used in the Gist (defaults shown — only uncomment to override)
+# filename_player    = "stfc_player.json"
+# filename_ships     = "stfc_ships.json"
+# filename_resources = "stfc_resources.json"
+# filename_research  = "stfc_research.json"
+# filename_officers  = "stfc_officers.json"
+# filename_missions  = "stfc_missions.json"
+# filename_faction   = "stfc_faction.json"
+# filename_buffs     = "stfc_buffs.json"
+# filename_territory = "stfc_territory.json"
+# filename_battlelog = "stfc_battlelog.json"
+# filename_manifest  = "stfc_manifest.json"
+
+#  <[=================================================================================]>
+#
+#        ****  *         *        *       *           *                *
+#       *      *          *      *   *   *  ***     * *   *   *  ***  ***   ****
+#        ***   *    ***    *    *     * *   *  *   *  *   *   *  *  *  *   **
+#           *  *   *       *   *       *    *  *  *   *    * *   *  *  *     **
+#       ****   ***  ***   *   *        *   *  *  *    *     *    *  *  **  ***
+#
+#  <[=================================================================================]>
+
+[sync.game_state.shield_alerts]
+# Set to true to enable peace shield expiry warning notifications
+enabled = false
+
+# How often to check shield status (seconds)
+# poll_interval_seconds = 60
+
+# Minimum gap between repeated warnings (minutes)
+# reminder_interval_minutes = 30
+
+# Comma-separated list of hours-before-expiry thresholds to warn at
+# warn_hours = "4,2,1"

@@ -36,6 +36,14 @@ void InstallTempCrashFixes();
 void InstallSyncPatches();
 void InstallObjectTrackers();
 
+// Forward declare game_state_export namespace
+namespace game_state_export
+{
+  void init();
+}
+
+void InstallGameStateExport();
+
 __int64 il2cpp_init_hook(auto original, const char* domain_name)
 {
   struct PatchEntry {
@@ -64,7 +72,7 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
   spdlog::set_level(log_level);
   spdlog::flush_on(log_level);
 
-  spdlog::info("Initializing STFC Community Patch ({})", VER_PRODUCT_VERSION_STR);
+  spdlog::info("Initializing STFC Community Mod ({})", VER_PRODUCT_VERSION_STR);
   spdlog::info("");
   if (File::hasCustomNames()) {
     spdlog::info("Using custom names");
@@ -117,6 +125,7 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
       {"ResolutionListFix", {InstallResolutionListFix, &cfg.installResolutionListFix}},
       {"SyncPatches", {InstallSyncPatches, &cfg.installSyncPatches}},
       {"ObjectTracker", {InstallObjectTrackers, &cfg.installObjectTracker}},
+      {"GameStateExport", {InstallGameStateExport, &cfg.game_state_enabled}},
   };
   printf("il2cpp_init_hook(%s)\n", domain_name);
 
@@ -151,6 +160,12 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
   spdlog::info("");
 
   return r;
+}
+
+void InstallGameStateExport()
+{
+  game_state_export::init();
+  spdlog::info("GameState export initialized");
 }
 
 void ApplyPatches()

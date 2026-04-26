@@ -19,3 +19,25 @@ debug.log
 
 # Generated Info.plist files (generated from templates)
 **/Info.plist
+# GitHub Gist credentials
+scripts/gist_config.py
+
+# Personal runtime config (contains player_id, tokens, local paths)
+community_patch_settings.toml
+community_patch.log
+community_patch_runtime.vars
+patch_battlelogs_sent.json
+check_export.py
+check_delta.py
+test_results.txt
+
+# Temp/scratch files
+001-add-capture-traits-header.patch
+requirements.txt
+community_patch/game_data_maps/officer_traits_template.json
+community_patch/game_data_maps/ships_stfc_space.json
+scripts/__pycache__/
+scripts/data_extraction/identify_my_ships.py
+scripts/data_extraction/scrape_stfc_space_ships.py
+scripts/data_extraction/selenium_demo.py
+scripts/data_extraction/test_stfc_space_hull_ids.py

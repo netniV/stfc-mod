@@ -235,7 +235,7 @@ struct ActionView: View, XSollaUpdaterDelegate {
       }
 
       let process = Process()
-      let helper = Bundle.main.path(forAuxiliaryExecutable: "stfc-community-patch-loader")
+      let helper = Bundle.main.path(forAuxiliaryExecutable: "stfc-community-mod-loader")
       process.executableURL = URL(fileURLWithPath: helper!)
       DispatchQueue.global().async {
         do {

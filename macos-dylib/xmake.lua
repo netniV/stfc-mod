@@ -1,4 +1,4 @@
-target("stfc-community-patch")
+target("stfc-community-mod")
 do
     set_kind("shared")
     add_files("src/*.cc")

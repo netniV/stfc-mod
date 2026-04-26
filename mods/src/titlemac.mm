@@ -1,12 +1,9 @@
-#pragma once
-
-#ifdef _WIN32
-#elif defined(__APPLE__)
+#ifdef __APPLE__
 
 #include "windowtitle.h"
 #import <Cocoa/Cocoa.h>
 
-inline std::wstring WindowTitle::Get()
+std::wstring WindowTitle::Get()
 {
     @autoreleasepool {
         NSWindow *window = [NSApp mainWindow];
@@ -22,7 +19,7 @@ inline std::wstring WindowTitle::Get()
     }
 }
 
-inline bool WindowTitle::Set(const std::wstring& title)
+bool WindowTitle::Set(const std::wstring& title)
 {
     @autoreleasepool {
         NSWindow *window = [NSApp mainWindow];
@@ -34,6 +31,6 @@ inline bool WindowTitle::Set(const std::wstring& title)
         
         return true;
     }
-} 
+}
 
 #endif
