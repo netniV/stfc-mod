@@ -155,6 +155,7 @@ testpatches = true
 toastbannerhooks = true
 uiscalehooks = true
 zoomhooks = true
+loadingscreenbghooks = true
 
 #  <[===================================================]>
 #
@@ -351,6 +352,17 @@ show_station_cargo = true
 # ---------------------
 
 auto_confirm_discovery = true
+
+[loading_screen]
+# Enable custom loading screen background
+# Set to true to use a custom image for the loading screen
+custom_enabled = true
+
+# Path to the custom loading screen image
+# This should be an absolute path to an image file (PNG, JPG, etc.)
+# If left empty or the file doesn't exist, the embedded image will be used instead
+# Example: "C:\\Games\\Star Trek Fleet Command\\assets\\M90_LoadingScreen_StarfleetAcademy.png"
+image_path = ""
 
 #  <[===================================================================]>
 #

@@ -25,6 +25,7 @@ namespace DCBS = DefaultConfig::Buffs;
 namespace DCS = DefaultConfig::Sync;
 namespace DCSC = DefaultConfig::SystemConfig;
 namespace DCSH = DefaultConfig::Shortcuts;
+namespace DCLS = DefaultConfig::LoadingScreen;
 
 static const eastl::tuple<const char*, int> bannerTypes[] = {
     {"Standard", ToastState::Standard},
@@ -495,7 +496,8 @@ void Config::Load()
   this->installChatPatches       = get_config_or_default(config, parsed, "patches", "chatpatches", DCP::chatpatches, write_config);
   this->installResolutionListFix = get_config_or_default(config, parsed, "patches", "resolutionlistfix", DCP::resolutionlistfix, write_config);
   this->installSyncPatches       = get_config_or_default(config, parsed, "patches", "syncpatches", DCP::syncpatches, write_config);
-  this->installObjectTracker     = get_config_or_default(config, parsed, "patches", "objecttracker", DCP::objecttracker, write_config);
+  this->installObjectTracker       = get_config_or_default(config, parsed, "patches", "objecttracker", DCP::objecttracker, write_config);
+  this->installLoadingScreenBgHooks = get_config_or_default(config, parsed, "patches", "loadingscreenbghooks", DCP::loadingscreenbghooks, write_config);
   spdlog::debug("");
 #else
   this->installUiScaleHooks               = true;
@@ -513,6 +515,7 @@ void Config::Load()
   this->installResolutionListFix          = true;
   this->installSyncPatches                = true;
   this->installObjectTracker              = true;
+  this->installLoadingScreenBgHooks       = true;
 #endif
   
   this->queue_enabled       = get_config_or_default(config, parsed, "control", "queue_enabled", DCC::queue_enabled, write_config);
@@ -655,6 +658,14 @@ void Config::Load()
       get_config_or_default<std::string>(config, parsed, "config", "settings_url", DCSC::settings_url, write_log);
   this->config_assets_url_override =
       get_config_or_default<std::string>(config, parsed, "config", "assets_url_override", DCSC::assets_url_override, write_log);
+
+  // Loading Screen Background settings
+  this->loading_screen_transition_enabled =
+      get_config_or_default(config, parsed, "loading_screen", "transition_enabled", DCLS::transition_enabled, write_log);
+  this->loading_screen_login_enabled =
+      get_config_or_default(config, parsed, "loading_screen", "login_enabled", DCLS::login_enabled, write_log);
+  this->loading_screen_image_path =
+      get_config_or_default<std::string>(config, parsed, "loading_screen", "image_path", DCLS::image_path, write_log);
 
   std::vector<std::string> types = StrSplit(disabled_banner_types_str, ',');
 

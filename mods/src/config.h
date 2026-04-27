@@ -205,4 +205,11 @@ public:
 
   std::string config_settings_url;
   std::string config_assets_url_override;
+
+  // Loading Screen Background
+  bool        loading_screen_transition_enabled;
+  bool        loading_screen_login_enabled;
+  std::string loading_screen_image_path;
+
+  bool installLoadingScreenBgHooks;
 };
