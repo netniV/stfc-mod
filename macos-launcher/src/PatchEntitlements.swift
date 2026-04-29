@@ -37,6 +37,7 @@ enum EntitlementCheckResult {
     case valid
     case missing
     case unsigned
+    case error
 }
 
 /// Ensures the game has the required loader entitlements, applying them only if missing.
@@ -89,6 +90,8 @@ func ensureGameHasLoaderEntitlements(signingIdentity: String = "-") throws {
         return
     case .missing:
         break
+    case .error:
+        throw EntitlementError.entitlementVerificationFailed
     }
 
     // Entitlements are missing — fall back to re-signing.
@@ -137,7 +140,7 @@ func ensureGameHasLoaderEntitlements(signingIdentity: String = "-") throws {
     }
 
     // Verify the entitlements were applied successfully to the main executable
-    guard case .valid = checkEntitlements(appPath: gamePath, expectedEntitlements: loaderEntitlements) else {
+        guard case .valid = checkEntitlements(appPath: gamePath, expectedEntitlements: loaderEntitlements) else {
         throw EntitlementError.entitlementVerificationFailed
     }
 
@@ -219,21 +222,21 @@ func checkEntitlements(appPath: String, expectedEntitlements: [String: Any]) -> 
                 logger.error("codesign failed with status \(process.terminationStatus)")
                 logger.error("codesign error output: \(errorString)")
             }
-            return .missing
+            return .error
         }
 
         // Read the output
         let outputData = try outputPipe.fileHandleForReading.readToEnd()
         guard let data = outputData, !data.isEmpty else {
             logger.error("No entitlements data received from codesign")
-            return .missing
+            return .error
         }
 
         // Parse the plist
         guard let plist = try? PropertyListSerialization.propertyList(from: data, format: nil),
               let entitlementsDict = plist as? [String: Any] else {
             logger.error("Failed to parse entitlements plist")
-                        return .missing
+                        return .error
         }
 
         // Compare each expected entitlement
@@ -256,7 +259,7 @@ func checkEntitlements(appPath: String, expectedEntitlements: [String: Any]) -> 
 
     } catch {
         logger.error("Error running codesign: \(error.localizedDescription)")
-        return .missing
+        return .error
     }
 }
 
@@ -467,12 +470,8 @@ func executeCodesignDirectly(
         }
 
         do {
-            let attributes = try fileManager.attributesOfItem(atPath: mainExecutablePath)
-            let signedData = try Data(contentsOf: tempExecutable)
-            try signedData.write(to: URL(fileURLWithPath: mainExecutablePath), options: .atomic)
-            if let permissions = attributes[.posixPermissions] {
-                try fileManager.setAttributes([.posixPermissions: permissions], ofItemAtPath: mainExecutablePath)
-            }
+            let executableURL = URL(fileURLWithPath: mainExecutablePath)
+            try fileManager.replaceItemAt(executableURL, withItemAt: tempExecutable)
         } catch {
             logger.error("Failed to replace executable with signed copy: \(error.localizedDescription)")
             return false
