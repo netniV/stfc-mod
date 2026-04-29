@@ -33,6 +33,12 @@ enum EntitlementError: Error {
     }
 }
 
+enum EntitlementCheckResult {
+    case valid
+    case missing
+    case unsigned
+}
+
 /// Ensures the game has the required loader entitlements, applying them only if missing.
 /// The game's original Scopely signature already includes the entitlements we need,
 /// so this typically just verifies and returns without modifying anything.
@@ -44,15 +50,45 @@ func ensureGameHasLoaderEntitlements(signingIdentity: String = "-") throws {
         throw EntitlementError.gamePathNotFound
     }
 
+    let gameAppPath = (gamePath as NSString).deletingLastPathComponent
+        .replacingOccurrences(of: "/Contents/MacOS", with: "")
+
     // Always verify entitlements first — even after a game update, the new binary
     // typically ships with the entitlements we need from Scopely's signature.
-    if checkEntitlements(appPath: gamePath, expectedEntitlements: loaderEntitlements) {
+    switch checkEntitlements(appPath: gamePath, expectedEntitlements: loaderEntitlements) {
+    case .valid:
         logger.info("Game already has the required loader entitlements, no re-signing needed")
         // Clear any pending re-application flag since entitlements are valid
         if UserDefaults.standard.bool(forKey: "forceEntitlementReapplication") {
             UserDefaults.standard.set(false, forKey: "forceEntitlementReapplication")
         }
         return
+    case .unsigned:
+        logger.info("Game executable is unsigned, re-signing is needed")
+        if isGameRunning(bundlePath: gameAppPath) {
+            logger.error("Game is currently running, cannot modify signature")
+            throw EntitlementError.entitlementApplicationFailed
+        }
+
+        let applySuccess = applyEntitlementsDirectly(
+            appBundlePath: gameAppPath,
+            mainExecutablePath: gamePath,
+            entitlements: loaderEntitlements,
+            signingIdentity: signingIdentity
+        )
+        guard applySuccess else {
+            throw EntitlementError.entitlementApplicationFailed
+        }
+
+        guard case .valid = checkEntitlements(appPath: gamePath, expectedEntitlements: loaderEntitlements) else {
+            throw EntitlementError.entitlementVerificationFailed
+        }
+
+        logger.info("Successfully applied loader entitlements to unsigned game executable")
+        UserDefaults.standard.set(false, forKey: "forceEntitlementReapplication")
+        return
+    case .missing:
+        break
     }
 
     // Entitlements are missing — fall back to re-signing.
@@ -60,8 +96,6 @@ func ensureGameHasLoaderEntitlements(signingIdentity: String = "-") throws {
     logger.warning("Game is missing required loader entitlements, re-signing is needed")
 
     // Check if the game is currently running
-    let gameAppPath = (gamePath as NSString).deletingLastPathComponent
-        .replacingOccurrences(of: "/Contents/MacOS", with: "")
     if isGameRunning(bundlePath: gameAppPath) {
         logger.error("Game is currently running, cannot modify signature")
         throw EntitlementError.entitlementApplicationFailed
@@ -103,7 +137,7 @@ func ensureGameHasLoaderEntitlements(signingIdentity: String = "-") throws {
     }
 
     // Verify the entitlements were applied successfully to the main executable
-    guard checkEntitlements(appPath: gamePath, expectedEntitlements: loaderEntitlements) else {
+    guard case .valid = checkEntitlements(appPath: gamePath, expectedEntitlements: loaderEntitlements) else {
         throw EntitlementError.entitlementVerificationFailed
     }
 
@@ -158,8 +192,8 @@ func fetchGamePath() throws -> String? {
 /// - Parameters:
 ///   - appPath: Path to the .app bundle or executable to check
 ///   - expectedEntitlements: Dictionary of entitlement keys and their expected values
-/// - Returns: true if all expected entitlements match, false otherwise
-func checkEntitlements(appPath: String, expectedEntitlements: [String: Any]) -> Bool {
+/// - Returns: valid if all expected entitlements match, unsigned if the app has no signature, missing otherwise
+func checkEntitlements(appPath: String, expectedEntitlements: [String: Any]) -> EntitlementCheckResult {
     // Create process to run codesign command
     let process = Process()
     process.executableURL = URL(fileURLWithPath: "/usr/bin/codesign")
@@ -176,33 +210,37 @@ func checkEntitlements(appPath: String, expectedEntitlements: [String: Any]) -> 
 
         // Check if codesign succeeded
         guard process.terminationStatus == 0 else {
-            logger.error("codesign failed with status \(process.terminationStatus)")
             if let errorData = try? errorPipe.fileHandleForReading.readToEnd(),
                let errorString = String(data: errorData, encoding: .utf8) {
+                if errorString.contains("code object is not signed at all") {
+                    logger.info("Game executable is unsigned")
+                    return .unsigned
+                }
+                logger.error("codesign failed with status \(process.terminationStatus)")
                 logger.error("codesign error output: \(errorString)")
             }
-            return false
+            return .missing
         }
 
         // Read the output
         let outputData = try outputPipe.fileHandleForReading.readToEnd()
         guard let data = outputData, !data.isEmpty else {
             logger.error("No entitlements data received from codesign")
-            return false
+            return .missing
         }
 
         // Parse the plist
         guard let plist = try? PropertyListSerialization.propertyList(from: data, format: nil),
               let entitlementsDict = plist as? [String: Any] else {
             logger.error("Failed to parse entitlements plist")
-            return false
+                        return .missing
         }
 
         // Compare each expected entitlement
         for (key, expectedValue) in expectedEntitlements {
             guard let actualValue = entitlementsDict[key] else {
                 logger.debug("Entitlement '\(key)' not found in app")
-                return false
+                return .missing
             }
 
             // Compare values (handling different types)
@@ -210,15 +248,15 @@ func checkEntitlements(appPath: String, expectedEntitlements: [String: Any]) -> 
                 let expected = String(describing: expectedValue)
                 let actual = String(describing: actualValue)
                 logger.debug("Entitlement '\(key)' mismatch: expected \(expected), got \(actual)")
-                return false
+                return .missing
             }
         }
 
-        return true
+        return .valid
 
     } catch {
         logger.error("Error running codesign: \(error.localizedDescription)")
-        return false
+        return .missing
     }
 }
 
@@ -368,43 +406,24 @@ func executeCodesignDirectly(
     entitlementsPath: String,
     signingIdentity: String
 ) -> Bool {
-    // Strategy: Sign just the main executable with entitlements
-    // We preserve existing signatures on nested frameworks/plugins
+    // Sign a temporary copy, then replace the executable bytes in place.
+    // Directly signing the path can make codesign walk invalid nested bundles in
+    // the game app, even though we only need to sign the main executable.
+    let fileManager = FileManager.default
+    let tempDir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+    let tempExecutable = tempDir.appendingPathComponent("stfc_executable_\(UUID().uuidString)")
 
-    // First, try to remove the old signature from the main executable only
-    logger.info("Removing old signature from: \(mainExecutablePath)")
-    let removeProcess = Process()
-    removeProcess.executableURL = URL(fileURLWithPath: "/usr/bin/codesign")
-    removeProcess.arguments = ["--remove-signature", mainExecutablePath]
-
-    let removeOutputPipe = Pipe()
-    let removeErrorPipe = Pipe()
-    removeProcess.standardOutput = removeOutputPipe
-    removeProcess.standardError = removeErrorPipe
-
-    try? removeProcess.run()
-    removeProcess.waitUntilExit()
-
-    // Log output from removal (informational, errors are expected if no signature)
-    if let outputData = try? removeOutputPipe.fileHandleForReading.readToEnd(),
-       !outputData.isEmpty,
-       let outputString = String(data: outputData, encoding: .utf8), !outputString.isEmpty {
-        logger.info("Remove signature stdout: \(outputString)")
+    do {
+        try fileManager.copyItem(atPath: mainExecutablePath, toPath: tempExecutable.path)
+    } catch {
+        logger.error("Failed to copy executable before signing: \(error.localizedDescription)")
+        return false
     }
-    if let errorData = try? removeErrorPipe.fileHandleForReading.readToEnd(),
-       !errorData.isEmpty,
-       let errorString = String(data: errorData, encoding: .utf8), !errorString.isEmpty {
-        logger.debug("Remove signature stderr: \(errorString)")
+    defer {
+        try? fileManager.removeItem(at: tempExecutable)
     }
 
-    // Now sign just the main executable with the entitlements
-    // This preserves nested code signatures and only modifies what we need
-    logger.info("Signing executable with entitlements...")
-    logger.info("""
-        Command: codesign --force --sign \(signingIdentity) \
-        --options runtime \
-        --entitlements \(entitlementsPath) \(mainExecutablePath)
-        """)
+    logger.info("Signing executable copy with entitlements...")
     let signProcess = Process()
     signProcess.executableURL = URL(fileURLWithPath: "/usr/bin/codesign")
     signProcess.arguments = [
@@ -412,7 +431,7 @@ func executeCodesignDirectly(
         "--options", "runtime",
         "--sign", signingIdentity,
         "--entitlements", entitlementsPath,
-        mainExecutablePath
+        tempExecutable.path
     ]
 
     let outputPipe = Pipe()
@@ -444,6 +463,18 @@ func executeCodesignDirectly(
 
         if signProcess.terminationStatus != 0 {
             logger.error("codesign failed with exit code: \(signProcess.terminationStatus)")
+            return false
+        }
+
+        do {
+            let attributes = try fileManager.attributesOfItem(atPath: mainExecutablePath)
+            let signedData = try Data(contentsOf: tempExecutable)
+            try signedData.write(to: URL(fileURLWithPath: mainExecutablePath), options: .atomic)
+            if let permissions = attributes[.posixPermissions] {
+                try fileManager.setAttributes([.posixPermissions: permissions], ofItemAtPath: mainExecutablePath)
+            }
+        } catch {
+            logger.error("Failed to replace executable with signed copy: \(error.localizedDescription)")
             return false
         }
 
