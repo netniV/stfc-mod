@@ -216,20 +216,27 @@ package_app_bundle() {
         exit 1
     fi
 
+    local icon_path="${PROJECT_ROOT}/assets/launcher.icns"
+    if [[ ! -f "$icon_path" ]]; then
+        print_error "Launcher icon not found at: $icon_path"
+        exit 1
+    fi
+
+    local info_plist_path="${PROJECT_ROOT}/macos-launcher/src/Info.plist"
+    if [[ ! -f "$info_plist_path" ]]; then
+        print_error "Generated Info.plist not found at: $info_plist_path"
+        print_info "Run the configure/build step so xmake can generate it from Info.plist.template"
+        exit 1
+    fi
+
     rm -rf "$STFC_APP_PATH"
     ditto "$APP_PATH" "$STFC_APP_PATH"
 
     mkdir -p "${STFC_APP_PATH}/Contents/Resources"
     cp "$LOADER_PATH" "${STFC_APP_PATH}/Contents/stfc-community-mod-loader"
     cp "$dylib_path" "${STFC_APP_PATH}/Contents/libstfc-community-mod.dylib"
-
-    if [[ -f "${PROJECT_ROOT}/assets/launcher.icns" ]]; then
-        cp "${PROJECT_ROOT}/assets/launcher.icns" "${STFC_APP_PATH}/Contents/Resources/"
-    fi
-
-    if [[ -f "${PROJECT_ROOT}/macos-launcher/src/Info.plist" ]]; then
-        cp "${PROJECT_ROOT}/macos-launcher/src/Info.plist" "${STFC_APP_PATH}/Contents/"
-    fi
+    cp "$icon_path" "${STFC_APP_PATH}/Contents/Resources/"
+    cp "$info_plist_path" "${STFC_APP_PATH}/Contents/"
 
     print_info "Code signing packaged application..."
     codesign --force --verify --verbose --deep --sign "-" "$STFC_APP_PATH"
@@ -374,7 +381,7 @@ debug_app() {
     local exec_name
     
     if [[ "$USE_LAUNCHER" == true ]]; then
-        executable="${APP_PATH}/Contents/MacOS/macOSLauncher"
+        executable="${STFC_APP_PATH}/Contents/MacOS/macOSLauncher"
         exec_name="Launcher"
     else
         executable="$LOADER_PATH"
