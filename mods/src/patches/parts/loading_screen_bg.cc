@@ -264,7 +264,7 @@ void TransitionViewController_AboutToShow_Hook(auto original, void* _this)
   } catch (...) {}
 }
 
-void CanvasController_Show_Hook(auto original, void* _this, int32_t entryPoint, bool instant, void* method)
+void CanvasController_Show_Hook(auto original, void* _this, int32_t entryPoint, bool instant)
 {
   try {
     if (Config::Get().loading_screen_transition_enabled && g_tvPendingCC && _this == g_tvPendingCC) {
@@ -272,7 +272,7 @@ void CanvasController_Show_Hook(auto original, void* _this, int32_t entryPoint, 
     }
   } catch (...) {}
 
-  original(_this, entryPoint, instant, method);
+  original(_this, entryPoint, instant);
 
   try {
     if (_this != g_tvCanvasController || !Config::Get().loading_screen_transition_enabled) return;
@@ -309,14 +309,14 @@ void CanvasController_Show_Hook(auto original, void* _this, int32_t entryPoint, 
   } catch (...) {}
 }
 
-void CanvasController_Hide_Hook(auto original, void* _this, int32_t exitPoint, bool instant, void* method)
+void CanvasController_Hide_Hook(auto original, void* _this, int32_t exitPoint, bool instant)
 {
   try {
     if (Config::Get().loading_screen_transition_enabled && _this == g_tvCanvasController && g_tvCanvasGroup) {
       g_fadeStartTime = -1.0f; g_fadeOutStartTime = GetUnityTime();
     }
   } catch (...) {}
-  original(_this, exitPoint, instant, method);
+  original(_this, exitPoint, instant);
 }
 
 void CanvasController_Update_Hook(auto original, void* _this)
@@ -492,9 +492,13 @@ void InstallLoadingScreenBgHooks()
       }
       auto cc_h = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.UI", "CanvasController");
       if (cc_h.isValidHelper()) {
+#if __APPLE__
+        spdlog::info("[LS] CanvasController fade hooks skipped on macOS");
+#else
         if (auto m = cc_h.GetMethod("Show",   2)) { SPUD_STATIC_DETOUR(m, CanvasController_Show_Hook);   spdlog::info("Loading screen hook installed (CC.Show)"); }
         if (auto m = cc_h.GetMethod("Hide",   2)) { SPUD_STATIC_DETOUR(m, CanvasController_Hide_Hook);   spdlog::info("Loading screen hook installed (CC.Hide)"); }
         if (auto m = cc_h.GetMethod("Update"))    { SPUD_STATIC_DETOUR(m, CanvasController_Update_Hook); spdlog::info("Loading screen hook installed (CC.Update)"); }
+#endif
       }
     }
   } else {
