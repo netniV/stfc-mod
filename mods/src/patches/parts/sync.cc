@@ -288,6 +288,12 @@ static bool decode_file_url_path(std::string_view encoded, std::string& decoded,
 
 static bool parse_file_target_directory(const std::string& url, std::filesystem::path& directory, std::string& error)
 {
+#if _WIN32
+  (void)url;
+  (void)directory;
+  error = "file:// sync targets are currently supported only on macOS/Linux";
+  return false;
+#else
   static constexpr std::string_view scheme = "file://";
 
   if (!url.starts_with(scheme)) {
@@ -322,6 +328,7 @@ static bool parse_file_target_directory(const std::string& url, std::filesystem:
   }
 
   return true;
+#endif
 }
 
 static std::string current_sync_timestamp()
@@ -353,16 +360,11 @@ static void write_file_target_data(const std::string& target_identifier, const S
     return;
   }
 
-  nlohmann::json payload = nlohmann::json::parse(post_data, nullptr, false);
-  if (payload.is_discarded()) {
-    payload = post_data;
-  }
-
   const nlohmann::json envelope{
       {"type", to_string(type)},
       {"first_sync", is_first_sync},
       {"timestamp", current_sync_timestamp()},
-      {"payload", std::move(payload)},
+      {"body", post_data},
   };
 
   std::scoped_lock lk(file_target_mtx);

@@ -339,6 +339,7 @@ void read_sync_targets(toml::table& config, toml::table& new_config,
       auto proxy = values["proxy"].value<std::string>();
 
       if (!url.has_value()) {
+        spdlog::warn("Skipping invalid target [{}]. url must be a string.", target_section);
         continue;
       }
 

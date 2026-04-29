@@ -451,6 +451,13 @@ verify_ssl = true
 # The url of the server to send data to
 # url = ""
 
-# Local file sync target for debugging. Token is not required for file:// targets.
+# Local file sync target for debugging/private local archiving.
+# file:// targets write sync data to your computer instead of sending it over the network.
+# A token is not required for file:// targets.
+# Currently supported only on macOS/Linux.
+# Use an absolute local directory path. The directory is created if it does not exist.
+# Data is appended to one JSONL file per sync type, for example inventory.jsonl.
+# Each line is an envelope with type, first_sync, timestamp, and the raw request body string in body.
+# Query strings and fragments are not supported.
 # [sync.targets.localfile]
 # url = "file:///Users/you/stfc-sync"
