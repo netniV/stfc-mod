@@ -80,6 +80,11 @@ bool SyncConfig::enabled(SyncConfig::Type type) const
   return false;
 }
 
+bool SyncTargetConfig::is_file_target() const
+{
+  return url.starts_with("file://");
+}
+
 Config::Config()
 {
   Load();
@@ -328,26 +333,34 @@ void read_sync_targets(toml::table& config, toml::table& new_config,
     toml::table      parsed_target;
 
     const auto& values = *target_config.as_table();
-    if (values.contains("url") && values.contains("token")) {
+    if (values.contains("url")) {
       auto url   = values["url"].value<std::string>();
       auto token = values["token"].value<std::string>();
       auto proxy = values["proxy"].value<std::string>();
 
-      if (!url.has_value() || !token.has_value()) {
+      if (!url.has_value()) {
         continue;
       }
 
-      target.url        = url.value();
-      target.token      = token.value();
+      target.url = url.value();
+
+      if (!token.has_value() && !target.is_file_target()) {
+        spdlog::warn("Skipping invalid target [{}]. Missing token.", target_section);
+        continue;
+      }
+
+      target.token      = token.value_or("");
       target.proxy      = proxy.value_or(defaults.proxy);
       target.verify_ssl = values["verify_ssl"].value<bool>().value_or(defaults.verify_ssl);
 
       parsed_target.insert("url", target.url);
-      parsed_target.insert("token", target.token);
+      if (token.has_value()) {
+        parsed_target.insert("token", target.token);
+      }
       parsed_target.insert("proxy", target.proxy);
       parsed_target.insert("verify_ssl", target.verify_ssl);
     } else {
-      spdlog::warn("Skipping invalid target [{}]. Missing url or token.", target_section);
+      spdlog::warn("Skipping invalid target [{}]. Missing url.", target_section);
       continue;
     }
 

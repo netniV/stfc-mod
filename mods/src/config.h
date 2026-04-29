@@ -99,6 +99,8 @@ constexpr std::string operator+(const SyncConfig::Type type, const std::string& 
 class SyncTargetConfig : public SyncConfig
 {
 public:
+  [[nodiscard]] bool is_file_target() const;
+
   std::string url;
   std::string token;
 };

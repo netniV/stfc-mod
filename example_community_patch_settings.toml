@@ -450,3 +450,7 @@ verify_ssl = true
 
 # The url of the server to send data to
 # url = ""
+
+# Local file sync target for debugging. Token is not required for file:// targets.
+# [sync.targets.localfile]
+# url = "file:///Users/you/stfc-sync"

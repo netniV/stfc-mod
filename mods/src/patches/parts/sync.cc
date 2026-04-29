@@ -34,11 +34,14 @@
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <ctime>
 #include <filesystem>
 #include <format>
 #include <fstream>
+#include <iomanip>
 #include <mutex>
 #include <queue>
+#include <sstream>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -229,6 +232,164 @@ struct TargetWorker {
 
 static std::unordered_map<std::string, std::shared_ptr<TargetWorker>> target_workers;
 static std::mutex target_workers_mtx;
+static std::mutex file_target_mtx;
+
+static int from_hex(const char c)
+{
+  if (c >= '0' && c <= '9') {
+    return c - '0';
+  }
+
+  if (c >= 'a' && c <= 'f') {
+    return c - 'a' + 10;
+  }
+
+  if (c >= 'A' && c <= 'F') {
+    return c - 'A' + 10;
+  }
+
+  return -1;
+}
+
+static bool decode_file_url_path(std::string_view encoded, std::string& decoded, std::string& error)
+{
+  decoded.clear();
+
+  for (size_t i = 0; i < encoded.size(); ++i) {
+    if (encoded[i] != '%') {
+      decoded.push_back(encoded[i]);
+      continue;
+    }
+
+    if (i + 2 >= encoded.size()) {
+      error = "file URL contains incomplete percent encoding";
+      return false;
+    }
+
+    const int high = from_hex(encoded[i + 1]);
+    const int low  = from_hex(encoded[i + 2]);
+    if (high < 0 || low < 0) {
+      error = "file URL contains invalid percent encoding";
+      return false;
+    }
+
+    const char value = static_cast<char>((high << 4) | low);
+    if (value == '\0') {
+      error = "file URL path may not contain NUL";
+      return false;
+    }
+
+    decoded.push_back(value);
+    i += 2;
+  }
+
+  return true;
+}
+
+static bool parse_file_target_directory(const std::string& url, std::filesystem::path& directory, std::string& error)
+{
+  static constexpr std::string_view scheme = "file://";
+
+  if (!url.starts_with(scheme)) {
+    error = "target URL is not a file URL";
+    return false;
+  }
+
+  std::string_view path_part(url.data() + scheme.size(), url.size() - scheme.size());
+  if (path_part.starts_with("localhost/")) {
+    path_part.remove_prefix(std::string_view("localhost").size());
+  }
+
+  if (path_part.empty() || !path_part.starts_with("/")) {
+    error = "file URL must use an absolute local path";
+    return false;
+  }
+
+  if (path_part.find_first_of("?#") != std::string_view::npos) {
+    error = "file URL query strings and fragments are not supported";
+    return false;
+  }
+
+  std::string decoded;
+  if (!decode_file_url_path(path_part, decoded, error)) {
+    return false;
+  }
+
+  directory = std::filesystem::path(decoded);
+  if (!directory.is_absolute()) {
+    error = "file URL must resolve to an absolute path";
+    return false;
+  }
+
+  return true;
+}
+
+static std::string current_sync_timestamp()
+{
+  const auto now     = std::chrono::system_clock::now();
+  const auto seconds = std::chrono::time_point_cast<std::chrono::seconds>(now);
+  const auto millis  = std::chrono::duration_cast<std::chrono::milliseconds>(now - seconds).count();
+  const auto time    = std::chrono::system_clock::to_time_t(now);
+
+  std::tm tm{};
+#if _WIN32
+  gmtime_s(&tm, &time);
+#else
+  gmtime_r(&time, &tm);
+#endif
+
+  std::ostringstream timestamp;
+  timestamp << std::put_time(&tm, "%FT%T") << '.' << std::setw(3) << std::setfill('0') << millis << 'Z';
+  return timestamp.str();
+}
+
+static void write_file_target_data(const std::string& target_identifier, const SyncTargetConfig& target_config,
+                                   SyncConfig::Type type, const std::string& post_data, bool is_first_sync)
+{
+  std::filesystem::path directory;
+  std::string           error;
+  if (!parse_file_target_directory(target_config.url, directory, error)) {
+    sync_log_error(CURL_TYPE_UPLOAD, target_identifier, error);
+    return;
+  }
+
+  nlohmann::json payload = nlohmann::json::parse(post_data, nullptr, false);
+  if (payload.is_discarded()) {
+    payload = post_data;
+  }
+
+  const nlohmann::json envelope{
+      {"type", to_string(type)},
+      {"first_sync", is_first_sync},
+      {"timestamp", current_sync_timestamp()},
+      {"payload", std::move(payload)},
+  };
+
+  std::scoped_lock lk(file_target_mtx);
+
+  std::error_code ec;
+  std::filesystem::create_directories(directory, ec);
+  if (ec) {
+    sync_log_error(CURL_TYPE_UPLOAD, target_identifier,
+                   "Failed to create directory " + directory.string() + ": " + ec.message());
+    return;
+  }
+
+  const auto file_path = directory / (to_string(type) + ".jsonl");
+  std::ofstream out(file_path, std::ios::app);
+  if (!out) {
+    sync_log_error(CURL_TYPE_UPLOAD, target_identifier, "Failed to open " + file_path.string());
+    return;
+  }
+
+  out << envelope.dump() << '\n';
+  if (!out) {
+    sync_log_error(CURL_TYPE_UPLOAD, target_identifier, "Failed to write " + file_path.string());
+    return;
+  }
+
+  sync_log_debug(CURL_TYPE_UPLOAD, target_identifier, "Wrote data to " + file_path.string());
+}
 
 static void target_worker_thread(std::shared_ptr<TargetWorker> worker)
 {
@@ -372,8 +533,14 @@ static void send_data(SyncConfig::Type type, const std::string& post_data, bool 
        | std::views::keys) {
 
     const auto target_identifier = STR_FORMAT("{} ({})", target, to_string(type));
+    const auto& target_config = targets.at(target);
 
     try {
+      if (target_config.is_file_target()) {
+        write_file_target_data(target_identifier, target_config, type, post_data, is_first_sync);
+        continue;
+      }
+
       const auto worker = get_curl_client_sync(target);
 
       // Enqueue the request for this target's worker
