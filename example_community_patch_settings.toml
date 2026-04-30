@@ -458,8 +458,7 @@ verify_ssl = true
 # Data type toggles inherit from [sync] unless they are overridden on the target.
 # On Windows, use a drive-letter file URL such as file:///C:/Users/you/stfc-sync.
 # Data is appended to one JSONL file per sync type, for example inventory.jsonl.
-# Each line is an envelope with type, first_sync, timestamp, and the raw request body string in body.
-# Consumers should parse body as JSON if they want to inspect the payload.
+# Each line is the same JSON request body that would be posted to an HTTP sync target.
 # Query strings and fragments are not supported.
 # [sync.targets.localfile]
 # url = "file:///Users/you/stfc-sync"

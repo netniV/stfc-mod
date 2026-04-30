@@ -37,14 +37,11 @@
 #include <chrono>
 #include <condition_variable>
 #include <cctype>
-#include <ctime>
 #include <filesystem>
 #include <format>
 #include <fstream>
-#include <iomanip>
 #include <mutex>
 #include <queue>
-#include <sstream>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -366,41 +363,17 @@ static bool parse_file_target_directory(const std::string& url, std::filesystem:
   return true;
 }
 
-static std::string current_sync_timestamp()
-{
-  const auto now     = std::chrono::system_clock::now();
-  const auto seconds = std::chrono::time_point_cast<std::chrono::seconds>(now);
-  const auto millis  = std::chrono::duration_cast<std::chrono::milliseconds>(now - seconds).count();
-  const auto time    = std::chrono::system_clock::to_time_t(now);
-
-  std::tm tm{};
-#if _WIN32
-  gmtime_s(&tm, &time);
-#else
-  gmtime_r(&time, &tm);
-#endif
-
-  std::ostringstream timestamp;
-  timestamp << std::put_time(&tm, "%FT%T") << '.' << std::setw(3) << std::setfill('0') << millis << 'Z';
-  return timestamp.str();
-}
-
 static void write_file_target_data(const std::string& target_identifier, const SyncTargetConfig& target_config,
                                    SyncConfig::Type type, const std::string& post_data, bool is_first_sync)
 {
+  (void)is_first_sync;
+
   std::filesystem::path directory;
   std::string           error;
   if (!parse_file_target_directory(target_config.url, directory, error)) {
     sync_log_error(CURL_TYPE_UPLOAD, target_identifier, error);
     return;
   }
-
-  const nlohmann::json envelope{
-      {"type", to_string(type)},
-      {"first_sync", is_first_sync},
-      {"timestamp", current_sync_timestamp()},
-      {"body", post_data},
-  };
 
   std::scoped_lock lk(file_target_mtx);
 
@@ -419,7 +392,7 @@ static void write_file_target_data(const std::string& target_identifier, const S
     return;
   }
 
-  out << envelope.dump() << '\n';
+  out << post_data << '\n';
   if (!out) {
     sync_log_error(CURL_TYPE_UPLOAD, target_identifier, "Failed to write " + file_path.string());
     return;
