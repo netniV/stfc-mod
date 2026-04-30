@@ -450,3 +450,17 @@ verify_ssl = true
 
 # The url of the server to send data to
 # url = ""
+
+#  <[========================================]>
+#       Raw static capture
+#  <[========================================]>
+
+# Optional developer tool for capturing raw static/spec EntityGroup protobuf payloads locally.
+# Disabled by default. This does not send data to sync targets and does not parse the payloads.
+# The directory receives content-addressed raw blobs plus a manifest.jsonl index.
+# include_types is a comma-separated numeric EntityGroup type allowlist. Empty means all known static/spec types.
+[sync.raw_static_capture]
+enabled = false
+directory = ""
+max_bytes = 52428800
+include_types = ""

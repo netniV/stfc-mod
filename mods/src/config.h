@@ -3,6 +3,7 @@
 #include <array>
 #include <map>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include <toml++/toml.h>
@@ -186,6 +187,11 @@ public:
   SyncConfig sync_options;
 
   std::map<std::string, SyncTargetConfig> sync_targets;
+
+  bool                         raw_static_capture_enabled;
+  std::string                  raw_static_capture_directory;
+  int64_t                      raw_static_capture_max_bytes;
+  std::unordered_set<int>      raw_static_capture_include_types;
 
   bool installUiScaleHooks;
   bool installZoomHooks;

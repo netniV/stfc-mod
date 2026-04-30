@@ -1,6 +1,7 @@
 #include "config.h"
 #include "errormsg.h"
 #include "file.h"
+#include "sha256.h"
 #include "str_utils.h"
 
 #include <il2cpp-api-types.h>
@@ -34,11 +35,14 @@
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <ctime>
 #include <filesystem>
 #include <format>
 #include <fstream>
+#include <iomanip>
 #include <mutex>
 #include <queue>
+#include <sstream>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -80,6 +84,234 @@ namespace headers
   static std::string    primeVersion{"1.000.48084"};
   static std::string    poweredBy{"stfc community mod/" VER_FILE_VERSION_STR};
 } // namespace headers
+
+static std::once_flag raw_static_capture_config_warning;
+static std::mutex     raw_static_capture_mtx;
+
+static std::string current_timestamp()
+{
+  const auto now     = std::chrono::system_clock::now();
+  const auto seconds = std::chrono::time_point_cast<std::chrono::seconds>(now);
+  const auto millis  = std::chrono::duration_cast<std::chrono::milliseconds>(now - seconds).count();
+  const auto time    = std::chrono::system_clock::to_time_t(now);
+
+  std::tm tm{};
+#if _WIN32
+  gmtime_s(&tm, &time);
+#else
+  gmtime_r(&time, &tm);
+#endif
+
+  std::ostringstream timestamp;
+  timestamp << std::put_time(&tm, "%FT%T") << '.' << std::setw(3) << std::setfill('0') << millis << 'Z';
+  return timestamp.str();
+}
+
+static const char* EntityGroupTypeName(EntityGroup::Type type)
+{
+  switch (type) {
+    case EntityGroup::Type::HullSpecs: return "HullSpecs";
+    case EntityGroup::Type::ResourceSpecs: return "ResourceSpecs";
+    case EntityGroup::Type::ResourceConversionSpecs: return "ResourceConversionSpecs";
+    case EntityGroup::Type::JobSpeedupResourceSpecs: return "JobSpeedupResourceSpecs";
+    case EntityGroup::Type::StarbaseSpecs: return "StarbaseSpecs";
+    case EntityGroup::Type::OfficerSpecs: return "OfficerSpecs";
+    case EntityGroup::Type::FactionSpecs: return "FactionSpecs";
+    case EntityGroup::Type::FactionBehaviourSpecs: return "FactionBehaviourSpecs";
+    case EntityGroup::Type::UserConsumableSpecs: return "UserConsumableSpecs";
+    case EntityGroup::Type::PlayerXpSpecs: return "PlayerXpSpecs";
+    case EntityGroup::Type::ComponentSpecs: return "ComponentSpecs";
+    case EntityGroup::Type::ObjectiveDefinitions: return "ObjectiveDefinitions";
+    case EntityGroup::Type::AllianceRankSpecs: return "AllianceRankSpecs";
+    case EntityGroup::Type::AllianceLevelSpecs: return "AllianceLevelSpecs";
+    case EntityGroup::Type::AlliancePermissionSpecs: return "AlliancePermissionSpecs";
+    case EntityGroup::Type::OfficerAbilityBuffSpecs: return "OfficerAbilityBuffSpecs";
+    case EntityGroup::Type::OfficerCoreStatSpecs: return "OfficerCoreStatSpecs";
+    case EntityGroup::Type::OfficerIntelRequirementSpecs: return "OfficerIntelRequirementSpecs";
+    case EntityGroup::Type::OfficerSynergyFactorSpecs: return "OfficerSynergyFactorSpecs";
+    case EntityGroup::Type::BlueprintSpecs: return "BlueprintSpecs";
+    case EntityGroup::Type::NavigationConfig: return "NavigationConfig";
+    case EntityGroup::Type::FleetConfig: return "FleetConfig";
+    case EntityGroup::Type::FleetIconConfig: return "FleetIconConfig";
+    case EntityGroup::Type::AllianceConfig: return "AllianceConfig";
+    case EntityGroup::Type::ConsistencyConfig: return "ConsistencyConfig";
+    case EntityGroup::Type::FtueConfig: return "FtueConfig";
+    case EntityGroup::Type::PlacementConfig: return "PlacementConfig";
+    case EntityGroup::Type::DialogConfig: return "DialogConfig";
+    case EntityGroup::Type::FactionConfig: return "FactionConfig";
+    case EntityGroup::Type::ResourceConfig: return "ResourceConfig";
+    case EntityGroup::Type::FtueProgressionConfig: return "FtueProgressionConfig";
+    case EntityGroup::Type::NewPlayerConfig: return "NewPlayerConfig";
+    case EntityGroup::Type::ThreatConfig: return "ThreatConfig";
+    case EntityGroup::Type::StationShieldConfig: return "StationShieldConfig";
+    case EntityGroup::Type::PlanetSlotsConfig: return "PlanetSlotsConfig";
+    case EntityGroup::Type::OfficerConfig: return "OfficerConfig";
+    case EntityGroup::Type::BattleConfig: return "BattleConfig";
+    case EntityGroup::Type::StarbaseConfig: return "StarbaseConfig";
+    case EntityGroup::Type::ShipXpConfig: return "ShipXpConfig";
+    case EntityGroup::Type::OptimisedGalaxy: return "OptimisedGalaxy";
+    case EntityGroup::Type::Json: return "Json";
+    case EntityGroup::Type::OfficerCoreStatThresholdsSpecs: return "OfficerCoreStatThresholdsSpecs";
+    case EntityGroup::Type::OfficerPromotionSpecs: return "OfficerPromotionSpecs";
+    case EntityGroup::Type::ClientShipStatLookupSpecs: return "ClientShipStatLookupSpecs";
+    case EntityGroup::Type::BaseShipTierSpecs: return "BaseShipTierSpecs";
+    case EntityGroup::Type::ShipTierSpecs: return "ShipTierSpecs";
+    case EntityGroup::Type::ShipBonusBuffSpecs: return "ShipBonusBuffSpecs";
+    case EntityGroup::Type::MitigationCapsSpecs: return "MitigationCapsSpecs";
+    case EntityGroup::Type::GlobalDamageReductionConfig: return "GlobalDamageReductionConfig";
+    case EntityGroup::Type::BuffTargetSpecs: return "BuffTargetSpecs";
+    case EntityGroup::Type::BuffTriggerSpecs: return "BuffTriggerSpecs";
+    case EntityGroup::Type::MissionSpecs: return "MissionSpecs";
+    case EntityGroup::Type::ActionSpecs: return "ActionSpecs";
+    case EntityGroup::Type::ShipLevelUpBonusBuffsSpecs: return "ShipLevelUpBonusBuffsSpecs";
+    case EntityGroup::Type::ResearchSpecs: return "ResearchSpecs";
+    case EntityGroup::Type::PvpBanding: return "PvpBanding";
+    case EntityGroup::Type::ArmadaAttackSpecs: return "ArmadaAttackSpecs";
+    case EntityGroup::Type::ArmadaConfig: return "ArmadaConfig";
+    case EntityGroup::Type::ServerTransferConfig: return "ServerTransferConfig";
+    case EntityGroup::Type::MiningSetupConfig: return "MiningSetupConfig";
+    case EntityGroup::Type::ScrapyardSpecs: return "ScrapyardSpecs";
+    case EntityGroup::Type::CosmeticSpecs: return "CosmeticSpecs";
+    case EntityGroup::Type::ArmadaPveSpecs: return "ArmadaPveSpecs";
+    case EntityGroup::Type::PrestigeData: return "PrestigeData";
+    case EntityGroup::Type::TerritoryStaticData: return "TerritoryStaticData";
+    case EntityGroup::Type::WorkerSpecs: return "WorkerSpecs";
+    case EntityGroup::Type::AwayAssignmentsStatic: return "AwayAssignmentsStatic";
+    case EntityGroup::Type::ConsumableSpecs: return "ConsumableSpecs";
+    case EntityGroup::Type::SlotSpecs: return "SlotSpecs";
+    case EntityGroup::Type::TraitsSpecs: return "TraitsSpecs";
+    case EntityGroup::Type::OfficerTraitsSpecs: return "OfficerTraitsSpecs";
+    case EntityGroup::Type::LoyaltySpecs: return "LoyaltySpecs";
+    case EntityGroup::Type::PeaceShieldRulesSpecs: return "PeaceShieldRulesSpecs";
+    case EntityGroup::Type::MarauderInfo: return "MarauderInfo";
+    case EntityGroup::Type::AllianceStarbaseConfig: return "AllianceStarbaseConfig";
+    case EntityGroup::Type::Gameworld: return "Gameworld";
+    case EntityGroup::Type::ActivatedAbilitySpecs: return "ActivatedAbilitySpecs";
+    case EntityGroup::Type::AchievementsConfig: return "AchievementsConfig";
+    case EntityGroup::Type::ArmadaPvpSpecs: return "ArmadaPvpSpecs";
+    case EntityGroup::Type::OfficerProgressRewardSpecs: return "OfficerProgressRewardSpecs";
+    case EntityGroup::Type::CommanderSkillSpecs: return "CommanderSkillSpecs";
+    case EntityGroup::Type::CommanderIntelRequirementSpecs: return "CommanderIntelRequirementSpecs";
+    case EntityGroup::Type::HailingFreqConfig: return "HailingFreqConfig";
+    case EntityGroup::Type::OfficerLevelRewardsSpecs: return "OfficerLevelRewardsSpecs";
+    case EntityGroup::Type::ResourceGroupsSpec: return "ResourceGroupsSpec";
+    case EntityGroup::Type::ChallengeLadderSpecs: return "ChallengeLadderSpecs";
+    case EntityGroup::Type::BundleRewardsSpecs: return "BundleRewardsSpecs";
+    case EntityGroup::Type::ForbiddenTechSpecs: return "ForbiddenTechSpecs";
+    case EntityGroup::Type::ForbiddenTechBuffs: return "ForbiddenTechBuffs";
+    case EntityGroup::Type::ForbiddenTechRemovalCosts: return "ForbiddenTechRemovalCosts";
+    case EntityGroup::Type::ForbiddenTechConfig: return "ForbiddenTechConfig";
+    case EntityGroup::Type::ChallengeConfig: return "ChallengeConfig";
+    case EntityGroup::Type::ForbiddenTechUpgradeCosts: return "ForbiddenTechUpgradeCosts";
+    case EntityGroup::Type::HazardSpecs: return "HazardSpecs";
+    case EntityGroup::Type::ActivatedShipAbilitiesConfigs: return "ActivatedShipAbilitiesConfigs";
+    case EntityGroup::Type::WaveDefenseStaticData: return "WaveDefenseStaticData";
+    case EntityGroup::Type::AllianceLoyaltyStaticData: return "AllianceLoyaltyStaticData";
+    case EntityGroup::Type::GameActivitySpecs: return "GameActivitySpecs";
+    case EntityGroup::Type::GameActivityParticipantSpecs: return "GameActivityParticipantSpecs";
+    case EntityGroup::Type::GameActivityDetailedSpec: return "GameActivityDetailedSpec";
+    case EntityGroup::Type::GameActivityScheduleSpec: return "GameActivityScheduleSpec";
+    case EntityGroup::Type::PartySpecs: return "PartySpecs";
+    case EntityGroup::Type::ResourceAutoConvertSpecs: return "ResourceAutoConvertSpecs";
+    case EntityGroup::Type::AllianceTagSpecs: return "AllianceTagSpecs";
+    case EntityGroup::Type::GameActivityRewardsSpec: return "GameActivityRewardsSpec";
+    case EntityGroup::Type::GameActivityIndex: return "GameActivityIndex";
+    default: return nullptr;
+  }
+}
+
+static bool IsRawStaticCaptureType(EntityGroup::Type type)
+{
+  return EntityGroupTypeName(type) != nullptr;
+}
+
+static bool ShouldRawCaptureStaticGroup(EntityGroup::Type type, size_t byte_count)
+{
+  const auto& cfg = Config::Get();
+  if (!cfg.raw_static_capture_enabled) {
+    return false;
+  }
+
+  if (cfg.raw_static_capture_directory.empty()) {
+    std::call_once(raw_static_capture_config_warning, [] {
+      spdlog::error("sync.raw_static_capture.enabled is true, but sync.raw_static_capture.directory is empty");
+    });
+    return false;
+  }
+
+  if (!IsRawStaticCaptureType(type)) {
+    return false;
+  }
+
+  if (!cfg.raw_static_capture_include_types.empty()
+      && cfg.raw_static_capture_include_types.find(static_cast<int>(type)) == cfg.raw_static_capture_include_types.end()) {
+    return false;
+  }
+
+  if (cfg.raw_static_capture_max_bytes > 0 && byte_count > static_cast<size_t>(cfg.raw_static_capture_max_bytes)) {
+    spdlog::warn("Skipping raw static capture for type {} ({}): {} bytes exceeds max_bytes {}", static_cast<int>(type),
+                 EntityGroupTypeName(type), byte_count, cfg.raw_static_capture_max_bytes);
+    return false;
+  }
+
+  return true;
+}
+
+static void CaptureRawStaticEntityGroup(EntityGroup::Type type, const char* bytes, size_t byte_count)
+{
+  if (!ShouldRawCaptureStaticGroup(type, byte_count)) {
+    return;
+  }
+
+  const std::string_view payload(bytes, byte_count);
+  const auto hash = sha256::hex(payload);
+  const auto type_name = EntityGroupTypeName(type);
+  const auto root = std::filesystem::path(Config::Get().raw_static_capture_directory);
+  const auto blob_dir = root / "blobs" / "sha256" / hash.substr(0, 2);
+  const auto blob_path = blob_dir / (hash + ".bin");
+  const auto manifest_path = root / "manifest.jsonl";
+
+  std::scoped_lock lk(raw_static_capture_mtx);
+
+  std::error_code ec;
+  std::filesystem::create_directories(blob_dir, ec);
+  if (ec) {
+    spdlog::error("Failed to create raw static capture directory {}: {}", blob_dir.string(), ec.message());
+    return;
+  }
+
+  bool wrote_blob = false;
+  if (!std::filesystem::exists(blob_path, ec)) {
+    std::ofstream blob(blob_path, std::ios::binary | std::ios::trunc);
+    if (!blob) {
+      spdlog::error("Failed to open raw static capture blob {}", blob_path.string());
+      return;
+    }
+    blob.write(bytes, static_cast<std::streamsize>(byte_count));
+    if (!blob) {
+      spdlog::error("Failed to write raw static capture blob {}", blob_path.string());
+      return;
+    }
+    wrote_blob = true;
+  }
+
+  std::ofstream manifest(manifest_path, std::ios::binary | std::ios::app);
+  if (!manifest) {
+    spdlog::error("Failed to open raw static capture manifest {}", manifest_path.string());
+    return;
+  }
+
+  const auto manifest_entry = nlohmann::json{
+      {"timestamp", current_timestamp()},
+      {"type", static_cast<int>(type)},
+      {"type_name", type_name},
+      {"byte_count", byte_count},
+      {"sha256", hash},
+      {"file", (std::filesystem::path("blobs") / "sha256" / hash.substr(0, 2) / (hash + ".bin")).generic_string()},
+      {"status", wrote_blob ? "written" : "already_exists"},
+  };
+  manifest << manifest_entry.dump() << '\n';
+}
 
 [[nodiscard]] static std::string newUUID()
 {
@@ -1915,6 +2147,8 @@ void HandleEntityGroup(EntityGroup* entity_group)
 
   const auto byteCount = static_cast<size_t>(entity_group->Group->Length);
   const auto *bytesPtr = reinterpret_cast<const char*>(entity_group->Group->bytes->m_Items);
+
+  http::CaptureRawStaticEntityGroup(entity_group->Type_, bytesPtr, byteCount);
 
   // Helper to run processing asynchronously with exception handling
   auto submit_async = [bytesPtr, byteCount]<typename T>(T&& func) {

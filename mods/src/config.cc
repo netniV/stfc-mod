@@ -23,6 +23,7 @@ namespace DCC = DefaultConfig::Control;
 namespace DCU = DefaultConfig::UI;
 namespace DCBS = DefaultConfig::Buffs;
 namespace DCS = DefaultConfig::Sync;
+namespace DCSR = DefaultConfig::Sync::RawStaticCapture;
 namespace DCSC = DefaultConfig::SystemConfig;
 namespace DCSH = DefaultConfig::Shortcuts;
 namespace DCLS = DefaultConfig::LoadingScreen;
@@ -594,6 +595,47 @@ void Config::Load()
   this->sync_debug              = get_config_or_default(config, parsed, "sync", "debug", DCS::debug, write_config);
   this->sync_logging            = get_config_or_default(config, parsed, "sync", "logging", DCS::logging, write_config);
   this->sync_resolver_cache_ttl = get_config_or_default(config, parsed, "sync", "resolver_cache_ttl", DCS::resolver_cache_ttl, write_config);
+
+  this->raw_static_capture_enabled     = DCSR::enabled;
+  this->raw_static_capture_directory   = DCSR::directory;
+  this->raw_static_capture_max_bytes   = DCSR::max_bytes;
+  auto raw_static_capture_include_types = std::string(DCSR::include_types);
+
+  try {
+    if (const auto sync = config["sync"].as_table()) {
+      if (const auto raw_static_capture = (*sync)["raw_static_capture"].as_table()) {
+        this->raw_static_capture_enabled = (*raw_static_capture)["enabled"].value_or(DCSR::enabled);
+        this->raw_static_capture_directory =
+            (*raw_static_capture)["directory"].value_or(std::string(DCSR::directory));
+        this->raw_static_capture_max_bytes = (*raw_static_capture)["max_bytes"].value_or<int64_t>(DCSR::max_bytes);
+        raw_static_capture_include_types =
+            (*raw_static_capture)["include_types"].value_or(std::string(DCSR::include_types));
+      }
+    }
+  } catch (...) {
+    spdlog::warn("invalid config value sync.raw_static_capture");
+  }
+
+  auto sync_table = parsed["sync"].as_table();
+  sync_table->insert_or_assign("raw_static_capture", toml::table());
+  auto raw_static_capture = (*sync_table)["raw_static_capture"].as_table();
+  raw_static_capture->insert_or_assign("enabled", this->raw_static_capture_enabled);
+  raw_static_capture->insert_or_assign("directory", this->raw_static_capture_directory);
+  raw_static_capture->insert_or_assign("max_bytes", this->raw_static_capture_max_bytes);
+  raw_static_capture->insert_or_assign("include_types", raw_static_capture_include_types);
+
+  this->raw_static_capture_include_types.clear();
+  for (const auto& type : StrSplit(raw_static_capture_include_types, ',')) {
+    if (type.empty()) {
+      continue;
+    }
+
+    try {
+      this->raw_static_capture_include_types.insert(std::stoi(type));
+    } catch (...) {
+      spdlog::warn("invalid sync.raw_static_capture.include_types entry: {}", type);
+    }
+  }
 
   SyncConfig sync_defaults;
   sync_defaults.proxy      = get_config_or_default<std::string>(config, parsed, "sync", "proxy", DCS::proxy , write_log);

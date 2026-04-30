@@ -189,6 +189,14 @@ namespace Sync
   constexpr bool        logging            = false;
   constexpr bool        verify_ssl         = true;
   constexpr auto        resolver_cache_ttl = 300;
+
+  namespace RawStaticCapture
+  {
+    constexpr bool        enabled       = false;
+    constexpr const char* directory     = "";
+    constexpr auto        max_bytes     = 52428800;
+    constexpr const char* include_types = "";
+  } // namespace RawStaticCapture
 } // namespace Sync
 
 namespace UI
