@@ -281,15 +281,45 @@ static void CaptureRawStaticEntityGroup(EntityGroup::Type type, const char* byte
   }
 
   bool wrote_blob = false;
-  if (!std::filesystem::exists(blob_path, ec)) {
-    std::ofstream blob(blob_path, std::ios::binary | std::ios::trunc);
+  const bool blob_exists = std::filesystem::exists(blob_path, ec);
+  if (ec) {
+    spdlog::error("Failed to check raw static capture blob {}: {}", blob_path.string(), ec.message());
+    return;
+  }
+
+  if (!blob_exists) {
+    const auto temp_blob_path = blob_path.parent_path() / (hash + ".bin.tmp");
+    std::filesystem::remove(temp_blob_path, ec);
+    ec.clear();
+
+    std::ofstream blob(temp_blob_path, std::ios::binary | std::ios::trunc);
     if (!blob) {
-      spdlog::error("Failed to open raw static capture blob {}", blob_path.string());
+      spdlog::error("Failed to open raw static capture blob {}", temp_blob_path.string());
       return;
     }
     blob.write(bytes, static_cast<std::streamsize>(byte_count));
     if (!blob) {
-      spdlog::error("Failed to write raw static capture blob {}", blob_path.string());
+      spdlog::error("Failed to write raw static capture blob {}", temp_blob_path.string());
+      blob.close();
+      std::filesystem::remove(temp_blob_path, ec);
+      ec.clear();
+      return;
+    }
+
+    blob.close();
+    if (!blob) {
+      spdlog::error("Failed to finalize raw static capture blob {}", temp_blob_path.string());
+      std::filesystem::remove(temp_blob_path, ec);
+      ec.clear();
+      return;
+    }
+
+    std::filesystem::rename(temp_blob_path, blob_path, ec);
+    if (ec) {
+      spdlog::error("Failed to move raw static capture blob {} into place at {}: {}", temp_blob_path.string(),
+                    blob_path.string(), ec.message());
+      std::filesystem::remove(temp_blob_path, ec);
+      ec.clear();
       return;
     }
     wrote_blob = true;

@@ -2,10 +2,9 @@
 
 #include <array>
 #include <bit>
-#include <cstring>
+#include <cstddef>
 #include <iomanip>
 #include <sstream>
-#include <vector>
 
 namespace sha256
 {
@@ -66,6 +65,55 @@ void write_be32(uint8_t* p, uint32_t value)
   p[2] = static_cast<uint8_t>(value >> 8);
   p[3] = static_cast<uint8_t>(value);
 }
+
+void write_be64(uint8_t* p, uint64_t value)
+{
+  for (int i = 0; i < 8; ++i) {
+    p[7 - i] = static_cast<uint8_t>(value >> (i * 8));
+  }
+}
+
+void transform(std::array<uint32_t, 8>& h, const uint8_t* block)
+{
+  std::array<uint32_t, 64> w{};
+  for (int i = 0; i < 16; ++i) {
+    w[i] = read_be32(block + i * 4);
+  }
+  for (int i = 16; i < 64; ++i) {
+    w[i] = small_sigma1(w[i - 2]) + w[i - 7] + small_sigma0(w[i - 15]) + w[i - 16];
+  }
+
+  uint32_t a = h[0];
+  uint32_t b = h[1];
+  uint32_t c = h[2];
+  uint32_t d = h[3];
+  uint32_t e = h[4];
+  uint32_t f = h[5];
+  uint32_t g = h[6];
+  uint32_t hh = h[7];
+
+  for (int i = 0; i < 64; ++i) {
+    const uint32_t t1 = hh + big_sigma1(e) + choose(e, f, g) + k[i] + w[i];
+    const uint32_t t2 = big_sigma0(a) + majority(a, b, c);
+    hh = g;
+    g = f;
+    f = e;
+    e = d + t1;
+    d = c;
+    c = b;
+    b = a;
+    a = t1 + t2;
+  }
+
+  h[0] += a;
+  h[1] += b;
+  h[2] += c;
+  h[3] += d;
+  h[4] += e;
+  h[5] += f;
+  h[6] += g;
+  h[7] += hh;
+}
 } // namespace
 
 digest_t digest(std::string_view data)
@@ -74,54 +122,27 @@ digest_t digest(std::string_view data)
                             0x510e527fU, 0x9b05688cU, 0x1f83d9abU, 0x5be0cd19U};
 
   const uint64_t bit_len = static_cast<uint64_t>(data.size()) * 8U;
-  const size_t padded_size = ((data.size() + 9U + 63U) / 64U) * 64U;
-  std::vector<uint8_t> padded(padded_size, 0);
-  std::memcpy(padded.data(), data.data(), data.size());
-  padded[data.size()] = 0x80U;
-  for (int i = 0; i < 8; ++i) {
-    padded[padded_size - 1 - i] = static_cast<uint8_t>(bit_len >> (i * 8));
+  const auto* bytes = reinterpret_cast<const uint8_t*>(data.data());
+  size_t offset = 0;
+
+  for (; offset + 64 <= data.size(); offset += 64) {
+    transform(h, bytes + offset);
   }
 
-  for (size_t offset = 0; offset < padded.size(); offset += 64) {
-    std::array<uint32_t, 64> w{};
-    for (int i = 0; i < 16; ++i) {
-      w[i] = read_be32(padded.data() + offset + i * 4);
-    }
-    for (int i = 16; i < 64; ++i) {
-      w[i] = small_sigma1(w[i - 2]) + w[i - 7] + small_sigma0(w[i - 15]) + w[i - 16];
-    }
-
-    uint32_t a = h[0];
-    uint32_t b = h[1];
-    uint32_t c = h[2];
-    uint32_t d = h[3];
-    uint32_t e = h[4];
-    uint32_t f = h[5];
-    uint32_t g = h[6];
-    uint32_t hh = h[7];
-
-    for (int i = 0; i < 64; ++i) {
-      const uint32_t t1 = hh + big_sigma1(e) + choose(e, f, g) + k[i] + w[i];
-      const uint32_t t2 = big_sigma0(a) + majority(a, b, c);
-      hh = g;
-      g = f;
-      f = e;
-      e = d + t1;
-      d = c;
-      c = b;
-      b = a;
-      a = t1 + t2;
-    }
-
-    h[0] += a;
-    h[1] += b;
-    h[2] += c;
-    h[3] += d;
-    h[4] += e;
-    h[5] += f;
-    h[6] += g;
-    h[7] += hh;
+  std::array<uint8_t, 128> tail{};
+  size_t tail_size = data.size() - offset;
+  for (size_t i = 0; i < tail_size; ++i) {
+    tail[i] = bytes[offset + i];
   }
+  tail[tail_size++] = 0x80U;
+
+  if (tail_size > 56) {
+    transform(h, tail.data());
+    tail.fill(0);
+  }
+
+  write_be64(tail.data() + 56, bit_len);
+  transform(h, tail.data());
 
   digest_t out{};
   for (int i = 0; i < 8; ++i) {
