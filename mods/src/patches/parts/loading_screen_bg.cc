@@ -24,35 +24,6 @@ static void* g_bgImageComp          = nullptr;
 static void* g_ourSprite            = nullptr;
 static void* g_bgRectTransform      = nullptr;
 
-// Fade state
-static void* g_tvCanvasGroup      = nullptr;
-static void* g_tvCanvasController = nullptr;
-static void* g_tvPendingCC        = nullptr;
-static float g_fadeStartTime      = -1.0f;
-static float g_fadeOutStartTime   = -1.0f;
-static float g_fadeDuration       = 0.5f;
-
-static float GetUnityTime()
-{
-  static auto h = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "Time");
-  static auto f = h.GetMethod("get_unscaledTime");
-  return f ? reinterpret_cast<float(*)()>(f)() : 0.0f;
-}
-
-static void SetCanvasGroupAlpha(void* cg, float alpha)
-{
-  if (!cg) return;
-  static void* fn = nullptr;
-  if (!fn) {
-    auto* obj = reinterpret_cast<Il2CppObject*>(cg);
-    if (!obj->klass) return;
-    const MethodInfo* mi = il2cpp_class_get_method_from_name(obj->klass, "set_alpha", 1);
-    if (mi) fn = reinterpret_cast<void*>(mi->methodPointer);
-    if (!fn) return;
-  }
-  reinterpret_cast<void(*)(void*, float)>(fn)(cg, alpha);
-}
-
 static void ReadIl2CppString(void* strObj, char* buf, int bufSize)
 {
   buf[0] = '\0';
@@ -225,32 +196,7 @@ void TransitionViewController_Awake_Hook(auto original, void* _this)
   try {
     if (!Config::Get().loading_screen_transition_enabled) return;
     g_spriteApplied = false; g_bgImageComp = nullptr; g_ourSprite = nullptr; g_bgRectTransform = nullptr;
-    g_tvCanvasGroup = nullptr; g_tvCanvasController = nullptr; g_tvPendingCC = nullptr;
-    g_fadeStartTime = -1.0f; g_fadeOutStartTime = -1.0f;
     EnsureTextureLoaded();
-    try {
-      static auto c_h  = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "Component");
-      static auto t_h  = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "Transform");
-      static auto g_h  = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "GameObject");
-      static auto cc_h = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.UI", "CanvasController");
-      static auto fn_gt = c_h.GetMethod("get_transform");
-      static auto fn_rt = t_h.GetMethod("get_root");
-      static auto fn_gg = c_h.GetMethod("get_gameObject");
-      static auto fn_gc = g_h.GetMethod("GetComponent", 1);
-      if (fn_gt && fn_rt && fn_gg && fn_gc && cc_h.isValidHelper()) {
-        void* tf = reinterpret_cast<void*(*)(void*)>(fn_gt)(_this);
-        if (tf) {
-          void* rt = reinterpret_cast<void*(*)(void*)>(fn_rt)(tf);
-          if (rt) {
-            void* rg = reinterpret_cast<void*(*)(void*)>(fn_gg)(rt);
-            if (rg) {
-              void* ct = cc_h.GetType();
-              if (ct) g_tvPendingCC = reinterpret_cast<void*(*)(void*, void*)>(fn_gc)(rg, ct);
-            }
-          }
-        }
-      }
-    } catch (...) {}
   } catch (...) {}
 }
 
@@ -261,84 +207,6 @@ void TransitionViewController_AboutToShow_Hook(auto original, void* _this)
     if (!Config::Get().loading_screen_transition_enabled) return;
     EnsureTextureLoaded();
     if (g_customLoadingTexture) ApplyCustomSpriteToBGImage(_this);
-  } catch (...) {}
-}
-
-void CanvasController_Show_Hook(auto original, void* _this, int32_t entryPoint, bool instant)
-{
-  try {
-    if (Config::Get().loading_screen_transition_enabled && g_tvPendingCC && _this == g_tvPendingCC) {
-      g_tvPendingCC = nullptr; g_tvCanvasController = _this; instant = true;
-    }
-  } catch (...) {}
-
-  original(_this, entryPoint, instant);
-
-  try {
-    if (_this != g_tvCanvasController || !Config::Get().loading_screen_transition_enabled) return;
-    if (!g_tvCanvasGroup) {
-      static auto mb_h  = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "MonoBehaviour");
-      static auto go_h  = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "GameObject");
-      static auto re_h  = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.UI", "AbstractCanvasGroupRelay");
-      static auto f_tg  = re_h.GetField("_targetGroup");
-      static auto fn_gg = mb_h.GetMethod("get_gameObject");
-      static auto fn_gc = go_h.GetMethod("GetComponent", 1);
-      void* go = fn_gg ? reinterpret_cast<void*(*)(void*)>(fn_gg)(_this) : nullptr;
-      if (go && fn_gc) {
-        if (re_h.isValidHelper() && f_tg.isValidHelper()) {
-          void* rt = re_h.GetType();
-          if (rt) {
-            void* relay = reinterpret_cast<void*(*)(void*, void*)>(fn_gc)(go, rt);
-            if (relay) g_tvCanvasGroup = *reinterpret_cast<void**>((char*)relay + f_tg.offset());
-          }
-        }
-        if (!g_tvCanvasGroup) {
-          static auto cg1 = il2cpp_get_class_helper("UnityEngine.UIModule",   "UnityEngine", "CanvasGroup");
-          if (cg1.isValidHelper()) { void* t = cg1.GetType(); if (t) g_tvCanvasGroup = reinterpret_cast<void*(*)(void*, void*)>(fn_gc)(go, t); }
-        }
-        if (!g_tvCanvasGroup) {
-          static auto cg2 = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "CanvasGroup");
-          if (cg2.isValidHelper()) { void* t = cg2.GetType(); if (t) g_tvCanvasGroup = reinterpret_cast<void*(*)(void*, void*)>(fn_gc)(go, t); }
-        }
-      }
-    }
-    if (g_tvCanvasGroup) {
-      SetCanvasGroupAlpha(g_tvCanvasGroup, 0.0f);
-      g_fadeStartTime = GetUnityTime(); g_fadeOutStartTime = -1.0f;
-    }
-  } catch (...) {}
-}
-
-void CanvasController_Hide_Hook(auto original, void* _this, int32_t exitPoint, bool instant)
-{
-  try {
-    if (Config::Get().loading_screen_transition_enabled && _this == g_tvCanvasController && g_tvCanvasGroup) {
-      g_fadeStartTime = -1.0f; g_fadeOutStartTime = GetUnityTime();
-    }
-  } catch (...) {}
-  original(_this, exitPoint, instant);
-}
-
-void CanvasController_Update_Hook(auto original, void* _this)
-{
-  original(_this);
-  try {
-    if (!g_tvCanvasGroup || !g_tvCanvasController || _this != g_tvCanvasController) return;
-    if (!Config::Get().loading_screen_transition_enabled) {
-      g_tvCanvasGroup = nullptr; g_fadeStartTime = -1.0f; g_fadeOutStartTime = -1.0f; return;
-    }
-    float now = GetUnityTime();
-    if (g_fadeOutStartTime >= 0.0f) {
-      float t = (now - g_fadeOutStartTime) / g_fadeDuration;
-      SetCanvasGroupAlpha(g_tvCanvasGroup, t >= 1.0f ? 0.0f : 1.0f - t);
-      if (t >= 1.0f) { g_tvCanvasGroup = nullptr; g_tvCanvasController = nullptr; g_fadeOutStartTime = -1.0f; }
-      return;
-    }
-    if (g_fadeStartTime >= 0.0f) {
-      float t = (now - g_fadeStartTime) / g_fadeDuration;
-      SetCanvasGroupAlpha(g_tvCanvasGroup, t >= 1.0f ? 1.0f : t);
-      if (t >= 1.0f) g_fadeStartTime = -1.0f;
-    }
   } catch (...) {}
 }
 
@@ -489,16 +357,6 @@ void InstallLoadingScreenBgHooks()
           SPUD_STATIC_DETOUR(m, SlideShowViewController_ShowCurrentSlide_Hook);
           spdlog::info("Loading screen hook installed (SlideShow.ShowCurrentSlide)");
         }
-      }
-      auto cc_h = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.UI", "CanvasController");
-      if (cc_h.isValidHelper()) {
-#if __APPLE__
-        spdlog::info("[LS] CanvasController fade hooks skipped on macOS");
-#else
-        if (auto m = cc_h.GetMethod("Show",   2)) { SPUD_STATIC_DETOUR(m, CanvasController_Show_Hook);   spdlog::info("Loading screen hook installed (CC.Show)"); }
-        if (auto m = cc_h.GetMethod("Hide",   2)) { SPUD_STATIC_DETOUR(m, CanvasController_Hide_Hook);   spdlog::info("Loading screen hook installed (CC.Hide)"); }
-        if (auto m = cc_h.GetMethod("Update"))    { SPUD_STATIC_DETOUR(m, CanvasController_Update_Hook); spdlog::info("Loading screen hook installed (CC.Update)"); }
-#endif
       }
     }
   } else {
