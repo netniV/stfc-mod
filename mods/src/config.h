@@ -159,6 +159,7 @@ public:
   Config(Config&&)                 = delete;
   Config& operator=(Config&&)      = delete;
 
+  bool  evil_off;
   float ui_scale;
   float ui_scale_adjust;
   float ui_scale_ship;

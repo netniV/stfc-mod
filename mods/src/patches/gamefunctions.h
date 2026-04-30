@@ -1,6 +1,7 @@
 #pragma once
 
 enum GameFunction {
+  ToggleEvil,
   MoveLeft,
   MoveRight,
   MoveUp,

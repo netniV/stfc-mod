@@ -132,6 +132,21 @@ AppConfig* Model_LoadConfigs(auto original, Model* _this)
   return config;
 }
 
+bool FleetDeployedData_HasActiveStatusEffect(auto original, void* _this, int statusEffect)
+{
+  if (!Config::Get().evil_off) {
+    if (statusEffect == 10) {
+      return true;
+    }
+
+    if (statusEffect == 1) {
+      return false;
+    }
+  }
+
+  return original(_this, statusEffect);
+}
+
 void SetActive_hook(auto original, void* _this, bool active)
 {
   static auto IsActiveSelf = il2cpp_resolve_icall_typed<bool(void*)>("UnityEngine.GameObject::get_activeSelf()");
@@ -146,7 +161,7 @@ void SetActive_hook(auto original, void* _this, bool active)
 bool IsQueueEnabled(auto original, void* _this)
 {
   if (Config::Get().queue_enabled) {
-    return original(_this);
+    return true;
   }
 
   return false;
@@ -204,5 +219,17 @@ void InstallTestPatches()
     } else {
       SPUD_STATIC_DETOUR(is_queue_unlocked, IsQueueEnabled);
     }
+
+    auto GetMaxQueueable = queue_manager.GetMethod("GetMaxQueueable");
+    spud::create_detour(GetMaxQueueable, [](auto original, void* _this) { return 999999999; }).install().detach();
+
+    auto IsQueueFull = queue_manager.GetMethod("IsQueueFull");
+    spud::create_detour(IsQueueFull, [](auto original, void* _this) { return false; }).install().detach();
   }
+
+  auto fleet_deployed_data =
+      il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Models", "FleetDeployedData");
+  fleet_deployed_data = fleet_deployed_data;
+  auto p              = fleet_deployed_data.GetMethod("HasActiveStatusEffect");
+  SPUD_STATIC_DETOUR(p, FleetDeployedData_HasActiveStatusEffect);
 }

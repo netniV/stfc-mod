@@ -95,7 +95,8 @@ namespace Patches
 
 namespace Shortcuts
 {
-  constexpr const char* toggle_queue          = "CTRL-Q";
+  constexpr const char* toogle_evil           = "CTRL-H";
+  constexpr const char* toggle_queue          = "CTRL-Q ";
   constexpr const char* action_queue          = "SPACE|MOUSE1";
   constexpr const char* action_queue_clear    = "CTRL-C";
   constexpr const char* action_primary        = "SPACE|MOUSE1";

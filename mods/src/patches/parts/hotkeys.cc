@@ -770,6 +770,8 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
         if (fleet) {
           fleet_controller->RequestAction(fleet, ActionType::Manage, 0, ActionBehaviour::Default);
         }
+      } else if (MapKey::IsDown(GameFunction::ToggleEvil)) {
+        config->evil_off = !config->evil_off;
       }
     }
   } else {
