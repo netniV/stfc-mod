@@ -82,7 +82,18 @@ bool SyncConfig::enabled(SyncConfig::Type type) const
 
 bool SyncTargetConfig::is_file_target() const
 {
-  return url.starts_with("file://");
+  static constexpr std::string_view scheme = "file://";
+  if (url.size() < scheme.size()) {
+    return false;
+  }
+
+  for (size_t i = 0; i < scheme.size(); ++i) {
+    if (std::tolower(static_cast<unsigned char>(url[i])) != std::tolower(static_cast<unsigned char>(scheme[i]))) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 Config::Config()

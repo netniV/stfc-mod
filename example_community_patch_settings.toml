@@ -454,10 +454,13 @@ verify_ssl = true
 # Local file sync target for debugging/private local archiving.
 # file:// targets write sync data to your computer instead of sending it over the network.
 # A token is not required for file:// targets.
-# Currently supported only on macOS/Linux.
 # Use an absolute local directory path. The directory is created if it does not exist.
+# Data type toggles inherit from [sync] unless they are overridden on the target.
+# On Windows, use a drive-letter file URL such as file:///C:/Users/you/stfc-sync.
 # Data is appended to one JSONL file per sync type, for example inventory.jsonl.
 # Each line is an envelope with type, first_sync, timestamp, and the raw request body string in body.
+# Consumers should parse body as JSON if they want to inspect the payload.
 # Query strings and fragments are not supported.
 # [sync.targets.localfile]
 # url = "file:///Users/you/stfc-sync"
+# inventory = true

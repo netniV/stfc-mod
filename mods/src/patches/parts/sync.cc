@@ -21,6 +21,7 @@
 #include <rpc.h>
 #include <winrt/Windows.Foundation.h>
 #include <winrt/Windows.Web.Http.Headers.h>
+#include <winrt/base.h>
 #else
 #include <uuid/uuid.h>
 #endif
@@ -31,9 +32,11 @@
 #include <curl/curl.h>
 #include <nlohmann/json.hpp>
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <cctype>
 #include <ctime>
 #include <filesystem>
 #include <format>
@@ -251,6 +254,26 @@ static int from_hex(const char c)
   return -1;
 }
 
+static bool starts_with_ascii_case_insensitive(std::string_view str, std::string_view prefix)
+{
+  if (str.size() < prefix.size()) {
+    return false;
+  }
+
+  for (size_t i = 0; i < prefix.size(); ++i) {
+    if (std::tolower(static_cast<unsigned char>(str[i])) != std::tolower(static_cast<unsigned char>(prefix[i]))) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+static bool is_ascii_alpha(const char c)
+{
+  return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+}
+
 static bool decode_file_url_path(std::string_view encoded, std::string& decoded, std::string& error)
 {
   decoded.clear();
@@ -288,26 +311,18 @@ static bool decode_file_url_path(std::string_view encoded, std::string& decoded,
 
 static bool parse_file_target_directory(const std::string& url, std::filesystem::path& directory, std::string& error)
 {
-#if _WIN32
-  (void)url;
-  (void)directory;
-  error = "file:// sync targets are currently supported only on macOS/Linux";
-  return false;
-#else
   static constexpr std::string_view scheme = "file://";
 
-  if (!url.starts_with(scheme)) {
+  if (!starts_with_ascii_case_insensitive(url, scheme)) {
     error = "target URL is not a file URL";
     return false;
   }
 
   std::string_view path_part(url.data() + scheme.size(), url.size() - scheme.size());
-  if (path_part.starts_with("localhost/")) {
+  if (starts_with_ascii_case_insensitive(path_part, "localhost/")) {
     path_part.remove_prefix(std::string_view("localhost").size());
-  }
-
-  if (path_part.empty() || !path_part.starts_with("/")) {
-    error = "file URL must use an absolute local path";
+  } else if (!path_part.empty() && !path_part.starts_with("/")) {
+    error = "file URL must be local; only empty or localhost authorities are supported";
     return false;
   }
 
@@ -321,14 +336,34 @@ static bool parse_file_target_directory(const std::string& url, std::filesystem:
     return false;
   }
 
+#if _WIN32
+  std::replace(decoded.begin(), decoded.end(), '/', '\\');
+
+  if (decoded.size() >= 3 && decoded[0] == '\\' && decoded[2] == ':') {
+    decoded.erase(0, 1);
+  }
+
+  if (decoded.size() < 3 || !is_ascii_alpha(decoded[0]) || decoded[1] != ':'
+      || (decoded[2] != '/' && decoded[2] != '\\')) {
+    error = "file URL must use a local Windows path like file:///C:/path";
+    return false;
+  }
+
+  directory = std::filesystem::path(std::wstring(winrt::to_hstring(decoded)));
+#else
+  if (decoded.empty() || decoded[0] != '/') {
+    error = "file URL must use an absolute local path";
+    return false;
+  }
+
   directory = std::filesystem::path(decoded);
+#endif
   if (!directory.is_absolute()) {
     error = "file URL must resolve to an absolute path";
     return false;
   }
 
   return true;
-#endif
 }
 
 static std::string current_sync_timestamp()
