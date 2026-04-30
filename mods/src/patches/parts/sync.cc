@@ -386,7 +386,7 @@ static void write_file_target_data(const std::string& target_identifier, const S
   }
 
   const auto file_path = directory / (to_string(type) + ".jsonl");
-  std::ofstream out(file_path, std::ios::app);
+  std::ofstream out(file_path, std::ios::binary | std::ios::app);
   if (!out) {
     sync_log_error(CURL_TYPE_UPLOAD, target_identifier, "Failed to open " + file_path.string());
     return;

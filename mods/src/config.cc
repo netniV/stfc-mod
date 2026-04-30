@@ -10,6 +10,7 @@
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
+#include <cctype>
 #include <cstdio>
 #include <iostream>
 #include <ranges>
