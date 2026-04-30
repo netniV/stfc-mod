@@ -355,7 +355,8 @@ auto_confirm_discovery = true
 
 [loading_screen]
 # Enable custom loading screen background
-# This feature currently does not work on macOS.
+# Note: the fade-in/fade-out transition effect is not available on macOS,
+# but the custom background image replacement works on all platforms.
 # Set to true to use a custom image for the loading screen
 custom_enabled = true
 
