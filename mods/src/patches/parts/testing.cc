@@ -221,7 +221,7 @@ void InstallTestPatches()
     }
 
     auto GetMaxQueueable = queue_manager.GetMethod("GetMaxQueueable");
-    spud::create_detour(GetMaxQueueable, [](auto original, void* _this) { return 999999999; }).install().detach();
+    spud::create_detour(GetMaxQueueable, [](auto original, void* _this) { return 99; }).install().detach();
 
     auto IsQueueFull = queue_manager.GetMethod("IsQueueFull");
     spud::create_detour(IsQueueFull, [](auto original, void* _this) { return false; }).install().detach();
