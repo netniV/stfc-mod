@@ -44,7 +44,7 @@ namespace Graphics
   constexpr auto        ui_scale_viewer             = 1.2;
   constexpr bool        use_presets_as_default      = true;
   constexpr auto        zoom                        = 5000;
-  constexpr bool        loader_transition           = true; // replace TVC/SlideShow backgrounds
+  constexpr bool        loader_transition           = false; // replace TVC/SlideShow backgrounds
   constexpr bool        loader_enabled              = true; // replace LoginSequence background
   constexpr const char* loader_image                = "";   // Empty = use embedded fallback
 } // namespace Graphics
