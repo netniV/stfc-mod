@@ -319,10 +319,11 @@ void TransitionViewController_Awake_Hook(auto original, void* _this)
   try {
     if (!Config::Get().loader_transition)
       return;
-    g_spriteApplied   = false;
-    g_bgImageComp     = nullptr;
-    g_ourSprite       = nullptr;
-    g_bgRectTransform = nullptr;
+    g_spriteApplied        = false;
+    g_bgImageComp          = nullptr;
+    g_ourSprite            = nullptr;
+    g_bgRectTransform      = nullptr;
+    g_customLoadingTexture = nullptr; // reset stale Unity object on re-login
     EnsureTextureLoaded();
   } catch (...) {
   }
@@ -436,6 +437,7 @@ void LoginSequence_Awake_Hook(auto original, void* _this)
   try {
     if (!Config::Get().loader_enabled)
       return;
+    g_customLoadingTexture = nullptr; // reset stale Unity object on re-login
     EnsureTextureLoaded();
     if (!g_customLoadingTexture)
       return;
