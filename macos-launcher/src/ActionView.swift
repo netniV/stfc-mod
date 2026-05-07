@@ -8,6 +8,7 @@ private let logger = Logger(subsystem: "com.stfcmod.startrekpatch", category: "l
 struct ActionView: View, XSollaUpdaterDelegate {
 
   @StateObject var gameUpdater = GameUpdaterViewModel()
+  @StateObject private var syncCaptureServer = SyncCaptureServer()
   @State private var gameVersion: Int = 0
   @State private var gameUpdateAvailable: Bool = false
   @State private var updating: Bool = false
@@ -79,6 +80,24 @@ struct ActionView: View, XSollaUpdaterDelegate {
               .foregroundColor(.lcarViolet)
           }.buttonStyle(PlainButtonStyle())
 
+          Button {
+            withAnimation {
+              toggleSyncCapture()
+            }
+          } label: {
+            commonButton(text: syncCaptureServer.isRunning ? "Stop Capture" : "Start Capture")
+              .foregroundColor(syncCaptureServer.isRunning ? .lcarTan : .lcarPink)
+          }.buttonStyle(PlainButtonStyle())
+
+          Button {
+            withAnimation {
+              openSyncCaptureFolder()
+            }
+          } label: {
+            commonButton(text: "Open Folder")
+              .foregroundColor(.lcarViolet)
+          }.buttonStyle(PlainButtonStyle())
+
           if gameInstalled {
             Group {
               Button {
@@ -129,7 +148,7 @@ struct ActionView: View, XSollaUpdaterDelegate {
         }
       }
       .frame(width: geo.size.width, height: 150)
-      .offset(x: 85, y: 20)
+      .offset(x: 10, y: 20)
       .task {
         repeat {
           gameVersion = gameUpdater.getInstalledGameVersion()
@@ -141,7 +160,7 @@ struct ActionView: View, XSollaUpdaterDelegate {
 
       }
       .overlay(alignment: .bottomTrailing) {
-        Text("Game Version: \(String(format: "%02d", gameVersion))")
+        Text(statusText)
           .font(.custom("HelveticaNeue-CondensedBold", size: 17))
           .foregroundColor(.lcarTan)
           .offset(x: -10)
@@ -168,7 +187,7 @@ struct ActionView: View, XSollaUpdaterDelegate {
 
   private func commonButton(text: String = "") -> some View {
     RoundedRectangle(cornerRadius: 20)
-      .frame(width: 125, height: 50)
+      .frame(width: 105, height: 50)
       .overlay(alignment: .bottomTrailing) {
         HStack {
           Spacer()
@@ -178,7 +197,7 @@ struct ActionView: View, XSollaUpdaterDelegate {
         }
         .scaleEffect(x: 0.7, anchor: .trailing)
         .padding(.bottom, 5)
-        .padding(.trailing, 20)
+        .padding(.trailing, 16)
       }
   }
 
@@ -189,18 +208,48 @@ struct ActionView: View, XSollaUpdaterDelegate {
   }
 
   private func openSettings() {
-    let library = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask).first
-    if let library {
-      let preferences = library.appendingPathComponent("Preferences").appendingPathComponent(
-        "com.stfcmod.startrekpatch")
-      let settingsTomlPath = preferences.appendingPathComponent("community_patch_settings.toml")
-      if !FileManager.default.fileExists(atPath: settingsTomlPath.path) {
-        do {
-          try "".write(to: settingsTomlPath, atomically: true, encoding: .utf8)
-        } catch {}
-      }
-      NSWorkspace.shared.open(settingsTomlPath)
+    let settingsTomlPath = SyncCaptureSettings.settingsFileURL
+    if !FileManager.default.fileExists(atPath: settingsTomlPath.path) {
+      do {
+        try FileManager.default.createDirectory(
+          at: settingsTomlPath.deletingLastPathComponent(),
+          withIntermediateDirectories: true,
+          attributes: nil)
+        try "".write(to: settingsTomlPath, atomically: true, encoding: .utf8)
+      } catch {}
     }
+    NSWorkspace.shared.open(settingsTomlPath)
+  }
+
+  private var statusText: String {
+    if syncCaptureServer.isRunning {
+      return "Capture: ON (\(syncCaptureServer.requestCount)) • Game Version: \(String(format: "%02d", gameVersion))"
+    }
+
+    return "Game Version: \(String(format: "%02d", gameVersion))"
+  }
+
+  private func toggleSyncCapture() {
+    if syncCaptureServer.isRunning {
+      syncCaptureServer.stop()
+      return
+    }
+
+    Task {
+      do {
+        try await syncCaptureServer.start()
+      } catch {
+        logger.error("Error starting sync capture: \(error.localizedDescription)")
+        errorMessage = error.localizedDescription
+        showErrorAlert = true
+      }
+    }
+  }
+
+  private func openSyncCaptureFolder() {
+    let folder = syncCaptureServer.captureDirectory ?? SyncCaptureSettings.capturesRootURL
+    try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true, attributes: nil)
+    NSWorkspace.shared.open(folder)
   }
 
   private func launchGame() {
