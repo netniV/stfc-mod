@@ -185,6 +185,13 @@ namespace Sync
   constexpr bool        logging            = false;
   constexpr bool        verify_ssl         = true;
   constexpr auto        resolver_cache_ttl = 300;
+
+  namespace EventModelRewardDiagnostics
+  {
+    constexpr bool        enabled   = false;
+    constexpr bool        full      = false;
+    constexpr const char* directory = "";
+  } // namespace EventModelRewardDiagnostics
 } // namespace Sync
 
 namespace UI

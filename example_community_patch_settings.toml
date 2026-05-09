@@ -643,6 +643,14 @@ traits = true
 debug = false
 logging = false
 
+# Optional local EventModel reward-bundle diagnostics.
+# Disabled by default. When enabled, writes event_model_reward_bundles.jsonl to directory.
+# full reads EventModel properties through managed getters; keep false unless debugging locally.
+[sync.event_model_reward_diagnostics]
+enabled = false
+full = false
+directory = ""
+
 # Subgroup: Network
 # -----------------
 

@@ -34,6 +34,8 @@
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <cstdint>
+#include <cstring>
 #include <filesystem>
 #include <format>
 #include <fstream>
@@ -100,6 +102,23 @@ namespace headers
   uuid_unparse(uuid, s);
 #endif
   return s;
+}
+
+[[nodiscard]] static std::string current_timestamp()
+{
+  const auto now = std::chrono::system_clock::now();
+  const auto time = std::chrono::system_clock::to_time_t(now);
+  std::tm tm{};
+
+#ifdef _WIN32
+  gmtime_s(&tm, &time);
+#else
+  gmtime_r(&time, &tm);
+#endif
+
+  std::ostringstream out;
+  out << std::put_time(&tm, "%Y-%m-%dT%H:%M:%SZ");
+  return out.str();
 }
 
 // Simple URL manipulation class to replace boost::url
@@ -571,6 +590,462 @@ struct CachedAllianceData {
 
 std::unordered_map<int64_t, CachedAllianceData> alliance_data_cache;
 std::mutex                                      alliance_data_cache_mtx;
+
+namespace event_model_rewards
+{
+
+static constexpr size_t max_claimable_bundle_ids = 128;
+static std::mutex              file_mtx;
+static std::condition_variable file_cv;
+static std::queue<std::string> file_queue;
+static std::once_flag          worker_once;
+static std::once_flag          safe_hook_notice_once;
+
+struct ReadStatus {
+  std::vector<std::string> errors;
+
+  void add(std::string error)
+  {
+    errors.push_back(std::move(error));
+  }
+
+  [[nodiscard]] nlohmann::json to_json() const
+  {
+    return { {"ok", errors.empty()}, {"errors", errors} };
+  }
+};
+
+struct EntryDataSnapshot {
+  std::optional<int32_t> last_claimed_reward_index;
+  std::optional<bool>    can_claim;
+  std::optional<bool>    is_registered;
+};
+
+struct Snapshot {
+  std::string               timestamp;
+  std::string               hook;
+  std::string               event_model_ptr;
+  std::optional<std::string> config_id;
+  std::optional<std::string> source;
+  std::optional<std::string> event_type;
+  std::optional<int32_t>    category;
+  std::optional<int32_t>    placement_type;
+  std::optional<int64_t>    current_reward_bundle;
+  std::vector<int64_t>      claimable_bundle_ids;
+  EntryDataSnapshot         entry_data;
+  ReadStatus                read_status;
+};
+
+static std::string pointer_to_string(const void* ptr)
+{
+  return STR_FORMAT("0x{:x}", reinterpret_cast<std::uintptr_t>(ptr));
+}
+
+static const MethodInfo* get_property_getter(Il2CppClass* cls, const char* property_name, ReadStatus& status,
+                                             const char* target)
+{
+  if (cls == nullptr) {
+    status.add(STR_FORMAT("{}: class unavailable", target));
+    return nullptr;
+  }
+
+  const auto prop = il2cpp_class_get_property_from_name(cls, property_name);
+  if (prop == nullptr) {
+    status.add(STR_FORMAT("{}: missing property {}", target, property_name));
+    return nullptr;
+  }
+
+  const auto getter = il2cpp_property_get_get_method(const_cast<PropertyInfo*>(prop));
+  if (getter == nullptr) {
+    status.add(STR_FORMAT("{}: missing getter {}", target, property_name));
+    return nullptr;
+  }
+
+  return getter;
+}
+
+static Il2CppObject* invoke_getter(Il2CppObject* obj, const MethodInfo* getter, ReadStatus& status, const char* target)
+{
+  if (obj == nullptr || getter == nullptr) {
+    return nullptr;
+  }
+
+  Il2CppException* exception = nullptr;
+  const auto       method    = il2cpp_object_get_virtual_method(obj, getter);
+  if (method == nullptr) {
+    status.add(STR_FORMAT("{}: virtual getter unavailable", target));
+    return nullptr;
+  }
+
+  auto* result = static_cast<Il2CppObject*>(il2cpp_runtime_invoke(method, obj, nullptr, &exception));
+  if (exception != nullptr) {
+    status.add(STR_FORMAT("{}: getter threw", target));
+    return nullptr;
+  }
+
+  return result;
+}
+
+static std::optional<std::string> read_string_property(Il2CppObject* obj, Il2CppClass* cls, const char* property_name,
+                                                       ReadStatus& status, const char* target)
+{
+  const auto getter = get_property_getter(cls, property_name, status, target);
+  if (getter == nullptr) {
+    return std::nullopt;
+  }
+
+  if (getter->return_type == nullptr || getter->return_type->type != IL2CPP_TYPE_STRING) {
+    status.add(STR_FORMAT("{}: {} is not a string", target, property_name));
+    return std::nullopt;
+  }
+
+  auto* value = reinterpret_cast<Il2CppString*>(invoke_getter(obj, getter, status, target));
+  if (value == nullptr) {
+    return std::nullopt;
+  }
+
+  return to_string(value);
+}
+
+static std::optional<bool> read_bool_property(Il2CppObject* obj, Il2CppClass* cls, const char* property_name,
+                                              ReadStatus& status, const char* target)
+{
+  const auto getter = get_property_getter(cls, property_name, status, target);
+  if (getter == nullptr) {
+    return std::nullopt;
+  }
+
+  if (getter->return_type == nullptr || getter->return_type->type != IL2CPP_TYPE_BOOLEAN) {
+    status.add(STR_FORMAT("{}: {} is not a bool", target, property_name));
+    return std::nullopt;
+  }
+
+  auto* boxed = invoke_getter(obj, getter, status, target);
+  if (boxed == nullptr) {
+    return std::nullopt;
+  }
+
+  return *static_cast<bool*>(il2cpp_object_unbox(boxed));
+}
+
+static std::optional<int32_t> read_int32_property(Il2CppObject* obj, Il2CppClass* cls, const char* property_name,
+                                                  ReadStatus& status, const char* target, bool allow_enum)
+{
+  const auto getter = get_property_getter(cls, property_name, status, target);
+  if (getter == nullptr) {
+    return std::nullopt;
+  }
+
+  const auto type = getter->return_type != nullptr ? getter->return_type->type : IL2CPP_TYPE_END;
+  if (type != IL2CPP_TYPE_I4 && !(allow_enum && type == IL2CPP_TYPE_VALUETYPE)) {
+    status.add(STR_FORMAT("{}: {} is not an int32", target, property_name));
+    return std::nullopt;
+  }
+
+  auto* boxed = invoke_getter(obj, getter, status, target);
+  if (boxed == nullptr) {
+    return std::nullopt;
+  }
+
+  return *static_cast<int32_t*>(il2cpp_object_unbox(boxed));
+}
+
+static std::optional<int64_t> read_int64_property(Il2CppObject* obj, Il2CppClass* cls, const char* property_name,
+                                                  ReadStatus& status, const char* target)
+{
+  const auto getter = get_property_getter(cls, property_name, status, target);
+  if (getter == nullptr) {
+    return std::nullopt;
+  }
+
+  if (getter->return_type == nullptr) {
+    status.add(STR_FORMAT("{}: {} return type unavailable", target, property_name));
+    return std::nullopt;
+  }
+
+  auto* boxed = invoke_getter(obj, getter, status, target);
+  if (boxed == nullptr) {
+    return std::nullopt;
+  }
+
+  switch (getter->return_type->type) {
+    case IL2CPP_TYPE_I4:
+      return static_cast<int64_t>(*static_cast<int32_t*>(il2cpp_object_unbox(boxed)));
+    case IL2CPP_TYPE_U4:
+      return static_cast<int64_t>(*static_cast<uint32_t*>(il2cpp_object_unbox(boxed)));
+    case IL2CPP_TYPE_I8:
+      return *static_cast<int64_t*>(il2cpp_object_unbox(boxed));
+    case IL2CPP_TYPE_U8:
+      return static_cast<int64_t>(*static_cast<uint64_t*>(il2cpp_object_unbox(boxed)));
+    default:
+      status.add(STR_FORMAT("{}: {} is not an integral value", target, property_name));
+      return std::nullopt;
+  }
+}
+
+static Il2CppObject* read_object_property(Il2CppObject* obj, Il2CppClass* cls, const char* property_name,
+                                          ReadStatus& status, const char* target)
+{
+  const auto getter = get_property_getter(cls, property_name, status, target);
+  if (getter == nullptr) {
+    return nullptr;
+  }
+
+  const auto type = getter->return_type != nullptr ? getter->return_type->type : IL2CPP_TYPE_END;
+  if (type != IL2CPP_TYPE_CLASS && type != IL2CPP_TYPE_GENERICINST) {
+    status.add(STR_FORMAT("{}: {} is not an object", target, property_name));
+    return nullptr;
+  }
+
+  return invoke_getter(obj, getter, status, target);
+}
+
+static std::optional<int64_t> read_bundle_id(Il2CppObject* bundle, ReadStatus& status, const char* target)
+{
+  if (bundle == nullptr) {
+    return std::nullopt;
+  }
+
+  auto bundle_class = il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimePlatform.Content", "Bundle");
+  if (bundle_class.get_cls() == nullptr) {
+    status.add(STR_FORMAT("{}: Bundle class unavailable", target));
+    return std::nullopt;
+  }
+
+  return read_int64_property(bundle, bundle_class.get_cls(), "BundleId", status, target);
+}
+
+static std::vector<int64_t> read_repeated_int64(Il2CppObject* repeated, ReadStatus& status, const char* target)
+{
+  std::vector<int64_t> values;
+  if (repeated == nullptr) {
+    status.add(STR_FORMAT("{}: value is null", target));
+    return values;
+  }
+
+  const auto count = read_int32_property(repeated, repeated->klass, "Count", status, target, false);
+  if (!count.has_value()) {
+    return values;
+  }
+
+  if (count.value() < 0) {
+    status.add(STR_FORMAT("{}: negative count", target));
+    return values;
+  }
+
+  const auto read_count = std::min(static_cast<size_t>(count.value()), max_claimable_bundle_ids);
+  values.reserve(read_count);
+
+  void* iter = nullptr;
+  const MethodInfo* get_item = nullptr;
+  while (const MethodInfo* method = il2cpp_class_get_methods(repeated->klass, &iter)) {
+    if (strcmp(method->name, "get_Item") != 0 || method->parameters_count != 1 || method->parameters == nullptr
+        || method->parameters[0] == nullptr || method->parameters[0]->type != IL2CPP_TYPE_I4
+        || method->return_type == nullptr || method->return_type->type != IL2CPP_TYPE_I8) {
+      continue;
+    }
+
+    get_item = method;
+    break;
+  }
+
+  if (get_item == nullptr) {
+    status.add(STR_FORMAT("{}: missing int64 get_Item", target));
+    return values;
+  }
+
+  const auto virtual_get_item = il2cpp_object_get_virtual_method(repeated, get_item);
+  if (virtual_get_item == nullptr) {
+    status.add(STR_FORMAT("{}: virtual get_Item unavailable", target));
+    return values;
+  }
+
+  for (size_t i = 0; i < read_count; ++i) {
+    int32_t index = static_cast<int32_t>(i);
+    void* params[1] = { &index };
+    Il2CppException* exception = nullptr;
+    auto* boxed = static_cast<Il2CppObject*>(il2cpp_runtime_invoke(virtual_get_item, repeated, params, &exception));
+    if (exception != nullptr || boxed == nullptr) {
+      status.add(STR_FORMAT("{}: failed at index {}", target, i));
+      break;
+    }
+
+    values.push_back(*static_cast<int64_t*>(il2cpp_object_unbox(boxed)));
+  }
+
+  if (static_cast<size_t>(count.value()) > max_claimable_bundle_ids) {
+    status.add(STR_FORMAT("{}: truncated {} values to {}", target, count.value(), max_claimable_bundle_ids));
+  }
+
+  return values;
+}
+
+static Snapshot copy_snapshot(void* event_model)
+{
+  Snapshot snapshot{
+      .timestamp       = http::current_timestamp(),
+      .hook            = "EventModel.UpdateCurrentRewardBundle",
+      .event_model_ptr = pointer_to_string(event_model),
+  };
+
+  auto* event_model_obj = static_cast<Il2CppObject*>(event_model);
+  if (event_model_obj == nullptr) {
+    snapshot.read_status.add("event_model: null");
+    return snapshot;
+  }
+
+  auto event_model_class =
+      il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimePlatform.Models", "EventModel");
+  auto event_metadata_class =
+      il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimePlatform.Models", "EventMetadata");
+  auto event_entry_data_class =
+      il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimePlatform.Models", "EventEntryData");
+
+  if (event_model_class.get_cls() == nullptr) {
+    snapshot.read_status.add("EventModel: class unavailable");
+    return snapshot;
+  }
+
+  auto* event_model_cls = event_model_class.get_cls();
+  snapshot.config_id =
+      read_string_property(event_model_obj, event_model_cls, "ConfigId", snapshot.read_status, "EventModel");
+  snapshot.source = read_string_property(event_model_obj, event_model_cls, "Source", snapshot.read_status, "EventModel");
+  snapshot.event_type =
+      read_string_property(event_model_obj, event_model_cls, "EventType", snapshot.read_status, "EventModel");
+  snapshot.category =
+      read_int32_property(event_model_obj, event_model_cls, "Category", snapshot.read_status, "EventModel", true);
+  snapshot.placement_type = read_int32_property(event_model_obj, event_model_cls, "PlacementType", snapshot.read_status,
+                                                "EventModel", true);
+  auto* current_reward_bundle =
+      read_object_property(event_model_obj, event_model_cls, "CurrentRewardBundle", snapshot.read_status, "EventModel");
+  snapshot.current_reward_bundle =
+      read_bundle_id(current_reward_bundle, snapshot.read_status, "EventModel.CurrentRewardBundle");
+
+  auto* metadata = read_object_property(event_model_obj, event_model_cls, "MetaData", snapshot.read_status, "EventModel");
+  if (metadata != nullptr && event_metadata_class.get_cls() != nullptr) {
+    auto* claimable_bundle_ids = read_object_property(metadata, event_metadata_class.get_cls(), "ClaimableBundleIds",
+                                                     snapshot.read_status, "EventMetadata");
+    snapshot.claimable_bundle_ids = read_repeated_int64(claimable_bundle_ids, snapshot.read_status,
+                                                       "EventMetadata.ClaimableBundleIds");
+  } else if (metadata != nullptr) {
+    snapshot.read_status.add("EventMetadata: class unavailable");
+  }
+
+  auto* entry_data =
+      read_object_property(event_model_obj, event_model_cls, "EntryData", snapshot.read_status, "EventModel");
+  if (entry_data != nullptr && event_entry_data_class.get_cls() != nullptr) {
+    snapshot.entry_data.last_claimed_reward_index = read_int32_property(entry_data, event_entry_data_class.get_cls(),
+                                                                        "LastClaimedRewardIndex", snapshot.read_status,
+                                                                        "EventEntryData", false);
+    snapshot.entry_data.can_claim = read_bool_property(entry_data, event_entry_data_class.get_cls(), "CanClaim",
+                                                       snapshot.read_status, "EventEntryData");
+    snapshot.entry_data.is_registered = read_bool_property(entry_data, event_entry_data_class.get_cls(), "IsRegistered",
+                                                           snapshot.read_status, "EventEntryData");
+  } else if (entry_data != nullptr) {
+    snapshot.read_status.add("EventEntryData: class unavailable");
+  }
+
+  return snapshot;
+}
+
+static nlohmann::json nullable_string(const std::optional<std::string>& value)
+{
+  return value.has_value() ? nlohmann::json(value.value()) : nlohmann::json(nullptr);
+}
+
+template <typename T> static nlohmann::json nullable_number(const std::optional<T>& value)
+{
+  return value.has_value() ? nlohmann::json(value.value()) : nlohmann::json(nullptr);
+}
+
+static void write_snapshot(const Snapshot& snapshot)
+{
+  const auto& cfg = Config::Get();
+  if (!cfg.event_model_reward_diagnostics_enabled) {
+    return;
+  }
+
+  if (cfg.event_model_reward_diagnostics_directory.empty()) {
+    spdlog::error("sync.event_model_reward_diagnostics.enabled is true, but sync.event_model_reward_diagnostics.directory is empty");
+    return;
+  }
+
+  const auto root = std::filesystem::path(cfg.event_model_reward_diagnostics_directory);
+  const auto path = root / "event_model_reward_bundles.jsonl";
+
+  const auto row = nlohmann::json{
+      {"timestamp", snapshot.timestamp},
+      {"hook", snapshot.hook},
+      {"event_model_ptr", snapshot.event_model_ptr},
+      {"config_id", nullable_string(snapshot.config_id)},
+      {"source", nullable_string(snapshot.source)},
+      {"event_type", nullable_string(snapshot.event_type)},
+      {"category", nullable_number(snapshot.category)},
+      {"placement_type", nullable_number(snapshot.placement_type)},
+      {"current_reward_bundle", nullable_number(snapshot.current_reward_bundle)},
+      {"claimable_bundle_ids", snapshot.claimable_bundle_ids},
+      {"entry_data", {
+          {"last_claimed_reward_index", nullable_number(snapshot.entry_data.last_claimed_reward_index)},
+          {"can_claim", nullable_number(snapshot.entry_data.can_claim)},
+          {"is_registered", nullable_number(snapshot.entry_data.is_registered)},
+      }},
+      {"read_status", snapshot.read_status.to_json()},
+  };
+
+
+  {
+    std::scoped_lock lk(file_mtx);
+    file_queue.push(row.dump());
+  }
+  file_cv.notify_all();
+}
+
+static void write_worker()
+{
+  while (true) {
+    std::string row;
+    {
+      std::unique_lock lock(file_mtx);
+      file_cv.wait(lock, [] { return !file_queue.empty(); });
+      row = std::move(file_queue.front());
+      file_queue.pop();
+    }
+
+    const auto& cfg = Config::Get();
+    if (!cfg.event_model_reward_diagnostics_enabled || cfg.event_model_reward_diagnostics_directory.empty()) {
+      continue;
+    }
+
+    const auto root = std::filesystem::path(cfg.event_model_reward_diagnostics_directory);
+    const auto path = root / "event_model_reward_bundles.jsonl";
+
+    std::error_code ec;
+    std::filesystem::create_directories(root, ec);
+    if (ec) {
+      spdlog::error("Failed to create EventModel reward-bundle capture directory {}: {}", root.string(), ec.message());
+      continue;
+    }
+
+    std::ofstream out(path, std::ios::binary | std::ios::app);
+    if (!out) {
+      spdlog::error("Failed to open EventModel reward-bundle capture file {}", path.string());
+      continue;
+    }
+
+    out << row << '\n';
+    if (!out) {
+      spdlog::error("Failed to write EventModel reward-bundle capture file {}", path.string());
+    }
+  }
+}
+
+static void ensure_worker()
+{
+  std::call_once(worker_once, [] { std::thread(write_worker).detach(); });
+}
+
+} // namespace event_model_rewards
+
 
 void queue_data(SyncConfig::Type type, const std::string& data, bool is_first_sync = false)
 {
@@ -2122,9 +2597,74 @@ void GameServer_SetInstanceIdHeader(auto original, void* _this, int32_t instance
   http::headers::instanceId = instanceId;
 }
 
+void EventModel_UpdateCurrentRewardBundle(auto original, void* _this, void* bundles_by_id)
+{
+  original(_this, bundles_by_id);
+
+  if (!Config::Get().event_model_reward_diagnostics_full) {
+    std::call_once(event_model_rewards::safe_hook_notice_once, [] {
+      spdlog::info("EventModel reward-bundle logger installed in safe mode; skipping managed property reads");
+    });
+    return;
+  }
+
+  try {
+    const auto snapshot = event_model_rewards::copy_snapshot(_this);
+    event_model_rewards::write_snapshot(snapshot);
+  } catch (const std::exception& e) {
+    spdlog::error("EventModel reward-bundle logger failed: {}", e.what());
+  } catch (...) {
+    spdlog::error("EventModel reward-bundle logger failed: unknown exception");
+  }
+}
+
+static void InstallEventModelRewardBundleHook()
+{
+  const auto& cfg = Config::Get();
+  if (!cfg.event_model_reward_diagnostics_enabled) {
+    return;
+  }
+
+  if (cfg.event_model_reward_diagnostics_directory.empty()) {
+    spdlog::error("Not installing EventModel reward-bundle logger: sync.event_model_reward_diagnostics.directory is empty");
+    return;
+  }
+
+  event_model_rewards::ensure_worker();
+
+  auto event_model = il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimePlatform.Models", "EventModel");
+  if (event_model.get_cls() == nullptr) {
+    spdlog::error("Not installing EventModel reward-bundle logger: EventModel class unavailable");
+    return;
+  }
+
+  const auto method = event_model.GetMethodInfoSpecial("UpdateCurrentRewardBundle", [](int param_count, const Il2CppType** params) {
+    return param_count == 1 && params != nullptr && params[0] != nullptr && params[0]->type == IL2CPP_TYPE_GENERICINST;
+  });
+  if (method == nullptr) {
+    spdlog::error("Not installing EventModel reward-bundle logger: UpdateCurrentRewardBundle() not found");
+    return;
+  }
+
+  if (method->return_type == nullptr || method->return_type->type != IL2CPP_TYPE_VOID) {
+    spdlog::error("Not installing EventModel reward-bundle logger: UpdateCurrentRewardBundle() return type changed");
+    return;
+  }
+
+  if (method->methodPointer == nullptr) {
+    spdlog::error("Not installing EventModel reward-bundle logger: UpdateCurrentRewardBundle() has no method pointer");
+    return;
+  }
+
+  SPUD_STATIC_DETOUR(method->methodPointer, EventModel_UpdateCurrentRewardBundle);
+  spdlog::info("Installed EventModel reward-bundle logger");
+}
+
+
 void InstallSyncPatches()
 {
   load_previously_sent_logs();
+  InstallEventModelRewardBundleHook();
 
   if (auto game_server_model_registry =
           il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Core", "GameServerModelRegistry");

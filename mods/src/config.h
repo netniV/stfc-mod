@@ -187,6 +187,10 @@ public:
 
   std::map<std::string, SyncTargetConfig> sync_targets;
 
+  bool        event_model_reward_diagnostics_enabled;
+  bool        event_model_reward_diagnostics_full;
+  std::string event_model_reward_diagnostics_directory;
+
   bool installUiScaleHooks;
   bool installZoomHooks;
   bool installBuffFixHooks;
