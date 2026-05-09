@@ -1,5 +1,5 @@
 #include "patches/hotkey_dispatch.h"
-#include "patches/hotkey_router.h"
+#include "patches/navigation.h"
 
 #include "config.h"
 
@@ -11,7 +11,7 @@
 
 static DispatchDecision HandleShowQTrials()
 {
-  hotkey_router_goto_section(SectionID::ChallengeSelection);
+  GotoSection(SectionID::ChallengeSelection);
   return DispatchDecision::HandledStop;
 }
 
@@ -21,146 +21,146 @@ static DispatchDecision HandleShowBookmarks()
   if (bookmark_manager) {
     bookmark_manager->ViewBookmarks();
   } else {
-    hotkey_router_goto_section(SectionID::Bookmarks_Main);
+    GotoSection(SectionID::Bookmarks_Main);
   }
   return DispatchDecision::HandledStop;
 }
 
 static DispatchDecision HandleShowLookup()
 {
-  hotkey_router_goto_section(SectionID::Bookmarks_Search_Coordinates);
+  GotoSection(SectionID::Bookmarks_Search_Coordinates);
   return DispatchDecision::HandledStop;
 }
 
 static DispatchDecision HandleShowRefinery()
 {
-  hotkey_router_goto_section(SectionID::Shop_Refining_List);
+  GotoSection(SectionID::Shop_Refining_List);
   return DispatchDecision::HandledStop;
 }
 
 static DispatchDecision HandleShowFactions()
 {
-  hotkey_router_goto_section(SectionID::Shop_MainFactions);
+  GotoSection(SectionID::Shop_MainFactions);
   return DispatchDecision::HandledStop;
 }
 
 static DispatchDecision HandleShowStationExterior()
 {
-  hotkey_router_goto_section(SectionID::Starbase_Exterior);
+  GotoSection(SectionID::Starbase_Exterior);
   return DispatchDecision::HandledStop;
 }
 
 static DispatchDecision HandleShowGalaxy()
 {
-  hotkey_router_change_navigation_section(SectionID::Navigation_Galaxy);
+  ChangeNavigationSection(SectionID::Navigation_Galaxy);
   return DispatchDecision::HandledStop;
 }
 
 static DispatchDecision HandleShowStationInterior()
 {
-  hotkey_router_goto_section(SectionID::Starbase_Interior);
+  GotoSection(SectionID::Starbase_Interior);
   return DispatchDecision::HandledStop;
 }
 
 static DispatchDecision HandleShowSystem()
 {
-  hotkey_router_change_navigation_section(SectionID::Navigation_System);
+  ChangeNavigationSection(SectionID::Navigation_System);
   return DispatchDecision::HandledStop;
 }
 
 static DispatchDecision HandleShowArtifacts()
 {
-  hotkey_router_goto_section(SectionID::ArtifactHall_Inventory);
+  GotoSection(SectionID::ArtifactHall_Inventory);
   return DispatchDecision::HandledStop;
 }
 
 static DispatchDecision HandleShowInventory()
 {
-  hotkey_router_goto_section(SectionID::InventoryList);
+  GotoSection(SectionID::InventoryList);
   return DispatchDecision::HandledStop;
 }
 
 static DispatchDecision HandleShowMissions()
 {
-  hotkey_router_goto_section(SectionID::Missions_AcceptedList);
+  GotoSection(SectionID::Missions_AcceptedList);
   return DispatchDecision::HandledStop;
 }
 
 static DispatchDecision HandleShowResearch()
 {
-  hotkey_router_goto_section(SectionID::Research_LandingPage);
+  GotoSection(SectionID::Research_LandingPage);
   return DispatchDecision::HandledStop;
 }
 
 static DispatchDecision HandleShowScrapYard()
 {
-  hotkey_router_goto_section(SectionID::ShipScrapping_List);
+  GotoSection(SectionID::ShipScrapping_List);
   return DispatchDecision::HandledStop;
 }
 
 static DispatchDecision HandleShowOfficers()
 {
-  hotkey_router_goto_section(SectionID::OfficerInventory);
+  GotoSection(SectionID::OfficerInventory);
   return DispatchDecision::HandledStop;
 }
 
 static DispatchDecision HandleShowCommander()
 {
-  hotkey_router_goto_section(SectionID::FleetCommander_Management);
+  GotoSection(SectionID::FleetCommander_Management);
   return DispatchDecision::HandledStop;
 }
 
 static DispatchDecision HandleShowAwayTeam()
 {
-  hotkey_router_goto_section(SectionID::Missions_AwayTeamsList);
+  GotoSection(SectionID::Missions_AwayTeamsList);
   return DispatchDecision::HandledStop;
 }
 
 static DispatchDecision HandleShowEvents()
 {
-  hotkey_router_goto_section(SectionID::Tournament_Group_Selection);
+  GotoSection(SectionID::Tournament_Group_Selection);
   return DispatchDecision::HandledStop;
 }
 
 static DispatchDecision HandleShowExoComp()
 {
-  hotkey_router_goto_section(SectionID::Consumables);
+  GotoSection(SectionID::Consumables);
   return DispatchDecision::HandledStop;
 }
 
 static DispatchDecision HandleShowDaily()
 {
-  hotkey_router_goto_section(SectionID::Missions_DailyGoals);
+  GotoSection(SectionID::Missions_DailyGoals);
   return DispatchDecision::HandledStop;
 }
 
 static DispatchDecision HandleShowGifts()
 {
-  hotkey_router_goto_section(SectionID::Shop_List);
+  GotoSection(SectionID::Shop_List);
   return DispatchDecision::HandledStop;
 }
 
 static DispatchDecision HandleShowAlliance()
 {
-  hotkey_router_goto_section(SectionID::Alliance_Main);
+  GotoSection(SectionID::Alliance_Main);
   return DispatchDecision::HandledStop;
 }
 
 static DispatchDecision HandleShowAllianceHelp()
 {
-  hotkey_router_goto_section(SectionID::Alliance_Help);
+  GotoSection(SectionID::Alliance_Help);
   return DispatchDecision::HandledStop;
 }
 
 static DispatchDecision HandleShowAllianceArmada()
 {
-  hotkey_router_goto_section(SectionID::Alliance_Armadas);
+  GotoSection(SectionID::Alliance_Armadas);
   return DispatchDecision::HandledStop;
 }
 
 static DispatchDecision HandleShowSettings()
 {
-  hotkey_router_goto_section(SectionID::GameSettings);
+  GotoSection(SectionID::GameSettings);
   return DispatchDecision::HandledStop;
 }
 

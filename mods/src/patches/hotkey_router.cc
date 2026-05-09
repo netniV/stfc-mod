@@ -2,21 +2,18 @@
 
 #include "patches/hotkey_router.h"
 
+#include "patches/cargo_display.h"
 #include "patches/hotkey_dispatch.h"
 #include "patches/key.h"
 #include "patches/mapkey.h"
+#include "patches/navigation.h"
+#include "patches/viewer_mgmt.h"
 
-#include "prime/AllianceStarbaseObjectViewerWidget.h"
 #include "prime/ArmadaObjectViewerWidget.h"
-#include "prime/CelestialObjectViewerWidget.h"
-#include "prime/EmbassyObjectViewer.h"
-#include "prime/HousingObjectViewerWidget.h"
 #include "prime/MiningObjectViewerWidget.h"
-#include "prime/MissionsObjectViewerWidget.h"
 #include "prime/StarNodeObjectViewerWidget.h"
 
 #include "prime/ActionQueueManager.h"
-#include "prime/AnimatedRewardsScreenViewController.h"
 #include "prime/BookmarksManager.h"
 #include "prime/ChatManager.h"
 #include "prime/DeploymentManager.h"
@@ -30,7 +27,6 @@
 #include "prime/NavigationSectionManager.h"
 #include "prime/PreScanTargetWidget.h"
 #include "prime/ScanEngageButtonsWidget.h"
-#include "prime/ScreenManager.h"
 
 #include <Windows.h>
 
@@ -43,65 +39,12 @@
 
 namespace {
 
-int  show_info_pending             = 0;
 bool force_space_action_next_frame = false;
 
 void     ExecuteSpaceAction(FleetBarViewController* fleet_bar);
 bool     DidExecuteRecall(FleetBarViewController* fleet_bar);
 bool     DidExecuteRepair(FleetBarViewController* fleet_bar);
 HullType GetHullTypeFromBattleTarget(BattleTargetData* context);
-void     GotoSectionImpl(SectionID sectionID, void* screen_data = nullptr);
-void     ChangeNavigationSectionImpl(SectionID sectionID);
-bool     CanHideViewers();
-bool     DidHideViewers();
-bool     CheckShowCargo(RewardsButtonWidget* widget);
-
-bool MoveOfficerCanvas(bool goLeft)
-{
-  auto const canvas = ScreenManager::GetTopCanvas(true);
-  if (strcmp(((Il2CppObject*)(canvas))->klass->name, "OfficerShowcase_Canvas") == 0) {}
-
-  return false;
-}
-
-template <typename T>
-inline bool CanHideViewersOfType()
-{
-  for (auto widget : ObjectFinder<T>::GetAll()) {
-    const auto visible = widget && widget->_visibilityController != NULL
-                         && (widget->_visibilityController->_state == VisibilityState::Visible
-                             || widget->_visibilityController->_state == VisibilityState::Show);
-    if (visible) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-template <typename T>
-inline bool DidHideViewersOfType()
-{
-  const auto objects = ObjectFinder<T>::GetAll();
-  auto       didHide = false;
-  for (auto widget : objects) {
-    if (!widget) {
-      continue;
-    }
-    auto visbility_controller = widget->_visibilityController;
-    if (!visbility_controller) {
-      continue;
-    }
-    const auto visible = (visbility_controller->_state == VisibilityState::Visible
-                          || visbility_controller->_state == VisibilityState::Show);
-    if (visible) {
-      widget->HideAllViewers();
-      didHide = true;
-    }
-  }
-
-  return didHide;
-}
 
 } // namespace
 
@@ -304,11 +247,8 @@ bool hotkey_router_screen_update(ScreenManager* screen_manager)
     }
 
     if (MapKey::IsDown(GameFunction::ActionPrimary) || Key::Pressed(KeyCode::Escape)) {
-      if (auto reward_controller = ObjectFinder<AnimatedRewardsScreenViewController>::Get(); reward_controller) {
-        if (reward_controller->IsActive()) {
-          reward_controller->GoBackToLastSection();
-          return false;
-        }
+      if (TryDismissRewardsScreen()) {
+        return false;
       }
     }
 
@@ -329,41 +269,10 @@ bool hotkey_router_screen_update(ScreenManager* screen_manager)
     }
 
     if (MapKey::IsDown(GameFunction::ActionView)) {
-      auto all_pre_scan_widgets = ObjectFinder<PreScanTargetWidget>::GetAll();
-
-      for (auto& pre_scan_widget : all_pre_scan_widgets) {
-        if (pre_scan_widget
-            && (pre_scan_widget->_visibilityController->_state == VisibilityState::Visible
-                || pre_scan_widget->_visibilityController->_state == VisibilityState::Show)) {
-          auto rewardsWidget = pre_scan_widget->_rewardsButtonWidget;
-          if (rewardsWidget->_rewardsController->_state != VisibilityState::Visible
-              && rewardsWidget->_rewardsController->_state != VisibilityState::Show) {
-            show_info_pending = 5;
-          } else {
-            rewardsWidget->_rewardsController->Hide();
-          }
-        }
-      }
+      HandleActionView();
     }
 
-    if (show_info_pending > 0) {
-      auto all_pre_scan_widgets = ObjectFinder<PreScanTargetWidget>::GetAll();
-
-      for (auto& pre_scan_widget : all_pre_scan_widgets) {
-        const auto pre_scan_visible = pre_scan_widget
-                                      && (pre_scan_widget->_visibilityController->_state == VisibilityState::Visible
-                                          || pre_scan_widget->_visibilityController->_state == VisibilityState::Show);
-        if (pre_scan_visible) {
-          auto       rewardsWidget          = pre_scan_widget->_rewardsButtonWidget;
-          const auto rewards_widget_visible = rewardsWidget->_rewardsController->_state == VisibilityState::Visible
-                                              || rewardsWidget->_rewardsController->_state == VisibilityState::Show;
-          if (!rewards_widget_visible) {
-            rewardsWidget->_rewardsController->Show(true);
-          }
-        }
-      }
-      show_info_pending -= 1;
-    }
+    TickInfoPending();
   }
 
   if (config->disable_escape_exit && Key::Pressed(KeyCode::Escape)) {
@@ -380,56 +289,15 @@ bool hotkey_router_init_actions()
 
 void hotkey_router_bind_context(RewardsButtonWidget* widget)
 {
-  if (CheckShowCargo(widget)) {
-    widget->_rewardsController->Show(true);
-    show_info_pending = 1;
-  }
+  HandleCargoBindContext(widget);
 }
 
 void hotkey_router_show_fleet(PreScanTargetWidget* widget)
 {
-  auto rewards_button_widget = widget->_rewardsButtonWidget;
-  if (CheckShowCargo(rewards_button_widget)) {
-    rewards_button_widget->_rewardsController->Show(true);
-    show_info_pending = 1;
-  }
+  HandleCargoShowFleet(widget->_rewardsButtonWidget);
 }
 
 namespace {
-
-bool CanHideViewers()
-{
-  return (CanHideViewersOfType<AllianceStarbaseObjectViewerWidget>() || CanHideViewersOfType<ArmadaObjectViewerWidget>()
-          || CanHideViewersOfType<CelestialObjectViewerWidget>() || CanHideViewersOfType<EmbassyObjectViewer>()
-          || CanHideViewersOfType<HousingObjectViewerWidget>() || CanHideViewersOfType<MiningObjectViewerWidget>()
-          || CanHideViewersOfType<MissionsObjectViewerWidget>() || CanHideViewersOfType<PreScanTargetWidget>()
-          || CanHideViewersOfType<HousingObjectViewerWidget>());
-}
-
-bool DidHideViewers()
-{
-  return DidHideViewersOfType<AllianceStarbaseObjectViewerWidget>() || DidHideViewersOfType<ArmadaObjectViewerWidget>()
-         || DidHideViewersOfType<CelestialObjectViewerWidget>() || DidHideViewersOfType<EmbassyObjectViewer>()
-         || DidHideViewersOfType<HousingObjectViewerWidget>() || DidHideViewersOfType<MiningObjectViewerWidget>()
-         || DidHideViewersOfType<MissionsObjectViewerWidget>() || DidHideViewersOfType<PreScanTargetWidget>()
-         || DidHideViewersOfType<HousingObjectViewerWidget>();
-}
-
-void GotoSectionImpl(SectionID sectionID, void* section_data)
-{
-  Hub::get_SectionManager()->TriggerSectionChange(sectionID, section_data, false, false, true);
-}
-
-void ChangeNavigationSectionImpl(SectionID sectionID)
-{
-  const auto section_data = Hub::get_SectionManager()->_sectionStorage->GetState(sectionID);
-
-  if (section_data) {
-    GotoSectionImpl(sectionID, section_data);
-  } else {
-    NavigationSectionManager::ChangeNavigationSection(sectionID);
-  }
-}
 
 #define FleetAction_Format "Fleet {} ({}) #{} - State: {}, previous {} - canAction {}, canState {} - didAction: {}"
 
@@ -675,43 +543,4 @@ HullType GetHullTypeFromBattleTarget(BattleTargetData* context)
   return hull_spec->Type;
 }
 
-bool CheckShowCargo(RewardsButtonWidget* widget)
-{
-  if (!Config::Get().show_cargo_default) {
-    return false;
-  }
-
-  if (!widget->Context) {
-    return false;
-  }
-
-  const auto target_fleet_deployed = widget->Context->TargetFleetDeployedData;
-
-  if (!target_fleet_deployed) {
-    return Config::Get().show_station_cargo;
-  }
-  auto fleet_type = target_fleet_deployed->FleetType;
-  if (fleet_type == DeployedFleetType::Player) {
-    return Config::Get().show_player_cargo;
-  } else if (fleet_type == DeployedFleetType::Marauder) {
-    if (auto hull = target_fleet_deployed->Hull; hull && hull->Type == HullType::ArmadaTarget) {
-      return Config::Get().show_armada_cargo;
-    } else {
-      return Config::Get().show_hostile_cargo;
-    }
-  }
-
-  return false;
-}
-
 } // namespace
-
-void hotkey_router_goto_section(SectionID section_id, void* section_data)
-{
-  GotoSectionImpl(section_id, section_data);
-}
-
-void hotkey_router_change_navigation_section(SectionID section_id)
-{
-  ChangeNavigationSectionImpl(section_id);
-}
