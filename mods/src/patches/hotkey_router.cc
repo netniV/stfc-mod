@@ -46,12 +46,12 @@ namespace {
 int  show_info_pending             = 0;
 bool force_space_action_next_frame = false;
 
-void     ChangeNavigationSection(SectionID sectionID);
 void     ExecuteSpaceAction(FleetBarViewController* fleet_bar);
 bool     DidExecuteRecall(FleetBarViewController* fleet_bar);
 bool     DidExecuteRepair(FleetBarViewController* fleet_bar);
 HullType GetHullTypeFromBattleTarget(BattleTargetData* context);
-void     GotoSection(SectionID sectionID, void* screen_data = nullptr);
+void     GotoSectionImpl(SectionID sectionID, void* screen_data = nullptr);
+void     ChangeNavigationSectionImpl(SectionID sectionID);
 bool     CanHideViewers();
 bool     DidHideViewers();
 bool     CheckShowCargo(RewardsButtonWidget* widget);
@@ -415,17 +415,17 @@ bool DidHideViewers()
          || DidHideViewersOfType<HousingObjectViewerWidget>();
 }
 
-void GotoSection(SectionID sectionID, void* section_data)
+void GotoSectionImpl(SectionID sectionID, void* section_data)
 {
   Hub::get_SectionManager()->TriggerSectionChange(sectionID, section_data, false, false, true);
 }
 
-void ChangeNavigationSection(SectionID sectionID)
+void ChangeNavigationSectionImpl(SectionID sectionID)
 {
   const auto section_data = Hub::get_SectionManager()->_sectionStorage->GetState(sectionID);
 
   if (section_data) {
-    GotoSection(sectionID, section_data);
+    GotoSectionImpl(sectionID, section_data);
   } else {
     NavigationSectionManager::ChangeNavigationSection(sectionID);
   }
@@ -705,3 +705,13 @@ bool CheckShowCargo(RewardsButtonWidget* widget)
 }
 
 } // namespace
+
+void hotkey_router_goto_section(SectionID section_id, void* section_data)
+{
+  GotoSectionImpl(section_id, section_data);
+}
+
+void hotkey_router_change_navigation_section(SectionID section_id)
+{
+  ChangeNavigationSectionImpl(section_id);
+}
