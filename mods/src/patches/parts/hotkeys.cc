@@ -30,6 +30,7 @@
 #include "prime/ScanEngageButtonsWidget.h"
 #include "prime/ScreenManager.h"
 
+#include "patches/hotkey_dispatch.h"
 #include "patches/key.h"
 #include "patches/mapkey.h"
 
@@ -235,115 +236,19 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
         }
       }
 
-      if (MapKey::IsDown(GameFunction::ShowQTrials)) {
-        return GotoSection(SectionID::ChallengeSelection);
-      } else if (MapKey::IsDown(GameFunction::ShowBookmarks)) {
-        auto bookmark_manager = BookmarksManager::Instance();
-        if (bookmark_manager) {
-          return bookmark_manager->ViewBookmarks();
+      for (const auto& entry : GetHotkeyDispatchTable()) {
+        const auto active =
+            (entry.input_mode == InputMode::Pressed) ? MapKey::IsPressed(entry.game_function)
+                                                     : MapKey::IsDown(entry.game_function);
+        if (!active) {
+          continue;
         }
-        return GotoSection(SectionID::Bookmarks_Main);
-      } else if (MapKey::IsDown(GameFunction::ShowLookup)) {
-        return GotoSection(SectionID::Bookmarks_Search_Coordinates);
-      } else if (MapKey::IsDown(GameFunction::ShowRefinery)) {
-        return GotoSection(SectionID::Shop_Refining_List);
-      } else if (MapKey::IsDown(GameFunction::ShowFactions)) {
-        return GotoSection(SectionID::Shop_MainFactions);
-      } else if (MapKey::IsDown(GameFunction::ShoWStationExterior)) {
-        return GotoSection(SectionID::Starbase_Exterior);
-      } else if (MapKey::IsDown(GameFunction::ShowGalaxy)) {
-        return ChangeNavigationSection(SectionID::Navigation_Galaxy);
-      } else if (MapKey::IsDown(GameFunction::ShowStationInterior)) {
-        return GotoSection(SectionID::Starbase_Interior);
-      } else if (MapKey::IsDown(GameFunction::ShowSystem)) {
-        return ChangeNavigationSection(SectionID::Navigation_System);
-      } else if (MapKey::IsDown(GameFunction::ShowArtifacts)) {
-        return GotoSection(SectionID::ArtifactHall_Inventory);
-      } else if (MapKey::IsDown(GameFunction::ShowInventory)) {
-        return GotoSection(SectionID::InventoryList);
-      } else if (MapKey::IsDown(GameFunction::ShowMissions)) {
-        return GotoSection(SectionID::Missions_AcceptedList);
-      } else if (MapKey::IsDown(GameFunction::ShowResearch)) {
-        return GotoSection(SectionID::Research_LandingPage);
-      } else if (MapKey::IsDown(GameFunction::ShowScrapYard)) {
-        return GotoSection(SectionID::ShipScrapping_List);
-      } else if (MapKey::IsDown(GameFunction::ShowOfficers)) {
-        return GotoSection(SectionID::OfficerInventory);
-      } else if (MapKey::IsDown(GameFunction::ShowCommander)) {
-        // TODO: Does not work properly, defaults to first FleetCommander (spock, rather than selected fleet
-        // commander)
-        return GotoSection(SectionID::FleetCommander_Management);
-      } else if (MapKey::IsDown(GameFunction::ShowAwayTeam)) {
-        return GotoSection(SectionID::Missions_AwayTeamsList);
-      } else if (MapKey::IsDown(GameFunction::ShowEvents)) {
-        return GotoSection(SectionID::Tournament_Group_Selection);
-      } else if (MapKey::IsDown(GameFunction::ShowExoComp)) {
-        return GotoSection(SectionID::Consumables);
-      } else if (MapKey::IsDown(GameFunction::ShowDaily)) {
-        return GotoSection(SectionID::Missions_DailyGoals);
-      } else if (MapKey::IsDown(GameFunction::ShowGifts)) {
-        return GotoSection(SectionID::Shop_List);
-      } else if (MapKey::IsDown(GameFunction::ShowAlliance)) {
-        return GotoSection(SectionID::Alliance_Main);
-      } else if (MapKey::IsDown(GameFunction::ShowAllianceHelp)) {
-        return GotoSection(SectionID::Alliance_Help);
-      } else if (MapKey::IsDown(GameFunction::ShowAllianceArmada)) {
-        return GotoSection(SectionID::Alliance_Armadas);
-      } else if (MapKey::IsDown(GameFunction::ShowSettings)) {
-        return GotoSection(SectionID::GameSettings);
-      } else if (MapKey::IsPressed(GameFunction::UiScaleUp)) {
-        config->AdjustUiScale(true);
-      } else if (MapKey::IsPressed(GameFunction::UiScaleDown)) {
-        config->AdjustUiScale(false);
-      } else if (MapKey::IsPressed(GameFunction::UiViewerScaleUp)) {
-        config->AdjustUiViewerScale(true);
-      } else if (MapKey::IsPressed(GameFunction::UiViewerScaleDown)) {
-        config->AdjustUiViewerScale(false);
-      } else if (MapKey::IsDown(GameFunction::TogglePreviewLocate)) {
-        config->disable_preview_locate = !config->disable_preview_locate;
-      } else if (MapKey::IsDown(GameFunction::TogglePreviewRecall)) {
-        config->disable_preview_recall = !config->disable_preview_recall;
-      } else if (MapKey::IsDown(GameFunction::ToggleCargoDefault)) {
-        config->show_cargo_default = !config->show_cargo_default;
-      } else if (MapKey::IsDown(GameFunction::ToggleCargoPlayer)) {
-        config->show_player_cargo = !config->show_player_cargo;
-      } else if (MapKey::IsDown(GameFunction::ToggleCargoStation)) {
-        config->show_station_cargo = !config->show_station_cargo;
-      } else if (MapKey::IsDown(GameFunction::ToggleCargoHostile)) {
-        config->show_hostile_cargo = !config->show_hostile_cargo;
-      } else if (MapKey::IsDown(GameFunction::ToggleCargoArmada)) {
-        config->show_armada_cargo = !config->show_armada_cargo;
-      } else if (MapKey::IsDown(GameFunction::LogLevelOff)) {
-        // spdlog::log("Setting log level to OFF");
-        spdlog::set_level(spdlog::level::off);
-        spdlog::flush_on(spdlog::level::off);
-      } else if (MapKey::IsDown(GameFunction::LogLevelError)) {
-        spdlog::set_level(spdlog::level::err);
-        spdlog::flush_on(spdlog::level::err);
-        // spdlog::log("Setting log level to ERROR");
-      } else if (MapKey::IsDown(GameFunction::LogLevelWarn)) {
-        spdlog::set_level(spdlog::level::warn);
-        spdlog::flush_on(spdlog::level::warn);
-        // spdlog::log("Setting log level to WARN");
-      } else if (MapKey::IsDown(GameFunction::LogLevelInfo)) {
-        spdlog::set_level(spdlog::level::info);
-        spdlog::flush_on(spdlog::level::info);
-        // spdlog::log("Setting log level to INFO");
-      } else if (MapKey::IsDown(GameFunction::LogLevelDebug)) {
-        spdlog::set_level(spdlog::level::debug);
-        spdlog::flush_on(spdlog::level::debug);
-        // spdlog::log("Setting log level to DEBUG");
-      } else if (MapKey::IsDown(GameFunction::LogLevelTrace)) {
-        spdlog::set_level(spdlog::level::trace);
-        spdlog::flush_on(spdlog::level::trace);
-        // spdlog::log("Setting log level to TRACE");
-      } else if (MapKey::IsDown(GameFunction::ShowShips)) {
-        auto fleet_bar        = ObjectFinder<FleetBarViewController>::Get();
-        auto fleet_controller = fleet_bar->_fleetPanelController;
-        auto fleet            = fleet_bar->_fleetPanelController->fleet;
-        if (fleet) {
-          fleet_controller->RequestAction(fleet, ActionType::Manage, 0, ActionBehaviour::Default);
+
+        auto decision = entry.handler();
+        if (decision == DispatchDecision::HandledStop) {
+          return;
         }
+        break;
       }
     }
   } else {
