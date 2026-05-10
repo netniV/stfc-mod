@@ -499,6 +499,7 @@ void Config::Load()
   this->installResolutionListFix = get_config_or_default(config, parsed, "patches", "resolutionlistfix", DCP::resolutionlistfix, write_config);
   this->installSyncPatches       = get_config_or_default(config, parsed, "patches", "syncpatches", DCP::syncpatches, write_config);
   this->installObjectTracker       = get_config_or_default(config, parsed, "patches", "objecttracker", DCP::objecttracker, write_config);
+  this->installFleetArrivalHooks   = get_config_or_default(config, parsed, "patches", "fleetarrivalhooks", DCP::fleetarrivalhooks, write_config);
   this->installLoadingScreenBgHooks = get_config_or_default(config, parsed, "patches", "loadingscreenbghooks", DCP::loadingscreenbghooks, write_config);
   spdlog::debug("");
 #else
@@ -517,6 +518,7 @@ void Config::Load()
   this->installResolutionListFix          = false; // this patch does not work after unity 6 update
   this->installSyncPatches                = true;
   this->installObjectTracker              = true;
+  this->installFleetArrivalHooks          = true;
   this->installLoadingScreenBgHooks       = true;
 #endif
 

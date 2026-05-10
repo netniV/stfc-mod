@@ -58,6 +58,7 @@ namespace Patches
   constexpr bool improveresponsivenesshooks = true;
   constexpr bool miscpatches                = true;
   constexpr bool objecttracker              = true;
+  constexpr bool fleetarrivalhooks          = true;
   constexpr bool panhooks                   = true;
   constexpr bool resolutionlistfix          = false;
   constexpr bool syncpatches                = true;
@@ -68,7 +69,6 @@ namespace Patches
   constexpr bool zoomhooks                  = true;
   constexpr bool loadingscreenbghooks       = true; // ENABLED - new BlurController approach
 } // namespace Patches
-
 namespace Shortcuts
 {
   constexpr const char* toggle_queue          = "CTRL-Q";
