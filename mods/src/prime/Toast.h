@@ -50,6 +50,16 @@ enum ToastState {
 
 struct Toast {
 public:
+  void* get_TextLocaleTextContext()
+  {
+    return *reinterpret_cast<void**>(reinterpret_cast<char*>(this) + 0x20);
+  }
+
+  Il2CppObject* get_Data()
+  {
+    return *reinterpret_cast<Il2CppObject**>(reinterpret_cast<char*>(this) + 0x38);
+  }
+
   int get_State()
   {
     static auto prop = get_class_helper().GetProperty("State");

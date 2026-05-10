@@ -552,6 +552,12 @@ disable_toast_banners = false
 # Specifies types of banners you don't want to see (comma separated)
 disabled_banner_types = ""
 
+# System notifications for in-game events. Comma-separated list of toast types
+# to deliver as OS-level notifications (Windows toast). Uses the same type names
+# as disabled_banner_types. Empty string = no notifications.
+# Example: "Victory, Defeat, IncomingAttack, StationBattle"
+notify_banner_types = ""
+
 # Subgroup: Chat
 # --------------
 

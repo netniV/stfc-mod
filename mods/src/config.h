@@ -160,6 +160,7 @@ public:
 
   bool             borderless_fullscreen;
   std::vector<int> disabled_banner_types;
+  std::vector<int> notify_banner_types;
 
   int  extend_donation_max;
   bool extend_donation_slider;
