@@ -118,6 +118,7 @@ namespace Notifications
     constexpr bool started_mining    = false;
     constexpr bool node_depleted     = false;
     constexpr bool docked            = false;
+    constexpr bool repair_complete   = false;
   } // namespace Fleet
 } // namespace Notifications
 

@@ -221,6 +221,7 @@ notifications_fleet_arrived_in_system = false
 notifications_fleet_started_mining = false
 notifications_fleet_node_depleted = false
 notifications_fleet_docked = false
+notifications_fleet_repair_complete = false
 
 # Experimental - these use generic text resolution and may show raw placeholders
 notifications_standard = false

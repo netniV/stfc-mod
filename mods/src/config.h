@@ -114,6 +114,7 @@ public:
   bool fleet_started_mining    = false;
   bool fleet_node_depleted     = false;
   bool fleet_docked            = false;
+  bool fleet_repair_complete   = false;
 
   [[nodiscard]] bool EnabledForToastState(int state) const
   {

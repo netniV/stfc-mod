@@ -47,6 +47,8 @@ static constexpr NotificationBoolConfigSpec notificationBoolConfigSpecs[] = {
      DCN::Fleet::started_mining},
     {"notifications_fleet_node_depleted", &NotificationConfig::fleet_node_depleted, DCN::Fleet::node_depleted},
     {"notifications_fleet_docked", &NotificationConfig::fleet_docked, DCN::Fleet::docked},
+    {"notifications_fleet_repair_complete", &NotificationConfig::fleet_repair_complete,
+     DCN::Fleet::repair_complete},
 };
 
 static constexpr NotificationToggleSpec notificationToggleSpecs[] = {
