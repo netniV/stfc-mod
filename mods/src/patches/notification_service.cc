@@ -8,8 +8,10 @@
 #include <prime/LanguageManager.h>
 #include <prime/Toast.h>
 
+#include <spdlog/fmt/fmt.h>
 #include <spdlog/spdlog.h>
 
+#include <cstdint>
 #include <string>
 
 #if _WIN32
@@ -139,6 +141,131 @@ static std::string strip_unity_rich_text(const std::string& s)
   return result;
 }
 
+static std::string resolve_ltc_param(Il2CppObject* obj)
+{
+  if (!obj) {
+    return {};
+  }
+
+  auto* klass = obj->klass;
+  if (!klass) {
+    return "?";
+  }
+
+  auto name = std::string_view(il2cpp_class_get_name(klass));
+
+  if (name == "LocaleTextContext") {
+    if (s_localize_ltc) {
+      auto* langMgr = LanguageManager::Instance();
+      if (langMgr) {
+        Il2CppString*  resolved = nullptr;
+        void*          params[2] = { &resolved, obj };
+        Il2CppException* exc = nullptr;
+        il2cpp_runtime_invoke(s_localize_ltc, langMgr, params, &exc);
+        if (!exc && resolved) {
+          return to_string(resolved);
+        }
+      }
+    }
+
+    auto* identifier = *reinterpret_cast<Il2CppString**>(reinterpret_cast<char*>(obj) + 16);
+    return identifier ? to_string(identifier) : "?";
+  }
+
+  if (name == "String") {
+    return to_string(reinterpret_cast<Il2CppString*>(obj));
+  }
+
+  if (name == "BoxedDouble" || name == "BoxedFloat" || name == "BoxedInt" || name == "BoxedLong") {
+    void* iter = nullptr;
+    while (auto* field = il2cpp_class_get_fields(klass, &iter)) {
+      auto field_offset  = il2cpp_field_get_offset(field);
+      auto* field_type   = il2cpp_field_get_type(field);
+      auto field_type_id = il2cpp_type_get_type(field_type);
+
+      if (field_type_id == 13) {
+        auto value = *reinterpret_cast<double*>(reinterpret_cast<char*>(obj) + field_offset);
+        if (value == static_cast<int64_t>(value)) {
+          return fmt::format("{}", static_cast<int64_t>(value));
+        }
+        return fmt::format("{:.1f}", value);
+      }
+
+      if (field_type_id == 12) {
+        auto value = *reinterpret_cast<float*>(reinterpret_cast<char*>(obj) + field_offset);
+        return fmt::format("{:.1f}", value);
+      }
+
+      if (field_type_id == 8) {
+        auto value = *reinterpret_cast<int32_t*>(reinterpret_cast<char*>(obj) + field_offset);
+        return fmt::format("{}", value);
+      }
+
+      if (field_type_id == 10) {
+        auto value = *reinterpret_cast<int64_t*>(reinterpret_cast<char*>(obj) + field_offset);
+        return fmt::format("{}", value);
+      }
+    }
+  }
+
+  if (name == "Double") {
+    auto value = *reinterpret_cast<double*>(reinterpret_cast<char*>(obj) + 0x10);
+    if (value == static_cast<int64_t>(value)) {
+      return fmt::format("{}", static_cast<int64_t>(value));
+    }
+    return fmt::format("{:.1f}", value);
+  }
+
+  if (name == "Int32") {
+    auto value = *reinterpret_cast<int32_t*>(reinterpret_cast<char*>(obj) + 0x10);
+    return fmt::format("{}", value);
+  }
+
+  if (name == "Int64") {
+    auto value = *reinterpret_cast<int64_t*>(reinterpret_cast<char*>(obj) + 0x10);
+    return fmt::format("{}", value);
+  }
+
+  if (name == "Single") {
+    auto value = *reinterpret_cast<float*>(reinterpret_cast<char*>(obj) + 0x10);
+    return fmt::format("{:.1f}", value);
+  }
+
+  return fmt::format("<{}>", name);
+}
+
+static std::string resolve_ltc_formatted(void* ltc, std::string_view template_text)
+{
+  if (!ltc) {
+    return strip_unity_rich_text(std::string(template_text));
+  }
+
+  auto* ltc_object = reinterpret_cast<Il2CppObject*>(ltc);
+  auto* text_parameters =
+      *reinterpret_cast<Il2CppArray**>(reinterpret_cast<char*>(ltc_object) + 64);
+  if (!text_parameters) {
+    return strip_unity_rich_text(std::string(template_text));
+  }
+
+  auto length = il2cpp_array_length(text_parameters);
+  auto* elements =
+      reinterpret_cast<Il2CppObject**>(reinterpret_cast<char*>(text_parameters) + sizeof(Il2CppArray));
+
+  auto result = std::string(template_text);
+  for (il2cpp_array_size_t i = 0; i < length && i < 16; ++i) {
+    auto placeholder = fmt::format("{{{}}}", i);
+    auto replacement = resolve_ltc_param(elements[i]);
+
+    size_t position = 0;
+    while ((position = result.find(placeholder, position)) != std::string::npos) {
+      result.replace(position, placeholder.size(), replacement);
+      position += replacement.size();
+    }
+  }
+
+  return strip_unity_rich_text(result);
+}
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -215,9 +342,17 @@ void notification_handle_toast(Toast* toast)
     return;
   }
 
-  auto body = battle_notify_parse(toast);
+  auto* ltc = toast->get_TextLocaleTextContext();
+
+  auto parsed_body = battle_notify_parse(toast);
+  std::string localized_body;
+  auto body = parsed_body;
   if (body.empty()) {
-    body = strip_unity_rich_text(resolve_toast_text(toast));
+    localized_body = resolve_toast_text(toast);
+    body = resolve_ltc_formatted(ltc, localized_body);
+  }
+  if (body.empty()) {
+    body = strip_unity_rich_text(localized_body);
   }
   if (body.empty()) {
     body = "(no details available)";
