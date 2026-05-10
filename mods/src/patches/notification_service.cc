@@ -168,8 +168,13 @@ void notification_init()
   }
 
 #if _WIN32
-  try { winrt::init_apartment(); } catch (...) {}
-  spdlog::info("[Notify] Windows notification service initialized");
+  try {
+    winrt::init_apartment();
+    spdlog::info("[Notify] Windows notification service initialized");
+  } catch (...) {
+    spdlog::info("[Notify] Windows notification service failed");
+  }
+  
 #else
   spdlog::info("[Notify] Notification service: platform not supported (no-op)");
 #endif
