@@ -184,6 +184,10 @@ void notification_init()
 
 void notification_show(const char* title, const char* body)
 {
+  if (!Config::Get().notifications.enabled) {
+    return;
+  }
+
 #if _WIN32
   show_system_notification(title, body);
 #endif
