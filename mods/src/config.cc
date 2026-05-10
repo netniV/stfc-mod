@@ -705,6 +705,29 @@ void Config::Load()
 
   parsed["ui"].as_table()->insert_or_assign("disabled_banner_types", bannerString);
 
+  // Parse notify_banner_types using the same bannerTypes lookup table
+  auto notify_banner_types_str =
+      get_config_or_default<std::string>(config, parsed, "ui", "notify_banner_types", DCU::notify_banner_types, write_log);
+
+  std::vector<std::string> notify_types = StrSplit(notify_banner_types_str, ',');
+  std::string              notifyString;
+
+  for (const auto& [key, value] : bannerTypes) {
+    auto upper_key = AsciiStrToUpper(key);
+    for (const std::string_view _type : notify_types) {
+      auto stripped_type = StripLeadingAsciiWhitespace(_type);
+      auto upper_type    = AsciiStrToUpper(stripped_type);
+      if (upper_key == upper_type) {
+        this->notify_banner_types.emplace_back(value);
+        if (!notifyString.empty()) notifyString.append(", ");
+        notifyString.append(key);
+      }
+    }
+  }
+
+  spdlog::debug("Final notify banner types: {}", notifyString);
+  parsed["ui"].as_table()->insert_or_assign("notify_banner_types", notifyString);
+
   spdlog::debug("");
 
   //if (this->enable_experimental) {

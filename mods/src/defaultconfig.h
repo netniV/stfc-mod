@@ -200,6 +200,7 @@ namespace UI
   constexpr bool        disable_toast_banners       = false;
   constexpr bool        disable_veil_chat           = false;
   constexpr const char* disabled_banner_types       = "";
+  constexpr const char* notify_banner_types         = "";
   constexpr auto        extend_donation_max         = 80;
   constexpr bool        extend_donation_slider      = true;
   constexpr bool        show_armada_cargo           = true;
