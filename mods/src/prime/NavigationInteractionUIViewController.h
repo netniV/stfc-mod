@@ -2,7 +2,11 @@
 
 #include <il2cpp/il2cpp_helper.h>
 
-struct NavigationInteractionUIViewController {
+#include "NavigationInteractionUIContext.h"
+#include "ViewController.h"
+
+struct NavigationInteractionUIViewController
+    : public ViewController<NavigationInteractionUIContext, NavigationInteractionUIViewController> {
 public:
   void OnSetCourseButtonClick()
   {
@@ -19,5 +23,6 @@ public:
   }
 
 private:
+  friend struct ViewController<NavigationInteractionUIContext, NavigationInteractionUIViewController>;
   friend class ObjectFinder<NavigationInteractionUIViewController>;
 };

@@ -35,6 +35,7 @@
 
 #include <EASTL/vector.h>
 
+#include <chrono>
 #include <cstdint>
 #include <iostream>
 #include <span>
@@ -56,6 +57,15 @@ struct DeferredSpaceActionContext {
 
 static DeferredSpaceActionContext deferred_space_action_context;
 static uint64_t                   deferred_space_action_generation = 0;
+
+struct SetCourseSubmission {
+  uintptr_t                             target_identity = 0;
+  std::chrono::steady_clock::time_point submitted_at{};
+};
+
+constexpr auto kDuplicateSetCourseSuppressionWindow = std::chrono::milliseconds(750);
+
+static SetCourseSubmission last_set_course_submission;
 
 void     ChangeNavigationSection(SectionID sectionID);
 void     ExecuteSpaceAction(FleetBarViewController* fleet_bar);
@@ -138,6 +148,59 @@ bool DeferredSpaceActionTargetMatches(FleetPlayerData* fleet, PreScanTargetWidge
   }
 
   return !deferred_space_action_context.target_context || deferred_space_action_context.target_context == context;
+}
+
+uintptr_t NavigationTargetIdentity(NavigationInteractionUIViewController* navigation_ui_controller)
+{
+  if (!navigation_ui_controller) {
+    return 0;
+  }
+
+  auto context = navigation_ui_controller->CanvasContext;
+  if (!context) {
+    return reinterpret_cast<uintptr_t>(navigation_ui_controller);
+  }
+
+  if (context->Poi) {
+    return reinterpret_cast<uintptr_t>(context->Poi);
+  }
+
+  if (context->LocationTranslationId > 0) {
+    return static_cast<uintptr_t>(context->LocationTranslationId);
+  }
+
+  return reinterpret_cast<uintptr_t>(context);
+}
+
+bool ShouldSuppressDuplicateSetCourse(NavigationInteractionUIViewController* navigation_ui_controller)
+{
+  const auto target_identity = NavigationTargetIdentity(navigation_ui_controller);
+  const auto now             = std::chrono::steady_clock::now();
+
+  if (last_set_course_submission.target_identity == target_identity
+      && last_set_course_submission.submitted_at != std::chrono::steady_clock::time_point{}) {
+    const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+        now - last_set_course_submission.submitted_at);
+    if (elapsed <= kDuplicateSetCourseSuppressionWindow) {
+      spdlog::debug("[Hotkeys] Suppressed duplicate set-course target={} elapsed_ms={}",
+                    target_identity,
+                    elapsed.count());
+      return true;
+    }
+  }
+
+  last_set_course_submission = {target_identity, now};
+  return false;
+}
+
+void NavigationInteractionUIViewController_OnSetCourseButtonClick_Hook(auto original,
+                                                                       NavigationInteractionUIViewController* _this)
+{
+  if (ShouldSuppressDuplicateSetCourse(_this)) {
+    return;
+  }
+
+  original(_this);
 }
 
 void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
@@ -969,6 +1032,19 @@ void InstallHotkeyHooks()
       ErrorMsg::MissingMethod("PreScanTargetWidget", "ShowWithFleet");
     } else {
       SPUD_STATIC_DETOUR(show_with_fleet_ptr, ShowWithFleet_Hook);
+    }
+  }
+
+  static auto navigation_interaction_helper =
+      il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Navigation", "NavigationInteractionUIViewController");
+  if (!navigation_interaction_helper.isValidHelper()) {
+    ErrorMsg::MissingHelper("Navigation", "NavigationInteractionUIViewController");
+  } else {
+    auto set_course_button_click = navigation_interaction_helper.GetMethod("OnSetCourseButtonClick");
+    if (set_course_button_click == nullptr) {
+      ErrorMsg::MissingMethod("NavigationInteractionUIViewController", "OnSetCourseButtonClick");
+    } else {
+      SPUD_STATIC_DETOUR(set_course_button_click, NavigationInteractionUIViewController_OnSetCourseButtonClick_Hook);
     }
   }
 }
