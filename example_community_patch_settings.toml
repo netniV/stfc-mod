@@ -179,6 +179,78 @@ system_zoom_preset_5 = 5000.0
 # This controls the maximum zoom distance in System View. Default is 2500. Higher values increase label distance
 zoom = 5000.0
 
+#  <[=============================================]>
+#
+#       *   *         *    *               ***
+#       **  *   ***  ***         *   ***   *
+#       * * *  *   *  *    *    **  *   *  ****
+#       *  **  *   *  *    *    *   *****    *
+#       *   *   ***    **  *   *     ***   ****
+#
+#  <[=============================================]>
+
+[notifications]
+# Master switch - must be true for any system notifications to fire.
+# When false, the individual notification toggles below are ignored.
+notifications_enabled = false
+
+# Supported: Battle notifications (fully parsed with player/ship detail)
+notifications_victory = true
+notifications_defeat = true
+notifications_partial_victory = true
+notifications_station_victory = false
+notifications_station_defeat = false
+notifications_station_battle = false
+notifications_incoming_attack = false
+notifications_fleet_battle = false
+notifications_armada_battle_won = false
+notifications_armada_battle_lost = false
+notifications_assault_victory = false
+notifications_assault_defeat = false
+
+# Supported: Armada notifications (parsed with alliance/owner detail)
+notifications_armada_created = true
+notifications_armada_canceled = true
+
+# Supported: Event notifications (best-effort text resolution)
+notifications_tournament = true
+notifications_chained_event_scored = true
+
+# Supported: Fleet notifications (fleet-bar transitions and mining depletion)
+notifications_fleet_arrived_in_system = false
+notifications_fleet_started_mining = false
+notifications_fleet_node_depleted = false
+notifications_fleet_docked = false
+
+# Experimental - these use generic text resolution and may show raw placeholders
+notifications_standard = false
+notifications_faction_warning = false
+notifications_faction_level_up = false
+notifications_faction_level_down = false
+notifications_faction_discovered = false
+notifications_incoming_attack_faction = false
+notifications_armada_incoming_attack = false
+notifications_diplomacy_updated = false
+notifications_joined_takeover = false
+notifications_competitor_joined_takeover = false
+notifications_abandoned_territory = false
+notifications_takeover_victory = false
+notifications_takeover_defeat = false
+notifications_treasury_progress = false
+notifications_treasury_full = false
+notifications_achievement = false
+notifications_challenge_complete = false
+notifications_challenge_failed = false
+notifications_strike_hit = false
+notifications_strike_defeat = false
+notifications_warchest_progress = false
+notifications_warchest_full = false
+notifications_arena_time_left = false
+notifications_fleet_preset_applied = false
+notifications_surge_warmup_ended = false
+notifications_surge_hostile_group_defeated = false
+notifications_surge_time_left = false
+
 #  <[=====================================================]>
 #
 #       ****           *            *

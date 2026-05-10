@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <bitset>
 #include <map>
 #include <string>
 #include <vector>
@@ -103,6 +104,44 @@ public:
   std::string token;
 };
 
+class NotificationConfig
+{
+public:
+  static constexpr size_t MaxToastStates = 64;
+
+  bool enabled                 = false;
+  bool fleet_arrived_in_system = false;
+  bool fleet_started_mining    = false;
+  bool fleet_node_depleted     = false;
+  bool fleet_docked            = false;
+
+  [[nodiscard]] bool EnabledForToastState(int state) const
+  {
+    if (state < 0 || static_cast<size_t>(state) >= toast_state_enabled.size()) {
+      return false;
+    }
+
+    return toast_state_enabled.test(static_cast<size_t>(state));
+  }
+
+  void SetToastStateEnabled(int state, bool isEnabled)
+  {
+    if (state < 0 || static_cast<size_t>(state) >= toast_state_enabled.size()) {
+      return;
+    }
+
+    toast_state_enabled.set(static_cast<size_t>(state), isEnabled);
+  }
+
+  void ClearToastStates()
+  {
+    toast_state_enabled.reset();
+  }
+
+private:
+  std::bitset<MaxToastStates> toast_state_enabled{};
+};
+
 class Config final
 {
 public:
@@ -157,6 +196,7 @@ public:
   float system_zoom_preset_4;
   float system_zoom_preset_5;
   float transition_time;
+  NotificationConfig notifications;
 
   bool             borderless_fullscreen;
   std::vector<int> disabled_banner_types;

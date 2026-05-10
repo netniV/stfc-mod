@@ -19,12 +19,86 @@
 
 namespace DCP = DefaultConfig::Patches;
 namespace DCG = DefaultConfig::Graphics;
+namespace DCN = DefaultConfig::Notifications;
 namespace DCC = DefaultConfig::Control;
 namespace DCU = DefaultConfig::UI;
 namespace DCBS = DefaultConfig::Buffs;
 namespace DCS = DefaultConfig::Sync;
 namespace DCSC = DefaultConfig::SystemConfig;
 namespace DCSH = DefaultConfig::Shortcuts;
+
+struct NotificationBoolConfigSpec {
+  const char* key;
+  bool NotificationConfig::* member;
+  bool default_value;
+};
+
+struct NotificationToggleSpec {
+  const char* key;
+  int         toast_state;
+  bool        default_value;
+};
+
+static constexpr NotificationBoolConfigSpec notificationBoolConfigSpecs[] = {
+    {"notifications_enabled", &NotificationConfig::enabled, DCN::enabled},
+    {"notifications_fleet_arrived_in_system", &NotificationConfig::fleet_arrived_in_system,
+     DCN::Fleet::arrived_in_system},
+    {"notifications_fleet_started_mining", &NotificationConfig::fleet_started_mining,
+     DCN::Fleet::started_mining},
+    {"notifications_fleet_node_depleted", &NotificationConfig::fleet_node_depleted, DCN::Fleet::node_depleted},
+    {"notifications_fleet_docked", &NotificationConfig::fleet_docked, DCN::Fleet::docked},
+};
+
+static constexpr NotificationToggleSpec notificationToggleSpecs[] = {
+    {"notifications_standard", ToastState::Standard, DCN::Experimental::standard},
+    {"notifications_faction_warning", ToastState::FactionWarning, DCN::Experimental::faction_warning},
+    {"notifications_faction_level_up", ToastState::FactionLevelUp, DCN::Experimental::faction_level_up},
+    {"notifications_faction_level_down", ToastState::FactionLevelDown, DCN::Experimental::faction_level_down},
+    {"notifications_faction_discovered", ToastState::FactionDiscovered, DCN::Experimental::faction_discovered},
+    {"notifications_incoming_attack", ToastState::IncomingAttack, DCN::Battle::incoming_attack},
+    {"notifications_incoming_attack_faction", ToastState::IncomingAttackFaction,
+     DCN::Experimental::incoming_attack_faction},
+    {"notifications_fleet_battle", ToastState::FleetBattle, DCN::Battle::fleet_battle},
+    {"notifications_station_battle", ToastState::StationBattle, DCN::Battle::station_battle},
+    {"notifications_station_victory", ToastState::StationVictory, DCN::Battle::station_victory},
+    {"notifications_victory", ToastState::Victory, DCN::Battle::victory},
+    {"notifications_defeat", ToastState::Defeat, DCN::Battle::defeat},
+    {"notifications_station_defeat", ToastState::StationDefeat, DCN::Battle::station_defeat},
+    {"notifications_tournament", ToastState::Tournament, DCN::Events::tournament},
+    {"notifications_armada_created", ToastState::ArmadaCreated, DCN::Armada::created},
+    {"notifications_armada_canceled", ToastState::ArmadaCanceled, DCN::Armada::canceled},
+    {"notifications_armada_incoming_attack", ToastState::ArmadaIncomingAttack,
+     DCN::Experimental::armada_incoming_attack},
+    {"notifications_armada_battle_won", ToastState::ArmadaBattleWon, DCN::Battle::armada_battle_won},
+    {"notifications_armada_battle_lost", ToastState::ArmadaBattleLost, DCN::Battle::armada_battle_lost},
+    {"notifications_diplomacy_updated", ToastState::DiplomacyUpdated, DCN::Experimental::diplomacy_updated},
+    {"notifications_joined_takeover", ToastState::JoinedTakeover, DCN::Experimental::joined_takeover},
+    {"notifications_competitor_joined_takeover", ToastState::CompetitorJoinedTakeover,
+     DCN::Experimental::competitor_joined_takeover},
+    {"notifications_abandoned_territory", ToastState::AbandonedTerritory, DCN::Experimental::abandoned_territory},
+    {"notifications_takeover_victory", ToastState::TakeoverVictory, DCN::Experimental::takeover_victory},
+    {"notifications_takeover_defeat", ToastState::TakeoverDefeat, DCN::Experimental::takeover_defeat},
+    {"notifications_treasury_progress", ToastState::TreasuryProgress, DCN::Experimental::treasury_progress},
+    {"notifications_treasury_full", ToastState::TreasuryFull, DCN::Experimental::treasury_full},
+    {"notifications_achievement", ToastState::Achievement, DCN::Experimental::achievement},
+    {"notifications_assault_victory", ToastState::AssaultVictory, DCN::Battle::assault_victory},
+    {"notifications_assault_defeat", ToastState::AssaultDefeat, DCN::Battle::assault_defeat},
+    {"notifications_challenge_complete", ToastState::ChallengeComplete, DCN::Experimental::challenge_complete},
+    {"notifications_challenge_failed", ToastState::ChallengeFailed, DCN::Experimental::challenge_failed},
+    {"notifications_strike_hit", ToastState::StrikeHit, DCN::Experimental::strike_hit},
+    {"notifications_strike_defeat", ToastState::StrikeDefeat, DCN::Experimental::strike_defeat},
+    {"notifications_warchest_progress", ToastState::WarchestProgress, DCN::Experimental::warchest_progress},
+    {"notifications_warchest_full", ToastState::WarchestFull, DCN::Experimental::warchest_full},
+    {"notifications_partial_victory", ToastState::PartialVictory, DCN::Battle::partial_victory},
+    {"notifications_arena_time_left", ToastState::ArenaTimeLeft, DCN::Experimental::arena_time_left},
+    {"notifications_chained_event_scored", ToastState::ChainedEventScored, DCN::Events::chained_event_scored},
+    {"notifications_fleet_preset_applied", ToastState::FleetPresetApplied,
+     DCN::Experimental::fleet_preset_applied},
+    {"notifications_surge_warmup_ended", ToastState::SurgeWarmUpEnded, DCN::Experimental::surge_warmup_ended},
+    {"notifications_surge_hostile_group_defeated", ToastState::SurgeHostileGroupDefeated,
+     DCN::Experimental::surge_hostile_group_defeated},
+    {"notifications_surge_time_left", ToastState::SurgeTimeLeft, DCN::Experimental::surge_time_left},
+};
 
 static const eastl::tuple<const char*, int> bannerTypes[] = {
     {"Standard", ToastState::Standard},
@@ -729,6 +803,72 @@ void Config::Load()
 
   spdlog::debug("Final notify banner types: {}", notifyString);
   parsed["ui"].as_table()->insert_or_assign("notify_banner_types", notifyString);
+
+  auto*      notifications_table = config["notifications"].as_table();
+  const bool has_explicit_notification_toggles =
+      notifications_table
+      && std::ranges::any_of(notificationToggleSpecs,
+                             [notifications_table](const auto& spec) { return notifications_table->contains(spec.key); });
+
+  auto*       ui_table = config["ui"].as_table();
+  std::string legacy_notify_banner_types;
+  bool        has_legacy_notify_banner_types = false;
+  if (ui_table) {
+    if (auto notify_on_value = config["ui"]["notify_on_banner_types"].value<std::string>();
+        notify_on_value.has_value()) {
+      legacy_notify_banner_types     = notify_on_value.value();
+      has_legacy_notify_banner_types = true;
+    } else if (auto notify_value = config["ui"]["notify_banner_types"].value<std::string>(); notify_value.has_value()) {
+      legacy_notify_banner_types     = notify_value.value();
+      has_legacy_notify_banner_types = true;
+    }
+  }
+
+  const bool use_legacy_notify_allowlist = has_legacy_notify_banner_types && !has_explicit_notification_toggles;
+
+  for (const auto& spec : notificationBoolConfigSpecs) {
+    this->notifications.*(spec.member) =
+        get_config_or_default(config, parsed, "notifications", spec.key, spec.default_value, write_log);
+  }
+
+  this->notifications.ClearToastStates();
+  for (const auto& spec : notificationToggleSpecs) {
+    const bool enabled =
+        get_config_or_default(config, parsed, "notifications", spec.key,
+                              use_legacy_notify_allowlist ? false : spec.default_value, write_log);
+    this->notifications.SetToastStateEnabled(spec.toast_state, enabled);
+  }
+
+  if (use_legacy_notify_allowlist) {
+    if (!(notifications_table && notifications_table->contains("notifications_enabled"))) {
+      this->notifications.enabled = true;
+      parsed["notifications"].as_table()->insert_or_assign("notifications_enabled", true);
+    }
+
+    this->notifications.ClearToastStates();
+
+    for (const auto& [key, value] : bannerTypes) {
+      auto upper_key = AsciiStrToUpper(key);
+      for (const std::string_view raw_type : notify_types) {
+        auto stripped_type = StripLeadingAsciiWhitespace(raw_type);
+        auto upper_type    = AsciiStrToUpper(stripped_type);
+        if (upper_key == upper_type) {
+          this->notifications.SetToastStateEnabled(value, true);
+        }
+      }
+    }
+
+    for (const auto& spec : notificationToggleSpecs) {
+      parsed["notifications"].as_table()->insert_or_assign(spec.key,
+                                                           this->notifications.EnabledForToastState(spec.toast_state));
+    }
+
+    spdlog::warn("Deprecation Warning: [ui].notify_on_banner_types / [ui].notify_banner_types is deprecated. Migrate "
+                 "to [notifications].");
+  } else if (has_legacy_notify_banner_types) {
+    spdlog::warn(
+        "Ignoring deprecated [ui] notification allowlist because explicit [notifications] toggles are present.");
+  }
 
   spdlog::debug("");
 

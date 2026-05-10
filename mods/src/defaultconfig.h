@@ -49,6 +49,78 @@ namespace Graphics
   constexpr const char* loader_image                = "";   // Empty = use embedded fallback
 } // namespace Graphics
 
+namespace Notifications
+{
+  constexpr bool enabled = false;
+
+  namespace Battle
+  {
+    constexpr bool victory            = true;
+    constexpr bool defeat             = true;
+    constexpr bool partial_victory    = true;
+    constexpr bool station_victory    = false;
+    constexpr bool station_defeat     = false;
+    constexpr bool station_battle     = false;
+    constexpr bool incoming_attack    = false;
+    constexpr bool fleet_battle       = false;
+    constexpr bool armada_battle_won  = false;
+    constexpr bool armada_battle_lost = false;
+    constexpr bool assault_victory    = false;
+    constexpr bool assault_defeat     = false;
+  } // namespace Battle
+
+  namespace Armada
+  {
+    constexpr bool created  = true;
+    constexpr bool canceled = true;
+  } // namespace Armada
+
+  namespace Events
+  {
+    constexpr bool tournament           = true;
+    constexpr bool chained_event_scored = true;
+  } // namespace Events
+
+  namespace Experimental
+  {
+    constexpr bool standard                     = false;
+    constexpr bool faction_warning              = false;
+    constexpr bool faction_level_up             = false;
+    constexpr bool faction_level_down           = false;
+    constexpr bool faction_discovered           = false;
+    constexpr bool incoming_attack_faction      = false;
+    constexpr bool armada_incoming_attack       = false;
+    constexpr bool diplomacy_updated            = false;
+    constexpr bool joined_takeover              = false;
+    constexpr bool competitor_joined_takeover   = false;
+    constexpr bool abandoned_territory          = false;
+    constexpr bool takeover_victory             = false;
+    constexpr bool takeover_defeat              = false;
+    constexpr bool treasury_progress            = false;
+    constexpr bool treasury_full                = false;
+    constexpr bool achievement                  = false;
+    constexpr bool challenge_complete           = false;
+    constexpr bool challenge_failed             = false;
+    constexpr bool strike_hit                   = false;
+    constexpr bool strike_defeat                = false;
+    constexpr bool warchest_progress            = false;
+    constexpr bool warchest_full                = false;
+    constexpr bool arena_time_left              = false;
+    constexpr bool fleet_preset_applied         = false;
+    constexpr bool surge_warmup_ended           = false;
+    constexpr bool surge_hostile_group_defeated = false;
+    constexpr bool surge_time_left              = false;
+  } // namespace Experimental
+
+  namespace Fleet
+  {
+    constexpr bool arrived_in_system = false;
+    constexpr bool started_mining    = false;
+    constexpr bool node_depleted     = false;
+    constexpr bool docked            = false;
+  } // namespace Fleet
+} // namespace Notifications
+
 namespace Patches
 {
   constexpr bool bufffixhooks               = true;
