@@ -2,6 +2,7 @@
 
 #include "BattleTargetData.h"
 #include "HullSpec.h"
+#include "MiningSlot.h"
 #include "RecallRequirement.h"
 #include "CanRepairRequirement.h"
 
@@ -36,6 +37,8 @@ public:
   __declspec(property(get = __get_PreviousState)) FleetState PreviousState;
   __declspec(property(get = __get_Id)) uint64_t Id;
   __declspec(property(get = __get_Hull)) HullSpec* Hull;
+  __declspec(property(get = __get_MiningData)) MiningSlot* MiningData;
+  __declspec(property(get = __get_CargoResourceFillLevel)) float CargoResourceFillLevel;
   __declspec(property(get = __get_Address)) void* Address;
   __declspec(property(get = __get_RecallRequirements)) RecallRequirement* RecallRequirements;
   __declspec(property(get = __get_CanRepairRequirement)) CanRepairRequirement* CanRepairRequirements;
@@ -54,6 +57,20 @@ public:
     static auto field = get_class_helper().GetProperty("Hull");
     return field.GetRaw<HullSpec>(this);
   }
+
+  MiningSlot* __get_MiningData()
+  {
+    static auto field = get_class_helper().GetProperty("MiningData");
+    return field.GetRaw<MiningSlot>(this);
+  }
+
+  float __get_CargoResourceFillLevel()
+  {
+    static auto field = get_class_helper().GetProperty("CargoResourceFillLevel");
+    auto* value = field.Get<float>(this);
+    return value ? *value : -1.0f;
+  }
+
   void* __get_Address()
   {
     static auto field = get_class_helper().GetProperty("Address");

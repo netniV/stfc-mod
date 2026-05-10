@@ -7,6 +7,7 @@
 #include "NavigationInteractionUIContext.h"
 #include "ObjectViewerBaseWidget.h"
 #include "ScanEngageButtonsWidget.h"
+#include "TimerDataContext.h"
 
 enum OccupiedState // TypeDefIndex: 12900
 {
@@ -19,6 +20,7 @@ struct MiningObjectViewerWidget : public ObjectViewerBaseWidget<MiningObjectView
 public:
   __declspec(property(get = __get__occupiedState)) OccupiedState _occupiedState;
   __declspec(property(get = __get__scanEngageButtonsWidget)) ScanEngageButtonsWidget* _scanEngageButtonsWidget;
+  __declspec(property(get = __get__miningTimerWidgetContext)) TimerDataContext* _miningTimerWidgetContext;
 
   void MineClicked()
   {
@@ -47,5 +49,11 @@ public:
   {
     static auto field = get_class_helper().GetField("_scanEngageButtonsWidget").offset();
     return *(ScanEngageButtonsWidget**)((char*)this + field);
+  }
+
+  TimerDataContext* __get__miningTimerWidgetContext()
+  {
+    static auto field = get_class_helper().GetField("_miningTimerWidgetContext").offset();
+    return *(TimerDataContext**)((char*)this + field);
   }
 };
