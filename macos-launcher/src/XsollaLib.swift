@@ -39,6 +39,37 @@ struct PatchRule: Decodable {
   var sha512: Optional<String>
 }
 
+func normalizedRelativePatchPath(_ path: String) throws -> String {
+  var components: [String] = []
+
+  for component in path.trimmingCharacters(in: .whitespacesAndNewlines).split(whereSeparator: { $0 == "/" || $0 == "\\" }) {
+    switch component {
+    case "", ".", "..":
+      throw NSError(domain: "XsollaUpdater", code: 4, userInfo: [NSLocalizedDescriptionKey: "Invalid patch path: \(path)"])
+    default:
+      components.append(String(component))
+    }
+  }
+
+  if components.isEmpty {
+    throw NSError(domain: "XsollaUpdater", code: 4, userInfo: [NSLocalizedDescriptionKey: "Invalid patch path: \(path)"])
+  }
+
+  return components.joined(separator: "/")
+}
+
+func stagedPatchURL(root: URL, relativePath: String) throws -> URL {
+  let rootURL = root.standardizedFileURL
+  let targetURL = rootURL.appendingPathComponent(relativePath).standardizedFileURL
+  let rootPath = rootURL.path.hasSuffix("/") ? rootURL.path : rootURL.path + "/"
+
+  if targetURL.path != rootURL.path && targetURL.path.hasPrefix(rootPath) {
+    return targetURL
+  }
+
+  throw NSError(domain: "XsollaUpdater", code: 4, userInfo: [NSLocalizedDescriptionKey: "Patch path escapes staging directory: \(relativePath)"])
+}
+
 class XsollaUpdateParser: NSObject, XMLParserDelegate {
 
   var articleNth = 0
@@ -287,10 +318,7 @@ struct XsollaUpdater {
         delegate?.updateProgress(
           progress: XsollaUpdateProgress.Patching(totalFiles: patch_rules.count))
         for rule in patch_rules {
-          var relativePath = rule.relative_path.trimmingCharacters(in: .whitespacesAndNewlines)
-          if relativePath.starts(with: "/") || relativePath.starts(with: "\\") {
-            relativePath = String(relativePath.dropFirst())
-          }
+          let relativePath = try normalizedRelativePatchPath(rule.relative_path)
 
           // Skip files in _CodeSignature directory as they will be regenerated when we re-sign
           if relativePath.contains("_CodeSignature") {
@@ -299,20 +327,37 @@ struct XsollaUpdater {
             continue
           }
 
-          let targetPath = tempPath.contentURL.appendingPathComponent(relativePath)
+          let targetPath = try stagedPatchURL(root: tempPath.contentURL, relativePath: relativePath)
           let sourcePath = URL(fileURLWithPath: gamePath).appendingPathComponent(relativePath)
           let patchPath = URL(fileURLWithPath: patch).appendingPathComponent(relativePath)
 
           //delegate?.updateProgress()
           switch rule.rule {
           case "patch":
-            if !FileManager.default.fileExists(atPath: targetPath.path) {
+            let basisPath =
+              FileManager.default.fileExists(atPath: targetPath.path) ? targetPath : sourcePath
+            let patchedPath = targetPath.appendingPathExtension("patching")
+            do {
               try FileManager.default.createDirectory(
                 at: targetPath.deletingLastPathComponent(), withIntermediateDirectories: true,
                 attributes: nil)
-              try FileManager.default.copyItem(at: sourcePath, to: targetPath)
+              if FileManager.default.fileExists(atPath: patchedPath.path) {
+                try FileManager.default.removeItem(at: patchedPath)
+              }
+              try rsyncApply(source: basisPath, patch: patchPath, output: patchedPath)
+              let basisAttributes = try FileManager.default.attributesOfItem(atPath: basisPath.path)
+              if let permissions = basisAttributes[.posixPermissions] {
+                try FileManager.default.setAttributes([.posixPermissions: permissions], ofItemAtPath: patchedPath.path)
+              }
+              if FileManager.default.fileExists(atPath: targetPath.path) {
+                try FileManager.default.removeItem(at: targetPath)
+              }
+              try FileManager.default.moveItem(at: patchedPath, to: targetPath)
+            } catch {
+              try? FileManager.default.removeItem(at: patchedPath)
+              logger.error("Error patching \(relativePath): \(error.localizedDescription)")
+              throw error
             }
-            try rsyncApply(source: sourcePath, patch: patchPath, output: targetPath)
             break
           case "create":
             if !FileManager.default.fileExists(atPath: targetPath.path) {
@@ -328,10 +373,11 @@ struct XsollaUpdater {
               logger.error("Error deleting file \(sourcePath.path): \(error.localizedDescription)")
             }
           case "copy":
-            if !FileManager.default.fileExists(atPath: targetPath.path) {
-              try FileManager.default.createDirectory(
-                at: targetPath.deletingLastPathComponent(), withIntermediateDirectories: true,
-                attributes: nil)
+            try FileManager.default.createDirectory(
+              at: targetPath.deletingLastPathComponent(), withIntermediateDirectories: true,
+              attributes: nil)
+            if FileManager.default.fileExists(atPath: targetPath.path) {
+              try FileManager.default.removeItem(at: targetPath)
             }
             try FileManager.default.copyItem(at: patchPath, to: targetPath)
             break
