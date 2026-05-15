@@ -1,5 +1,11 @@
 set_project("stfc-community-mod")
 
+option("bg_image")
+    set_showmenu(true)
+    set_description("Path to a PNG to embed as the loading screen background (regenerates embedded_loading_image.h)")
+    set_default("")
+option_end()
+
 set_languages("c++23")
 
 set_runtimes("MT") -- Set the default build to multi-threaded static
