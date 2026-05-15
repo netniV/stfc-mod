@@ -23,6 +23,7 @@ namespace DCC = DefaultConfig::Control;
 namespace DCU = DefaultConfig::UI;
 namespace DCBS = DefaultConfig::Buffs;
 namespace DCS = DefaultConfig::Sync;
+namespace DCSEMRD = DefaultConfig::Sync::EventModelRewardDiagnostics;
 namespace DCSC = DefaultConfig::SystemConfig;
 namespace DCSH = DefaultConfig::Shortcuts;
 
@@ -593,6 +594,31 @@ void Config::Load()
   this->sync_debug              = get_config_or_default(config, parsed, "sync", "debug", DCS::debug, write_config);
   this->sync_logging            = get_config_or_default(config, parsed, "sync", "logging", DCS::logging, write_config);
   this->sync_resolver_cache_ttl = get_config_or_default(config, parsed, "sync", "resolver_cache_ttl", DCS::resolver_cache_ttl, write_config);
+
+  this->event_model_reward_diagnostics_enabled   = DCSEMRD::enabled;
+  this->event_model_reward_diagnostics_full      = DCSEMRD::full;
+  this->event_model_reward_diagnostics_directory = DCSEMRD::directory;
+
+  try {
+    if (const auto sync = config["sync"].as_table()) {
+      if (const auto event_model_diagnostics = (*sync)["event_model_reward_diagnostics"].as_table()) {
+        this->event_model_reward_diagnostics_enabled =
+            (*event_model_diagnostics)["enabled"].value_or(DCSEMRD::enabled);
+        this->event_model_reward_diagnostics_full = (*event_model_diagnostics)["full"].value_or(DCSEMRD::full);
+        this->event_model_reward_diagnostics_directory =
+            (*event_model_diagnostics)["directory"].value_or(std::string(DCSEMRD::directory));
+      }
+    }
+  } catch (...) {
+    spdlog::warn("invalid config value sync.event_model_reward_diagnostics");
+  }
+
+  auto sync_table = parsed["sync"].as_table();
+  sync_table->insert_or_assign("event_model_reward_diagnostics", toml::table());
+  auto event_model_diagnostics = (*sync_table)["event_model_reward_diagnostics"].as_table();
+  event_model_diagnostics->insert_or_assign("enabled", this->event_model_reward_diagnostics_enabled);
+  event_model_diagnostics->insert_or_assign("full", this->event_model_reward_diagnostics_full);
+  event_model_diagnostics->insert_or_assign("directory", this->event_model_reward_diagnostics_directory);
 
   SyncConfig sync_defaults;
   sync_defaults.proxy      = get_config_or_default<std::string>(config, parsed, "sync", "proxy", DCS::proxy , write_log);
