@@ -16,6 +16,7 @@ debug.log
 /.xmake/
 /vsxmake*/
 .DS_Store
+/.localassets/*
 
 # Generated Info.plist files (generated from templates)
 **/Info.plist
