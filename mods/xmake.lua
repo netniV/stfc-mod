@@ -3,45 +3,76 @@ do
     add_ldflags("-v")
     set_kind("static")
 
-    -- Regenerate embedded_loading_image.h if --bg_image=<path> was passed to xmake f
+    -- Regenerate embedded image headers before each build
     before_build(function(target)
-        local img_path = get_config("bg_image")
-        if not img_path or img_path == "" then
-            return
-        end
-        if not os.isfile(img_path) then
-            raise("bg_image: file not found: " .. img_path)
-        end
-        local fh = assert(io.open(img_path, "rb"))
-        local data = fh:read("*all")
-        fh:close()
-        local size = #data
-        local out_path = path.join(target:scriptdir(), "src/patches/parts/embedded_loading_image.h")
-        local out = assert(io.open(out_path, "w"))
-        out:write("// Auto-generated embedded loading screen image\n")
-        out:write("// Source: " .. img_path .. "\n")
-        out:write("// Size: " .. tostring(size) .. " bytes\n")
-        out:write("\n#pragma once\n\n")
-        out:write("static const unsigned char g_embeddedLoadingImage[] = {\n")
-        local col = 0
-        for i = 1, size do
-            if col == 0 then out:write("  ") end
-            out:write(string.format("0x%02x", data:byte(i)))
-            if i < size then out:write(",") end
-            col = col + 1
-            if col == 16 then
-                out:write("\n")
-                col = 0
+        local function embed_image(input_file, output_file, symbol)
+            if not os.isfile(input_file) then
+                raise("[error] missing file: " .. input_file)
+                return
             end
+
+            local fh = io.open(input_file, "rb")
+            if not fh then
+                raise("[error] cannot open: " .. input_file)
+                return
+            end
+
+            local data = fh:read("*all")
+            fh:close()
+
+            local size = #data
+
+            os.mkdir(path.directory(output_file))
+
+            local out = io.open(output_file, "w")
+            if not out then
+                print("[error] cannot write: " .. output_file)
+                return
+            end
+
+            out:write("#pragma once\n\n")
+            out:write(string.format("static const unsigned char %s[] = {\n", symbol))
+
+            for i = 1, size do
+                out:write(string.format("0x%02X", data:byte(i)))
+                if i < size then out:write(", ") end
+                if i % 16 == 0 then out:write("\n") end
+            end
+
+            out:write("\n};\n\n")
+            out:write(string.format("static const size_t %s_SIZE = %d;\n", symbol, size))
+
+            out:close()
+
+            cprint("${green}[embed] %s -> %s (%d bytes)${clear}",
+                input_file,
+                path.filename(output_file),
+                size
+            )
         end
-        if col ~= 0 then out:write("\n") end
-        out:write("};\n")
-        out:write("static const size_t g_embeddedLoadingImage_SIZE = " .. tostring(size) .. ";\n")
-        out:close()
-        cprint("${green}[bg_image] Generated embedded_loading_image.h from '%s' (%d bytes)${clear}", img_path, size)
+
+        local assets = path.join(target:scriptdir(), "../assets")
+        local outdir  = path.join(target:scriptdir(), "src/patches/parts")
+
+        local loading = get_config("bg_image")
+        if not loading or loading == "" then
+            loading = path.join(assets, "loadingscreen.png")
+        end
+
+        embed_image(
+            loading,
+            path.join(outdir, "embedded_loading_image.h"),
+            "g_embeddedLoadingImage"
+        )
+
+        embed_image(
+            path.join(assets, "stfc-mod-logo.png"),
+            path.join(outdir, "embedded_logo_image.h"),
+            "g_embeddedLogoImage"
+        )
     end)
 
-    -- C++ sources
+        -- C++ sources
     add_files("src/**.cc")
     add_headerfiles("src/**.h")
     add_includedirs("src", { public = true })
@@ -53,7 +84,7 @@ do
 
     set_exceptions("cxx")
     add_defines("NOMINMAX")
-    
+
     if is_mode("releasedbg") then
         add_defines("_MODDBG")  -- enable your debug flag
     end
