@@ -83,6 +83,7 @@ void SomeFunction_Hook(auto original, SomeClass* _this, ...) {
 }
 ```
 macOS does not tolerate repeated hooks of the same function. If multiple features need to intercept the same game method, consolidate the behavior behind one detour or add platform guards instead of installing overlapping hooks.
+Do not over-focus on hidden IL2CPP `MethodInfo*` parameters during drift repair; match the game-visible signature from `dump.cs` unless there is concrete runtime evidence that the hidden parameter is the issue.
 
 **IL2CPP class resolution** — Game classes are resolved at runtime using helpers:
 ```cpp

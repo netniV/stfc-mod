@@ -3,6 +3,7 @@
 #include <il2cpp/il2cpp_helper.h>
 
 enum ToastState {
+  All                       = -1,
   Standard                  = 0,
   FactionWarning            = 1,
   FactionLevelUp            = 2,
