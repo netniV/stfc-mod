@@ -336,13 +336,15 @@ void read_sync_targets(toml::table& config, toml::table& new_config,
         continue;
       }
 
-      target.url   = url.value();
-      target.token = token.value();
-      target.proxy = proxy.value_or(defaults.proxy);
+      target.url        = url.value();
+      target.token      = token.value();
+      target.proxy      = proxy.value_or(defaults.proxy);
+      target.verify_ssl = values["verify_ssl"].value<bool>().value_or(defaults.verify_ssl);
 
       parsed_target.insert("url", target.url);
       parsed_target.insert("token", target.token);
       parsed_target.insert("proxy", target.proxy);
+      parsed_target.insert("verify_ssl", target.verify_ssl);
     } else {
       spdlog::warn("Skipping invalid target [{}]. Missing url or token.", target_section);
       continue;
@@ -356,6 +358,7 @@ void read_sync_targets(toml::table& config, toml::table& new_config,
     if (sync_targets.emplace(target_key.str(), target).second) {
       new_config["sync"]["targets"].as_table()->emplace<toml::table>(target_key.str(), parsed_target);
       spdlog::debug("config value {} url: {}, token: {}", target_section, target.url, mask_token(target.token));
+      spdlog::info("target [{}] proxy: '{}', verify_ssl: {}", target_section, target.proxy, target.verify_ssl);
     }
   }
 }
@@ -495,7 +498,8 @@ void Config::Load()
   this->installChatPatches       = get_config_or_default(config, parsed, "patches", "chatpatches", DCP::chatpatches, write_config);
   this->installResolutionListFix = get_config_or_default(config, parsed, "patches", "resolutionlistfix", DCP::resolutionlistfix, write_config);
   this->installSyncPatches       = get_config_or_default(config, parsed, "patches", "syncpatches", DCP::syncpatches, write_config);
-  this->installObjectTracker     = get_config_or_default(config, parsed, "patches", "objecttracker", DCP::objecttracker, write_config);
+  this->installObjectTracker       = get_config_or_default(config, parsed, "patches", "objecttracker", DCP::objecttracker, write_config);
+  this->installLoadingScreenBgHooks = get_config_or_default(config, parsed, "patches", "loadingscreenbghooks", DCP::loadingscreenbghooks, write_config);
   spdlog::debug("");
 #else
   this->installUiScaleHooks               = true;
@@ -510,11 +514,12 @@ void Config::Load()
   this->installTestPatches                = true;
   this->installMiscPatches                = true;
   this->installChatPatches                = true;
-  this->installResolutionListFix          = true;
+  this->installResolutionListFix          = false; // this patch does not work after unity 6 update
   this->installSyncPatches                = true;
   this->installObjectTracker              = true;
+  this->installLoadingScreenBgHooks       = true;
 #endif
-  
+
   this->queue_enabled       = get_config_or_default(config, parsed, "control", "queue_enabled", DCC::queue_enabled, write_config);
   this->hotkeys_enabled     = get_config_or_default(config, parsed, "control", "hotkeys_enabled", DCC::hotkeys_enabled, write_config);
   this->hotkeys_extended    = get_config_or_default(config, parsed, "control", "hotkeys_extended", DCC::hotkeys_extended, write_config);
@@ -610,11 +615,17 @@ void Config::Load()
     spdlog::warn("Deprecation Warning: Legacy config options 'sync_url' and 'sync_token' have been moved to "
                  "[sync.targets.<name>] sections and may be removed in a future version.");
 
-    SyncTargetConfig converted_target{.url = sync_url.value(), .token = sync_token.value()};
+    SyncTargetConfig converted_target;
+    static_cast<SyncConfig&>(converted_target) = sync_defaults;
+    converted_target.url   = sync_url.value();
+    converted_target.token = sync_token.value();
 
     if (this->sync_targets.emplace("default", converted_target).second) {
-      parsed["sync"]["targets"].as_table()->emplace<toml::table>(
-          "default", toml::table{{"url", sync_url.value()}, {"token", sync_token.value()}});
+      toml::table default_target{{"url", sync_url.value()}, {"token", sync_token.value()}, {"proxy", converted_target.proxy}};
+      for (const auto& opt : SyncOptions) {
+        default_target.insert(opt.option_str, converted_target.*opt.option);
+      }
+      parsed["sync"]["targets"].as_table()->emplace<toml::table>("default", default_target);
       spdlog::info(
           "Legacy config options 'sync_url' and 'sync_token' were converted to sync.targets.default url: {}, token: {}",
           sync_url.value(), sync_token.value());
@@ -634,6 +645,9 @@ void Config::Load()
   // set global sync options to what's actually used in targets
   const auto targets_view = this->sync_targets | std::views::values;
 
+  this->sync_options.proxy      = sync_defaults.proxy;
+  this->sync_options.verify_ssl = sync_defaults.verify_ssl;
+
   for (const auto& opt : SyncOptions) {
     this->sync_options.*opt.option =
         std::ranges::any_of(targets_view, [opt](const auto& target) { return target.*opt.option; });
@@ -649,6 +663,14 @@ void Config::Load()
       get_config_or_default<std::string>(config, parsed, "config", "settings_url", DCSC::settings_url, write_log);
   this->config_assets_url_override =
       get_config_or_default<std::string>(config, parsed, "config", "assets_url_override", DCSC::assets_url_override, write_log);
+
+  // Loading Screen Background settings
+  this->loader_transition =
+      get_config_or_default(config, parsed, "graphics", "loader_transition", DCG::loader_transition, write_log);
+  this->loader_enabled =
+      get_config_or_default(config, parsed, "graphics", "loader_enabled", DCG::loader_enabled, write_log);
+  this->loader_image =
+      get_config_or_default<std::string>(config, parsed, "graphics", "loader_image", DCG::loader_image, write_log);
 
   std::vector<std::string> types = StrSplit(disabled_banner_types_str, ',');
 

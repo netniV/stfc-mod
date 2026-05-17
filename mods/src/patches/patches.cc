@@ -28,6 +28,7 @@ void InstallToastBannerHooks();
 void InstallPanHooks();
 void InstallImproveResponsivenessHooks();
 void InstallHotkeyHooks();
+
 void InstallTestPatches();
 void InstallMiscPatches();
 void InstallChatPatches();
@@ -35,6 +36,7 @@ void InstallResolutionListFix();
 void InstallTempCrashFixes();
 void InstallSyncPatches();
 void InstallObjectTrackers();
+void InstallLoadingScreenBgHooks();
 
 __int64 il2cpp_init_hook(auto original, const char* domain_name)
 {
@@ -64,7 +66,7 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
   spdlog::set_level(log_level);
   spdlog::flush_on(log_level);
 
-  spdlog::info("Initializing STFC Community Patch ({})", VER_PRODUCT_VERSION_STR);
+  spdlog::info("Initializing STFC Community Mod ({})", VER_PRODUCT_VERSION_STR);
   spdlog::info("");
   if (File::hasCustomNames()) {
     spdlog::info("Using custom names");
@@ -117,6 +119,7 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
       {"ResolutionListFix", {InstallResolutionListFix, &cfg.installResolutionListFix}},
       {"SyncPatches", {InstallSyncPatches, &cfg.installSyncPatches}},
       {"ObjectTracker", {InstallObjectTrackers, &cfg.installObjectTracker}},
+      {"LoadingScreenBgHooks", {InstallLoadingScreenBgHooks, &cfg.installLoadingScreenBgHooks}},
   };
   printf("il2cpp_init_hook(%s)\n", domain_name);
 

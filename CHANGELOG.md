@@ -11,7 +11,32 @@
 
 # Change Log
 
-## 0.6.1
+## 1.1.0
+
+## Features
+- Update naming conventions to be consistent (mod vs patch) by @a5ehren
+- Add support for syncing tech slots by @lightbull-stfc
+- Add an AGENTS.md file to the repo by @a5ehren
+- Add new splashscreen and transition image by @ChronoXNL
+- MacOS Specific
+  - Include Version string substitution for MacOS build by @ttimbul
+
+## Fixes
+- Fix: verify_ssl not working without proxy and not parsed per-target by @joelverhagen
+- Fix: Set faulty features to false in example_community_patch_settings.toml by @Bloody142
+- Fix: temporarily ignore the disable_first_popup option by @a5ehren
+- Fix: pin protobuf abseil dep to 20260107.1 to match inline namespace by @ChronoXNL
+- MacOS specific
+  - Max sure setDepth hook is only registered on Windows by @a5ehren
+  - Correct entitlements for App Signing by @a5ehren
+
+## New Contributors
+* @dependabot[bot]
+* @ttimbul
+* @joelverhagen
+* @wycats
+
+## 1.0.0
 
 ### Features
 

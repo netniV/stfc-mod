@@ -175,19 +175,20 @@ void InstallTestPatches()
     }
   }
 
-  auto battle_target_data =
-      il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Models", "BattleTargetData");
-  if (!battle_target_data.isValidHelper()) {
-    ErrorMsg::MissingHelper("Models", "BattleTargetData");
-  } else {
-    static auto SetActive =
-        il2cpp_resolve_icall_typed<void(void*, bool)>("UnityEngine.GameObject::SetActive(System.Boolean)");
-    if (SetActive == nullptr) {
-      ErrorMsg::MissingStaticMethod("GameObject", "SetActive");
-    } else {
-      SPUD_STATIC_DETOUR(SetActive, SetActive_hook);
-    }
-  }
+// this method is not accessible in v48084
+//   auto battle_target_data =
+//       il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Models", "BattleTargetData");
+//   if (!battle_target_data.isValidHelper()) {
+//     ErrorMsg::MissingHelper("Models", "BattleTargetData");
+//   } else {
+//     static auto SetActive =
+//         il2cpp_resolve_icall_typed<void(void*, bool)>("UnityEngine.GameObject::SetActive(System.Boolean)");
+//     if (SetActive == nullptr) {
+//       ErrorMsg::MissingStaticMethod("GameObject", "SetActive");
+//     } else {
+//       SPUD_STATIC_DETOUR(SetActive, SetActive_hook);
+//     }
+//   }
 
   auto queue_manager = il2cpp_get_class_helper("Assembly-CSharp", "Prime.ActionQueue", "ActionQueueManager");
   if (!queue_manager.isValidHelper()) {

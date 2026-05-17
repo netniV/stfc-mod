@@ -25,25 +25,28 @@ namespace Control
 
 namespace Graphics
 {
-  constexpr bool borderless_fullscreen       = true;
-  constexpr bool allow_cursor                = true;
-  constexpr auto default_system_zoom         = 1750;
-  constexpr bool free_resize                 = true;
-  constexpr auto keyboard_zoom_speed         = 350;
-  constexpr bool show_all_resolutions        = false;
-  constexpr auto system_pan_momentum_falloff = 0.8;
-  constexpr auto system_pan_momentum         = 0.4;
-  constexpr auto system_zoom_preset_1        = 50;
-  constexpr auto system_zoom_preset_2        = 500;
-  constexpr auto system_zoom_preset_3        = 1250;
-  constexpr auto system_zoom_preset_4        = 2750;
-  constexpr auto system_zoom_preset_5        = 5000;
-  constexpr auto transition_time             = 0.01;
-  constexpr auto ui_scale                    = 0.6;
-  constexpr auto ui_scale_adjust             = 0.05;
-  constexpr auto ui_scale_viewer             = 1.2;
-  constexpr bool use_presets_as_default      = true;
-  constexpr auto zoom                        = 5000;
+  constexpr bool        borderless_fullscreen       = true;
+  constexpr bool        allow_cursor                = true;
+  constexpr auto        default_system_zoom         = 1750;
+  constexpr bool        free_resize                 = true;
+  constexpr auto        keyboard_zoom_speed         = 350;
+  constexpr bool        show_all_resolutions        = false;
+  constexpr auto        system_pan_momentum_falloff = 0.8;
+  constexpr auto        system_pan_momentum         = 0.4;
+  constexpr auto        system_zoom_preset_1        = 50;
+  constexpr auto        system_zoom_preset_2        = 500;
+  constexpr auto        system_zoom_preset_3        = 1250;
+  constexpr auto        system_zoom_preset_4        = 2750;
+  constexpr auto        system_zoom_preset_5        = 5000;
+  constexpr auto        transition_time             = 0.01;
+  constexpr auto        ui_scale                    = 0.6;
+  constexpr auto        ui_scale_adjust             = 0.05;
+  constexpr auto        ui_scale_viewer             = 1.2;
+  constexpr bool        use_presets_as_default      = true;
+  constexpr auto        zoom                        = 5000;
+  constexpr bool        loader_transition           = true; // replace TVC/SlideShow backgrounds
+  constexpr bool        loader_enabled              = true; // replace LoginSequence background
+  constexpr const char* loader_image                = "";   // Empty = use embedded fallback
 } // namespace Graphics
 
 namespace Patches
@@ -56,13 +59,14 @@ namespace Patches
   constexpr bool miscpatches                = true;
   constexpr bool objecttracker              = true;
   constexpr bool panhooks                   = true;
-  constexpr bool resolutionlistfix          = true;
+  constexpr bool resolutionlistfix          = false;
   constexpr bool syncpatches                = true;
   constexpr bool tempcrashfixes             = true;
   constexpr bool testpatches                = true;
   constexpr bool toastbannerhooks           = true;
   constexpr bool uiscalehooks               = true;
   constexpr bool zoomhooks                  = true;
+  constexpr bool loadingscreenbghooks       = true; // ENABLED - new BlurController approach
 } // namespace Patches
 
 namespace Shortcuts

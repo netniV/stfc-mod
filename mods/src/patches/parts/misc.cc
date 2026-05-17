@@ -254,7 +254,8 @@ bool isFirstInterstitial = true;
 
 void InterstitialViewController_AboutToShow(auto original, InterstitialViewController* _this)
 {
-  if (Config::Get().disable_first_popup && isFirstInterstitial && _this != nullptr) {
+  if (false /* TEMP: disable_first_popup effect disabled */ && Config::Get().disable_first_popup
+      && isFirstInterstitial && _this != nullptr) {
     isFirstInterstitial = false;
     _this->CloseWhenReady();
   } else {
