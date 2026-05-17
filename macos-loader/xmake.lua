@@ -1,4 +1,4 @@
-target("stfc-community-patch-loader")
+target("stfc-community-mod-loader")
 do
     set_kind("binary")
     add_files("src/*.cc")

@@ -13,10 +13,10 @@ concurrency:
 
 jobs:
   build-win:
-    runs-on: windows-2025
+    runs-on: windows-2025-vs2026
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           submodules: "recursive"
 
@@ -34,20 +34,20 @@ jobs:
         run: xmake -y
 
       - name: Package
-        run: mv build/windows/x64/release/stfc-community-patch.dll version.dll
+        run: mv build/windows/x64/release/stfc-community-mod.dll version.dll
 
       - name: Upload
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: stfc-community-mod
           path: version.dll
           if-no-files-found: error
 
   build-mac:
-    runs-on: macos-15
+    runs-on: macos-26
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           submodules: "recursive"
 
@@ -70,14 +70,21 @@ jobs:
       - name: Build (x86)
         run: xmake -y
 
+      - name: Rebuild launcher assets
+        run: |
+          xmake f -p macosx -a "arm64" -m release -y --target_minver=13.5
+          xmake -r -y macOSLauncher
+          test -f build/macosx/arm64/release/macOSLauncher.app/Contents/Resources/Assets.car
+
       - name: Create App Bundle
         run: |
           lipo -create build/macosx/arm64/release/macOSLauncher build/macosx/x86_64/release/macOSLauncher -output build/macosx/arm64/release/macOSLauncher.app/Contents/MacOS/macOSLauncher
-          lipo -create build/macosx/arm64/release/stfc-community-patch-loader build/macosx/x86_64/release/stfc-community-patch-loader -output build/macosx/arm64/release/macOSLauncher.app/Contents/stfc-community-patch-loader
-          lipo -create build/macosx/arm64/release/libstfc-community-patch.dylib build/macosx/x86_64/release/libstfc-community-patch.dylib -output build/macosx/arm64/release/macOSLauncher.app/Contents/libstfc-community-patch.dylib
+          lipo -create build/macosx/arm64/release/stfc-community-mod-loader build/macosx/x86_64/release/stfc-community-mod-loader -output build/macosx/arm64/release/macOSLauncher.app/Contents/stfc-community-mod-loader
+          lipo -create build/macosx/arm64/release/libstfc-community-mod.dylib build/macosx/x86_64/release/libstfc-community-mod.dylib -output build/macosx/arm64/release/macOSLauncher.app/Contents/libstfc-community-mod.dylib
           cp assets/launcher.icns build/macosx/arm64/release/macOSLauncher.app/Contents/Resources/
           cp macos-launcher/src/Info.plist build/macosx/arm64/release/macOSLauncher.app/Contents/
           mv build/macosx/arm64/release/macOSLauncher.app build/macosx/arm64/release/STFC\ Community\ Mod.app
+          test -f build/macosx/arm64/release/STFC\ Community\ Mod.app/Contents/Resources/Assets.car
 
       - name: Sign App Bundle
         run: codesign --force --verify --verbose --deep --sign "-" build/macosx/arm64/release/STFC\ Community\ Mod.app
@@ -89,7 +96,7 @@ jobs:
         run: create-dmg --filesystem APFS --format ULFO --volname "STFC Community Mod Installer" --volicon assets/launcher.icns --background assets/mac_installer_background.png --window-pos 200 120 --window-size 800 400 --icon-size 100 --icon "STFC Community Mod.app" 200 190 --app-drop-link 600 185 stfc-community-mod-installer.dmg build/macosx/arm64/release/
 
       - name: Upload
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: stfc-community-mod-installer
           path: stfc-community-mod-installer.dmg

@@ -57,7 +57,7 @@ int main()
     ld_library_path += ":";
     ld_library_path += old_ld_library_path;
   }
-  std::string ld_preload     = path + "/libstfc-community-patch.dylib";
+  std::string ld_preload     = path + "/libstfc-community-mod.dylib";
   const char *old_ld_preload = getenv(LD_PRELOAD_ENV);
   if (old_ld_preload) {
     ld_preload += ":";

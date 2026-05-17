@@ -1,6 +1,6 @@
 //
 //  LauncherMain.swift
-//  STFC Community Patch Launcher
+//  STFC Community Mod Launcher
 //
 //  Created by tashcan on 3/22/24.
 //

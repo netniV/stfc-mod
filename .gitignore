@@ -19,3 +19,4 @@ debug.log
 
 # Generated Info.plist files (generated from templates)
 **/Info.plist
+mods/.xmake

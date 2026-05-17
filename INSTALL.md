@@ -13,13 +13,17 @@
 
 The STFC Community Mod is available on GitHub.
 
-You can download either the [latest official release](https://github.com/netniv/stfc-mod/releases/latest/) or any other release, including [alpha/beta](https://github.com/netniv/stfc-mod/releases/) builds.
+You can download either the [latest official release](https://github.com/netniv/stfc-mod/releases/latest/) or any other
+release, including [alpha/beta](https://github.com/netniv/stfc-mod/releases/) builds.
 
-__Notes:__
+In the event that a game update breaks the latest release, please visit the [STFC Community Mod](https://discord.gg/PrpHgs7Vjs)
+discord server, and check the #INFO channel for the latest hotfixes.
 
--  GitHub may require you to log in to see the downloads for
-   pre-releases, and you will need to expand the
-   assets section to see the downloads.
+**Notes:**
+
+- GitHub may require you to log in to see the downloads for
+  pre-releases, and you will need to expand the
+  assets section to see the downloads.
 
 - There is no difference between the versioned and unversioned zip
   files. They are simply named this way to allow people to store
@@ -28,7 +32,7 @@ __Notes:__
 
 ## Configuration
 
-__IMPORTANT__: Any desired configuration changes should __ONLY__ be made in the
+**IMPORTANT**: Any desired configuration changes should **ONLY** be made in the
 `community_patch_settings.toml` file.
 
 When the game is launched:
@@ -39,11 +43,11 @@ When the game is launched:
 - The configuration file is read with any missing settings defaulting to predefined values.
 
 - The finalized configuration – including any assumed default values – is written to
-`community_patch_runtime.vars`.
+  `community_patch_runtime.vars`.
 
-  __NOTE:__ You should NOT make any changes to this file. This file is
-constantly rewritten when the game starts, so any modifications to it are never used and will be
-lost.
+  **NOTE:** You should NOT make any changes to this file. This file is
+  constantly rewritten when the game starts, so any modifications to it are never used and will be
+  lost.
 
 If you have any problems with a setting, check for that setting in the _.vars_ file to verify
 that the parse value of that setting was correctly applied. You may also need to check the
@@ -51,7 +55,7 @@ that the parse value of that setting was correctly applied. You may also need to
 
 ## Installation on Windows
 
-__NOTE:__ The `Star Trek Fleet Command` game itself is located by default at:
+**NOTE:** The `Star Trek Fleet Command` game itself is located by default at:
 
 - `C:\Games\Star Trek Fleet Command\Star Trek Fleet Command\default\game`
 
@@ -61,7 +65,7 @@ Installation of the Community Mod is a manual process for Windows (or Wine).
 
 2. Open the game folder in Explorer. The default folder for the game also holds the settings file.
 
-   __NOTE:__ If this folder isn't present, or no log files are created when running the game, 
+   **NOTE:** If this folder isn't present, or no log files are created when running the game,
    see the [Problems Under Windows](#problems-under-windows) section below.
 
 3. Move the extracted `version.dll` file into this folder.
@@ -77,7 +81,7 @@ Installation of the Community Mod is a manual process for Windows (or Wine).
 
 ## Installation on macOS - macOS 13.5 or later required
 
-__NOTE:__ The `Star Trek Fleet Command` game itself is located at:
+**NOTE:** The `Star Trek Fleet Command` game itself is located at:
 
 - `~/Library/Application Support/Star Trek Fleet Command/Games/Star Trek Fleet Command/Star Trek Fleet Command/default/game`
 
@@ -92,18 +96,18 @@ You should only need to access this folder if you need to view the `community_pa
 3. Running the launcher for the first time will prompt a warning from macOS because the Community Mod is not signed with an Apple Developer ID certificate.
 
    > "STFC Community Mod" Not Opened
-   > 
+   >
    > Apple could not verify “STFC Community Mod” is free of malware that may harm your Mac or compromise your privacy
 
-   Dismiss the warning by clicking `Done`, then go to __System Settings__, __Privacy & Security__ and scroll down to the __Security__ section
+   Dismiss the warning by clicking `Done`, then go to **System Settings**, **Privacy & Security** and scroll down to the **Security** section
    where you can override this behaviour by clicking `Open Anyway` next to `"STFC Community Mod" was blocked to protect your Mac.`
 
 4. Run the game from the launcher!
 
-   Since M82.1, the __Star Trek Fleet Command__ app ships with heightened security and lacks the entitlements to correctly load
+   Since M82.1, the **Star Trek Fleet Command** app ships with heightened security and lacks the entitlements to correctly load
    the Community Mod. As a workaround, the Community Mod launcher will prompt you to re-sign the game if it detects
    missing entitlements at startup. This process needs to be repeated with every game update.
-   
+
    If all is well, the mod will create `community_patch_settings.toml`
    in the settings folder `~/Library/Preferences/com.stfcmod.startrekpatch`.
 
@@ -117,7 +121,7 @@ You should only need to access this folder if you need to view the `community_pa
 
 ## Installation on Wine/Linux
 
-__NOTE:__ The `Star Trek Fleet Command` game itself is located at:
+**NOTE:** The `Star Trek Fleet Command` game itself is located at:
 
 - `~/Games/star-trek-fleet-command/drive_c/Games/Star Trek Fleet Command/Star Trek Fleet Command/default/game`.
 
@@ -152,7 +156,6 @@ The most common problems getting the DLL to work are:
 3. The configuration file has the wrong name (see above)
 
 4. The configuration file is not being parsed as you expect, which is normal because:
-
    - Your configuration isn't being parsed
    - The configuration option name is spelt wrong
    - The configuration option name is in the wrong section
@@ -177,23 +180,23 @@ following:
 An _Explorer_ window will open, and you can check for `prime.exe` to verify this is the
 correct folder.
 
-__IMPORTANT__: The `version.dll` file should NOT be placed within the official STFC launcher's
+**IMPORTANT**: The `version.dll` file should NOT be placed within the official STFC launcher's
 folder as this will prevent the launcher from working and the ability to update the game.
 
 ## Problems under macOS
 
 macOS hides the `Library` folder in Finder by default. There are several ways to open it:
 
-- Hold the `⌥ Option` key (or `Alt` on a PC keyboard) in __Finder__ and click the __Go to__ menu item
-and then click the __Library__ folder item
+- Hold the `⌥ Option` key (or `Alt` on a PC keyboard) in **Finder** and click the **Go to** menu item
+  and then click the **Library** folder item
 
   or
 
-- Press `⌘ Command`+`⇧ Shift`+`G` in the __Finder__ for the Goto box and type in `~/Library`
+- Press `⌘ Command`+`⇧ Shift`+`G` in the **Finder** for the Goto box and type in `~/Library`
 
   or
 
-- Use __Terminal__ and type: `open ~/Library`
+- Use **Terminal** and type: `open ~/Library`
 
 The Community Launcher shows the version of `Star Trek Fleet Command` that was detected
 under the current user. If this shows as `-1`, then the recommended course of action is
@@ -215,4 +218,4 @@ If the game folder does not exist in the default location mentioned under [Insta
 
 - `drive_c/Games/Star Trek Fleet Command/Star Trek Fleet Command/default/game`
 
-__NOTE:__ This is a relative path that starts at the wine environment (WINEPREFIX).
+**NOTE:** This is a relative path that starts at the wine environment (WINEPREFIX).
