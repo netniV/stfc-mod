@@ -22,7 +22,7 @@ add_requires("toml++")
 add_requires("nlohmann_json")
 add_requires("cpr")
 add_requireconfs("cpr.libcurl", { configs = { zlib = true } })
-add_requires("protobuf 32.1")
+add_requires("protobuf 35.1")
 
 if is_plat("windows") then
     includes("win-proxy-dll")

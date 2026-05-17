@@ -4,6 +4,8 @@ add_versions("29.3", "008a11cc56f9b96679b4c285fd05f46d317d685be3ab524b2a310be0fb
 add_versions("31.1", "12bfd76d27b9ac3d65c00966901609e020481b9474ef75c7ff4601ac06fa0b82")
 add_versions("32.0", "9dfdf08129f025a6c5802613b8ee1395044fecb71d38210ca59ecad283ef68bb")
 add_versions("32.1", "3feeabd077a112b56af52519bc4ece90e28b4583f4fc2549c95d765985e0fd3c")
+add_versions("34.1", "e4e6ff10760cf747a2decd1867741f561b216bd60cc4038c87564713a6da1848")
+add_versions("35.1", "f0b6838e7522a8da96126d487068c959bc624926368f3024ac8fd03abd0a1ac4")
 
 add_configs("zlib", {description = "Enable zlib", default = false, type = "boolean"})
 
@@ -11,7 +13,7 @@ add_deps("cmake")
 
 on_load(function (package)
 -- pin abseil to the version in https://github.com/protocolbuffers/protobuf/blob/main/protobuf_deps.bzl when you update protobuf
-    package:add("deps", "abseil 20260107.1")
+    package:add("deps", "abseil 20250512.1")
 
     if package:is_plat("windows") then
         package:add("links", "libprotoc", "libprotobuf", "utf8_range", "utf8_validity", "libutf8_range", "libutf8_validity")
