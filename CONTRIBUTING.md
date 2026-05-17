@@ -26,14 +26,14 @@ cd stfc-mod
 
 ## Installing
 
-Please note that when this project compiles, it will create a DLL called `stfc-community-patch.dll`.  This
+Please note that when this project compiles, it will create a DLL called `stfc-community-mod.dll`.  This
 file must be either copied to the `C:\Games\Star Trek Fleet Command\Star Trek Fleet Command\default\game`
 folder as `version.dll` or create a symbolic link to the file using an elevated (administrator) command
 prompt:
 
 ```console
 cd C:\Games\Star Trek Fleet Command\Star Trek Fleet Command\default\game
-mklink version.dll [output folder]\stfc-community-patch.dll
+mklink version.dll [output folder]\stfc-community-mod.dll
 ```
 
 If you do link the file, please note you will need to close the game to recompile.

@@ -19,6 +19,7 @@ debug.log
 
 # Generated Info.plist files (generated from templates)
 **/Info.plist
+
 # GitHub Gist credentials
 scripts/gist_config.py
 
@@ -41,3 +42,4 @@ scripts/data_extraction/identify_my_ships.py
 scripts/data_extraction/scrape_stfc_space_ships.py
 scripts/data_extraction/selenium_demo.py
 scripts/data_extraction/test_stfc_space_hull_ids.py
+mods/.xmake
