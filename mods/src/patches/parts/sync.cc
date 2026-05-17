@@ -2,6 +2,8 @@
 #include "errormsg.h"
 #include "file.h"
 #include "str_utils.h"
+#include "game_state_export.h"
+#include "id_mappings.h"
 
 #include <il2cpp-api-types.h>
 #include <Digit.PrimeServer.Models.pb.h>
@@ -46,6 +48,8 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+#include <iomanip>
+#include <sstream>
 
 #ifndef STR_FORMAT
 #if __cpp_lib_format
@@ -435,6 +439,8 @@ static std::shared_ptr<cpr::Session> get_curl_client_scopely()
   return session;
 }
 
+static std::string get_game_server_data(const std::string& path, const std::string& post_data);
+
 static std::string get_scopely_data(const std::string& path, const std::string& post_data)
 {
   static std::once_flag emit_warning;
@@ -447,6 +453,11 @@ static std::string get_scopely_data(const std::string& path, const std::string& 
     return {};
   }
 
+  return get_game_server_data(path, post_data);
+}
+
+static std::string get_game_server_data(const std::string& path, const std::string& post_data)
+{
   Url url(headers::gameServerUrl);
   url.set_path(path);
 
@@ -566,6 +577,9 @@ std::mutex                                        player_data_cache_mtx;
 struct CachedAllianceData {
   std::string                           name;
   std::string                           tag;
+  int32_t                               level        = 0;
+  int32_t                               member_count = 0;
+  int64_t                               power        = 0;
   std::chrono::steady_clock::time_point expires_at;
 };
 
@@ -721,6 +735,41 @@ static void save_previously_sent_logs()
   }
 }
 
+void process_starbase_detailed_scan(std::unique_ptr<std::string>&& bytes)
+{
+  if (auto response = Digit::PrimeServer::Models::StarbaseDetailedScanResponse(); response.ParseFromString(*bytes)) {
+    if (!response.has_starbasedetailedscan()) return;
+    const auto& scan = response.starbasedetailedscan();
+
+    // Only capture our own station â€” skip scans of other players' stations
+    const auto& owner_id = scan.owneruserid();
+    const auto& my_id    = Config::Get().game_state_player_id;
+    if (!my_id.empty() && owner_id != my_id) {
+      spdlog::debug("StarbaseDetailedScan: skipping scan for owner={} (not our station)", owner_id);
+      return;
+    }
+
+    int64_t expiry_epoch = 0;
+    if (scan.has_playershield() && scan.playershield().has_expirytime()) {
+      expiry_epoch = scan.playershield().expirytime().seconds();
+    }
+
+    auto now_epoch = std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+
+    spdlog::info("StarbaseDetailedScan: owner={} shield_expiry={} now={} active={}",
+                 owner_id, expiry_epoch, now_epoch, expiry_epoch > now_epoch);
+
+    if (Config::Get().game_state_enabled) {
+      // token_count stays 0 here â€” tokens come from InventoryResponse (type=8 consumables).
+      // We pass -1 to signal "don't update token count" vs a real 0.
+      game_state_export::capture_peace_shield(expiry_epoch, -1);
+    }
+  } else {
+    spdlog::debug("StarbaseDetailedScan: failed to parse (may be another message type)");
+  }
+}
+
 void process_active_missions(std::unique_ptr<std::string>&& bytes)
 {
   using json = nlohmann::json;
@@ -747,6 +796,14 @@ void process_active_missions(std::unique_ptr<std::string>&& bytes)
     }
 
     if (changed && !active_mission_states.empty()) {
+      if (Config::Get().game_state_enabled) {
+        std::vector<std::pair<int64_t, int64_t>> gs_missions;
+        for (const auto& mission : response.activemissions()) {
+          gs_missions.emplace_back(mission.id(), mission.missionid());
+        }
+        game_state_export::capture_missions_active(gs_missions);
+      }
+
       auto mission_array = json::array();
 
       for (const auto mission : active_mission_states) {
@@ -776,16 +833,22 @@ void process_completed_missions(std::unique_ptr<std::string>&& bytes)
     std::vector<int64_t> diff;
 
     // Assume the completed missions list is append-only: new entries may be added, but existing ones are never removed.
+    std::vector<int64_t> completed_snapshot;
     {
       std::scoped_lock lk(completed_mission_states_mtx);
       std::ranges::set_difference(completed_missions, completed_mission_states, std::back_inserter(diff));
 
       if (!diff.empty()) {
         completed_mission_states = std::move(completed_missions);
+        completed_snapshot       = completed_mission_states;
       }
     }
 
     if (!diff.empty()) {
+      if (Config::Get().game_state_enabled) {
+        game_state_export::capture_missions_completed(completed_snapshot);
+      }
+
       auto mission_array = json::array();
 
       for (const auto mission : diff) {
@@ -812,6 +875,10 @@ void process_player_inventories(std::unique_ptr<std::string>&& bytes)
     http::sync_log_trace("PROCESS", "player inventories",
                          STR_FORMAT("Processing {} inventories", response.inventories_size()));
 
+    // Peace shield token counts are read directly from cached_resources at
+    // export time using known resource IDs â€” no inventory path needed.
+    // Shield expiry is captured separately via process_starbase_detailed_scan.
+
     auto inventory_items = json::array();
     {
       std::scoped_lock lk(inventory_states_mtx);
@@ -822,6 +889,12 @@ void process_player_inventories(std::unique_ptr<std::string>&& bytes)
             const auto item_id = item.commonparams().refid();
             const auto count   = item.count();
             const auto key     = std::make_pair(item.type(), item_id);
+
+            // Route ship unlock BPs to game state export
+            if (Config::Get().game_state_enabled &&
+                item.type() == Digit::PrimeServer::Models::InventoryItemType::INVENTORYITEMTYPE_INVENTORYBLUEPRINT) {
+              game_state_export::capture_ship_blueprints(item_id, count);
+            }
 
             if (const auto& it = inventory_states.find(key); it == inventory_states.end() || it->second != count) {
               inventory_states[key] = count;
@@ -860,6 +933,11 @@ void process_research_trees_state(std::unique_ptr<std::string>&& bytes)
       std::scoped_lock lk(research_states_mtx);
 
       for (const auto& [id, level] : response.researchprojectlevels()) {
+        // Capture for gamestate export
+        if (Config::Get().game_state_enabled) {
+          game_state_export::capture_research(id, level);
+        }
+
         if (const auto& it = research_states.find(id); it == research_states.end() || it->second != level) {
           research_states[id] = level;
           research_array.push_back({{"type", SyncConfig::Type::Research}, {"rid", id}, {"level", level}});
@@ -867,7 +945,7 @@ void process_research_trees_state(std::unique_ptr<std::string>&& bytes)
       }
     }
 
-    if (!research_array.empty()) {
+    if (!research_array.empty() && Config::Get().sync_options.research) {
       queue_data(SyncConfig::Type::Research, research_array);
     }
   } else {
@@ -892,6 +970,11 @@ void process_officers(std::unique_ptr<std::string>&& bytes)
       for (const auto& officer : response.officers()) {
         const RankLevelShardsState officer_state{officer.rankindex(), officer.level(), officer.shardcount()};
 
+        // Capture for gamestate export
+        if (Config::Get().game_state_enabled) {
+          game_state_export::capture_officers(officer.id(), officer.rankindex(), officer.level(), officer.shardcount());
+        }
+
         if (const auto& it = officer_states.find(officer.id());
             it == officer_states.end() || it->second != officer_state) {
           officer_states[officer.id()] = officer_state;
@@ -904,7 +987,7 @@ void process_officers(std::unique_ptr<std::string>&& bytes)
       }
     }
 
-    if (!officers_array.empty()) {
+    if (!officers_array.empty() && Config::Get().sync_options.officer) {
       queue_data(SyncConfig::Type::Officer, officers_array);
     }
   } else {
@@ -975,6 +1058,15 @@ void process_active_officer_traits(std::unique_ptr<std::string>&& bytes)
                                    {"tid", trait.traitid()},
                                    {"level", trait.level()}});
           }
+
+          // Capture for gamestate export (always, not just on change)
+          if (Config::Get().game_state_enabled) {
+            game_state_export::capture_officer_trait(
+              static_cast<uint64_t>(officer_id),
+              static_cast<uint64_t>(trait.traitid()),
+              trait.level()
+            );
+          }
         }
       }
     }
@@ -984,6 +1076,288 @@ void process_active_officer_traits(std::unique_ptr<std::string>&& bytes)
     }
   } else {
     spdlog::error("Failed to parse active officer traits");
+  }
+}
+
+void process_blueprint_specs(std::unique_ptr<std::string>&& bytes)
+{
+  if (!Config::Get().game_state_enabled) return;
+
+  if (auto response = Digit::PrimeServer::Models::StaticSyncBlueprintSpecsResponse(); response.ParseFromString(*bytes)) {
+    std::vector<game_state_export::BlueprintSpecEntry> specs;
+    specs.reserve(response.blueprintspecs_size());
+    for (const auto& [id, spec] : response.blueprintspecs()) {
+      game_state_export::BlueprintSpecEntry e;
+      e.spec_id      = spec.id();
+      e.name         = spec.name();
+      e.parts_needed = spec.partsneeded();
+      e.hull_id      = spec.outputreference();
+      specs.push_back(std::move(e));
+    }
+    spdlog::info("GameState: process_blueprint_specs: {} specs", specs.size());
+    game_state_export::capture_blueprint_specs(std::move(specs));
+  } else {
+    spdlog::error("Failed to parse blueprint specs");
+  }
+}
+
+void process_faction_specs(std::unique_ptr<std::string>&& bytes)
+{
+  if (!Config::Get().game_state_enabled) return;
+
+  if (auto response = Digit::PrimeServer::Models::StaticSyncFactionSpecsResponse(); response.ParseFromString(*bytes)) {
+    std::vector<std::pair<int64_t, std::string>> specs;
+    std::unordered_map<int64_t, std::string> tree_faction_map; // researchTreeId -> faction name
+    specs.reserve(static_cast<size_t>(response.factionspecs_size()));
+    for (const auto& [id, spec] : response.factionspecs()) {
+      if (!spec.name().empty()) {
+        specs.emplace_back(id, spec.name());
+        // Each researchTreeId on this faction spec maps to this faction's name
+        for (const auto tree_id : spec.researchtreeids())
+          tree_faction_map[tree_id] = spec.name();
+      }
+    }
+    spdlog::info("GameState: FactionSpecs: {} factions, {} research tree mappings",
+                 specs.size(), tree_faction_map.size());
+    game_state_export::capture_faction_specs(specs);
+    game_state_export::capture_tree_faction_map(std::move(tree_faction_map));
+  } else {
+    spdlog::error("GameState: Failed to parse FactionSpecs");
+  }
+}
+
+void process_research_specs(std::unique_ptr<std::string>&& bytes)
+{
+  if (!Config::Get().game_state_enabled) return;
+
+  if (auto response = Digit::PrimeServer::Models::StaticSyncResearchTreeSpecsResponse(); response.ParseFromString(*bytes)) {
+    // Get the researchTreeId -> faction_name map built from FactionSpec.researchTreeIds
+    const auto tree_faction_map = game_state_export::get_research_tree_faction_map();
+
+    // Map each researchProjectId -> faction_name via its researchTreeId
+    std::unordered_map<int64_t, int64_t> research_faction_map;
+    int32_t matched = 0;
+    for (const auto& [project_id, project] : response.researchprojects()) {
+      if (tree_faction_map.count(project.researchtreeid())) {
+        // Store tree_id as proxy; actual name resolution in export via cached_tree_faction_map
+        research_faction_map[project_id] = project.researchtreeid();
+        ++matched;
+      }
+    }
+    spdlog::info("GameState: ResearchSpecs: {} trees, {} projects, {} matched to faction",
+                 response.researchtrees_size(), response.researchprojects_size(), matched);
+    game_state_export::capture_research_specs(std::move(research_faction_map));
+  } else {
+    spdlog::error("GameState: Failed to parse ResearchSpecs");
+  }
+}
+
+void process_consumable_specs(std::unique_ptr<std::string>&& bytes)
+{
+  if (!Config::Get().game_state_enabled) return;
+
+  if (auto response = Digit::PrimeServer::Models::StaticSyncConsumableSpecsResponse(); response.ParseFromString(*bytes)) {
+    std::vector<game_state_export::FavorSpecEntry> specs;
+    for (const auto& s : response.spec()) {
+      // Faction favors are RESEARCH_UNLOCK consumables with name pattern Consumable_{prefix}_{favor}_{tier}
+      if (s.consumabletype() != Digit::PrimeServer::Models::ConsumableType::CONSUMABLETYPE_UNLOCK) continue;
+      if (!s.has_consumableunlockspecparams()) continue;
+      const auto& unlock = s.consumableunlockspecparams();
+      if (unlock.unlocktype() != "RESEARCH_UNLOCK" || !unlock.has_researchproject()) continue;
+
+      // Parse name: "Consumable_{prefix}_{favor_body}_{tier}"
+      const std::string& name = s.name();
+      static const std::string consumable_pfx = "Consumable_";
+      if (name.rfind(consumable_pfx, 0) != 0) continue;
+      const std::string body = name.substr(consumable_pfx.size()); // e.g. "Baj_Weapon_Damage_3"
+
+      // Split into prefix (first segment), favor body (middle), tier (last segment)
+      auto first_us = body.find('_');
+      auto last_us  = body.rfind('_');
+      if (first_us == std::string::npos || last_us == first_us) continue;
+
+      const std::string faction_prefix = body.substr(0, first_us);
+      const std::string tier_str       = body.substr(last_us + 1);
+      const std::string favor_name     = body.substr(first_us + 1, last_us - first_us - 1);
+
+      int32_t tier = 0;
+      try { tier = std::stoi(tier_str); } catch (...) { continue; }
+      if (tier <= 0) continue;
+
+      specs.push_back({
+        unlock.researchproject().researchid(),
+        tier,
+        faction_prefix,
+        favor_name
+      });
+    }
+    spdlog::info("GameState: ConsumableSpecs: {} faction favor specs parsed", specs.size());
+    game_state_export::capture_favor_specs(specs);
+  } else {
+    spdlog::error("GameState: Failed to parse ConsumableSpecs");
+  }
+}
+
+
+void process_base_ship_tier_specs(std::unique_ptr<std::string>&& bytes)
+{
+  if (!Config::Get().game_state_enabled) return;
+
+  if (auto r = Digit::PrimeServer::Models::StaticSyncBaseShipTierSpecsResponse(); r.ParseFromString(*bytes)) {
+    std::unordered_map<int32_t, int32_t> tier_level_caps;
+    for (const auto& [tier, spec] : r.baseshiptierspecs())
+      tier_level_caps[tier] = spec.maxshiplevel();
+
+    // hull_tier_durations comes from ShipTierSpecs; pass empty map here â€” combined in process_ship_tier_specs
+    spdlog::info("GameState: BaseShipTierSpecs: {} tiers parsed", tier_level_caps.size());
+    // Store just level caps â€” hull durations and cargo stats handled by process_ship_tier_specs
+    game_state_export::capture_ship_tier_specs(tier_level_caps, {}, {});
+  } else {
+    spdlog::error("GameState: Failed to parse BaseShipTierSpecs");
+  }
+}
+
+void process_ship_tier_specs(std::unique_ptr<std::string>&& bytes)
+{
+  if (!Config::Get().game_state_enabled) return;
+
+  if (auto r = Digit::PrimeServer::Models::StaticSyncShipTierSpecsResponse(); r.ParseFromString(*bytes)) {
+    std::unordered_map<int64_t, int32_t> hull_durations;
+    std::unordered_map<int64_t, std::unordered_map<int32_t, game_state_export::CargoStats>> hull_cargo;
+
+    for (const auto& [hull_id, spec] : r.shiptierspecs()) {
+      const int32_t dur = static_cast<int32_t>(spec.costdurationfactor());
+      if (dur > 0)
+        hull_durations[hull_id] = dur;
+
+      for (const auto& [tier_key, tier_mod] : spec.tierstatmodifiers()) {
+        const int32_t tier = tier_mod.tier();
+        game_state_export::CargoStats stats;
+        for (const auto& [stat_code, value] : tier_mod.statmodifiers()) {
+          if (stat_code == 66) stats.capacity   = value; // CLIENTMODIFIERTYPE_MODCARGOCAPACITY
+          if (stat_code == 67) stats.protection = value; // CLIENTMODIFIERTYPE_MODCARGOPROTECTION
+        }
+        if (stats.capacity > 0.f || stats.protection > 0.f)
+          hull_cargo[hull_id][tier] = stats;
+      }
+    }
+    spdlog::info("GameState: ShipTierSpecs: {} hull durations, {} hulls with cargo stats",
+                 hull_durations.size(), hull_cargo.size());
+    game_state_export::capture_ship_tier_specs({}, hull_durations, hull_cargo);
+  } else {
+    spdlog::error("GameState: Failed to parse ShipTierSpecs");
+  }
+}
+
+void process_ship_bonus_buff_specs(std::unique_ptr<std::string>&& bytes)
+{
+  if (!Config::Get().game_state_enabled) return;
+
+  if (auto response = Digit::PrimeServer::Models::StaticSyncShipBonusSpecsResponse(); response.ParseFromString(*bytes)) {
+    std::vector<game_state_export::BuffSpecEntry> specs;
+    specs.reserve(static_cast<size_t>(response.shipbonusspecs_size()));
+    for (const auto& [id, spec] : response.shipbonusspecs()) {
+      game_state_export::BuffSpecEntry entry;
+      entry.buff_id       = spec.buffid();
+      entry.modifier_code = spec.modifiercode();
+      entry.operation     = static_cast<int32_t>(spec.op());
+      entry.faction_id    = spec.has_attributes() ? spec.attributes().factionid() : 0;
+      entry.show_percentage = spec.showpercentage();
+      for (const auto v : spec.rankedbuffvalues())
+        entry.ranked_values.push_back(v);
+      if (entry.ranked_values.empty()) {
+        for (const auto v : spec.rankedvalues())
+          entry.ranked_values.push_back(static_cast<double>(v));
+      }
+      specs.push_back(std::move(entry));
+    }
+    spdlog::info("GameState: ShipBonusBuffSpecs: {} buff specs", specs.size());
+    game_state_export::capture_buff_specs(specs);
+  } else {
+    spdlog::error("GameState: Failed to parse ShipBonusBuffSpecs");
+  }
+}
+
+void process_territory_static_data(std::unique_ptr<std::string>&& bytes)
+{
+  if (!Config::Get().game_state_enabled) return;
+
+  if (auto r = Digit::PrimeServer::Models::TerritoriesStaticDataResponse(); r.ParseFromString(*bytes)) {
+    std::unordered_map<int64_t, game_state_export::TerritorySpec> specs;
+    for (const auto& [tid, t] : r.territories()) {
+      game_state_export::TerritorySpec spec;
+      spec.territory_id = tid;
+      spec.tier         = t.tier();
+      for (const auto& p : t.takeoverperiods()) {
+        spec.takeover_windows.push_back({
+          .weekday      = p.weekday(),
+          .start_hour   = p.starthour(),
+          .duration_mins = p.duration(),
+        });
+      }
+      for (int64_t nid : t.nodeids()) {
+        spec.node_ids.push_back(nid);
+      }
+      specs[tid] = std::move(spec);
+    }
+    spdlog::info("GameState: TerritoryStaticData: {} territory specs", specs.size());
+    game_state_export::capture_territory_specs(std::move(specs));
+  } else {
+    spdlog::error("GameState: Failed to parse TerritoryStaticData");
+  }
+}
+
+void process_territory_alliance_slots(std::unique_ptr<std::string>&& bytes)
+{
+  if (!Config::Get().game_state_enabled) return;
+
+  if (auto r = Digit::PrimeServer::Models::AllianceTerritorySlotsResponse(); r.ParseFromString(*bytes)) {
+    const auto& slots = r.allianceterritoryslots();
+    std::vector<game_state_export::TerritorySlot> held;
+    for (const auto& [slot_idx, slot] : slots.assignedslots()) {
+      using State = Digit::PrimeServer::Models::AllianceAssignedTerritorySlot_TerritorySlotState;
+      held.push_back({
+        .territory_id = slot.territoryid(),
+        .state        = (slot.state() == State::AllianceAssignedTerritorySlot_TerritorySlotState_TERRITORYSLOTSTATE_OWNED)
+                          ? "owned" : "takeover",
+      });
+    }
+    spdlog::info("GameState: TerritoryAllianceSlots: {} held / {} total slots",
+                 held.size(), slots.slotsize());
+    game_state_export::capture_territory_slots(std::move(held), static_cast<int32_t>(slots.slotsize()));
+  } else {
+    spdlog::error("GameState: Failed to parse TerritoryAllianceSlots");
+  }
+}
+
+void process_loyalty_specs(std::unique_ptr<std::string>&& bytes)
+{
+  if (!Config::Get().game_state_enabled) return;
+
+  if (auto response = Digit::PrimeServer::Models::StaticSyncLoyaltyResponse(); response.ParseFromString(*bytes)) {
+    const auto& specs = response.loyaltyspecs();
+
+    // This is the global Syndicate Loyalty track (Resource_Loyalty_Points).
+    // All tiers belong to the same single track â€” not per-faction.
+    std::vector<game_state_export::LoyaltyBuffEntry> entries;
+    std::vector<int64_t>                             buff_ids;
+
+    const int32_t max_tiers = specs.loyaltytiers_size();
+    for (const auto& tier : specs.loyaltytiers()) {
+      for (const auto& collection : tier.buffrewardcollections()) {
+        for (const auto& reward : collection.buffrewards()) {
+          entries.push_back({"Syndicate", tier.tier(), max_tiers});
+          buff_ids.push_back(reward.buffid());
+        }
+      }
+    }
+
+    if (!buff_ids.empty()) {
+      spdlog::info("GameState: LoyaltySpecs (Syndicate) tiers={} buffs={}", max_tiers, buff_ids.size());
+      game_state_export::capture_loyalty_specs(entries, buff_ids);
+    }
+  } else {
+    spdlog::error("GameState: Failed to parse LoyaltySpecs");
   }
 }
 
@@ -1039,6 +1413,16 @@ void process_global_active_buffs(std::unique_ptr<std::string>&& bytes)
     if (!buff_array.empty()) {
       const bool first_sync = is_first_sync.exchange(false, std::memory_order_acq_rel);
       queue_data(SyncConfig::Type::Buffs, buff_array, first_sync);
+    }
+
+    // Capture full buff snapshot for faction favors cross-reference
+    if (Config::Get().game_state_enabled) {
+      std::vector<std::pair<int64_t, int32_t>> all_buffs;
+      all_buffs.reserve(static_cast<size_t>(response.globalactivebuffs_size()));
+      for (const auto& buff : response.globalactivebuffs()) {
+        all_buffs.emplace_back(buff.buffid(), buff.level());
+      }
+      game_state_export::capture_active_buffs(all_buffs);
     }
   } else {
     spdlog::error("Failed to parse global active buffs");
@@ -1150,6 +1534,32 @@ void process_entity_slots(std::unique_ptr<std::string>&& bytes)
 
     http::sync_log_trace("PROCESS", "entity slots", STR_FORMAT("Processing {} slots", response.entityslots__size()));
 
+    // Capture drydock assignments for gamestate export
+    if (Config::Get().game_state_enabled) {
+      std::vector<game_state_export::DrydockEntry> assignments;
+      for (const auto& slot : response.entityslots_()) {
+        spdlog::debug("EntitySlots: slot type={} id={} has_fleetpreset={}",
+                      static_cast<int>(slot.slottype()), slot.id(),
+                      slot.has_fleetpresetslotparams());
+        if (slot.slottype() == Digit::PrimeServer::Models::SLOTTYPE_FLEETPRESET &&
+            slot.has_fleetpresetslotparams()) {
+          for (const auto& setup : slot.fleetpresetslotparams().setups()) {
+            spdlog::info("EntitySlots: FLEETPRESET drydock_id={} ship_count={}",
+                         setup.drydockid(), setup.shipids_size());
+            if (setup.drydockid() > 0 && !setup.shipids().empty()) {
+              game_state_export::DrydockEntry e;
+              e.drydock_id = setup.drydockid();
+              e.ship_id    = setup.shipids(0);
+              assignments.push_back(e);
+            }
+          }
+        }
+      }
+      if (!assignments.empty()) {
+        game_state_export::capture_drydock_assignments(assignments);
+      }
+    }
+
     auto slot_array = json::array();
     {
       std::scoped_lock lk(slot_states_mtx);
@@ -1174,6 +1584,36 @@ void process_entity_slots_data(std::unique_ptr<std::string>&& bytes)
   if (auto response = Digit::PrimeServer::Models::EntitySlotsData(); response.ParseFromString(*bytes)) {
 
     http::sync_log_trace("PROCESS", "entity slots data", STR_FORMAT("Processing {} slots", response.entityslots_size()));
+
+    // Capture drydock assignments for gamestate export
+    if (Config::Get().game_state_enabled) {
+      std::vector<game_state_export::DrydockEntry> assignments;
+      for (const auto& slots : response.entityslots()) {
+        spdlog::debug("EntitySlotsData: entity_type={} slot_count={}",
+                      static_cast<int>(slots.entitytype()), slots.slots_size());
+        for (const auto& slot : slots.slots()) {
+          spdlog::debug("EntitySlotsData: slot type={} id={} has_fleetpreset={}",
+                        static_cast<int>(slot.slottype()), slot.id(),
+                        slot.has_fleetpresetslotparams());
+          if (slot.slottype() == Digit::PrimeServer::Models::SLOTTYPE_FLEETPRESET &&
+              slot.has_fleetpresetslotparams()) {
+            for (const auto& setup : slot.fleetpresetslotparams().setups()) {
+              spdlog::info("EntitySlotsData: FLEETPRESET drydock_id={} ship_count={}",
+                           setup.drydockid(), setup.shipids_size());
+              if (setup.drydockid() > 0 && !setup.shipids().empty()) {
+                game_state_export::DrydockEntry e;
+                e.drydock_id = setup.drydockid();
+                e.ship_id    = setup.shipids(0);
+                assignments.push_back(e);
+              }
+            }
+          }
+        }
+      }
+      if (!assignments.empty()) {
+        game_state_export::capture_drydock_assignments(assignments);
+      }
+    }
 
     auto slot_array = json::array();
     {
@@ -1376,6 +1816,45 @@ void process_jobs(std::unique_ptr<std::string>&& bytes)
       const bool first_sync = is_first_sync.exchange(false, std::memory_order_acq_rel);
       queue_data(SyncConfig::Type::Jobs, job_array, first_sync);
     }
+
+    // Game state queue snapshot — always replace the full snapshot so that
+    // completed jobs are cleared even when the UUID-based legacy emit skips them.
+    if (Config::Get().game_state_enabled) {
+      std::vector<game_state_export::QueueJobEntry> queue_jobs;
+      for (const auto& job : response.jobs()) {
+        game_state_export::QueueJobEntry e;
+        e.start_epoch    = job.has_starttime() ? static_cast<int64_t>(job.starttime().seconds()) : 0;
+        e.duration_secs  = job.duration();
+        e.reduction_secs = job.reductioninseconds();
+
+        switch (job.type()) {
+          case Digit::PrimeServer::Models::JOBTYPE_RESEARCH:
+            e.job_type = "research";
+            e.ref_id   = job.researchparams().projectid();
+            e.level    = job.researchparams().level();
+            break;
+          case Digit::PrimeServer::Models::JOBTYPE_STARBASECONSTRUCTION:
+            e.job_type = "build";
+            e.ref_id   = job.starbaseconstructionparams().moduleid();
+            e.level    = job.starbaseconstructionparams().level();
+            break;
+          case Digit::PrimeServer::Models::JOBTYPE_SHIPSCRAP:
+            e.job_type = "scrap";
+            e.ref_id   = job.scrapyardparams().hullid();
+            e.ref_id2  = job.scrapyardparams().shipid();
+            e.level    = job.scrapyardparams().level();
+            break;
+          case Digit::PrimeServer::Models::JOBTYPE_REPAIRFLEET:
+            e.job_type = "repair";
+            e.ref_id   = job.repairfleetparams().fleetid();
+            break;
+          default:
+            continue;
+        }
+        queue_jobs.push_back(std::move(e));
+      }
+      game_state_export::capture_queues(std::move(queue_jobs));
+    }
   } else {
     spdlog::error("Failed to parse jobs");
   }
@@ -1459,6 +1938,12 @@ void process_resources(const nlohmann::json& section)
   static std::atomic_bool                     is_first_sync{true};
 
   http::sync_log_trace("PROCESS", "resources", STR_FORMAT("Processing {} resources", section.size()));
+  spdlog::info("GameState: Processing {} resources", section.size());
+
+  // Capture for gamestate export
+  if (Config::Get().game_state_enabled) {
+    game_state_export::capture_resources(section);
+  }
 
   auto resource_array = json::array();
   {
@@ -1475,7 +1960,7 @@ void process_resources(const nlohmann::json& section)
     }
   }
 
-  if (!resource_array.empty()) {
+  if (!resource_array.empty() && Config::Get().sync_options.resources) {
     bool first_sync = is_first_sync.exchange(false, std::memory_order_acq_rel);
     queue_data(SyncConfig::Type::Resources, resource_array, first_sync);
   }
@@ -1488,6 +1973,13 @@ void process_starbase_modules(const nlohmann::json& section)
   static std::mutex                           module_states_mtx;
 
   http::sync_log_trace("PROCESS", "starbase modules", STR_FORMAT("Processing {} buildings", section.size()));
+  spdlog::info("GameState: Processing {} starbase modules (buildings)", section.size());
+
+  // Capture for gamestate export
+  if (Config::Get().game_state_enabled) {
+    game_state_export::capture_buildings(section);
+    spdlog::info("GameState: Captured {} buildings for export", section.size());
+  }
 
   auto starbase_array = json::array();
   {
@@ -1504,7 +1996,7 @@ void process_starbase_modules(const nlohmann::json& section)
     }
   }
 
-  if (!starbase_array.empty()) {
+  if (!starbase_array.empty() && Config::Get().sync_options.buildings) {
     queue_data(SyncConfig::Type::Buildings, starbase_array);
   }
 }
@@ -1517,6 +2009,13 @@ void process_ships(const nlohmann::json& section)
   static std::atomic_bool                       is_first_sync{true};
 
   http::sync_log_trace("PROCESS", "ships", STR_FORMAT("Processing {} ships", section.size()));
+  spdlog::info("GameState: Processing {} ships", section.size());
+
+  // Capture for gamestate export
+  if (Config::Get().game_state_enabled) {
+    game_state_export::capture_ships(section);
+    spdlog::info("GameState: Captured {} ships for export", section.size());
+  }
 
   auto ship_array = json::array();
   {
@@ -1543,7 +2042,7 @@ void process_ships(const nlohmann::json& section)
     }
   }
 
-  if (!ship_array.empty()) {
+  if (!ship_array.empty() && Config::Get().sync_options.ships) {
     bool first_sync = is_first_sync.exchange(false, std::memory_order_acq_rel);
     queue_data(SyncConfig::Type::Ships, ship_array, first_sync);
   }
@@ -1556,34 +2055,208 @@ void process_json(std::unique_ptr<std::string>&& bytes)
   try {
     const auto result = json::parse(bytes->begin(), bytes->end());
 
+    const bool export_gs = Config::Get().game_state_enabled;
+
+    // First pass: build ship_id -> status map from my_deployed_fleets so it is
+    // available when we process the fleets key (key order is not guaranteed).
+    struct FleetStatus { int32_t state = 0; int32_t system_id = 0; bool is_damaged = false; bool is_mining = false; };
+    std::unordered_map<int64_t, FleetStatus> fleet_status_by_ship;
+    if (export_gs && result.contains("my_deployed_fleets") &&
+        result["my_deployed_fleets"].is_object()) {
+      for (const auto& [fk, fv] : result["my_deployed_fleets"].items()) {
+        if (!fv.contains("ship_ids") || !fv["ship_ids"].is_array()) continue;
+        FleetStatus fs;
+        fs.state     = fv.value("state", 0);
+        fs.is_mining = fv.value("is_mining", false);
+        if (fv.contains("node_address") && fv["node_address"].contains("system") &&
+            !fv["node_address"]["system"].is_null()) {
+          fs.system_id = fv["node_address"]["system"].get<int32_t>();
+        }
+        for (const auto& sid_json : fv["ship_ids"]) {
+          int64_t sid = sid_json.get<int64_t>();
+          const std::string sid_str = std::to_string(sid);
+          fs.is_damaged = fv.contains("ship_dmg") && fv["ship_dmg"].contains(sid_str)
+                          && fv["ship_dmg"][sid_str].get<float>() > 0.f;
+          fleet_status_by_ship[sid] = fs;
+        }
+        // Also capture fleet_id -> ship_ids mapping so repair jobs referencing
+        // a fleet can be resolved to specific ships.
+        if (fv.contains("fleet_id")) {
+          try {
+            int64_t fleet_id = fv.value("fleet_id", 0LL);
+            if (fleet_id != 0) {
+              std::vector<int64_t> ship_ids;
+              for (const auto& sid_json : fv["ship_ids"]) ship_ids.push_back(sid_json.get<int64_t>());
+              game_state_export::capture_fleet_ships(fleet_id, ship_ids);
+            }
+          } catch (...) {
+            spdlog::warn("GameState: failed to capture fleet->ships mapping");
+          }
+        }
+      }
+
+      // When my_deployed_fleets arrives WITHOUT the fleets key (mid-session
+      // updates), push status changes into the existing cached drydock entries
+      // so exports reflect the current state without requiring a relog.
+      if (!result.contains("fleets") && !fleet_status_by_ship.empty()) {
+        std::unordered_map<int64_t, game_state_export::FleetStatusUpdate> updates;
+        for (const auto& [sid, fs] : fleet_status_by_ship) {
+          updates[sid] = {fs.state, fs.system_id, fs.is_damaged, fs.is_mining};
+        }
+        game_state_export::update_drydock_status(updates);
+      }
+    }
     for (const auto& [key, section] : result.items()) {
       if (key == "battle_result_headers") {
-        if (!Config::Get().sync_options.battlelogs) {
+        if (!Config::Get().sync_options.battlelogs && !Config::Get().game_state_enabled) {
           continue;
         }
 
         process_battle_headers(section);
 
       } else if (key == "resources") {
-        if (!Config::Get().sync_options.resources) {
+        if (!Config::Get().sync_options.resources && !export_gs) {
           continue;
         }
 
         process_resources(section);
 
       } else if (key == "starbase_modules") {
-        if (!Config::Get().sync_options.buildings) {
+        if (!Config::Get().sync_options.buildings && !export_gs) {
           continue;
         }
 
         process_starbase_modules(section);
 
       } else if (key == "ships") {
-        if (!Config::Get().sync_options.ships) {
+        if (!Config::Get().sync_options.ships && !export_gs) {
           continue;
         }
 
         process_ships(section);
+
+      } else if (key == "fleets") {
+        if (!export_gs) continue;
+
+        // Each entry has drydock_id (server-side) and ship_ids.
+        // Sort by drydock_id ascending and re-index 1-based so the export
+        // layer maps 1=A, 2=B ... 26=Z, 27=AA etc. Players can have more than 5.
+        if (section.is_object() && !section.empty()) {
+          std::vector<game_state_export::DrydockEntry> assignments;
+          for (const auto& [fleet_key, fleet] : section.items()) {
+            if (!fleet.contains("drydock_id") || !fleet.contains("ship_ids")) continue;
+            if (!fleet["ship_ids"].is_array() || fleet["ship_ids"].empty()) continue;
+
+            game_state_export::DrydockEntry e;
+            e.drydock_id = fleet["drydock_id"].get<int32_t>();
+            e.ship_id    = fleet["ship_ids"][0].get<int64_t>();
+            // Enrich with live status from my_deployed_fleets
+            auto status_it = fleet_status_by_ship.find(e.ship_id);
+            if (status_it != fleet_status_by_ship.end()) {
+              e.state      = status_it->second.state;
+              e.system_id  = status_it->second.system_id;
+              e.is_damaged = status_it->second.is_damaged;
+              e.is_mining  = status_it->second.is_mining;
+            }
+
+            assignments.push_back(e);
+          }
+          if (!assignments.empty()) {
+            // Sort by raw drydock_id so letters A-E follow server ordering
+            std::sort(assignments.begin(), assignments.end(),
+                      [](const auto& a, const auto& b) { return a.drydock_id < b.drydock_id; });
+            // Re-index to 1-based sequential IDs so the export layer maps 1=A, 2=B etc.
+            for (int i = 0; i < static_cast<int>(assignments.size()); ++i) {
+              assignments[i].drydock_id = i + 1;
+            }
+            spdlog::info("process_json fleets: captured {} drydock assignments", assignments.size());
+            game_state_export::capture_drydock_assignments(assignments);
+          }
+        }
+      } else if (key == "starbase") {
+        if (export_gs) {
+          try {
+            // home system ID
+            int32_t home_system_id = 0;
+            if (section.contains("location") && section["location"].is_object())
+              home_system_id = section["location"].value("system", 0);
+
+            // last_relocation: ISO-8601 UTC string -> epoch
+            int64_t last_relocation_epoch = 0;
+            const std::string reloc_str = section.value("last_relocation", "");
+            if (!reloc_str.empty()) {
+              std::tm tm{};
+              std::istringstream ss(reloc_str);
+              ss >> std::get_time(&tm, "%Y-%m-%dT%H:%M:%S");
+              if (!ss.fail())
+                last_relocation_epoch = static_cast<int64_t>(
+                  std::chrono::duration_cast<std::chrono::seconds>(
+                    std::chrono::system_clock::from_time_t(_mkgmtime(&tm))
+                      .time_since_epoch()).count());
+            }
+
+            game_state_export::capture_station_info(home_system_id, last_relocation_epoch, -1);
+
+            // Also update peace shield from the inline peace_shield field if present;
+            // this is the same data as my_shield_state but available earlier at login.
+            if (section.contains("peace_shield") && section["peace_shield"].is_object()) {
+              const auto& ps = section["peace_shield"];
+              const std::string expiry_str = ps.value("expiry_time", "");
+              if (!expiry_str.empty()) {
+                std::tm tm{};
+                std::istringstream ss(expiry_str);
+                ss >> std::get_time(&tm, "%Y-%m-%dT%H:%M:%S");
+                if (!ss.fail()) {
+                  int64_t expiry_epoch = static_cast<int64_t>(
+                    std::chrono::duration_cast<std::chrono::seconds>(
+                      std::chrono::system_clock::from_time_t(_mkgmtime(&tm))
+                        .time_since_epoch()).count());
+                  game_state_export::capture_peace_shield(expiry_epoch, -1);
+                }
+              }
+            } else if (section.value("state", -1) == 0) {
+              // state=0 with no peace_shield object — log only; don't reset.
+              // Mid-session starbase blob updates omit peace_shield even when a shield
+              // is active — treating absence as "no shield" causes false resets.
+              spdlog::debug("starbase blob: state=0 with no peace_shield (ignoring — not authoritative)");
+            }
+          } catch (const json::exception& je) {
+            spdlog::warn("GameState: starbase parse error: {}", je.what());
+          }
+        }
+      } else if (key == "my_deployed_fleets") {
+        // handled in first pass above — skip here
+      } else if (key == "alliance" || key == "alliance_members") {
+        // alliance profile / member roster — no useful game state to capture here
+      } else if (key == "alliance_container" || key == "my_shield_state") {
+        // Both keys carry peace shield state. alliance_container arrives at login;
+        // my_shield_state arrives on station navigation and as mid-session updates.
+        // Null/empty = no active shield. Object with expiry_time = shield active.
+        if (!export_gs) continue;
+        try {
+          if (section.is_null() || section.empty()) {
+            game_state_export::capture_peace_shield(0, -1);
+            spdlog::info("GameState: {}: no active shield", key);
+          } else {
+            const std::string expiry_str = section.value("expiry_time", "");
+            if (!expiry_str.empty()) {
+              std::tm tm{};
+              std::istringstream ss(expiry_str);
+              ss >> std::get_time(&tm, "%Y-%m-%dT%H:%M:%S");
+              int64_t expiry_epoch = 0;
+              if (!ss.fail()) {
+                expiry_epoch = static_cast<int64_t>(
+                  std::chrono::duration_cast<std::chrono::seconds>(
+                    std::chrono::system_clock::from_time_t(_mkgmtime(&tm))
+                      .time_since_epoch()).count());
+              }
+              game_state_export::capture_peace_shield(expiry_epoch, -1);
+              spdlog::info("GameState: {}: expiry={} epoch={}", key, expiry_str, expiry_epoch);
+            }
+          }
+        } catch (const json::exception& je) {
+          spdlog::warn("GameState: {} parse error: {}", key, je.what());
+        }
       }
     }
   } catch (const json::exception& e) {
@@ -1601,6 +2274,48 @@ void cache_player_names(std::unique_ptr<std::string>&& bytes)
 
     for (const auto& profile : response.userprofiles()) {
       names.insert_or_assign(profile.userid(), CachedPlayerData{.name=profile.name(), .alliance=profile.allianceid(), .expires_at=expires_at});
+    }
+
+    if (Config::Get().game_state_enabled) {
+      const auto& player_id = Config::Get().game_state_player_id;
+      if (player_id.empty()) {
+        // Log each unique userid once so the user can identify their own and set player_id in config
+        static std::unordered_set<std::string> logged_userids;
+        for (const auto& profile : response.userprofiles()) {
+          if (logged_userids.insert(profile.userid()).second) {
+            spdlog::info("GameState: UserProfile seen: userid={} name='{}' â€” set [gamestate_export] player_id in config to enable name/power export",
+                         profile.userid(), profile.name());
+          }
+        }
+      } else {
+        for (const auto& profile : response.userprofiles()) {
+          if (profile.userid() == player_id) {
+            nlohmann::json player_data;
+            player_data["name"]        = profile.name();
+            player_data["ops_level"]   = 0; // preserved from OPERATIONS building
+            player_data["power"]       = static_cast<int64_t>(profile.militarymight());
+            player_data["server"]      = http::headers::instanceId;
+            player_data["alliance_id"] = profile.allianceid();
+            player_data["alliance"]    = "";
+            game_state_export::capture_player_data(player_data);
+            spdlog::info("GameState: Captured own player name={}, power={}", profile.name(), profile.militarymight());
+            // Try to resolve alliance name immediately from cache (if AllianceProfiles
+            // already arrived this session); cache_alliance_names handles the reverse order
+            {
+              std::scoped_lock lk(alliance_data_cache_mtx);
+              auto it = alliance_data_cache.find(profile.allianceid());
+              if (it != alliance_data_cache.end()) {
+                spdlog::info("GameState: Resolved alliance from cache: '{}' [{}]",
+                             it->second.name, it->second.tag);
+                game_state_export::capture_player_alliance(
+                  it->second.name, it->second.tag,
+                  it->second.level, it->second.member_count, it->second.power);
+              }
+            }
+            break;
+          }
+        }
+      }
     }
 
     {
@@ -1622,13 +2337,40 @@ void cache_alliance_names(std::unique_ptr<std::string>&& bytes)
 
     for (const auto& alliance : response.allianceprofiles()) {
       if (alliance.id() > 0) {
-        names.insert_or_assign(alliance.id(), CachedAllianceData{.name=alliance.name(), .tag=alliance.tag(), .expires_at=expires_at});
+        names.insert_or_assign(alliance.id(), CachedAllianceData{
+          .name         = alliance.name(),
+          .tag          = alliance.tag(),
+          .level        = alliance.level(),
+          .member_count = alliance.metadata().membercount(),
+          .power        = static_cast<int64_t>(alliance.metadata().militarymight()),
+          .expires_at   = expires_at
+        });
       }
     }
 
     {
       std::scoped_lock lk(alliance_data_cache_mtx);
       alliance_data_cache.insert(names.begin(), names.end());
+    }
+
+    // Enrich captured player data with alliance name now that we have it
+    if (Config::Get().game_state_enabled) {
+      const auto& player_id = Config::Get().game_state_player_id;
+      if (!player_id.empty()) {
+        std::scoped_lock lk(player_data_cache_mtx);
+        auto player_it = player_data_cache.find(player_id);
+        if (player_it != player_data_cache.end()) {
+          auto alliance_it = names.find(player_it->second.alliance);
+          if (alliance_it != names.end()) {
+            spdlog::info("GameState: Enriching alliance for player={} -> alliance='{}' [{}]",
+                         player_id, alliance_it->second.name, alliance_it->second.tag);
+            game_state_export::capture_player_alliance(
+              alliance_it->second.name, alliance_it->second.tag,
+              alliance_it->second.level, alliance_it->second.member_count,
+              alliance_it->second.power);
+          }
+        }
+      }
     }
 
   } else {
@@ -1775,7 +2517,9 @@ void ship_combat_log_data()
       http::sync_log_trace("PROCESS", "combat log", STR_FORMAT("Fetching combat log for battle {}", journal_id));
 
       const json journals_body{{"journal_id", journal_id}};
-      auto       battle_log = http::get_scopely_data("/journals/get", journals_body.dump());
+      auto       battle_log = (Config::Get().sync_targets.empty() && Config::Get().game_state_enabled)
+                                  ? http::get_game_server_data("/journals/get", journals_body.dump())
+                                  : http::get_scopely_data("/journals/get", journals_body.dump());
       json       battle_json;
 
       if (battle_log.empty()) {
@@ -1916,6 +2660,35 @@ void HandleEntityGroup(EntityGroup* entity_group)
   const auto byteCount = static_cast<size_t>(entity_group->Group->Length);
   const auto *bytesPtr = reinterpret_cast<const char*>(entity_group->Group->bytes->m_Items);
 
+  // Deduplicate: the same entity group can arrive via multiple hooks in the same pipeline
+  // pass (e.g. ProcessResultInternal then ParseBinaryObjectsHelper for the same response).
+  // Skip processing if we have already handled identical bytes for this entity type.
+  {
+    // FNV-1a 64-bit hash of the payload bytes
+    uint64_t hash = 14695981039346656037ULL;
+    for (size_t i = 0; i < byteCount; ++i) {
+      hash ^= static_cast<uint8_t>(bytesPtr[i]);
+      hash *= 1099511628211ULL;
+    }
+
+    static std::mutex                              dedup_mutex;
+    static std::unordered_map<int32_t, uint64_t>  last_hash;
+    const int32_t type_key = static_cast<int32_t>(entity_group->Type_);
+    {
+      std::scoped_lock lk(dedup_mutex);
+      auto [it, inserted] = last_hash.emplace(type_key, hash);
+      if (!inserted) {
+        if (it->second == hash) {
+          spdlog::debug("HandleEntityGroup: skipping duplicate type={} bytes={}", type_key, byteCount);
+          return;
+        }
+        it->second = hash;
+      }
+    }
+  }
+
+  spdlog::debug("HandleEntityGroup called with type: {}", static_cast<int>(entity_group->Type_));
+
   // Helper to run processing asynchronously with exception handling
   auto submit_async = [bytesPtr, byteCount]<typename T>(T&& func) {
     auto payload = std::make_unique<std::string>(bytesPtr, byteCount);
@@ -1939,27 +2712,27 @@ void HandleEntityGroup(EntityGroup* entity_group)
 
   switch (entity_group->Type_) {
     case EntityGroup::Type::ActiveMissions:
-      if (Config::Get().sync_options.missions) {
+      if (Config::Get().sync_options.missions || Config::Get().game_state_enabled) {
         submit_async(process_active_missions);
       }
       break;
     case EntityGroup::Type::CompletedMissions:
-      if (Config::Get().sync_options.missions) {
+      if (Config::Get().sync_options.missions || Config::Get().game_state_enabled) {
         submit_async(process_completed_missions);
       }
       break;
     case EntityGroup::Type::PlayerInventories:
-      if (Config::Get().sync_options.inventory) {
+      if (Config::Get().sync_options.inventory || Config::Get().game_state_enabled) {
         submit_async(process_player_inventories);
       }
       break;
     case EntityGroup::Type::ResearchTreesState:
-      if (Config::Get().sync_options.research) {
+      if (Config::Get().sync_options.research || Config::Get().game_state_enabled) {
         submit_async(process_research_trees_state);
       }
       break;
     case EntityGroup::Type::Officers:
-      if (Config::Get().sync_options.officer) {
+      if (Config::Get().sync_options.officer || Config::Get().game_state_enabled) {
         submit_async(process_officers);
       }
       break;
@@ -1969,33 +2742,78 @@ void HandleEntityGroup(EntityGroup* entity_group)
       }
       break;
     case EntityGroup::Type::ActiveOfficerTraits:
-      if (Config::Get().sync_options.traits) {
+      if (Config::Get().sync_options.traits || Config::Get().game_state_enabled) {
         submit_async(process_active_officer_traits);
       }
       break;
     case EntityGroup::Type::Json:
-      if (const auto& o = Config::Get().sync_options; o.battlelogs || o.resources || o.ships || o.buildings) {
+      if (const auto& o = Config::Get().sync_options; o.battlelogs || o.resources || o.ships || o.buildings || Config::Get().game_state_enabled) {
         submit_async(process_json);
       }
       break;
     case EntityGroup::Type::Jobs:
-      if (Config::Get().sync_options.jobs) {
+      if (Config::Get().sync_options.jobs || Config::Get().game_state_enabled) {
         submit_async(process_jobs);
       }
       break;
     case EntityGroup::Type::GlobalActiveBuffs:
-      if (Config::Get().sync_options.buffs) {
+      if (Config::Get().sync_options.buffs || Config::Get().game_state_enabled) {
         submit_async(process_global_active_buffs);
       }
       break;
+    case EntityGroup::Type::LoyaltySpecs:
+      if (Config::Get().game_state_enabled) {
+        submit_async(process_loyalty_specs);
+      }
+      break;
     case EntityGroup::Type::EntitySlots:
-      if (Config::Get().sync_options.slots) {
+      if (Config::Get().sync_options.slots || Config::Get().game_state_enabled) {
         submit_async(process_entity_slots);
       }
       break;
     case EntityGroup::Type::EntitySlotsData:
-      if (Config::Get().sync_options.slots) {
+      if (Config::Get().sync_options.slots || Config::Get().game_state_enabled) {
         submit_async(process_entity_slots_data);
+      }
+      break;
+    case EntityGroup::Type::StarbaseDetailedScan:
+      if (Config::Get().game_state_enabled) {
+        submit_async(process_starbase_detailed_scan);
+      }
+      break;
+    case EntityGroup::Type::FactionSpecs:
+      if (Config::Get().game_state_enabled) {
+        submit_async(process_faction_specs);
+      }
+      break;
+    case EntityGroup::Type::BlueprintSpecs:
+      if (Config::Get().game_state_enabled) {
+        submit_async(process_blueprint_specs);
+      }
+      break;
+    case EntityGroup::Type::ResearchSpecs:
+      if (Config::Get().game_state_enabled) {
+        submit_async(process_research_specs);
+      }
+      break;
+    case EntityGroup::Type::ConsumableSpecs:
+      if (Config::Get().game_state_enabled) {
+        submit_async(process_consumable_specs);
+      }
+      break;
+    case EntityGroup::Type::ShipBonusBuffSpecs:
+      if (Config::Get().game_state_enabled) {
+        submit_async(process_ship_bonus_buff_specs);
+      }
+      break;
+    case EntityGroup::Type::BaseShipTierSpecs:
+      if (Config::Get().game_state_enabled) {
+        submit_async(process_base_ship_tier_specs);
+      }
+      break;
+    case EntityGroup::Type::ShipTierSpecs:
+      if (Config::Get().game_state_enabled) {
+        submit_async(process_ship_tier_specs);
       }
       break;
     case EntityGroup::Type::AllianceGetGameProperties:
@@ -2003,14 +2821,35 @@ void HandleEntityGroup(EntityGroup* entity_group)
         submit_async(process_alliance_games_props);
       }
       break;
+    case EntityGroup::Type::TerritoryStaticData:
+      if (Config::Get().game_state_enabled) {
+        submit_async(process_territory_static_data);
+      }
+      break;
+    case EntityGroup::Type::TerritoryAllianceSlots:
+      if (Config::Get().game_state_enabled) {
+        submit_async(process_territory_alliance_slots);
+      }
+      break;
     case EntityGroup::Type::UserProfiles:
-      if (Config::Get().sync_options.battlelogs) {
+      if (Config::Get().sync_options.battlelogs || Config::Get().game_state_enabled) {
         submit_async(cache_player_names);
       }
       break;
     case EntityGroup::Type::AllianceProfiles:
-      if (Config::Get().sync_options.battlelogs) {
+      if (Config::Get().sync_options.battlelogs || Config::Get().game_state_enabled) {
         submit_async(cache_alliance_names);
+      }
+      break;
+    case EntityGroup::Type::AllianceStarbaseConfig:
+      if (Config::Get().game_state_enabled) {
+        submit_async([](std::unique_ptr<std::string>&& bytes) {
+          if (auto r = Digit::PrimeServer::Models::StaticSyncAllianceStarbaseConfResponse();
+              r.ParseFromString(*bytes)) {
+            const int32_t system_id = static_cast<int32_t>(r.alliancestarbaseconfig().originsystemid());
+            game_state_export::capture_alliance_starbase_system(system_id);
+          }
+        });
       }
       break;
     default:

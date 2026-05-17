@@ -1,0 +1,48 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>STFC Gamestate Viewer (LCARS)</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <div class="lcars-top">
+    <div class="lcars-left">STFC</div>
+    <div class="lcars-center">Gamestate Viewer</div>
+    <div class="lcars-right">LCARS</div>
+  </div>
+
+  <main class="container">
+    <section class="controls">
+      <label for="rawBase">Gist raw base URL</label>
+      <input id="rawBase" placeholder="https://gist.githubusercontent.com/USERNAME/GISTID/raw" />
+      <div class="row">
+        <button id="loadBtn">Load</button>
+        <button id="exampleBtn">Use example gist</button>
+      </div>
+      <div id="status" class="status">Ready</div>
+    </section>
+
+    <section id="summary" class="panel">
+      <h2>Player Summary</h2>
+      <div id="playerSummary">No data loaded</div>
+    </section>
+
+    <section id="details" class="panel">
+      <h2>Details</h2>
+      <div class="tabs">
+        <button data-tab="ships" class="active">Ships</button>
+        <button data-tab="officers">Officers</button>
+        <button data-tab="research">Research</button>
+        <button data-tab="resources">Resources</button>
+      </div>
+      <div id="tabContent">Choose a tab</div>
+    </section>
+  </main>
+
+  <footer class="lcars-bottom">Built-in LCARS skin • Lightweight viewer</footer>
+</body>
+</html>
+
