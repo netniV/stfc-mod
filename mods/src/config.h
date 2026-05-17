@@ -103,6 +103,38 @@ public:
   std::string token;
 };
 
+class GitHubSyncConfig
+{
+public:
+  bool        enabled  = false;
+  std::string gist_id;
+  std::string username;  // GitHub username â€” auto-populated from API response, or set manually
+  std::string token;
+  std::string filename_player    = "stfc_player.json";
+  std::string filename_ships     = "stfc_ships.json";
+  std::string filename_resources = "stfc_resources.json";
+  std::string filename_research   = "stfc_research.json";
+  std::string filename_officers   = "stfc_officers.json";
+  std::string filename_missions   = "stfc_missions.json";
+  std::string filename_faction    = "stfc_faction.json";
+  std::string filename_buffs      = "stfc_buffs.json";
+  std::string filename_territory  = "stfc_territory.json";
+  std::string filename_buildings  = "stfc_buildings.json";
+  std::string filename_battlelog  = "stfc_battlelog.json";
+  std::string filename_summary    = "stfc_summary.json";
+  std::string filename_manifest   = "stfc_manifest.json";
+};
+
+class ShieldAlertsConfig
+{
+public:
+  bool enabled                      = false;
+  int  poll_interval_seconds        = 60;   // how often to evaluate alert conditions
+  int  reminder_interval_minutes    = 30;   // minimum gap between repeated warnings
+  // Peace shield expiry thresholds (hours before expiry to warn); empty = no threshold warnings
+  std::vector<int> shield_warn_hours = {4, 2, 1};
+};
+
 class Config final
 {
 public:
@@ -186,6 +218,20 @@ public:
   SyncConfig sync_options;
 
   std::map<std::string, SyncTargetConfig> sync_targets;
+
+  // Game state export settings
+  bool        game_state_enabled;
+  int         game_state_interval;        // seconds, 0 = manual/shutdown only
+  std::string game_state_path;            // empty = game directory
+  bool        game_state_on_startup;      // export immediately on mod load
+  std::string game_state_player_id;       // player userid for accurate player data capture
+  bool        game_state_battle_log;      // enable battle log CSV watcher (default: false)
+  GitHubSyncConfig     game_state_github;        // GitHub Gist sync config
+  ShieldAlertsConfig   shield_alerts;            // peace shield alert settings
+  // Per-type opt-out flags for game state export. Derived from [sync] flags:
+  // true by default when game_state_enabled=true; false only if explicitly set
+  // to false in [sync]. Completely separate from sync_options (legacy targets).
+  SyncConfig game_state_options;
 
   bool installUiScaleHooks;
   bool installZoomHooks;

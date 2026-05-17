@@ -1,0 +1,664 @@
+{
+    "buildings": [
+        {
+            "id": "0",
+            "key": "starbase_module_0",
+            "text": "OPERATIONS",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "1",
+            "key": "starbase_module_1",
+            "text": "PARSTEEL GENERATOR A",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "2",
+            "key": "starbase_module_2",
+            "text": "PARSTEEL GENERATOR B",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "3",
+            "key": "starbase_module_3",
+            "text": "PARSTEEL GENERATOR C",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "50",
+            "key": "starbase_module_50",
+            "text": "PARSTEEL GENERATOR D",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "51",
+            "key": "starbase_module_51",
+            "text": "PARSTEEL GENERATOR E",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "52",
+            "key": "starbase_module_52",
+            "text": "PARSTEEL GENERATOR F",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "53",
+            "key": "starbase_module_53",
+            "text": "PARSTEEL GENERATOR G",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "54",
+            "key": "starbase_module_54",
+            "text": "PARSTEEL GENERATOR H",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "4",
+            "key": "starbase_module_4",
+            "text": "PARSTEEL WAREHOUSE",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "55",
+            "key": "starbase_module_55",
+            "text": "PARSTEEL VAULT",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "5",
+            "key": "starbase_module_5",
+            "text": "TRITANIUM GENERATOR A",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "6",
+            "key": "starbase_module_6",
+            "text": "TRITANIUM GENERATOR B",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "7",
+            "key": "starbase_module_7",
+            "text": "TRITANIUM GENERATOR C",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "56",
+            "key": "starbase_module_56",
+            "text": "TRITANIUM GENERATOR D",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "57",
+            "key": "starbase_module_57",
+            "text": "TRITANIUM GENERATOR E",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "58",
+            "key": "starbase_module_58",
+            "text": "TRITANIUM GENERATOR F",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "59",
+            "key": "starbase_module_59",
+            "text": "TRITANIUM GENERATOR G",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "60",
+            "key": "starbase_module_60",
+            "text": "TRITANIUM GENERATOR H",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "8",
+            "key": "starbase_module_8",
+            "text": "TRITANIUM WAREHOUSE",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "61",
+            "key": "starbase_module_61",
+            "text": "TRITANIUM VAULT",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "9",
+            "key": "starbase_module_9",
+            "text": "DILITHIUM GENERATOR A",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "10",
+            "key": "starbase_module_10",
+            "text": "DILITHIUM GENERATOR B",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "11",
+            "key": "starbase_module_11",
+            "text": "DILITHIUM GENERATOR C",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "62",
+            "key": "starbase_module_62",
+            "text": "DILITHIUM GENERATOR D",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "63",
+            "key": "starbase_module_63",
+            "text": "DILITHIUM GENERATOR E",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "64",
+            "key": "starbase_module_64",
+            "text": "DILITHIUM GENERATOR F",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "65",
+            "key": "starbase_module_65",
+            "text": "DILITHIUM GENERATOR G",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "66",
+            "key": "starbase_module_66",
+            "text": "DILITHIUM GENERATOR H",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "12",
+            "key": "starbase_module_12",
+            "text": "DILITHIUM WAREHOUSE",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "67",
+            "key": "starbase_module_67",
+            "text": "DILITHIUM VAULT",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "15",
+            "key": "starbase_module_15",
+            "text": "SHIPYARD",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "41",
+            "key": "starbase_module_41",
+            "text": "SCRAPYARD",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "16",
+            "key": "starbase_module_16",
+            "text": "SHIP HANGAR",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "17",
+            "key": "starbase_module_17",
+            "text": "DRYDOCK A",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "18",
+            "key": "starbase_module_18",
+            "text": "DRYDOCK B",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "19",
+            "key": "starbase_module_19",
+            "text": "DRYDOCK C",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "20",
+            "key": "starbase_module_20",
+            "text": "DRYDOCK D",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "21",
+            "key": "starbase_module_21",
+            "text": "DRYDOCK E",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "22",
+            "key": "starbase_module_22",
+            "text": "DRYDOCK F",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "44",
+            "key": "starbase_module_44",
+            "text": "DRYDOCK G",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "45",
+            "key": "starbase_module_45",
+            "text": "DRYDOCK H",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "24",
+            "key": "starbase_module_24",
+            "text": "ACADEMY",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "25",
+            "key": "starbase_module_25",
+            "text": "R&D DEPARTMENT",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "26",
+            "key": "starbase_module_26",
+            "text": "ASTRONAUTICS STUDIO",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "27",
+            "key": "starbase_module_27",
+            "text": "ARMORY",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "43",
+            "key": "starbase_module_43",
+            "text": "FOUNDRY",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "29",
+            "key": "starbase_module_29",
+            "text": "SCIENCE LAB",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "14",
+            "key": "starbase_module_14",
+            "text": "ENGINE TECHNOLOGY LAB",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "28",
+            "key": "starbase_module_28",
+            "text": "DEFENSE TECHNOLOGIES",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "34",
+            "key": "starbase_module_34",
+            "text": "DEFENSE PLATFORM A",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "35",
+            "key": "starbase_module_35",
+            "text": "DEFENSE PLATFORM B",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "36",
+            "key": "starbase_module_36",
+            "text": "DEFENSE PLATFORM C",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "37",
+            "key": "starbase_module_37",
+            "text": "DEFENSE PLATFORM D",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "38",
+            "key": "starbase_module_38",
+            "text": "DEFENSE PLATFORM E",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "39",
+            "key": "starbase_module_39",
+            "text": "DEFENSE PLATFORM F",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "31",
+            "key": "starbase_module_31",
+            "text": "REFINERY",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "32",
+            "key": "starbase_module_32",
+            "text": "SENSOR STATION",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "30",
+            "key": "starbase_module_30",
+            "text": "SHIELD GENERATOR",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "23",
+            "key": "starbase_module_23",
+            "text": "ARMADA CONTROL CENTER",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "13",
+            "key": "starbase_module_13",
+            "text": "TREASURY",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "33",
+            "key": "starbase_module_33",
+            "text": "SHUTTLE BAY",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "40",
+            "key": "starbase_module_40",
+            "text": "EXOCOMP FACTORY",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "69",
+            "key": "starbase_module_69",
+            "text": "HOLODECK",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "70",
+            "key": "starbase_module_70",
+            "text": "SUBSPACE RELAY",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "71",
+            "key": "starbase_module_71",
+            "text": "COMMAND CENTER",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "72",
+            "key": "starbase_module_72",
+            "text": "MESS HALL",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "73",
+            "key": "starbase_module_73",
+            "text": "ARTIFACT GALLERY",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "75",
+            "key": "starbase_module_75",
+            "text": "COURT OF Q",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "77",
+            "key": "starbase_module_77",
+            "text": "THE FACADE",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "76",
+            "key": "starbase_module_76",
+            "text": "BATTLE SIMULATOR",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "78",
+            "key": "starbase_module_78",
+            "text": "The War Room",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "79",
+            "key": "starbase_module_79",
+            "text": "DISTRICT 56",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "80",
+            "key": "starbase_module_80",
+            "text": "THE NOVA SQUADRON",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "81",
+            "key": "starbase_module_81",
+            "text": "INDEPENDENT ARCHIVES",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "82",
+            "key": "starbase_module_82",
+            "text": "DTI HEADQUARTERS",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "83",
+            "key": "starbase_module_83",
+            "text": "TRANSOGEN FORGE",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "84",
+            "key": "starbase_module_84",
+            "text": "RECON LOCUS",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "85",
+            "key": "starbase_module_85",
+            "text": "OUTPOST CONTROL CENTER",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "86",
+            "key": "starbase_module_86",
+            "text": "SIGNAL OBSERVATORY",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "88",
+            "key": "starbase_module_88",
+            "text": "THE WARP DIVE BAR",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "1000",
+            "key": "starbase_module_1000",
+            "text": "ASSEMBLY CHAMBERS",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "1001",
+            "key": "starbase_module_1001",
+            "text": "COLLISIONAL PLASMA HARVESTER A",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "1002",
+            "key": "starbase_module_1002",
+            "text": "COLLISIONAL PLASMA HARVESTER B",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "1003",
+            "key": "starbase_module_1003",
+            "text": "COLLISIONAL PLASMA HARVESTER C",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "1004",
+            "key": "starbase_module_1004",
+            "text": "COLLISIONAL PLASMA VAULT A",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "1005",
+            "key": "starbase_module_1005",
+            "text": "COLLISIONAL PLASMA VAULT B",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "1006",
+            "key": "starbase_module_1006",
+            "text": "MAGNETIC PLASMA HARVESTER A",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "1007",
+            "key": "starbase_module_1007",
+            "text": "MAGNETIC PLASMA HARVESTER B",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "1008",
+            "key": "starbase_module_1008",
+            "text": "MAGNETIC PLASMA HARVESTER C",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "1009",
+            "key": "starbase_module_1009",
+            "text": "MAGNETIC PLASMA VAULT A",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "1010",
+            "key": "starbase_module_1010",
+            "text": "MAGNETIC PLASMA VAULT B",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "1011",
+            "key": "starbase_module_1011",
+            "text": "ACTIVE PLASMA HARVESTER A",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "1012",
+            "key": "starbase_module_1012",
+            "text": "ACTIVE PLASMA HARVESTER B",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "1013",
+            "key": "starbase_module_1013",
+            "text": "ACTIVE PLASMA HARVESTER C",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "1014",
+            "key": "starbase_module_1014",
+            "text": "ACTIVE PLASMA VAULT A",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "1015",
+            "key": "starbase_module_1015",
+            "text": "ACTIVE PLASMA VAULT B",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "1016",
+            "key": "starbase_module_1016",
+            "text": "PLASMA PROCESSOR",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "1017",
+            "key": "starbase_module_1017",
+            "text": "DIPLOMATIC RELATIONS",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "1018",
+            "key": "starbase_module_1018",
+            "text": "TACTICAL DECK",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "1019",
+            "key": "starbase_module_1019",
+            "text": "SALVAGE YARD",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "1020",
+            "key": "starbase_module_1020",
+            "text": "COMMAND CONTROL",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "1021",
+            "key": "starbase_module_1021",
+            "text": "SHIELD MODULATOR",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "1022",
+            "key": "starbase_module_1022",
+            "text": "EPS DISTRIBUTOR A",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "1023",
+            "key": "starbase_module_1023",
+            "text": "EPS DISTRIBUTOR B",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "1024",
+            "key": "starbase_module_1024",
+            "text": "EPS DISTRIBUTOR C",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "1025",
+            "key": "starbase_module_1025",
+            "text": "EXOGRAPHIC TARGETING ARRAY A",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "1026",
+            "key": "starbase_module_1026",
+            "text": "EXOGRAPHIC TARGETING ARRAY B",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "1027",
+            "key": "starbase_module_1027",
+            "text": "EXOGRAPHIC TARGETING ARRAY C",
+            "modified": "2026-03-31 08:06:21"
+        },
+        {
+            "id": "1028",
+            "key": "starbase_module_1028",
+            "text": "TACHYON DETECTOR",
+            "modified": "2026-03-31 08:06:21"
+        }
+    ]
+}
