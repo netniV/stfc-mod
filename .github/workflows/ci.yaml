@@ -70,6 +70,12 @@ jobs:
       - name: Build (x86)
         run: xmake -y
 
+      - name: Rebuild launcher assets
+        run: |
+          xmake f -p macosx -a "arm64" -m release -y --target_minver=13.5
+          xmake -r -y macOSLauncher
+          test -f build/macosx/arm64/release/macOSLauncher.app/Contents/Resources/Assets.car
+
       - name: Create App Bundle
         run: |
           lipo -create build/macosx/arm64/release/macOSLauncher build/macosx/x86_64/release/macOSLauncher -output build/macosx/arm64/release/macOSLauncher.app/Contents/MacOS/macOSLauncher
@@ -78,6 +84,7 @@ jobs:
           cp assets/launcher.icns build/macosx/arm64/release/macOSLauncher.app/Contents/Resources/
           cp macos-launcher/src/Info.plist build/macosx/arm64/release/macOSLauncher.app/Contents/
           mv build/macosx/arm64/release/macOSLauncher.app build/macosx/arm64/release/STFC\ Community\ Mod.app
+          test -f build/macosx/arm64/release/STFC\ Community\ Mod.app/Contents/Resources/Assets.car
 
       - name: Sign App Bundle
         run: codesign --force --verify --verbose --deep --sign "-" build/macosx/arm64/release/STFC\ Community\ Mod.app

@@ -30,9 +30,7 @@ do
         add_files("src/*.mm")
         -- Link Cocoa framework
         add_frameworks("Cocoa")
-    elseif is_plat("linux") then
-        add_packages("x11")
     end
 
-    set_policy("build.optimization.lto", true)
+    set_policy("build.optimization.lto", false)
 end

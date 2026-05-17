@@ -70,67 +70,63 @@ struct ActionView: View, XSollaUpdaterDelegate {
     GeometryReader { geo in
       Grid {
         GridRow {
+          Button {
+            withAnimation {
+              openSettings()
+            }
+          } label: {
+            commonButton(text: "Open Settings")
+              .foregroundColor(.lcarViolet)
+          }.buttonStyle(PlainButtonStyle())
+
           if gameInstalled {
-            Button {
-              withAnimation {
-                openSettings()
-              }
-            } label: {
-              commonButton(text: "Open Settings")
-                .foregroundColor(.lcarViolet)
-            }.buttonStyle(PlainButtonStyle())
-            Button {
-              withAnimation {
-                if gameUpdateAvailable && !updating {
-                  Task {
-                    do {
-                      updating = true
-                      updateAction = "Starting"
-                      updateSubAction = "Planning"
-                      try await gameUpdater.updateGame(delegate: self)
-                    } catch {
-                      logger.error("Error updating game: \(error.localizedDescription)")
+            Group {
+              Button {
+                withAnimation {
+                  if gameUpdateAvailable && !updating {
+                    Task {
+                      do {
+                        updating = true
+                        updateAction = "Starting"
+                        updateSubAction = "Planning"
+                        try await gameUpdater.updateGame(delegate: self)
+                      } catch {
+                        logger.error("Error updating game: \(error.localizedDescription)")
+                      }
+                      updating = false
+                      gameVersion = gameUpdater.getInstalledGameVersion()
+                      gameUpdateAvailable = await gameUpdater.checkForGameUpdate()
                     }
-                    updating = false
-                    gameVersion = gameUpdater.getInstalledGameVersion()
-                    gameUpdateAvailable = await gameUpdater.checkForGameUpdate()
                   }
                 }
-              }
-            } label: {
-              if gameUpdateAvailable {
-                commonButton(text: "Update Game!")
-                  .foregroundColor(.lcarTan)
-              } else {
-                commonButton()
-                  .foregroundColor(.lcarTan)
-              }
-            }.buttonStyle(PlainButtonStyle())
-            Button {
-              withAnimation {
-                launchGame()
-              }
-            } label: {
-              commonButton(text: "Engage!")
-                .foregroundColor(.lcarOrange)
-            }.buttonStyle(PlainButtonStyle())
+              } label: {
+                if gameUpdateAvailable {
+                  commonButton(text: "Update Game!")
+                    .foregroundColor(.lcarTan)
+                } else {
+                  commonButton()
+                    .foregroundColor(.lcarTan)
+                }
+              }.buttonStyle(PlainButtonStyle())
+              Button {
+                withAnimation {
+                  launchGame()
+                }
+              } label: {
+                commonButton(text: "Engage!")
+                  .foregroundColor(.lcarOrange)
+              }.buttonStyle(PlainButtonStyle())
+            }
+            .opacity(updating || gameRunning ? 0.5 : 1.0)
+            .allowsHitTesting(!updating && !gameRunning)
           } else {
             Text("Game not installed")
               .font(.custom("HelveticaNeue-CondensedBold", size: 40))
               .foregroundColor(.lcarTan)
               .offset(x: -45)
-            //Button {
-            //  withAnimation {
-            //  }
-            //} label: {
-            //  commonButton(text: "Install Game!")
-            //    .foregroundColor(.lcarTan)
-            //}.buttonStyle(PlainButtonStyle())
           }
 
         }
-        .opacity(updating || gameRunning ? 0.5 : 1.0)
-        .allowsHitTesting(!updating && !gameRunning)
       }
       .frame(width: geo.size.width, height: 150)
       .offset(x: 85, y: 20)
