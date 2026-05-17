@@ -6,12 +6,13 @@ import os
 /// Logger for entitlement management operations
 private let logger = Logger(subsystem: "com.stfcmod.startrekpatch", category: "entitlements")
 
-/// Entitlements required to enable the loader for STFC
+/// Entitlements required to enable the loader for STFC.
+/// The game ships with these from Scopely's Developer ID signature, so normally
+/// no re-signing is needed — we just verify they're present.
 let loaderEntitlements: [String: Any] = [
     "com.apple.security.cs.allow-dyld-environment-variables": true,
     "com.apple.security.cs.allow-unsigned-executable-memory": true,
     "com.apple.security.cs.disable-library-validation": true,
-    "com.apple.security.get-task-allow": true
 ]
 
 /// Errors that can occur during entitlement management
@@ -32,7 +33,9 @@ enum EntitlementError: Error {
     }
 }
 
-/// Ensures the game has the required loader entitlements, applying them if necessary
+/// Ensures the game has the required loader entitlements, applying them only if missing.
+/// The game's original Scopely signature already includes the entitlements we need,
+/// so this typically just verifies and returns without modifying anything.
 /// - Parameter signingIdentity: Optional signing identity (defaults to "-" for ad-hoc signing)
 /// - Throws: EntitlementError if unable to find, verify, or apply entitlements
 func ensureGameHasLoaderEntitlements(signingIdentity: String = "-") throws {
@@ -41,25 +44,27 @@ func ensureGameHasLoaderEntitlements(signingIdentity: String = "-") throws {
         throw EntitlementError.gamePathNotFound
     }
 
+    // Always verify entitlements first — even after a game update, the new binary
+    // typically ships with the entitlements we need from Scopely's signature.
+    if checkEntitlements(appPath: gamePath, expectedEntitlements: loaderEntitlements) {
+        logger.info("Game already has the required loader entitlements, no re-signing needed")
+        // Clear any pending re-application flag since entitlements are valid
+        if UserDefaults.standard.bool(forKey: "forceEntitlementReapplication") {
+            UserDefaults.standard.set(false, forKey: "forceEntitlementReapplication")
+        }
+        return
+    }
+
+    // Entitlements are missing — fall back to re-signing.
+    // This should be rare; it means the game shipped without the expected entitlements.
+    logger.warning("Game is missing required loader entitlements, re-signing is needed")
+
     // Check if the game is currently running
     let gameAppPath = (gamePath as NSString).deletingLastPathComponent
         .replacingOccurrences(of: "/Contents/MacOS", with: "")
     if isGameRunning(bundlePath: gameAppPath) {
         logger.error("Game is currently running, cannot modify signature")
         throw EntitlementError.entitlementApplicationFailed
-    }
-
-    // Check if we need to force re-application (e.g., after a game update)
-    let forceReapply = UserDefaults.standard.bool(forKey: "forceEntitlementReapplication")
-    
-    // Check if the game already has the correct entitlements
-    if !forceReapply && checkEntitlements(appPath: gamePath, expectedEntitlements: loaderEntitlements) {
-        logger.info("Game already has the required loader entitlements")
-        return
-    }
-    
-    if forceReapply {
-        logger.info("Forcing entitlement re-application after game update")
     }
 
     // Request user to grant access to the game bundle via file picker
@@ -103,12 +108,7 @@ func ensureGameHasLoaderEntitlements(signingIdentity: String = "-") throws {
     }
 
     logger.info("Successfully applied loader entitlements to the game")
-    
-    // Clear the force re-application flag now that signing is complete
-    if forceReapply {
-        logger.info("Clearing entitlement re-application flag")
-        UserDefaults.standard.set(false, forKey: "forceEntitlementReapplication")
-    }
+    UserDefaults.standard.set(false, forKey: "forceEntitlementReapplication")
 }
 
 /// Fetches the path to the Star Trek Fleet Command game executable

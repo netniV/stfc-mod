@@ -2,14 +2,15 @@
 
 ## IMPORTANT NOTE:
 
-We have finally released v1.0.0 of the mod, which replaces the previous 0.6.0 version (previously known as Rippers mod).  All previous full releases
-will fail to work wtih the latest STFC game client.  If you have issues, please check with our discord team and ensure that you have the latest 
-release installed.
+The latest full release will always be available on the GitHub site. However, for interim patches, please see the #info channel
+on the [STFC Community Mod](https://discord.gg/PrpHgs7Vjs) discord server. This channel will always contain any hotfixes that
+enable the game to work even if the full release does not.
 
 ## BACK TO THE REGULAR STUFF:
+
 <p align="center">
     <img src="https://repository-images.githubusercontent.com/693298224/6a87716f-3dbb-48a5-80e0-709e0a1ad133" alt="STFC Community Mod">
-    <img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="License: GPLv3">  
+    <img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="License: GPLv3">
     <img src="https://img.shields.io/github/sponsors/netniv" alt="Sponsorship"><br>
     A community mod (patch) that adds a couple of tweaks to the mobile game <b>Star Trek Fleet Command&#8482;
 </p>
@@ -65,6 +66,7 @@ been applied. Valid values for any short can be found in [KEYMAPPING.md](KEYMAPP
 
 |          Key | Shortcut                         |
 | -----------: | -------------------------------- |
+|          F10 | Bug fixer (exits game)           |
 |        F1-F5 | Zoom presets                     |
 |            Q | Zoom Out                         |
 |            E | Zoom In                          |
