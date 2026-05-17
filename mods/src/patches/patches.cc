@@ -38,6 +38,14 @@ void InstallSyncPatches();
 void InstallObjectTrackers();
 void InstallLoadingScreenBgHooks();
 
+// Forward declare game_state_export namespace
+namespace game_state_export
+{
+  void init();
+}
+
+void InstallGameStateExport();
+
 __int64 il2cpp_init_hook(auto original, const char* domain_name)
 {
   struct PatchEntry {
@@ -119,6 +127,7 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
       {"ResolutionListFix", {InstallResolutionListFix, &cfg.installResolutionListFix}},
       {"SyncPatches", {InstallSyncPatches, &cfg.installSyncPatches}},
       {"ObjectTracker", {InstallObjectTrackers, &cfg.installObjectTracker}},
+      {"GameStateExport", {InstallGameStateExport, &cfg.game_state_enabled}},
       {"LoadingScreenBgHooks", {InstallLoadingScreenBgHooks, &cfg.installLoadingScreenBgHooks}},
   };
   printf("il2cpp_init_hook(%s)\n", domain_name);
@@ -154,6 +163,12 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
   spdlog::info("");
 
   return r;
+}
+
+void InstallGameStateExport()
+{
+  game_state_export::init();
+  spdlog::info("GameState export initialized");
 }
 
 void ApplyPatches()

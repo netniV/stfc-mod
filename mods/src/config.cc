@@ -23,8 +23,10 @@ namespace DCC = DefaultConfig::Control;
 namespace DCU = DefaultConfig::UI;
 namespace DCBS = DefaultConfig::Buffs;
 namespace DCS = DefaultConfig::Sync;
+namespace DCGS = DefaultConfig::GameState;
 namespace DCSC = DefaultConfig::SystemConfig;
 namespace DCSH = DefaultConfig::Shortcuts;
+namespace DCSA = DefaultConfig::ShieldAlerts;
 
 static const eastl::tuple<const char*, int> bannerTypes[] = {
     {"Standard", ToastState::Standard},
@@ -652,6 +654,124 @@ void Config::Load()
     this->sync_options.*opt.option =
         std::ranges::any_of(targets_view, [opt](const auto& target) { return target.*opt.option; });
   }
+
+  // Derive game_state_options: used exclusively by the game state export path.
+  // Independent of sync_options (which only gates legacy sync-target sends).
+  // When game_state_enabled=true: each flag is true unless explicitly set to
+  // false in [sync], so silence = export everything. When game_state is disabled
+  // all flags are false (game state won't run anyway).
+  {
+    const toml::table* sync_tbl = config["sync"].as_table();
+    bool gs_enabled = false;
+    if (const toml::table* gs_tbl = sync_tbl ? sync_tbl->get_as<toml::table>("game_state") : nullptr) {
+      if (auto v = (*gs_tbl)["enabled"].value<bool>()) gs_enabled = *v;
+    }
+    for (const auto& opt : SyncOptions) {
+      bool explicitly_false = gs_enabled && sync_tbl && sync_tbl->contains(opt.option_str)
+                              && (*sync_tbl)[opt.option_str].value<bool>().value_or(true) == false;
+      this->game_state_options.*opt.option = gs_enabled && !explicitly_false;
+    }
+  }
+
+  spdlog::debug("");
+
+  // Game state configuration: [sync.game_state]
+  // All game-state-related config lives under sync.game_state.*
+  // Helper: read a value from a toml::table pointer, falling back to default_val
+  auto tbl_get = [&]<typename T>(const toml::table* tbl, const char* key, T default_val) -> T {
+    if (tbl) {
+      if (auto val = (*tbl)[key].value<T>()) return *val;
+    }
+    return default_val;
+  };
+  // Helper: read from new table, fall back to legacy table, then to default
+  auto gs_get = [&]<typename T>(const toml::table* primary, const toml::table* legacy,
+                                 const char* key, T default_val) -> T {
+    if (primary) { if (auto val = (*primary)[key].value<T>()) return *val; }
+    if (legacy)  { if (auto val = (*legacy)[key].value<T>())  return *val; }
+    return default_val;
+  };
+
+  // Resolve [sync.game_state] (new) and [gamestate_export] (legacy fallback)
+  const toml::table* gs_table = nullptr;
+  if (auto* sync = config["sync"].as_table()) {
+    if (auto* gs = (*sync)["game_state"].as_table()) gs_table = gs;
+  }
+  const toml::table* gs_table_legacy = config["gamestate_export"].as_table();
+
+  this->game_state_enabled    = gs_get(gs_table, gs_table_legacy, "enabled",     DCGS::game_state_enabled);
+  this->game_state_interval   = gs_get(gs_table, gs_table_legacy, "interval",    DCGS::game_state_interval);
+  this->game_state_path       = gs_get(gs_table, gs_table_legacy, "path",        std::string(DCGS::game_state_path));
+  this->game_state_on_startup = gs_get(gs_table, gs_table_legacy, "on_startup",  DCGS::game_state_on_startup);
+  this->game_state_player_id  = gs_get(gs_table, gs_table_legacy, "player_id",   std::string(DCGS::game_state_player_id));
+  this->game_state_battle_log = gs_get(gs_table, gs_table_legacy, "battle_log",  DCGS::battle_log_enabled);
+
+  // [sync.game_state.github] â€” GitHub Gist sync (optional)
+  namespace DCGSGithub = DefaultConfig::GameState::Gist;
+  const toml::table* github_table = nullptr;
+  if (gs_table) {
+    if (auto* g = (*gs_table)["github"].as_table()) github_table = g;
+  }
+  // Legacy fallback: [gamestate_export.gist]
+  if (!github_table && gs_table_legacy) {
+    if (auto* g = (*gs_table_legacy)["gist"].as_table()) github_table = g;
+  }
+
+  this->game_state_github.enabled            = tbl_get(github_table, "enabled",            DCGSGithub::enabled);
+  this->game_state_github.gist_id            = tbl_get(github_table, "gist_id",            std::string(DCGSGithub::gist_id));
+  this->game_state_github.username           = tbl_get(github_table, "username",           std::string(""));
+  this->game_state_github.token              = tbl_get(github_table, "token",              std::string(DCGSGithub::token));
+  this->game_state_github.filename_player    = tbl_get(github_table, "filename_player",    std::string(DCGSGithub::filename_player));
+  this->game_state_github.filename_ships     = tbl_get(github_table, "filename_ships",     std::string(DCGSGithub::filename_ships));
+  this->game_state_github.filename_resources = tbl_get(github_table, "filename_resources", std::string(DCGSGithub::filename_resources));
+  this->game_state_github.filename_research  = tbl_get(github_table, "filename_research",  std::string(DCGSGithub::filename_research));
+  this->game_state_github.filename_officers  = tbl_get(github_table, "filename_officers",  std::string(DCGSGithub::filename_officers));
+  this->game_state_github.filename_missions  = tbl_get(github_table, "filename_missions",  std::string(DCGSGithub::filename_missions));
+  this->game_state_github.filename_faction   = tbl_get(github_table, "filename_faction",   std::string(DCGSGithub::filename_faction));
+  this->game_state_github.filename_buffs     = tbl_get(github_table, "filename_buffs",     std::string(DCGSGithub::filename_buffs));
+  this->game_state_github.filename_territory = tbl_get(github_table, "filename_territory", std::string(DCGSGithub::filename_territory));
+  this->game_state_github.filename_buildings  = tbl_get(github_table, "filename_buildings",  std::string(DCGSGithub::filename_buildings));
+  this->game_state_github.filename_battlelog = tbl_get(github_table, "filename_battlelog", std::string(DCGSGithub::filename_battlelog));
+  this->game_state_github.filename_manifest  = tbl_get(github_table, "filename_manifest",  std::string(DCGSGithub::filename_manifest));
+
+  spdlog::debug("config sync.game_state.github: enabled={}, gist_id={}, token={}",
+                this->game_state_github.enabled,
+                this->game_state_github.gist_id,
+                this->game_state_github.token.empty() ? "<not set>" : "<set>");
+
+  spdlog::debug("");
+
+  // [sync.game_state.shield_alerts] â€” peace shield expiry alerts
+  const toml::table* shield_table = nullptr;
+  if (gs_table) {
+    if (auto* s = (*gs_table)["shield_alerts"].as_table()) shield_table = s;
+  }
+  // Legacy fallback: [shield_alerts] (top-level)
+  if (!shield_table) shield_table = config["shield_alerts"].as_table();
+
+  this->shield_alerts.enabled                  = tbl_get(shield_table, "enabled",                  DCSA::enabled);
+  this->shield_alerts.poll_interval_seconds     = tbl_get(shield_table, "poll_interval_seconds",    DCSA::poll_interval_seconds);
+  this->shield_alerts.reminder_interval_minutes = tbl_get(shield_table, "reminder_interval_minutes",DCSA::reminder_interval_minutes);
+
+  {
+    auto warn_hours_str = tbl_get(shield_table, "warn_hours", std::string(DCSA::shield_warn_hours));
+    this->shield_alerts.shield_warn_hours.clear();
+    for (const auto& tok : StrSplit(warn_hours_str, ',')) {
+      auto stripped = StripLeadingAsciiWhitespace(tok);
+      if (!stripped.empty()) {
+        try { this->shield_alerts.shield_warn_hours.push_back(std::stoi(std::string(stripped))); }
+        catch (...) {}
+      }
+    }
+    if (this->shield_alerts.shield_warn_hours.empty()) {
+      this->shield_alerts.shield_warn_hours = {4, 2, 1};
+    }
+  }
+
+  spdlog::debug("config sync.game_state.shield_alerts: enabled={}, poll={}s, reminder={}min",
+                this->shield_alerts.enabled,
+                this->shield_alerts.poll_interval_seconds,
+                this->shield_alerts.reminder_interval_minutes);
 
   spdlog::debug("");
 

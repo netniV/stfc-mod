@@ -1,7 +1,8 @@
-Get-ChildItem -Path src -Directory -Recurse |
-    foreach {
-        pushd $_.FullName
-        &clang-format -i  *.cc
-        &clang-format -i  *.h
-        popd
+$sourceDirs = @("mods/src", "win-proxy-dll/src", "macos-dylib/src", "macos-loader/src")
+
+foreach ($dir in $sourceDirs) {
+    if (Test-Path $dir) {
+        Get-ChildItem -Path $dir -Recurse -Include "*.cc", "*.h" |
+            ForEach-Object { clang-format -i $_.FullName }
     }
+}
