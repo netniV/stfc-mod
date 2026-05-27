@@ -9,6 +9,7 @@
 #endif
 #include "embedded_loading_image.h"
 #include "embedded_logo_image.h"
+#include "embedded_cc_logo_image.h"
 #include <cstring>
 #include <filesystem>
 #include <fstream>
@@ -34,6 +35,8 @@ static void* g_bgImageComp          = nullptr;
 static void* g_bgRectTransform      = nullptr;
 static void* g_logoTexture          = nullptr;
 static void* g_logoGO               = nullptr;
+static void* g_ccLogoTexture        = nullptr;
+static void* g_ccLogoGO             = nullptr;
 static void* g_bgOverlayGO          = nullptr;
 static void* g_canvasAnimator       = nullptr; // TVC._animator; disabled after show, re-enabled before hide
 
@@ -235,11 +238,16 @@ static void EnsureTextureLoaded()
 
 static void EnsureLogoLoaded()
 {
-  if (g_logoTexture)
-    return;
-  g_logoTexture = LoadTextureFromBytes(g_embeddedLogoImage, g_embeddedLogoImage_SIZE);
-  if (!g_logoTexture)
-    spdlog::warn("[LS] failed to load logo texture");
+  if (!g_logoTexture) {
+    g_logoTexture = LoadTextureFromBytes(g_embeddedLogoImage, g_embeddedLogoImage_SIZE);
+    if (!g_logoTexture)
+      spdlog::warn("[LS] failed to load logo texture");
+  }
+  if (!g_ccLogoTexture) {
+    g_ccLogoTexture = LoadTextureFromBytes(g_embeddedCCLogoImage, g_embeddedCCLogoImage_SIZE);
+    if (!g_ccLogoTexture)
+      spdlog::warn("[LS] failed to load CC logo texture");
+  }
 }
 
 // Walks up the Transform hierarchy and returns the root Canvas transform,
@@ -345,21 +353,19 @@ static void CreateTransitionBGOverlay(void* parentTransform)
   }
 }
 
-// Creates the mod logo image in the bottom-right corner. Uses anchor-fraction sizing so the
-// logo lands at the desired physical pixel size regardless of CanvasScaler reference resolution.
-static void CreateLogoOverlay(void* parentTransform)
+// Creates a logo overlay. xSide=-1 places it on the left (padding from left edge), +1 on the right.
+// Width, padding and vertical position match between both logos.
+static void CreateLogoOverlayEx(const char* name, void* texture, void* parentTransform, void*& outGO, float xSide)
 {
-  if (g_logoGO)
+  if (outGO)
     return;
   try {
-    if (!g_logoTexture || !parentTransform)
+    if (!texture || !parentTransform)
       return;
 
-    // Anchor-fraction sizing: physical pixel size = anchor fraction * screenPixels. This cancels
-    // CanvasScaler's scale on both Screen Space Overlay and Camera canvases.
-    constexpr float kLogoPixels = 200.0f; // desired logo width in physical pixels
-    constexpr float kPadXPixels = 40.0f;  // padding from right edge in physical pixels
-    constexpr float kPadYPixels = 120.0f; // padding from bottom edge in physical pixels
+    constexpr float kLogoPixels = 200.0f;
+    constexpr float kPadXPixels = 40.0f;
+    constexpr float kPadYPixels = 120.0f;
 
     static auto screen_h = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "Screen");
     static auto fn_sw    = screen_h.GetMethodInfo("get_width");
@@ -372,21 +378,41 @@ static void CreateLogoOverlay(void* parentTransform)
       sh = 750.0f;
 
     int32_t lw, lh;
-    GetTextureSize(g_logoTexture, lw, lh, 256, 256);
+    GetTextureSize(texture, lw, lh, 256, 256);
     float logoPixH = kLogoPixels * ((lw > 0) ? (float)lh / (float)lw : 1.0f);
 
-    FakeVector2 aMin{(sw - kPadXPixels - kLogoPixels) / sw, kPadYPixels / sh};
-    FakeVector2 aMax{(sw - kPadXPixels) / sw, (kPadYPixels + logoPixH) / sh};
+    FakeVector2 aMin, aMax;
+    if (xSide < 0.0f) {
+      // left side: anchor from left edge
+      aMin = {kPadXPixels / sw, kPadYPixels / sh};
+      aMax = {(kPadXPixels + kLogoPixels) / sw, (kPadYPixels + logoPixH) / sh};
+    } else {
+      // right side: anchor from right edge
+      aMin = {(sw - kPadXPixels - kLogoPixels) / sw, kPadYPixels / sh};
+      aMax = {(sw - kPadXPixels) / sw, (kPadYPixels + logoPixH) / sh};
+    }
 
-    g_logoGO = CreateImageOverlay("STFCModLogo", g_logoTexture, parentTransform, aMin, aMax,
-                                  /*pivot*/ {0.5f, 0.5f}, /*sd*/ {0.0f, 0.0f}, /*ap*/ {0.0f, 0.0f},
-                                  /*preserveAspect*/ true, /*placeAsFirstSibling*/ false,
-                                  /*fallbackW*/ 256, /*fallbackH*/ 256);
-    if (!g_logoGO)
-      spdlog::warn("[LS] Failed to create logo overlay");
+    outGO = CreateImageOverlay(name, texture, parentTransform, aMin, aMax,
+                               /*pivot*/ {0.5f, 0.5f}, /*sd*/ {0.0f, 0.0f}, /*ap*/ {0.0f, 0.0f},
+                               /*preserveAspect*/ true, /*placeAsFirstSibling*/ false,
+                               /*fallbackW*/ 256, /*fallbackH*/ 256);
+    if (!outGO)
+      spdlog::warn("[LS] Failed to create logo overlay: {}", name);
   } catch (...) {
-    spdlog::warn("[LS] Failed to create logo overlay");
+    spdlog::warn("[LS] Failed to create logo overlay: {}", name);
   }
+}
+
+// Creates the mod logo image in the bottom-right corner. Uses anchor-fraction sizing so the
+// logo lands at the desired physical pixel size regardless of CanvasScaler reference resolution.
+static void CreateLogoOverlay(void* parentTransform)
+{
+  CreateLogoOverlayEx("STFCModLogo", g_logoTexture, parentTransform, g_logoGO, /*right*/ 1.0f);
+}
+
+static void CreateCCLogoOverlay(void* parentTransform)
+{
+  CreateLogoOverlayEx("STFCCCLogo", g_ccLogoTexture, parentTransform, g_ccLogoGO, /*left*/ -1.0f);
 }
 
 // Applies g_customLoadingTexture as a sprite to an existing Image on the login screen.
@@ -511,6 +537,7 @@ static void ApplyCustomSpriteToBGImage(void* _this)
     if (logoParent) {
       CreateTransitionBGOverlay(logoParent);
       CreateLogoOverlay(logoParent);
+      CreateCCLogoOverlay(logoParent);
     }
 
     // Reposition native TVC children: LogoContainer → top-right, LoadingTipsContainer → lower-center.
@@ -602,6 +629,8 @@ void TransitionViewController_Awake_Hook(auto original, void* _this)
     g_customLoadingTexture = nullptr; // reset stale Unity object on re-login
     g_logoTexture          = nullptr;
     g_logoGO               = nullptr;
+    g_ccLogoTexture        = nullptr;
+    g_ccLogoGO             = nullptr;
     g_bgOverlayGO          = nullptr;
     g_canvasAnimator       = nullptr;
     EnsureTextureLoaded();
@@ -720,6 +749,8 @@ void LoginSequence_Awake_Hook(auto original, void* _this)
     g_customLoadingTexture = nullptr; // reset stale Unity object on re-login
     g_logoTexture          = nullptr;
     g_logoGO               = nullptr;
+    g_ccLogoTexture        = nullptr;
+    g_ccLogoGO             = nullptr;
     EnsureTextureLoaded();
     EnsureLogoLoaded();
     if (!g_customLoadingTexture)
@@ -760,8 +791,10 @@ void LoginSequence_Awake_Hook(auto original, void* _this)
     if (bgImg) {
       ApplySpriteToImage(bgImg);
       void* bgImgTr = reinterpret_cast<void* (*)(void*)>(fn_ct)(bgImg);
-      if (bgImgTr)
+      if (bgImgTr) {
         CreateLogoOverlay(bgImgTr);
+        CreateCCLogoOverlay(bgImgTr);
+      }
     }
   } catch (...) {
   }

@@ -70,6 +70,12 @@ do
             path.join(outdir, "embedded_logo_image.h"),
             "g_embeddedLogoImage"
         )
+
+        embed_image(
+            path.join(assets, "official-cc-logo.png"),
+            path.join(outdir, "embedded_cc_logo_image.h"),
+            "g_embeddedCCLogoImage"
+        )
     end)
 
         -- C++ sources
