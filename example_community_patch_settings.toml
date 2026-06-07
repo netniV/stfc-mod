@@ -77,6 +77,9 @@ hotkeys_extended = true
 # If you have the Kir'Shara artifact, should the queue be enabled by default?
 queue_enabled = true
 
+# Experimental repair for off-screen Kir'Shara queue advancement stalls.
+kirshara_queue_repair = false
+
 # If you prefer to use Scopely's hotkeys set this to true
 use_scopely_hotkeys = false
 

@@ -37,6 +37,7 @@ void InstallTempCrashFixes();
 void InstallSyncPatches();
 void InstallObjectTrackers();
 void InstallLoadingScreenBgHooks();
+void InstallActionQueueRepairHooks();
 
 __int64 il2cpp_init_hook(auto original, const char* domain_name)
 {
@@ -120,6 +121,7 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
       {"SyncPatches", {InstallSyncPatches, &cfg.installSyncPatches}},
       {"ObjectTracker", {InstallObjectTrackers, &cfg.installObjectTracker}},
       {"LoadingScreenBgHooks", {InstallLoadingScreenBgHooks, &cfg.installLoadingScreenBgHooks}},
+      {"KirsharaQueueRepair", {InstallActionQueueRepairHooks, &cfg.kirshara_queue_repair}},
   };
   printf("il2cpp_init_hook(%s)\n", domain_name);
 

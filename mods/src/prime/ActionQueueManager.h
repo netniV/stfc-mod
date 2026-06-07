@@ -39,6 +39,22 @@ public:
     return false;
   }
 
+  int GetActionQueueCount(FleetPlayerData* playerData)
+  {
+    static auto GetActionQueueCountMethod =
+        get_class_helper().GetMethod<int(ActionQueueManager*, FleetPlayerData*)>("GetActionQueueCount");
+    static auto GetActionQueueCountWarn = true;
+
+    if (GetActionQueueCountMethod) {
+      return GetActionQueueCountMethod(this, playerData);
+    } else if (GetActionQueueCountWarn) {
+      GetActionQueueCountWarn = false;
+      ErrorMsg::MissingMethod("ActionQueueManager", "GetActionQueueCount");
+    }
+
+    return -1;
+  }
+
   bool IsFleetInQueue(FleetPlayerData* playerData)
   {
     static auto IsFleetInQueueMethod =

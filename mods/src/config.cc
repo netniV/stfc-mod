@@ -526,6 +526,8 @@ void Config::Load()
   this->use_scopely_hotkeys = get_config_or_default(config, parsed, "control", "use_scopely_hotkeys", DCC::use_scopely_hotkeys, write_config);
   this->select_timer        = get_config_or_default(config, parsed, "control", "select_timer", DCC::select_timer, write_config);
   this->enable_experimental = get_config_or_default(config, parsed, "control", "enable_experimental", DCC::enable_experimental, write_config);
+  this->kirshara_queue_repair =
+      get_config_or_default(config, parsed, "control", "kirshara_queue_repair", DCC::kirshara_queue_repair, write_config);
 
   spdlog::debug("");
 

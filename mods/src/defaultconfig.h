@@ -20,6 +20,7 @@ namespace Control
   constexpr bool hotkeys_extended    = true;
   constexpr bool use_scopely_hotkeys = false;
   constexpr bool queue_enabled       = true;
+  constexpr bool kirshara_queue_repair = false;
   constexpr auto select_timer        = 500;
 } // namespace Control
 

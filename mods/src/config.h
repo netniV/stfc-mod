@@ -149,6 +149,7 @@ public:
   bool  use_scopely_hotkeys;
   bool  use_presets_as_default;
   bool  enable_experimental;
+  bool  kirshara_queue_repair;
   float default_system_zoom;
 
   float system_zoom_preset_1;
