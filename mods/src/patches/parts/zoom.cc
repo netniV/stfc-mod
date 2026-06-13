@@ -33,6 +33,33 @@ inline void StoreZoom(std::string label, float &zoom, NavigationZoom *_this)
   spdlog::info("Changing {} from {} to {}", label, old_zoom, zoom);
 }
 
+static uint64_t       s_depthEntry    = 0;
+static uint64_t       s_scaledAtEntry = 0;
+static void          *s_cachedFR      = nullptr;
+static void          *s_scaledFR      = nullptr;
+static NavigationZoom *s_navZoom     = nullptr;
+
+static void ScaleFR(void *fr)
+{
+  if (!fr || fr == s_scaledFR) {
+    return;
+  }
+
+  float factor = Config::Get().fr_scale;
+  if (factor <= 0.0f || factor == 1.0f) {
+    return;
+  }
+
+  static auto comp_helper   = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "Component");
+  static auto get_transform = comp_helper.GetProperty("transform");
+
+  auto* t     = (Transform*)get_transform.GetRaw<Il2CppObject>(fr);
+  auto* scale = t->localScale;
+  Vector3 newScale = {scale->x * factor, scale->y * factor, scale->z * factor};
+  t->localScale    = &newScale;
+  s_scaledFR       = fr;
+}
+
 void NavigationZoom_Update_Hook(auto original, NavigationZoom *_this)
 {
   static auto GetMousePosition =
@@ -134,35 +161,22 @@ void NavigationZoom_Update_Hook(auto original, NavigationZoom *_this)
   original(_this);
 }
 
-static uint64_t s_depthEntry    = 0;
-static uint64_t s_scaledAtEntry = 0;
-static void    *s_cachedFR      = nullptr;
-
-static void ScaleFR(void *fr)
-{
-  if (!fr) {
-    return;
-  }
-
-  float factor = Config::Get().fr_scale;
-  if (factor <= 0.0f || factor == 1.0f) {
-    return;
-  }
-
-  static auto comp_helper   = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "Component");
-  static auto get_transform = comp_helper.GetProperty("transform");
-
-  auto* t     = (Transform*)get_transform.GetRaw<Il2CppObject>(fr);
-  auto* scale = t->localScale;
-  Vector3 newScale = {scale->x * factor, scale->y * factor, scale->z * factor};
-  t->localScale    = &newScale;
-}
-
 void PlanetViewUtils_CameraZoomedEventHandler_Hook(auto original, PlanetViewUtils *_this, float zoomDistance,
                                                    float normalizedZoom)
 {
   original(_this, zoomDistance, normalizedZoom);
-  (void)_this->GetFlatRenderable();
+
+  if (s_navZoom) {
+    auto *cam = s_navZoom->_sceneCamera;
+    if (cam) {
+      int cf = cam->clearFlags;
+      if (cf >= 0 && cf <= 4 && cf != 2) {
+        cam->farClipPlane    = Config::Get().zoom * 3.75f;
+        cam->clearFlags      = 2;
+        cam->backgroundColor = {0, 0, 0, 0};
+      }
+    }
+  }
 }
 
 void NavigationZoom_SetViewParameters_Hook(auto original, NavigationZoom *_this, float radius, NodeDepth depth)
@@ -171,6 +185,7 @@ void NavigationZoom_SetViewParameters_Hook(auto original, NavigationZoom *_this,
     auto ratio = (Config::Get().zoom / radius);
     _this->_farRatioSystemNormal   = 0.55f * ratio;
     _this->_farRatioSystemExtended = 1 * ratio;
+    s_navZoom                     = _this;
 
     auto *cam                 = _this->_sceneCamera;
     cam->farClipPlane         = Config::Get().zoom * 3.75f;
@@ -179,6 +194,7 @@ void NavigationZoom_SetViewParameters_Hook(auto original, NavigationZoom *_this,
 
     original(_this, radius, depth);
 
+    cam                       = _this->_sceneCamera;
     cam->farClipPlane         = Config::Get().zoom * 3.75f;
     cam->clearFlags           = 2;
     cam->backgroundColor      = {0, 0, 0, 0};
@@ -194,6 +210,7 @@ void NavigationZoom_SetDepth_Hook(auto original, NavigationZoom *_this, NodeDept
     auto ratio = (Config::Get().zoom / _this->_viewRadius);
     _this->_farRatioSystemNormal   = 0.55f * ratio;
     _this->_farRatioSystemExtended = 1 * ratio;
+    s_navZoom                     = _this;
 
     auto *cam                 = _this->_sceneCamera;
     cam->farClipPlane         = Config::Get().zoom * 3.75f;
@@ -201,6 +218,8 @@ void NavigationZoom_SetDepth_Hook(auto original, NavigationZoom *_this, NodeDept
     cam->backgroundColor      = {0, 0, 0, 0};
 
     original(_this, depth);
+
+    cam                       = _this->_sceneCamera;
 
     cam->farClipPlane         = Config::Get().zoom * 3.75f;
     cam->clearFlags           = 2;
