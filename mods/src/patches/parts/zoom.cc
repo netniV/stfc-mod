@@ -33,15 +33,13 @@ inline void StoreZoom(std::string label, float &zoom, NavigationZoom *_this)
   spdlog::info("Changing {} from {} to {}", label, old_zoom, zoom);
 }
 
-static uint64_t       s_depthEntry    = 0;
-static uint64_t       s_scaledAtEntry = 0;
+static float          s_expectedScale = 0;
 static void          *s_cachedFR      = nullptr;
-static void          *s_scaledFR      = nullptr;
 static NavigationZoom *s_navZoom     = nullptr;
 
 static void ScaleFR(void *fr)
 {
-  if (!fr || fr == s_scaledFR) {
+  if (!fr) {
     return;
   }
 
@@ -55,9 +53,14 @@ static void ScaleFR(void *fr)
 
   auto* t     = (Transform*)get_transform.GetRaw<Il2CppObject>(fr);
   auto* scale = t->localScale;
+
+  if (s_expectedScale > 0 && fabsf(scale->x - s_expectedScale) < 0.1f) {
+    return;
+  }
+
   Vector3 newScale = {scale->x * factor, scale->y * factor, scale->z * factor};
   t->localScale    = &newScale;
-  s_scaledFR       = fr;
+  s_expectedScale  = newScale.x;
 }
 
 void NavigationZoom_Update_Hook(auto original, NavigationZoom *_this)
@@ -166,6 +169,8 @@ void PlanetViewUtils_CameraZoomedEventHandler_Hook(auto original, PlanetViewUtil
 {
   original(_this, zoomDistance, normalizedZoom);
 
+  _this->GetFlatRenderable(); // probe: triggers get_FlatRenderable_Hook, which scales the FR; game often reads the field directly so our detour needs this call-path
+
   if (s_navZoom) {
     auto *cam = s_navZoom->_sceneCamera;
     if (cam) {
@@ -226,10 +231,8 @@ void NavigationZoom_SetDepth_Hook(auto original, NavigationZoom *_this, NodeDept
     cam->backgroundColor      = {0, 0, 0, 0};
     do_default_zoom           = true;
 
-    s_depthEntry++;
-    if (s_cachedFR && s_depthEntry != s_scaledAtEntry) {
+    if (s_cachedFR) {
       ScaleFR(s_cachedFR);
-      s_scaledAtEntry = s_depthEntry;
     }
   } else {
     original(_this, depth);
@@ -244,10 +247,7 @@ void* PlanetViewUtils_get_FlatRenderable_Hook(auto original, PlanetViewUtils *_t
   }
 
   s_cachedFR = fr;
-  if (s_depthEntry != s_scaledAtEntry) {
-    ScaleFR(fr);
-    s_scaledAtEntry = s_depthEntry;
-  }
+  ScaleFR(fr);
   return fr;
 }
 
