@@ -138,6 +138,9 @@ void NavigationZoom_SetViewParameters_Hook(auto original, NavigationZoom *_this,
     auto ratio                     = (Config::Get().zoom / radius);
     _this->_farRatioSystemNormal   = 0.55f * ratio;
     _this->_farRatioSystemExtended = 1 * ratio;
+    color black                        = {0, 0, 0, 0};
+    _this->_sceneCamera->clearFlags    = 2;
+    _this->_sceneCamera->backgroundColor = black;
     _this->_sceneCamera->farClipPlane = Config::Get().zoom * 3.75f;
     original(_this, radius, depth);
     _this->_sceneCamera->farClipPlane = Config::Get().zoom * 3.75f;
@@ -153,6 +156,9 @@ void NavigationZoom_SetDepth_Hook(auto original, NavigationZoom *_this, NodeDept
     auto ratio                        = (Config::Get().zoom / _this->_viewRadius);
     _this->_farRatioSystemNormal      = 0.55f * ratio;
     _this->_farRatioSystemExtended    = 1 * ratio;
+    color black                        = {0, 0, 0, 0};
+    _this->_sceneCamera->clearFlags    = 2;
+    _this->_sceneCamera->backgroundColor = black;
     _this->_sceneCamera->farClipPlane = Config::Get().zoom * 3.75f;
     original(_this, depth);
     _this->_sceneCamera->farClipPlane = Config::Get().zoom * 3.75f;
