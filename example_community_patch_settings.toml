@@ -179,6 +179,9 @@ system_zoom_preset_5 = 5000.0
 # This controls the maximum zoom distance in System View. Default is 2500. Higher values increase label distance
 zoom = 5000.0
 
+# Scale the system to prevent void beyond edges at extreme zoom. 1.0 = off. 2.0 = 2x
+fr_scale = 2.0
+
 #  <[=====================================================]>
 #
 #       ****           *            *

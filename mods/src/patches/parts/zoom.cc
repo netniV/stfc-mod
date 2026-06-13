@@ -7,6 +7,8 @@
 
 #include <prime/NavigationPan.h>
 #include <prime/NavigationZoom.h>
+#include <prime/PlanetViewUtils.h>
+#include <prime/Transform.h>
 
 #include <spdlog/spdlog.h>
 #include <spud/detour.h>
@@ -132,19 +134,55 @@ void NavigationZoom_Update_Hook(auto original, NavigationZoom *_this)
   original(_this);
 }
 
+static uint64_t s_depthEntry    = 0;
+static uint64_t s_scaledAtEntry = 0;
+static void    *s_cachedFR      = nullptr;
+
+static void ScaleFR(void *fr)
+{
+  if (!fr) {
+    return;
+  }
+
+  float factor = Config::Get().fr_scale;
+  if (factor <= 0.0f || factor == 1.0f) {
+    return;
+  }
+
+  static auto comp_helper   = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "Component");
+  static auto get_transform = comp_helper.GetProperty("transform");
+
+  auto* t     = (Transform*)get_transform.GetRaw<Il2CppObject>(fr);
+  auto* scale = t->localScale;
+  Vector3 newScale = {scale->x * factor, scale->y * factor, scale->z * factor};
+  t->localScale    = &newScale;
+}
+
+void PlanetViewUtils_CameraZoomedEventHandler_Hook(auto original, PlanetViewUtils *_this, float zoomDistance,
+                                                   float normalizedZoom)
+{
+  original(_this, zoomDistance, normalizedZoom);
+  (void)_this->GetFlatRenderable();
+}
+
 void NavigationZoom_SetViewParameters_Hook(auto original, NavigationZoom *_this, float radius, NodeDepth depth)
 {
   if (depth == NodeDepth::SolarSystem) {
-    auto ratio                     = (Config::Get().zoom / radius);
+    auto ratio = (Config::Get().zoom / radius);
     _this->_farRatioSystemNormal   = 0.55f * ratio;
     _this->_farRatioSystemExtended = 1 * ratio;
-    color black                        = {0, 0, 0, 0};
-    _this->_sceneCamera->clearFlags    = 2;
-    _this->_sceneCamera->backgroundColor = black;
-    _this->_sceneCamera->farClipPlane = Config::Get().zoom * 3.75f;
+
+    auto *cam                 = _this->_sceneCamera;
+    cam->farClipPlane         = Config::Get().zoom * 3.75f;
+    cam->clearFlags           = 2;
+    cam->backgroundColor      = {0, 0, 0, 0};
+
     original(_this, radius, depth);
-    _this->_sceneCamera->farClipPlane = Config::Get().zoom * 3.75f;
-    do_default_zoom                   = true;
+
+    cam->farClipPlane         = Config::Get().zoom * 3.75f;
+    cam->clearFlags           = 2;
+    cam->backgroundColor      = {0, 0, 0, 0};
+    do_default_zoom           = true;
   } else {
     original(_this, radius, depth);
   }
@@ -153,23 +191,70 @@ void NavigationZoom_SetViewParameters_Hook(auto original, NavigationZoom *_this,
 void NavigationZoom_SetDepth_Hook(auto original, NavigationZoom *_this, NodeDepth depth)
 {
   if (depth == NodeDepth::SolarSystem) {
-    auto ratio                        = (Config::Get().zoom / _this->_viewRadius);
-    _this->_farRatioSystemNormal      = 0.55f * ratio;
-    _this->_farRatioSystemExtended    = 1 * ratio;
-    color black                        = {0, 0, 0, 0};
-    _this->_sceneCamera->clearFlags    = 2;
-    _this->_sceneCamera->backgroundColor = black;
-    _this->_sceneCamera->farClipPlane = Config::Get().zoom * 3.75f;
+    auto ratio = (Config::Get().zoom / _this->_viewRadius);
+    _this->_farRatioSystemNormal   = 0.55f * ratio;
+    _this->_farRatioSystemExtended = 1 * ratio;
+
+    auto *cam                 = _this->_sceneCamera;
+    cam->farClipPlane         = Config::Get().zoom * 3.75f;
+    cam->clearFlags           = 2;
+    cam->backgroundColor      = {0, 0, 0, 0};
+
     original(_this, depth);
-    _this->_sceneCamera->farClipPlane = Config::Get().zoom * 3.75f;
-    do_default_zoom                   = true;
+
+    cam->farClipPlane         = Config::Get().zoom * 3.75f;
+    cam->clearFlags           = 2;
+    cam->backgroundColor      = {0, 0, 0, 0};
+    do_default_zoom           = true;
+
+    s_depthEntry++;
+    if (s_cachedFR && s_depthEntry != s_scaledAtEntry) {
+      ScaleFR(s_cachedFR);
+      s_scaledAtEntry = s_depthEntry;
+    }
   } else {
     original(_this, depth);
   }
 }
 
+void* PlanetViewUtils_get_FlatRenderable_Hook(auto original, PlanetViewUtils *_this)
+{
+  auto* fr = original(_this);
+  if (!fr) {
+    return fr;
+  }
+
+  s_cachedFR = fr;
+  if (s_depthEntry != s_scaledAtEntry) {
+    ScaleFR(fr);
+    s_scaledAtEntry = s_depthEntry;
+  }
+  return fr;
+}
+
 void InstallZoomHooks()
 {
+  {
+    auto pv_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Navigation", "PlanetViewUtils");
+    if (pv_helper.isValidHelper()) {
+      auto ptr_zoom = pv_helper.GetMethod("CameraZoomedEventHandler");
+      if (ptr_zoom != nullptr) {
+        SPUD_STATIC_DETOUR(ptr_zoom, PlanetViewUtils_CameraZoomedEventHandler_Hook);
+      } else {
+        ErrorMsg::MissingMethod("PlanetViewUtils", "CameraZoomedEventHandler");
+      }
+
+      auto ptr_get_fr = pv_helper.GetMethod("get_FlatRenderable");
+      if (ptr_get_fr != nullptr) {
+        SPUD_STATIC_DETOUR(ptr_get_fr, PlanetViewUtils_get_FlatRenderable_Hook);
+      } else {
+        ErrorMsg::MissingMethod("PlanetViewUtils", "get_FlatRenderable");
+      }
+    } else {
+      ErrorMsg::MissingHelper("Navigation", "PlanetViewUtils");
+    }
+  }
+
   auto screen_manager_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Navigation", "NavigationZoom");
   if (!screen_manager_helper.isValidHelper()) {
     ErrorMsg::MissingHelper("Navigation", "NavigationZoom");
