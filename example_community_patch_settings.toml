@@ -295,11 +295,11 @@ select_ship8 = "8"
 # ⚠️ EXPERIMENTAL: Moves down the screen
 move_down = "S"
 
-# ⚠️ EXPERIMENTAL: Moves left the screen
-move_left = "A"
+# Navigate to previous ship/officer in details view
+move_left = "LEFT"
 
-# ⚠️ EXPERIMENTAL: Moves right the screen
-move_right = "D"
+# Navigate to next ship/officer in details view
+move_right = "RIGHT"
 
 # ⚠️ EXPERIMENTAL: Moves up the screen
 move_up = "W"

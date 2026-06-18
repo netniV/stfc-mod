@@ -12,6 +12,7 @@
 #include "prime/MissionsObjectViewerWidget.h"
 #include "prime/NavigationInteractionUIViewController.h"
 #include "prime/PreScanTargetWidget.h"
+#include "prime/ElementSelectorViewController.h"
 #include "prime/StarNodeObjectViewerWidget.h"
 
 #include <EASTL/unordered_map.h>
@@ -180,6 +181,7 @@ void InstallObjectTrackers()
   TrackObject<MiningObjectViewerWidget>();
   TrackObject<MissionsObjectViewerWidget>();
   TrackObject<NavigationInteractionUIViewController>();
+  TrackObject<ElementSelectorViewController>();
   TrackObject<StarNodeObjectViewerWidget>();
 
   SPUD_STATIC_DETOUR(il2cpp_unity_liveness_finalize, calc_liveness_hook);

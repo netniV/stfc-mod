@@ -160,8 +160,8 @@ namespace Shortcuts
   constexpr const char* zoom_preset5          = "F5";
   constexpr const char* move_up               = "W";
   constexpr const char* move_down             = "S";
-  constexpr const char* move_left             = "A";
-  constexpr const char* move_right            = "D";
+  constexpr const char* move_left             = "LEFT";
+  constexpr const char* move_right            = "RIGHT";
 } // namespace Shortcuts
 
 namespace Sync

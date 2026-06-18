@@ -787,12 +787,8 @@ void Config::Load()
 
   spdlog::debug("");
 
-  // if (this->enable_experimental) {
-  //   parse_config_shortcut(config, parsed, "move_left",  GameFunction::MoveLeft,  DCSH::move_left);
-  //   parse_config_shortcut(config, parsed, "move_right", GameFunction::MoveRight, DCSH::move_right);
-  //   parse_config_shortcut(config, parsed, "move_down",  GameFunction::MoveDown,  DCSH::move_down);
-  //   parse_config_shortcut(config, parsed, "move_up",    GameFunction::MoveUp,    DCSH::move_up);
-  // }
+  parse_config_shortcut(config, parsed, "move_left",  GameFunction::MoveLeft,  DCSH::move_left);
+  parse_config_shortcut(config, parsed, "move_right", GameFunction::MoveRight, DCSH::move_right);
 
   parse_config_shortcut(config, parsed, "set_hotkeys_disble", GameFunction::DisableHotKeys, DCSH::set_hotkeys_disabled);
   parse_config_shortcut(config, parsed, "set_hotkeys_enable", GameFunction::EnableHotKeys, DCSH::set_hotkeys_enabled);
