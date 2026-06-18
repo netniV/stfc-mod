@@ -2090,7 +2090,8 @@ void GameServerModelRegistry_ProcessResultInternal(auto original, void* _this, v
 }
 
 void GameServerModelRegistry_ParseBinaryObjectsHelper(auto original, void* _this, void* parsing_context,
-                                                       ServiceResponse* service_response, MethodInfo* method)
+                                                       ServiceResponse* service_response, void* parsedEntityTypes,
+                                                       MethodInfo* method)
 {
   auto *const entity_groups = service_response->EntityGroups;
   for (int i = 0; i < entity_groups->Count; ++i) {
@@ -2098,7 +2099,7 @@ void GameServerModelRegistry_ParseBinaryObjectsHelper(auto original, void* _this
     HandleEntityGroup(entity_group);
   }
 
-  return original(_this, parsing_context, service_response, method);
+  return original(_this, parsing_context, service_response, parsedEntityTypes, method);
 }
 
 void PrimeApp_InitPrimeServer(auto original, void* _this, Il2CppString* gameServerUrl, Il2CppString* gatewayServerUrl,
