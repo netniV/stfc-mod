@@ -12,6 +12,7 @@
 #include "defaultconfig.h"
 #include <algorithm>
 #include <cstdio>
+#include <initializer_list>
 #include <iostream>
 #include <ranges>
 #include <string>
@@ -364,19 +365,72 @@ void read_sync_targets(toml::table& config, toml::table& new_config,
   }
 }
 
-void parse_config_shortcut(toml::table& config, toml::table& new_config, std::string_view item,
-                           GameFunction gameFunction, std::string_view default_value)
+struct ShortcutConfigValue {
+  std::string value;
+  std::string source_item;
+  bool        from_config = false;
+  bool        valid_type  = true;
+};
+
+std::string shortcut_source_label(const ShortcutConfigValue& shortcut_value, std::string_view item)
+{
+  if (!shortcut_value.valid_type) {
+    return "invalid";
+  }
+  if (!shortcut_value.from_config) {
+    return "default";
+  }
+  if (shortcut_value.source_item == item) {
+    return "config";
+  }
+
+  std::string label = "alias:";
+  label.append(shortcut_value.source_item);
+  return label;
+}
+
+void set_shortcut_source(toml::node_view<toml::node> sourceTable, std::string_view item, std::string_view source)
+{
+  sourceTable.as_table()->insert_or_assign(item, std::string(source));
+}
+
+void set_shortcut_noop(toml::node_view<toml::node> sectionTable, toml::node_view<toml::node> sourceTable,
+                       std::string_view item, std::string_view source)
+{
+  sectionTable.as_table()->insert_or_assign(item, "NONE");
+  set_shortcut_source(sourceTable, item, source);
+  spdlog::debug("shortcut value shortcuts.{} value: NONE", item);
+}
+
+void parse_config_shortcut_value(toml::table& new_config, std::string_view item, GameFunction gameFunction,
+                                 const ShortcutConfigValue& shortcut_value)
 {
   auto section = "shortcuts";
+  auto source  = "shortcuts_source";
 
-  config.emplace<toml::table>(section, toml::table());
   new_config.emplace<toml::table>(section, toml::table());
+  new_config.emplace<toml::table>(source, toml::table());
 
   auto sectionTable = new_config[section];
-  auto config_value = config[section][item].value_or(default_value);
+  auto sourceTable  = new_config[source];
+  auto sourceLabel  = shortcut_source_label(shortcut_value, item);
 
+  if (!shortcut_value.valid_type) {
+    spdlog::error("Invalid shortcut value [shortcuts].{} must be a string; [shortcuts].{} disabled.",
+                  shortcut_value.source_item, item);
+    set_shortcut_noop(sectionTable, sourceTable, item, "invalid");
+    return;
+  }
+
+  auto config_value = shortcut_value.value;
   auto valueTrimmed = StripTrailingAsciiWhitespace(config_value);
   auto valueLowered = AsciiStrToUpper(valueTrimmed);
+
+  if (valueLowered == "NONE" || valueTrimmed.empty()) {
+    set_shortcut_noop(sectionTable, sourceTable, item, sourceLabel);
+    return;
+  }
+
   auto wantedKeys   = StrSplit(valueLowered, '|');
 
   bool keyAdded = false;
@@ -385,20 +439,92 @@ void parse_config_shortcut(toml::table& config, toml::table& new_config, std::st
 
     if (mapKey.Key != KeyCode::None) {
       keyAdded = true;
+      MapKey::AddMappedKey(gameFunction, mapKey);
+    } else if (!wantedKey.empty()) {
+      spdlog::warn("Invalid shortcut token [shortcuts].{} token='{}' value='{}'; ignoring token.",
+                   shortcut_value.source_item, wantedKey, config_value);
     }
-
-    MapKey::AddMappedKey(gameFunction, mapKey);
   }
 
   if (!keyAdded) {
-    MapKey mapKey = MapKey::Parse(default_value);
-    MapKey::AddMappedKey(gameFunction, mapKey);
+    if (shortcut_value.from_config) {
+      spdlog::error("No valid shortcut tokens for [shortcuts].{} value='{}'; [shortcuts].{} disabled.",
+                    shortcut_value.source_item, config_value, item);
+    } else {
+      spdlog::error("Default shortcut [shortcuts].{} value='{}' has no valid tokens; action disabled.", item,
+                    config_value);
+    }
+    set_shortcut_noop(sectionTable, sourceTable, item, "invalid");
+    return;
   }
 
   auto shortcut = MapKey::GetShortcuts(gameFunction);
   sectionTable.as_table()->insert_or_assign(item, shortcut);
+  set_shortcut_source(sourceTable, item, sourceLabel);
 
   spdlog::debug("shortcut value {}.{} value: {}", section, item, shortcut);
+}
+
+bool shortcut_key_exists(toml::table& config, std::string_view item)
+{
+  auto shortcuts = config["shortcuts"].as_table();
+  return shortcuts && shortcuts->contains(item);
+}
+
+ShortcutConfigValue get_shortcut_value_or_default(toml::table& config, std::string_view item,
+                                                  std::string_view default_value)
+{
+  if (!shortcut_key_exists(config, item)) {
+    return {std::string(default_value), std::string(item), false, true};
+  }
+
+  auto value = config["shortcuts"][item].value<std::string>();
+  if (!value) {
+    return {"", std::string(item), true, false};
+  }
+
+  return {*value, std::string(item), true, true};
+}
+
+void parse_config_shortcut(toml::table& config, toml::table& new_config, std::string_view item,
+                           GameFunction gameFunction, std::string_view default_value)
+{
+  auto section = "shortcuts";
+
+  config.emplace<toml::table>(section, toml::table());
+
+  parse_config_shortcut_value(new_config, item, gameFunction,
+                              get_shortcut_value_or_default(config, item, default_value));
+}
+
+void parse_config_shortcut_aliases(toml::table& config, toml::table& new_config, std::string_view item,
+                                   GameFunction gameFunction, std::string_view default_value,
+                                   std::initializer_list<std::string_view> aliases)
+{
+  auto section = "shortcuts";
+
+  config.emplace<toml::table>(section, toml::table());
+
+  auto        config_value = get_shortcut_value_or_default(config, item, default_value);
+  const auto has_item     = shortcut_key_exists(config, item);
+
+  for (const auto alias : aliases) {
+    if (!shortcut_key_exists(config, alias)) {
+      continue;
+    }
+
+    if (has_item) {
+      spdlog::warn("Ignoring deprecated shortcut alias [shortcuts].{} because [shortcuts].{} is set.", alias, item);
+      continue;
+    }
+
+    config_value = get_shortcut_value_or_default(config, alias, default_value);
+    spdlog::warn("Deprecated shortcut alias [shortcuts].{} is supported for compatibility; use [shortcuts].{}.",
+                 alias, item);
+    break;
+  }
+
+  parse_config_shortcut_value(new_config, item, gameFunction, config_value);
 }
 
 void migrate_mac_config_if_needed(const char* filename)
@@ -794,8 +920,10 @@ void Config::Load()
   //   parse_config_shortcut(config, parsed, "move_up",    GameFunction::MoveUp,    DCSH::move_up);
   // }
 
-  parse_config_shortcut(config, parsed, "set_hotkeys_disble", GameFunction::DisableHotKeys, DCSH::set_hotkeys_disabled);
-  parse_config_shortcut(config, parsed, "set_hotkeys_enable", GameFunction::EnableHotKeys, DCSH::set_hotkeys_enabled);
+  parse_config_shortcut_aliases(config, parsed, "set_hotkeys_disabled", GameFunction::DisableHotKeys,
+                                DCSH::set_hotkeys_disabled, {"set_hotkeys_disble", "set_hotkeys_disable"});
+  parse_config_shortcut_aliases(config, parsed, "set_hotkeys_enabled", GameFunction::EnableHotKeys,
+                                DCSH::set_hotkeys_enabled, {"set_hotkeys_enable"});
 
   parse_config_shortcut(config, parsed, "select_chatalliance", GameFunction::SelectChatAlliance,
                         DCSH::select_chatalliance);
