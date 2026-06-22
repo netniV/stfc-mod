@@ -515,6 +515,8 @@ void Config::Load()
       get_config_or_default(config, parsed, "patches", "objecttracker", DCP::objecttracker, write_config);
   this->installLoadingScreenBgHooks =
       get_config_or_default(config, parsed, "patches", "loadingscreenbghooks", DCP::loadingscreenbghooks, write_config);
+  this->installGiftsBulkClaimHooks =
+      get_config_or_default(config, parsed, "patches", "giftsbulkclaimhooks", DCP::giftsbulkclaimhooks, write_config);
   spdlog::debug("");
 #else
   this->installUiScaleHooks               = true;
@@ -533,6 +535,7 @@ void Config::Load()
   this->installSyncPatches                = true;
   this->installObjectTracker              = true;
   this->installLoadingScreenBgHooks       = true;
+  this->installGiftsBulkClaimHooks        = true;
 #endif
 
   this->queue_enabled =
@@ -615,6 +618,8 @@ void Config::Load()
       get_config_or_default(config, parsed, "ui", "disable_move_keys", DCU::disable_move_keys, write_config);
   this->disable_toast_banners =
       get_config_or_default(config, parsed, "ui", "disable_toast_banners", DCU::disable_toast_banners, write_config);
+  this->auto_open_bulk_claim_flyout = get_config_or_default(config, parsed, "ui", "auto_open_bulk_claim_flyout",
+                                                            DCU::auto_open_bulk_claim_flyout, write_config);
 
 #if _WIN32
   this->extend_donation_slider =
