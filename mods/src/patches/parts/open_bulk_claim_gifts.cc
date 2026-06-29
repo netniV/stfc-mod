@@ -126,6 +126,22 @@ public:
   }
 };
 
+class ShopSectionContext
+{
+private:
+  static IL2CppClassHelper& get_class_helper()
+  {
+    static auto class_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Shop", "ShopSectionContext");
+    return class_helper;
+  }
+
+public:
+  static IL2CppClassHelper& ClassHelper()
+  {
+    return get_class_helper();
+  }
+};
+
 class ShopListScrollerViewController
 {
 private:
@@ -188,6 +204,12 @@ bool IsGiftsShopPayload(int section, void* args)
   return ShopCategory::KeyForValue(category) == kGiftsCategoryKey;
 }
 
+bool IsBulkClaimTabSection(int section)
+{
+  return section == (int)SectionID::Shop_List || section == (int)SectionID::Shop_AllianceChests
+         || section == (int)SectionID::Consumables || section == (int)SectionID::Missions_AwayTeamsList;
+}
+
 void TryAutoOpenDrawer(ShopListScrollerViewController* controller)
 {
   if (!Config::Get().auto_open_bulk_claim_flyout || !g_pending_auto_open || g_auto_open_attempted
@@ -220,6 +242,27 @@ void ShopListScrollerViewController_Update(auto original, ShopListScrollerViewCo
 {
   original(_this);
   TryAutoOpenDrawer(_this);
+}
+
+void ShopSectionContext_InjectTabData(auto original, ShopSectionContext* _this, int section,
+                                      Il2CppArraySize* tab_locale_contexts,
+                                      Il2CppArraySize* additional_tab_locale_contexts,
+                                      Il2CppArraySize* tab_icon_identifiers, Il2CppArraySize* pip_types,
+                                      Il2CppArraySize* hide_if_no_content, bool set_current_section,
+                                      bool override_existing_tabs)
+{
+  original(_this, section, tab_locale_contexts, additional_tab_locale_contexts, tab_icon_identifiers, pip_types,
+           hide_if_no_content, set_current_section, override_existing_tabs);
+
+  if (!Config::Get().auto_open_bulk_claim_flyout || !set_current_section) {
+    return;
+  }
+
+  if (IsBulkClaimTabSection(section)) {
+    ArmAutoOpen();
+  } else {
+    ClearAutoOpen();
+  }
 }
 
 bool SectionManager_TriggerSectionChange(auto original,
@@ -272,6 +315,15 @@ void InstallGiftsBulkClaimHooks()
     ErrorMsg::MissingHelper("Digit.Prime.Shop", "BundleGroupConfig");
   } else if (!bundle_group_config.GetField("_category").isValidHelper()) {
     ErrorMsg::MissingMethod("BundleGroupConfig", "_category");
+  }
+
+  auto shop_section_context = ShopSectionContext::ClassHelper();
+  if (!shop_section_context.isValidHelper()) {
+    ErrorMsg::MissingHelper("Digit.Prime.Shop", "ShopSectionContext");
+  } else if (auto ptr = shop_section_context.GetMethod("InjectTabData"); ptr == nullptr) {
+    ErrorMsg::MissingMethod("ShopSectionContext", "InjectTabData");
+  } else {
+    SPUD_STATIC_DETOUR(ptr, ShopSectionContext_InjectTabData);
   }
 
   auto shop_list_controller = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Shop", "ShopListViewController");
