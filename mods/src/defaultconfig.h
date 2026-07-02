@@ -169,6 +169,7 @@ namespace Sync
   constexpr bool        battlelogs         = true;
   constexpr bool        buffs              = true;
   constexpr bool        buildings          = true;
+  constexpr bool        hook_game_version  = true;
   constexpr bool        inventory          = true;
   constexpr bool        jobs               = true;
   constexpr bool        missions           = true;

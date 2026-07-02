@@ -484,7 +484,9 @@ void Config::Load()
     write_log    = false;
   }
 
-#if _MODDBG
+  // Patch switches are honoured in release builds too (previously debug-only):
+  // needed to selectively disable hook groups that collide with BepInEx plugins
+  // hooking the same il2cpp methods (native + managed detour on one prologue crashes).
   this->installUiScaleHooks =
       get_config_or_default(config, parsed, "patches", "uiscalehooks", DCP::uiscalehooks, write_config);
   this->installZoomHooks = get_config_or_default(config, parsed, "patches", "zoomhooks", DCP::zoomhooks, write_config);
@@ -516,24 +518,6 @@ void Config::Load()
   this->installLoadingScreenBgHooks =
       get_config_or_default(config, parsed, "patches", "loadingscreenbghooks", DCP::loadingscreenbghooks, write_config);
   spdlog::debug("");
-#else
-  this->installUiScaleHooks               = true;
-  this->installZoomHooks                  = true;
-  this->installBuffFixHooks               = true;
-  this->installToastBannerHooks           = true;
-  this->installPanHooks                   = true;
-  this->installImproveResponsivenessHooks = true;
-  this->installHotkeyHooks                = true;
-  this->installFreeResizeHooks            = true;
-  this->installTempCrashFixes             = true;
-  this->installTestPatches                = true;
-  this->installMiscPatches                = true;
-  this->installChatPatches                = true;
-  this->installResolutionListFix          = false; // this patch does not work after unity 6 update
-  this->installSyncPatches                = true;
-  this->installObjectTracker              = true;
-  this->installLoadingScreenBgHooks       = true;
-#endif
 
   this->queue_enabled =
       get_config_or_default(config, parsed, "control", "queue_enabled", DCC::queue_enabled, write_config);
@@ -645,6 +629,8 @@ void Config::Load()
 
   this->sync_debug   = get_config_or_default(config, parsed, "sync", "debug", DCS::debug, write_config);
   this->sync_logging = get_config_or_default(config, parsed, "sync", "logging", DCS::logging, write_config);
+  this->sync_hook_game_version =
+      get_config_or_default(config, parsed, "sync", "hook_game_version", DCS::hook_game_version, write_config);
   this->sync_resolver_cache_ttl =
       get_config_or_default(config, parsed, "sync", "resolver_cache_ttl", DCS::resolver_cache_ttl, write_config);
 

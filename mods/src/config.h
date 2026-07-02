@@ -184,6 +184,7 @@ public:
 
   bool       sync_logging;
   bool       sync_debug;
+  bool       sync_hook_game_version;
   int        sync_resolver_cache_ttl;
   SyncConfig sync_options;
 
