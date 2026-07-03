@@ -609,6 +609,17 @@ show_station_cargo = true
 # This setting is not used
 auto_confirm_discovery = true
 
+# Subgroup: Mission HUD
+# ---------------------
+
+# EXPERIMENTAL: Controls mission HUD button visibility. Valid values: "always", "auto", "never"
+[ui.mission_hud]
+q_trials = "auto"
+field_training = "auto"
+outposts = "auto"
+daily_goals = "auto"
+missions = "auto"
+
 #  <[===================================================================]>
 #
 #       ****           *                    ****

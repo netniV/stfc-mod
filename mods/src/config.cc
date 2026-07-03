@@ -21,6 +21,7 @@ namespace DCP  = DefaultConfig::Patches;
 namespace DCG  = DefaultConfig::Graphics;
 namespace DCC  = DefaultConfig::Control;
 namespace DCU  = DefaultConfig::UI;
+namespace DCMH = DefaultConfig::UI::MissionHud;
 namespace DCBS = DefaultConfig::Buffs;
 namespace DCS  = DefaultConfig::Sync;
 namespace DCSC = DefaultConfig::SystemConfig;
@@ -120,6 +121,18 @@ Config& Config::Get()
 {
   static Config config;
   return config;
+}
+
+MissionHudVisibility Config::MissionHudButtonVisibility(std::string_view button_name) const
+{
+  const auto it = this->mission_hud_buttons.find(std::string(button_name));
+  return it == this->mission_hud_buttons.end() ? MissionHudVisibility::Auto : it->second;
+}
+
+bool Config::MissionHudTweaksEnabled() const
+{
+  return std::ranges::any_of(this->mission_hud_buttons,
+                             [](const auto& button) { return button.second != MissionHudVisibility::Auto; });
 }
 
 #if _WIN32
@@ -298,6 +311,65 @@ T get_config_or_default(toml::table& config, toml::table& new_config, std::strin
   }
 
   return (T)final_value;
+}
+
+std::string_view to_string(MissionHudVisibility visibility)
+{
+  switch (visibility) {
+    case MissionHudVisibility::Always:
+      return "always";
+    case MissionHudVisibility::Never:
+      return "never";
+    case MissionHudVisibility::Auto:
+    default:
+      return "auto";
+  }
+}
+
+MissionHudVisibility parse_mission_hud_visibility(std::string_view item, std::string_view value)
+{
+  const auto normalized = AsciiStrToUpper(StripAsciiWhitespace(value));
+
+  if (normalized == "ALWAYS") {
+    return MissionHudVisibility::Always;
+  }
+  if (normalized == "NEVER") {
+    return MissionHudVisibility::Never;
+  }
+  if (normalized == "AUTO" || normalized.empty()) {
+    return MissionHudVisibility::Auto;
+  }
+
+  spdlog::warn("invalid config value ui.mission_hud.{}: '{}'; using auto", item, value);
+  return MissionHudVisibility::Auto;
+}
+
+toml::table& ensure_ui_mission_hud_table(toml::table& config)
+{
+  config.emplace<toml::table>("ui", toml::table());
+  auto* ui_table = config["ui"].as_table();
+
+  if (!ui_table->contains("mission_hud") || !(*ui_table)["mission_hud"].is_table()) {
+    ui_table->insert_or_assign("mission_hud", toml::table());
+  }
+
+  return *(*ui_table)["mission_hud"].as_table();
+}
+
+MissionHudVisibility get_mission_hud_visibility(toml::table& config, toml::table& new_config, std::string_view item,
+                                                std::string_view default_value, bool write_log)
+{
+  const auto value = config["ui"]["mission_hud"][item].value<std::string>().value_or(std::string(default_value));
+  const auto mode  = parse_mission_hud_visibility(item, value);
+
+  auto& mission_hud = ensure_ui_mission_hud_table(new_config);
+  mission_hud.insert_or_assign(item, std::string(to_string(mode)));
+
+  if (write_log) {
+    spdlog::debug("config value ui.mission_hud.{} value: {}", item, to_string(mode));
+  }
+
+  return mode;
 }
 
 void read_sync_targets(toml::table& config, toml::table& new_config,
@@ -505,6 +577,7 @@ void Config::Load()
       get_config_or_default(config, parsed, "patches", "testpatches", DCP::testpatches, write_config);
   this->installMiscPatches =
       get_config_or_default(config, parsed, "patches", "miscpatches", DCP::miscpatches, write_config);
+  this->installMissionHudTweaksHooks = false;
   this->installChatPatches =
       get_config_or_default(config, parsed, "patches", "chatpatches", DCP::chatpatches, write_config);
   this->installResolutionListFix =
@@ -528,6 +601,7 @@ void Config::Load()
   this->installTempCrashFixes             = true;
   this->installTestPatches                = true;
   this->installMiscPatches                = true;
+  this->installMissionHudTweaksHooks      = false;
   this->installChatPatches                = true;
   this->installResolutionListFix          = false; // this patch does not work after unity 6 update
   this->installSyncPatches                = true;
@@ -640,6 +714,18 @@ void Config::Load()
 
   this->always_skip_reveal_sequence = get_config_or_default(config, parsed, "ui", "always_skip_reveal_sequence",
                                                             DCU::always_skip_reveal_sequence, write_config);
+  this->mission_hud_buttons.clear();
+  this->mission_hud_buttons.emplace(
+      "q_trials", get_mission_hud_visibility(config, parsed, "q_trials", DCMH::q_trials, write_config));
+  this->mission_hud_buttons.emplace("field_training", get_mission_hud_visibility(config, parsed, "field_training",
+                                                                                 DCMH::field_training, write_config));
+  this->mission_hud_buttons.emplace(
+      "outposts", get_mission_hud_visibility(config, parsed, "outposts", DCMH::outposts, write_config));
+  this->mission_hud_buttons.emplace(
+      "daily_goals", get_mission_hud_visibility(config, parsed, "daily_goals", DCMH::daily_goals, write_config));
+  this->mission_hud_buttons.emplace(
+      "missions", get_mission_hud_visibility(config, parsed, "missions", DCMH::missions, write_config));
+  this->installMissionHudTweaksHooks = this->MissionHudTweaksEnabled();
 
   spdlog::debug("");
 
