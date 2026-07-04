@@ -2314,8 +2314,8 @@ void InstallSyncPatches()
     // (headers::primeVersion has a static fallback). It is optional so users can turn
     // it off when another mod detours the same method — a native and a managed detour
     // on one prologue corrupt each other and crash at login.
-    if (!Config::Get().sync_hook_game_version) {
-      spdlog::info("Sync: skipping GameServer::Initialise hook (sync.hook_game_version = false)");
+    if (!Config::Get().installGameVersionHook) {
+      spdlog::info("Sync: skipping GameServer::Initialise hook (patches.game_version = false)");
     } else if (auto *const ptr = game_server.GetMethod("Initialise"); ptr == nullptr) {
       ErrorMsg::MissingMethod("GameServer", "Initialise");
     } else {

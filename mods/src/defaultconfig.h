@@ -55,6 +55,7 @@ namespace Patches
   constexpr bool bufffixhooks               = true;
   constexpr bool chatpatches                = true;
   constexpr bool freeresizehooks            = true;
+  constexpr bool game_version               = true;
   constexpr bool hotkeyhooks                = true;
   constexpr bool improveresponsivenesshooks = true;
   constexpr bool miscpatches                = true;
@@ -169,7 +170,6 @@ namespace Sync
   constexpr bool        battlelogs         = true;
   constexpr bool        buffs              = true;
   constexpr bool        buildings          = true;
-  constexpr bool        hook_game_version  = true;
   constexpr bool        inventory          = true;
   constexpr bool        jobs               = true;
   constexpr bool        missions           = true;

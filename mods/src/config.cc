@@ -513,6 +513,8 @@ void Config::Load()
       get_config_or_default(config, parsed, "patches", "resolutionlistfix", DCP::resolutionlistfix, write_config);
   this->installSyncPatches =
       get_config_or_default(config, parsed, "patches", "syncpatches", DCP::syncpatches, write_config);
+  this->installGameVersionHook =
+      get_config_or_default(config, parsed, "patches", "game_version", DCP::game_version, write_config);
   this->installObjectTracker =
       get_config_or_default(config, parsed, "patches", "objecttracker", DCP::objecttracker, write_config);
   this->installLoadingScreenBgHooks =
@@ -629,8 +631,6 @@ void Config::Load()
 
   this->sync_debug   = get_config_or_default(config, parsed, "sync", "debug", DCS::debug, write_config);
   this->sync_logging = get_config_or_default(config, parsed, "sync", "logging", DCS::logging, write_config);
-  this->sync_hook_game_version =
-      get_config_or_default(config, parsed, "sync", "hook_game_version", DCS::hook_game_version, write_config);
   this->sync_resolver_cache_ttl =
       get_config_or_default(config, parsed, "sync", "resolver_cache_ttl", DCS::resolver_cache_ttl, write_config);
 
