@@ -127,9 +127,7 @@ void NavigationZoom_Update_Hook(auto original, NavigationZoom *_this)
   bool       do_store_zoom    = false;
   auto       config           = &Config::Get();
 
-#if __APPLE__
   EnsureSystemZoomRange(_this);
-#endif
 
   if (!Key::IsInputFocused()) {
     if (MapKey::IsDown(GameFunction::SetZoomPreset1)) {
@@ -219,9 +217,7 @@ void NavigationZoom_Update_Hook(auto original, NavigationZoom *_this)
 
   original(_this);
 
-#if __APPLE__
   EnsureSystemZoomRange(_this);
-#endif
 }
 
 void PlanetViewUtils_CameraZoomedEventHandler_Hook(auto original, PlanetViewUtils *_this, float zoomDistance,
