@@ -51,8 +51,15 @@ static void ScaleFR(void *fr)
   static auto comp_helper   = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "Component");
   static auto get_transform = comp_helper.GetProperty("transform");
 
-  auto* t     = (Transform*)get_transform.GetRaw<Il2CppObject>(fr);
+  auto* t = (Transform*)get_transform.GetRaw<Il2CppObject>(fr);
+  if (!t) {
+    return;
+  }
+
   auto* scale = t->localScale;
+  if (!scale) {
+    return;
+  }
 
   if (s_expectedScale > 0 && fabsf(scale->x - s_expectedScale) < 0.1f) {
     return;
