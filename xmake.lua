@@ -14,8 +14,16 @@ add_requires("eastl")
 add_requires("spdlog")
 add_requires("toml++")
 add_requires("nlohmann_json")
-add_requires("cpr", { configs = { ssl = true } })
-add_requireconfs("cpr.libcurl", { configs = { zlib = true } })
+-- curl 8.21 removed SecureTransport while the XMake recipe still requests it.
+-- Pin the packaged curl variant used by cpr so macOS x86_64 keeps HTTPS support.
+add_requires("libcurl 8.11.0", { system = false, configs = { zlib = true, libssh2 = true } })
+add_requires("cpr 1.14.2", { configs = { ssl = true } })
+add_requireconfs("cpr.libcurl", {
+    override = true,
+    version = "8.11.0",
+    system = false,
+    configs = { zlib = true, libssh2 = true },
+})
 add_requires("protobuf 32.1")
 
 if is_plat("windows") then
