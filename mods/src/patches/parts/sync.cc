@@ -81,6 +81,32 @@ namespace headers
   static std::string    poweredBy{"stfc community mod/" VER_FILE_VERSION_STR};
 } // namespace headers
 
+static void log_curl_https_support()
+{
+  static std::once_flag log_once;
+
+  std::call_once(log_once, [] {
+    const auto* info = curl_version_info(CURLVERSION_NOW);
+    bool        has_https = false;
+
+    if (info != nullptr && info->protocols != nullptr) {
+      for (const char* const* protocol = info->protocols; *protocol != nullptr; ++protocol) {
+        if (std::string_view(*protocol) == "https") {
+          has_https = true;
+          break;
+        }
+      }
+    }
+
+    spdlog::info(
+      "libcurl version={} ssl_version={} https_supported={}",
+      info != nullptr && info->version != nullptr ? info->version : "(unknown)",
+      info != nullptr && info->ssl_version != nullptr ? info->ssl_version : "(none)",
+      has_https
+    );
+  });
+}
+
 [[nodiscard]] static std::string newUUID()
 {
 #ifdef _WIN32
@@ -317,6 +343,7 @@ static std::shared_ptr<TargetWorker> get_curl_client_sync(const std::string& tar
   auto worker = std::make_shared<TargetWorker>();
 
   // Initialize session
+  log_curl_https_support();
   worker->session = std::make_shared<cpr::Session>();
   const auto& target_config = Config::Get().sync_targets[target];
 
@@ -402,6 +429,7 @@ static std::shared_ptr<cpr::Session> get_curl_client_scopely()
 
   // thread-safe initialization
   std::call_once(init_flag, [] {
+    log_curl_https_support();
     session = std::make_shared<cpr::Session>();
     session->SetAcceptEncoding(cpr::AcceptEncoding{});
     session->SetHttpVersion(cpr::HttpVersion{cpr::HttpVersionCode::VERSION_1_1});

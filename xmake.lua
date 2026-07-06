@@ -14,19 +14,23 @@ add_requires("eastl")
 add_requires("spdlog")
 add_requires("toml++")
 add_requires("nlohmann_json")
-if is_plat("macosx") and is_arch("x86_64") then
-    -- curl 8.21 removed SecureTransport while the XMake recipe still requests it.
-    -- Pin only the Rosetta/macOS x86_64 slice to the known HTTPS-capable curl.
-    add_requires("cpr", { configs = { ssl = true } })
+-- Sync sends HTTPS requests, so do not rely on cpr's package default of ssl=false.
+add_requires("cpr", { configs = { ssl = true } })
+if is_plat("macosx") then
+    -- curl 8.15 removed Secure Transport. XMake's libcurl recipe still asks
+    -- Apple builds for it, so force a supported TLS backend for packaged curl.
     add_requireconfs("cpr.libcurl", {
         override = true,
-        version = "8.11.0",
         system = false,
-        configs = { zlib = true, libssh2 = true },
+        configs = { zlib = true, libssh2 = true, openssl3 = true },
     })
+    add_requireconfs("cpr.libcurl.libssh2", { configs = { backend = "openssl3" } })
+    add_requireconfs("cpr.libssh2", { configs = { backend = "openssl3" } })
 else
-    add_requires("cpr")
-    add_requireconfs("cpr.libcurl", { configs = { zlib = true } })
+    add_requireconfs("cpr.libcurl", {
+        override = true,
+        configs = { zlib = true, libssh2 = false },
+    })
 end
 add_requires("protobuf 32.1")
 
