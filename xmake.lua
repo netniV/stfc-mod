@@ -14,7 +14,7 @@ add_requires("eastl")
 add_requires("spdlog")
 add_requires("toml++")
 add_requires("nlohmann_json")
-add_requires("cpr")
+add_requires("cpr", { configs = { ssl = true } })
 add_requireconfs("cpr.libcurl", { configs = { zlib = true } })
 add_requires("protobuf 32.1")
 
