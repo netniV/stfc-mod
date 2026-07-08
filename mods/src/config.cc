@@ -729,6 +729,9 @@ void Config::Load()
       get_config_or_default(config, parsed, "graphics", "loader_transition", DCG::loader_transition, write_log);
   this->loader_transition_black =
       get_config_or_default(config, parsed, "graphics", "loader_transition_black", DCG::loader_transition_black, write_log);
+  // If transition customization is disabled, force black mode (game's default background)
+  if (!this->loader_transition)
+    this->loader_transition_black = true;
   this->loader_image =
       get_config_or_default<std::string>(config, parsed, "graphics", "loader_image", DCG::loader_image, write_log);
   this->loader_logo_scale =

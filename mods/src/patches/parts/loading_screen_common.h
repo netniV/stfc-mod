@@ -17,11 +17,6 @@
 #include "embedded_logo_image.h"
 #include "embedded_cc_logo_image.h"
 
-// =============================================================================
-// Shared utilities for loading screen and transition screen patches.
-// Provides texture loading, sprite creation, image overlay creation, and
-// logo placement helpers used by both loading_screen.cc and transition_screen.cc.
-// =============================================================================
 
 namespace ls_common {
 
@@ -29,8 +24,6 @@ struct FakeRect { float x, y, width, height; };
 struct FakeVector2 { float x, y; };
 struct FakeVector3 { float x, y, z; };
 struct FakeColor { float r, g, b, a; };
-
-// --- IL2CPP invoke helpers ---
 
 inline Il2CppObject* InvokeRuntime(const MethodInfo* method, void* target, void** args, const char* name)
 {
@@ -75,8 +68,6 @@ inline void* InvokeObject(const MethodInfo* method, void* target, void** args, c
   return InvokeRuntime(method, target, args, name);
 }
 
-// --- RectTransform helpers ---
-
 inline void SetFullRect(void* rt, FakeVector2 aMin, FakeVector2 aMax, FakeVector2 pivot, FakeVector2 sd, FakeVector2 ap)
 {
   if (!rt) return;
@@ -98,8 +89,6 @@ inline void SetFullRect(void* rt, FakeVector2 aMin, FakeVector2 aMax, FakeVector
   InvokeVoid(fn_sd, rt, sdA, "RT.set_sizeDelta");
   InvokeVoid(fn_ap, rt, apA, "RT.set_anchoredPosition");
 }
-
-// --- Texture / Sprite helpers ---
 
 inline void GetTextureSize(void* tex, int32_t& w, int32_t& h, int32_t fallbackW, int32_t fallbackH)
 {
@@ -173,8 +162,6 @@ inline void SafeDestroy(void* obj)
   } catch (...) {}
 }
 
-// --- String / Hierarchy helpers ---
-
 inline void ReadIl2CppString(void* strObj, char* buf, int bufSize)
 {
   buf[0] = '\0';
@@ -208,8 +195,6 @@ inline void* FindRootCanvas(void* parentTransform)
   return parentTransform;
 }
 
-// --- Texture loading ---
-
 inline void* LoadTextureFromBytes(const uint8_t* data, size_t size)
 {
   if (!data || size == 0) return nullptr;
@@ -242,8 +227,6 @@ inline void* LoadTextureFromBytes(const uint8_t* data, size_t size)
 
 // --- Texture management (shared state) ---
 
-// Texture pointers are file-scope (not static locals) so they can be reset
-// during reload. Unity destroys textures on reload, leaving dangling pointers.
 inline void*& LoadingTextureRef()
 {
   static void* texture = nullptr;
@@ -277,8 +260,6 @@ inline void* GetLoadingTexture()
   }
   if (!texture)
     texture = LoadTextureFromBytes(g_embeddedLoadingImage, g_embeddedLoadingImage_SIZE);
-  if (!texture)
-    spdlog::warn("[LS] failed to load loading screen image texture");
   return texture;
 }
 
@@ -287,7 +268,6 @@ inline void* GetLogoTexture()
   void*& texture = LogoTextureRef();
   if (!texture) {
     texture = LoadTextureFromBytes(g_embeddedLogoImage, g_embeddedLogoImage_SIZE);
-    if (!texture) spdlog::warn("[LS] failed to load logo texture");
   }
   return texture;
 }
@@ -297,22 +277,16 @@ inline void* GetCCLogoTexture()
   void*& texture = CCLogoTextureRef();
   if (!texture) {
     texture = LoadTextureFromBytes(g_embeddedCCLogoImage, g_embeddedCCLogoImage_SIZE);
-    if (!texture) spdlog::warn("[LS] failed to load CC logo texture");
   }
   return texture;
 }
 
-// Null out stale texture pointers before reload destroys the Unity objects.
-// Textures will be reloaded on next Get* call.
 inline void ResetTexturesForReload()
 {
   LoadingTextureRef() = nullptr;
   LogoTextureRef()    = nullptr;
   CCLogoTextureRef()  = nullptr;
-  spdlog::info("[LS] Texture pointers reset for reload");
 }
-
-// --- Image overlay creation ---
 
 inline void* CreateImageOverlay(const char* name, void* texture, void* parentTransform, FakeVector2 aMin,
                                 FakeVector2 aMax, FakeVector2 pivot, FakeVector2 sd, FakeVector2 ap,
@@ -365,8 +339,6 @@ inline void* CreateImageOverlay(const char* name, void* texture, void* parentTra
   return go;
 }
 
-// --- Logo overlay creation ---
-
 inline void CreateLogoOverlayEx(const char* name, void* texture, void* parentTransform, void*& outGO, float xSide)
 {
   if (outGO) return;
@@ -407,11 +379,7 @@ inline void CreateLogoOverlayEx(const char* name, void* texture, void* parentTra
     outGO = CreateImageOverlay(name, texture, parentTransform, aMin, aMax,
                                {0.5f, 0.5f}, {0.0f, 0.0f}, {0.0f, 0.0f},
                                true, false, 256, 256);
-    if (!outGO)
-      spdlog::warn("[LS] Failed to create logo overlay: {}", name);
-  } catch (...) {
-    spdlog::warn("[LS] Failed to create logo overlay: {}", name);
-  }
+  } catch (...) {}
 }
 
 inline void CreateLogoOverlay(void* parentTransform, void*& logoGO)
@@ -423,8 +391,6 @@ inline void CreateCCLogoOverlay(void* parentTransform, void*& ccLogoGO)
 {
   CreateLogoOverlayEx("STFCCCLogo", GetCCLogoTexture(), parentTransform, ccLogoGO, -1.0f);
 }
-
-// --- Sprite application to existing Image ---
 
 inline void ApplySpriteToImage(void* imageComp, void* texture)
 {
@@ -439,8 +405,6 @@ inline void ApplySpriteToImage(void* imageComp, void* texture)
   ConfigureImageSprite(imageComp, spr, false);
   InvokeVoid(fn_drt, imageComp, nullptr, "Graphic.SetVerticesDirty");
 }
-
-// --- BG overlay creation (stretch-fill behind UI) ---
 
 inline void* CreateBGOverlay(void* parentTransform, void* texture)
 {

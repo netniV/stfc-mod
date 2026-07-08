@@ -1,25 +1,3 @@
-// =============================================================================
-// TRANSITION SCREEN PATCH — Custom background (or black) + logos on transitions
-// =============================================================================
-//
-// Hooks TransitionViewController lifecycle methods to replace the game's
-// default transition background with a custom texture (or plain black) and
-// add two logo overlays (mod logo + CC logo).
-//
-// Lifecycle:
-//   - Launch: SetLoadingScreen(type=1) → TVC.Awake + AboutToShow → ... → TM.Hide → TVC.AboutToHide
-//   - Reload step 5: SetLoadingScreen(type=2) reuses existing TVC (AboutToShow may not fire)
-//   - Reload step 12: New TVC created (Awake + AboutToShow), old TVC gets AboutToHide
-//
-// The transition screen has a canvas controller with animator and blur.
-// The animator is disabled after show to prevent it from overriding child
-// RectTransform positions, and re-enabled before hide so the hide animation plays.
-//
-// Config options:
-//   loader_transition       — enable/disable transition screen customization
-//   loader_transition_black — use plain black background instead of custom image
-//
-// =============================================================================
 
 #include "loading_screen_common.h"
 
@@ -44,10 +22,6 @@ static void*  g_canvasAnimator  = nullptr;
 // before the reload destroys them. Prevents TVC.Awake from crashing on stale children.
 void ResetTransitionScreenState()
 {
-  spdlog::info("[TransitionScreen] ResetTransitionScreenState: cleaning up");
-  // Don't SafeDestroy — by the time PrepareAllForReload fires, pre-reload
-  // section changes may have already destroyed the GOs. The reload process
-  // will clean up any remaining Unity objects. Just null our pointers.
   g_spriteApplied   = false;
   g_bgImageComp     = nullptr;
   g_bgRectTransform = nullptr;
@@ -138,10 +112,26 @@ static void ApplyTransitionCustomization(void* _this)
       g_bgRectTransform = rt;
     }
 
-    // Hide the game's BG image (alpha=0)
+    // Determine logo parent transform
+    void* logoParent = g_bgRectTransform;
+    if (!logoParent && g_bgImageComp) {
+      static auto comp_h    = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "Component");
+      static auto fn_get_tr = comp_h.GetMethod("get_transform");
+      if (fn_get_tr)
+        logoParent = reinterpret_cast<void* (*)(void*)>(fn_get_tr)(g_bgImageComp);
+    }
+
+    if (cfg.loader_transition_black) {
+      if (logoParent) {
+        ls::CreateLogoOverlay(logoParent, g_logoGO);
+        ls::CreateCCLogoOverlay(logoParent, g_ccLogoGO);
+      }
+      g_spriteApplied = true;
+      return;
+    }
+
     ls::HideImage(imageComp);
 
-    // Reset BG RectTransform to stretch-fill (game oversizes it for parallax bleed)
     if (g_bgRectTransform) {
       ls::SetFullRect(g_bgRectTransform, {0.0f, 0.0f}, {1.0f, 1.0f}, {0.5f, 0.5f}, {0.0f, 0.0f}, {0.0f, 0.0f});
       static auto tr_h = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "Transform");
@@ -159,32 +149,15 @@ static void ApplyTransitionCustomization(void* _this)
       }
     }
 
-    // Determine logo parent transform
-    void* logoParent = g_bgRectTransform;
-    if (!logoParent && g_bgImageComp) {
-      static auto comp_h    = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "Component");
-      static auto fn_get_tr = comp_h.GetMethod("get_transform");
-      if (fn_get_tr)
-        logoParent = reinterpret_cast<void* (*)(void*)>(fn_get_tr)(g_bgImageComp);
-    }
-
     if (logoParent) {
-      // Create custom BG overlay (unless black mode is requested)
-      if (!cfg.loader_transition_black) {
-        void* texture = ls::GetLoadingTexture();
-        if (texture && !g_bgOverlayGO) {
-          g_bgOverlayGO = ls::CreateBGOverlay(logoParent, texture);
-          if (!g_bgOverlayGO)
-            spdlog::warn("[TransitionScreen] Failed to create BG overlay");
-        }
+      void* texture = ls::GetLoadingTexture();
+      if (texture && !g_bgOverlayGO) {
+        g_bgOverlayGO = ls::CreateBGOverlay(logoParent, texture);
       }
-
-      // Create logo overlays
       ls::CreateLogoOverlay(logoParent, g_logoGO);
       ls::CreateCCLogoOverlay(logoParent, g_ccLogoGO);
     }
 
-    // Reposition native TVC children: LogoContainer → top-right, LoadingTipsContainer → lower-center
     {
       static auto mb_hR  = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "MonoBehaviour");
       static auto go_hR  = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "GameObject");
@@ -224,8 +197,6 @@ static void ApplyTransitionCustomization(void* _this)
       }
     }
 
-    // Disable the root canvas animator (TVC._animator) so it stops overriding child RT values
-    // at their "ShowComplete" keyframes. Re-enabled in AboutToHide so the hide animation plays.
     if (!g_canvasAnimator) {
       static auto tv_h = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.LoadingScreen", "TransitionViewController");
       static auto fn_animField = tv_h.GetField("_animator");
@@ -243,10 +214,7 @@ static void ApplyTransitionCustomization(void* _this)
     }
 
     g_spriteApplied = true;
-    spdlog::info("[TransitionScreen] Applied custom background + logos (black={})", cfg.loader_transition_black);
-  } catch (...) {
-    spdlog::warn("[TransitionScreen] Failed to apply custom background");
-  }
+  } catch (...) {}
 }
 
 // --- Hooks ---
@@ -258,9 +226,6 @@ static void TVC_Awake_Hook(auto original, void* _this)
   try {
     if (!Config::Get().loader_transition) return;
 
-    // Reset state from previous transition. After a reload, Unity has already
-    // destroyed old GOs — just null the pointers. SafeDestroy is done in
-    // ResetTransitionScreenState() during PrepareAllForReload.
     g_spriteApplied   = false;
     g_bgImageComp     = nullptr;
     g_bgRectTransform = nullptr;
@@ -269,7 +234,6 @@ static void TVC_Awake_Hook(auto original, void* _this)
     g_ccLogoGO        = nullptr;
     g_canvasAnimator  = nullptr;
 
-    // Try applying immediately — AboutToShow may not fire after reload (type=2 reuses TVC)
     ApplyTransitionCustomization(_this);
   } catch (...) {}
 }
@@ -307,9 +271,9 @@ static void SlideShowViewer_ShowCurrentSlide_Hook(auto original, void* _this)
   original(_this);
 
   try {
-    if (!Config::Get().loader_transition) return;
+    const auto& cfg = Config::Get();
+    if (!cfg.loader_transition || cfg.loader_transition_black) return;
 
-    // Hide the slideshow image so our custom BG (or black) shows through
     static auto h  = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.SlideShow", "SlideShowViewController");
     static auto fi = h.GetField("_image");
     if (!fi.isValidHelper()) return;
@@ -318,33 +282,20 @@ static void SlideShowViewer_ShowCurrentSlide_Hook(auto original, void* _this)
   } catch (...) {}
 }
 
-// --- Reload cleanup hook ---
-
-// Note: lifecycle_logger.cc also hooks PrepareAllForReload when enabled.
-// On macOS, repeated hooks of the same function are not tolerated.
-// If both are enabled, consolidate or add platform guards.
 static void TS_MonoSingleton_PrepareAllForReload_Hook(auto original)
 {
-  // Clean up our overlay GameObjects and null stale pointers before the reload
-  // destroys them. This prevents TVC.Awake from crashing on stale children.
   ResetTransitionScreenState();
   original();
 }
 
-// --- Installation ---
-
 void InstallTransitionScreenHooks()
 {
   const auto& cfg = Config::Get();
-  if (!cfg.loader_transition) {
-    spdlog::info("[TransitionScreen] Disabled by config (loader_transition=false)");
-    return;
-  }
+  if (!cfg.loader_transition) return;
 
   auto tv_h = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.LoadingScreen", "TransitionViewController");
   if (!tv_h.isValidHelper()) {
     ErrorMsg::MissingHelper("Digit.Prime.LoadingScreen", "TransitionViewController");
-    spdlog::error("[TransitionScreen] TransitionViewController not found — hooks skipped");
     return;
   }
 
@@ -352,7 +303,6 @@ void InstallTransitionScreenHooks()
 
   if (auto m = tv_h.GetMethod("Awake")) {
     SPUD_STATIC_DETOUR(m, TVC_Awake_Hook);
-    spdlog::info("[TransitionScreen] TVC.Awake hook installed");
   } else {
     ErrorMsg::MissingMethod("TransitionViewController", "Awake");
     ok = false;
@@ -360,7 +310,6 @@ void InstallTransitionScreenHooks()
 
   if (auto m = tv_h.GetMethod("AboutToShow")) {
     SPUD_STATIC_DETOUR(m, TVC_AboutToShow_Hook);
-    spdlog::info("[TransitionScreen] TVC.AboutToShow hook installed");
   } else {
     ErrorMsg::MissingMethod("TransitionViewController", "AboutToShow");
     ok = false;
@@ -368,41 +317,25 @@ void InstallTransitionScreenHooks()
 
   if (auto m = tv_h.GetMethod("AboutToHide")) {
     SPUD_STATIC_DETOUR(m, TVC_AboutToHide_Hook);
-    spdlog::info("[TransitionScreen] TVC.AboutToHide hook installed");
   } else {
     ErrorMsg::MissingMethod("TransitionViewController", "AboutToHide");
     ok = false;
   }
 
-  // SlideShowViewer hook — hides the game's slideshow image
   auto ss_h = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.SlideShow", "SlideShowViewController");
   if (ss_h.isValidHelper()) {
     if (auto m = ss_h.GetMethod("ShowCurrentSlide")) {
       SPUD_STATIC_DETOUR(m, SlideShowViewer_ShowCurrentSlide_Hook);
-      spdlog::info("[TransitionScreen] SlideShowViewer.ShowCurrentSlide hook installed");
-    } else {
-      spdlog::warn("[TransitionScreen] SlideShowViewer.ShowCurrentSlide not found — slideshow BG won't be hidden");
     }
-  } else {
-    spdlog::warn("[TransitionScreen] SlideShowViewController not found — slideshow BG won't be hidden");
   }
 
-  // PrepareAllForReload hook — cleans up overlays before reload
   auto ms_h = il2cpp_get_class_helper("Assembly-CSharp", "", "MonoSingleton");
   if (ms_h.isValidHelper()) {
     if (auto m = ms_h.GetMethod("PrepareAllForReload")) {
       SPUD_STATIC_DETOUR(m, TS_MonoSingleton_PrepareAllForReload_Hook);
-      spdlog::info("[TransitionScreen] MonoSingleton.PrepareAllForReload hook installed");
-    } else {
-      spdlog::warn("[TransitionScreen] MonoSingleton.PrepareAllForReload not found — reload cleanup may fail");
     }
-  } else {
-    spdlog::warn("[TransitionScreen] MonoSingleton not found — reload cleanup may fail");
   }
 
-  if (ok) {
-    spdlog::info("[TransitionScreen] All hooks installed (black_bg={})", cfg.loader_transition_black);
-  } else {
+  if (!ok)
     spdlog::error("[TransitionScreen] Some hooks failed to install");
-  }
 }
