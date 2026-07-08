@@ -12,7 +12,6 @@
 
 namespace
 {
-static int  g_tipCount       = 0;
 static bool g_isLoadingScreen = true;
 static std::mt19937 g_rng{std::random_device{}()};
 
@@ -109,8 +108,6 @@ void LTVC_SetRandomTipLocalisedText_Hook(auto original, void* _this)
     const auto& cfg = Config::Get();
     if (!cfg.loader_tip_enabled) return;
 
-    g_tipCount++;
-
     std::string chosenTip;
 
     if (g_isLoadingScreen) {
@@ -128,17 +125,10 @@ void LTVC_SetRandomTipLocalisedText_Hook(auto original, void* _this)
   } catch (...) {}
 }
 
-void LTVC_OnEnable_Hook(auto original, void* _this)
-{
-  g_tipCount = 0;
-  original(_this);
-}
-
 } // namespace
 
 void ResetLoadingTipState()
 {
-  g_tipCount         = 0;
   g_isLoadingScreen  = true;
   g_lastCustomTipIdx = SIZE_MAX;
 }
@@ -161,10 +151,6 @@ void InstallLoadingTipHooks()
     ok = true;
   } else {
     ErrorMsg::MissingMethod("LoadingTipViewController", "SetRandomTipLocalisedText");
-  }
-
-  if (auto m = ltv_h.GetMethod("OnEnable")) {
-    SPUD_STATIC_DETOUR(m, LTVC_OnEnable_Hook);
   }
 
   if (!ok)

@@ -47,8 +47,7 @@ static void LS_LoginSequence_Awake_Hook(auto original, void* _this)
   try {
     if (!Config::Get().loader_enabled) return;
 
-    g_loginLogoGO   = nullptr;
-    g_loginCCLogoGO = nullptr;
+    ResetLoadingScreenState();
 
     void* texture = ls::GetLoadingTexture();
     if (!texture) return;

@@ -18,8 +18,10 @@ static void*  g_logoGO          = nullptr;
 static void*  g_ccLogoGO        = nullptr;
 static void*  g_canvasAnimator  = nullptr;
 
-// Called from PrepareAllForReload to destroy overlays and null stale pointers
-// before the reload destroys them. Prevents TVC.Awake from crashing on stale children.
+// Called from PrepareAllForReload to null stale pointers before reload.
+// The Canvas/TVC hierarchy holding our overlays is replaced during
+// GoToLoginSection, which destroys the old overlays along with it.
+// Nulling here prevents TVC.Awake from touching stale/destroyed pointers.
 void ResetTransitionScreenState()
 {
   g_spriteApplied   = false;
