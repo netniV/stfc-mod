@@ -26,7 +26,6 @@ void InstallFreeResizeHooks();
 #endif
 void InstallToastBannerHooks();
 void InstallPanHooks();
-void InstallImproveResponsivenessHooks();
 void InstallHotkeyHooks();
 
 void InstallTestPatches();
@@ -36,7 +35,10 @@ void InstallResolutionListFix();
 void InstallTempCrashFixes();
 void InstallSyncPatches();
 void InstallObjectTrackers();
-void InstallLoadingScreenBgHooks();
+void InstallLifecycleLogger();
+void InstallLoadingScreenHooks();
+void InstallTransitionScreenHooks();
+void InstallLoadingTipHooks();
 
 __int64 il2cpp_init_hook(auto original, const char* domain_name)
 {
@@ -107,7 +109,6 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
       {"BuffFixHooks", {InstallBuffFixHooks, &cfg.installBuffFixHooks}},
       {"ToastBannerHooks", {InstallToastBannerHooks, &cfg.installToastBannerHooks}},
       {"PanHooks", {InstallPanHooks, &cfg.installPanHooks}},
-      {"ImproveResponsivenessHooks", {InstallImproveResponsivenessHooks, &cfg.installImproveResponsivenessHooks}},
       {"HotkeyHooks", {InstallHotkeyHooks, &cfg.installHotkeyHooks}},
 #if _WIN32
       {"FreeResizeHooks", {InstallFreeResizeHooks, &cfg.installFreeResizeHooks}},
@@ -119,7 +120,10 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
       {"ResolutionListFix", {InstallResolutionListFix, &cfg.installResolutionListFix}},
       {"SyncPatches", {InstallSyncPatches, &cfg.installSyncPatches}},
       {"ObjectTracker", {InstallObjectTrackers, &cfg.installObjectTracker}},
-      {"LoadingScreenBgHooks", {InstallLoadingScreenBgHooks, &cfg.installLoadingScreenBgHooks}},
+      {"LifecycleLogger",      {InstallLifecycleLogger,      &cfg.installLifecycleLogger}},
+      {"LoadingScreen",        {InstallLoadingScreenHooks,   &cfg.installLoadingScreenHooks}},
+      {"TransitionScreen",     {InstallTransitionScreenHooks, &cfg.installTransitionScreenHooks}},
+      {"LoadingTip",           {InstallLoadingTipHooks,       &cfg.loader_tip_enabled}},
   };
   printf("il2cpp_init_hook(%s)\n", domain_name);
 

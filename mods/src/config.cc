@@ -493,8 +493,6 @@ void Config::Load()
   this->installToastBannerHooks =
       get_config_or_default(config, parsed, "patches", "toastbannerhooks", DCP::toastbannerhooks, write_config);
   this->installPanHooks = get_config_or_default(config, parsed, "patches", "panhooks", DCP::panhooks, write_config);
-  this->installImproveResponsivenessHooks = get_config_or_default(
-      config, parsed, "patches", "improveresponsivenesshooks", DCP::improveresponsivenesshooks, write_config);
   this->installHotkeyHooks =
       get_config_or_default(config, parsed, "patches", "hotkeyhooks", DCP::hotkeyhooks, write_config);
   this->installFreeResizeHooks =
@@ -513,8 +511,12 @@ void Config::Load()
       get_config_or_default(config, parsed, "patches", "syncpatches", DCP::syncpatches, write_config);
   this->installObjectTracker =
       get_config_or_default(config, parsed, "patches", "objecttracker", DCP::objecttracker, write_config);
-  this->installLoadingScreenBgHooks =
-      get_config_or_default(config, parsed, "patches", "loadingscreenbghooks", DCP::loadingscreenbghooks, write_config);
+  this->installLoadingScreenHooks =
+      get_config_or_default(config, parsed, "patches", "loadingscreenhooks", DCP::loadingscreenhooks, write_config);
+  this->installTransitionScreenHooks =
+      get_config_or_default(config, parsed, "patches", "transitionscreenhooks", DCP::transitionscreenhooks, write_config);
+  this->installLifecycleLogger =
+      get_config_or_default(config, parsed, "patches", "lifecyclelogger", DCP::lifecyclelogger, write_config);
   spdlog::debug("");
 #else
   this->installUiScaleHooks               = true;
@@ -522,7 +524,6 @@ void Config::Load()
   this->installBuffFixHooks               = true;
   this->installToastBannerHooks           = true;
   this->installPanHooks                   = true;
-  this->installImproveResponsivenessHooks = true;
   this->installHotkeyHooks                = true;
   this->installFreeResizeHooks            = true;
   this->installTempCrashFixes             = true;
@@ -532,7 +533,9 @@ void Config::Load()
   this->installResolutionListFix          = false; // this patch does not work after unity 6 update
   this->installSyncPatches                = true;
   this->installObjectTracker              = true;
-  this->installLoadingScreenBgHooks       = true;
+  this->installLoadingScreenHooks         = true;
+  this->installTransitionScreenHooks      = true;
+  this->installLifecycleLogger            = false; // diagnostic only, enable via _MODDBG config
 #endif
 
   this->queue_enabled =
@@ -719,13 +722,19 @@ void Config::Load()
   this->config_assets_url_override = get_config_or_default<std::string>(config, parsed, "config", "assets_url_override",
                                                                         DCSC::assets_url_override, write_log);
 
-  // Loading Screen Background settings
-  this->loader_transition =
-      get_config_or_default(config, parsed, "graphics", "loader_transition", DCG::loader_transition, write_log);
+  // Loading Screen / Transition Screen settings
   this->loader_enabled =
       get_config_or_default(config, parsed, "graphics", "loader_enabled", DCG::loader_enabled, write_log);
+  this->loader_transition =
+      get_config_or_default(config, parsed, "graphics", "loader_transition", DCG::loader_transition, write_log);
+  this->loader_transition_black =
+      get_config_or_default(config, parsed, "graphics", "loader_transition_black", DCG::loader_transition_black, write_log);
   this->loader_image =
       get_config_or_default<std::string>(config, parsed, "graphics", "loader_image", DCG::loader_image, write_log);
+  this->loader_logo_scale =
+      get_config_or_default(config, parsed, "graphics", "loader_logo_scale", DCG::loader_logo_scale, write_log);
+  this->loader_tip_enabled =
+      get_config_or_default(config, parsed, "graphics", "loader_tip_enabled", DCG::loader_tip_enabled, write_log);
 
   std::vector<std::string> types = StrSplit(disabled_banner_types_str, ',');
 
