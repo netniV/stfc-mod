@@ -15,7 +15,7 @@ private:
   static IL2CppClassHelper& get_class_helper()
   {
     static auto class_helper =
-        il2cpp_get_class_helper("Digit.Engine.Network", "Digit.Networking.Network", "HttpRequest");
+        il2cpp_get_class_helper("Digit.Engine.HttpClient.Runtime", "Digit.Engine.HttpClient", "HttpRequest");
     return class_helper;
   }
 };

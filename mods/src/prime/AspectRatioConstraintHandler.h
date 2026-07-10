@@ -1,5 +1,7 @@
 #pragma once
 
+#if _WIN32
+
 #include <il2cpp/il2cpp_helper.h>
 
 struct AspectRatioConstraintHandler {
@@ -17,3 +19,5 @@ private:
     return class_helper;
   }
 };
+
+#endif

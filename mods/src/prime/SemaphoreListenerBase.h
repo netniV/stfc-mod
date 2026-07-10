@@ -10,7 +10,7 @@ private:
   static IL2CppClassHelper& get_class_helper()
   {
     static auto class_helper =
-        il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.Client.UI", "SemaphoreListenerBase");
+        il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.UI", "SemaphoreListenerBase");
     return class_helper;
   }
 };

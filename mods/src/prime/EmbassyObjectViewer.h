@@ -10,9 +10,6 @@
 
 struct EmbassyObjectViewer : public ObjectViewerBaseWidget<EmbassyObjectViewer> {
 public:
-  __declspec(property(get = __get__scanEngageButtonsWidget)) ScanEngageButtonsWidget* _scanEngageButtonsWidget;
-
-public:
   friend class ObjectFinder<EmbassyObjectViewer>;
   friend class ObjectViewerBaseWidget<EmbassyObjectViewer>;
   static IL2CppClassHelper& get_class_helper()
@@ -22,10 +19,4 @@ public:
     return class_helper;
   }
 
-public:
-  ScanEngageButtonsWidget* __get__scanEngageButtonsWidget()
-  {
-    static auto field = get_class_helper().GetField("_scanEngageButtonsWidget").offset();
-    return *(ScanEngageButtonsWidget**)((char*)this + field);
-  }
 };

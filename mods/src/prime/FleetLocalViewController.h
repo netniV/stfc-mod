@@ -66,7 +66,7 @@ public:
 
   ShipBarItemLocalViewController* __get__shipBarItemLocalViewController()
   {
-    static auto field = get_class_helper().GetProperty("_shipBarItemLocalViewController");
-    return field.GetRaw<ShipBarItemLocalViewController>(this);
+    static auto field = get_class_helper().GetField("_shipBarItemLocalViewController");
+    return *(ShipBarItemLocalViewController**)((ptrdiff_t)this + field.offset());
   }
 };

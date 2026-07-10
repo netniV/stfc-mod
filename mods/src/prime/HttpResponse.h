@@ -13,7 +13,7 @@ public:
     uint8_t             m_Items[65535];
   };
 
-  __declspec(property(get = __get_bytes)) System_Byte_array* Bytes;
+  __declspec(property(get = __get_Body)) Il2CppString* Body;
 
   HttpRequest* get_Request()
   {
@@ -26,14 +26,14 @@ private:
   static IL2CppClassHelper& get_class_helper()
   {
     static auto class_helper =
-        il2cpp_get_class_helper("Digit.Engine.Network", "Digit.Networking.Network", "HttpResponse");
+        il2cpp_get_class_helper("Digit.Engine.HttpClient.Runtime", "Digit.Engine.HttpClient", "HttpResponse");
     return class_helper;
   }
 
 public:
-  System_Byte_array* __get_bytes()
+  Il2CppString* __get_Body()
   {
-    static auto prop = get_class_helper().GetProperty("Bytes");
-    return prop.GetRaw<System_Byte_array>(this);
+    static auto prop = get_class_helper().GetProperty("Body");
+    return prop.GetRaw<Il2CppString>(this);
   }
 };

@@ -171,7 +171,7 @@ struct SectionNavHistory {
 public:
   bool Contains(SectionID section)
   {
-    static auto ContainsMethod = get_class_helper().GetMethod<bool(SectionNavHistory*, SectionID)>("Contains");
+    static auto ContainsMethod = get_class_helper().GetMethod<bool(SectionNavHistory*, SectionID)>("ContainsSectionID");
     static auto ContainsWarn   = true;
 
     if (ContainsMethod) {
