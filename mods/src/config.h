@@ -203,6 +203,7 @@ public:
   bool installChatPatches;
   bool installResolutionListFix;
   bool installSyncPatches;
+  bool installGameVersionHook;
   bool installObjectTracker;
   bool installGiftsBulkClaimHooks;
 

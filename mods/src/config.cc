@@ -484,7 +484,9 @@ void Config::Load()
     write_log    = false;
   }
 
-#if _MODDBG
+  // Patch switches are honoured in release builds too (previously debug-only):
+  // needed to selectively disable hook groups that collide with BepInEx plugins
+  // hooking the same il2cpp methods (native + managed detour on one prologue crashes).
   this->installUiScaleHooks =
       get_config_or_default(config, parsed, "patches", "uiscalehooks", DCP::uiscalehooks, write_config);
   this->installZoomHooks = get_config_or_default(config, parsed, "patches", "zoomhooks", DCP::zoomhooks, write_config);
@@ -509,6 +511,8 @@ void Config::Load()
       get_config_or_default(config, parsed, "patches", "resolutionlistfix", DCP::resolutionlistfix, write_config);
   this->installSyncPatches =
       get_config_or_default(config, parsed, "patches", "syncpatches", DCP::syncpatches, write_config);
+  this->installGameVersionHook =
+      get_config_or_default(config, parsed, "patches", "game_version", DCP::game_version, write_config);
   this->installObjectTracker =
       get_config_or_default(config, parsed, "patches", "objecttracker", DCP::objecttracker, write_config);
   this->installLoadingScreenHooks =
@@ -518,25 +522,6 @@ void Config::Load()
   this->installGiftsBulkClaimHooks =
       get_config_or_default(config, parsed, "patches", "giftsbulkclaimhooks", DCP::giftsbulkclaimhooks, write_config);
   spdlog::debug("");
-#else
-  this->installUiScaleHooks               = true;
-  this->installZoomHooks                  = true;
-  this->installBuffFixHooks               = true;
-  this->installToastBannerHooks           = true;
-  this->installPanHooks                   = true;
-  this->installHotkeyHooks                = true;
-  this->installFreeResizeHooks            = true;
-  this->installTempCrashFixes             = true;
-  this->installTestPatches                = true;
-  this->installMiscPatches                = true;
-  this->installChatPatches                = true;
-  this->installResolutionListFix          = false; // this patch does not work after unity 6 update
-  this->installSyncPatches                = true;
-  this->installObjectTracker              = true;
-  this->installLoadingScreenHooks         = true;
-  this->installTransitionScreenHooks      = true;
-  this->installGiftsBulkClaimHooks        = true;
-#endif
 
   this->queue_enabled =
       get_config_or_default(config, parsed, "control", "queue_enabled", DCC::queue_enabled, write_config);

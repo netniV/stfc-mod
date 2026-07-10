@@ -62,6 +62,7 @@ namespace Patches
   constexpr bool bufffixhooks               = true;
   constexpr bool chatpatches                = true;
   constexpr bool freeresizehooks            = true;
+  constexpr bool game_version               = true;
   constexpr bool hotkeyhooks                = true;
   constexpr bool loadingscreenhooks           = true;
   constexpr bool transitionscreenhooks          = true;
