@@ -28,10 +28,13 @@ public:
 struct ChatMessageListLocalViewController {
 public:
   __declspec(property(get = __get__inputField)) TMP_InputField* _inputField;
+  __declspec(property(get = __get__inputFieldSelected)) bool _inputFieldSelected;
   __declspec(property(get = __get_CanvasContext)) ChatSectionContext* CanvasContext;
-  ;
 
 private:
+  friend class ObjectFinder<ChatMessageListLocalViewController>;
+
+public:
   static IL2CppClassHelper& get_class_helper()
   {
     static auto class_helper =
@@ -39,11 +42,15 @@ private:
     return class_helper;
   }
 
-public:
   TMP_InputField* __get__inputField()
   {
     static auto field = get_class_helper().GetField("_inputField").offset();
     return *(TMP_InputField**)((uintptr_t)this + field);
+  }
+  bool __get__inputFieldSelected()
+  {
+    static auto field = get_class_helper().GetField("_inputFieldSelected").offset();
+    return *(bool*)((uintptr_t)this + field);
   }
   ChatSectionContext* __get_CanvasContext()
   {

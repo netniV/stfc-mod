@@ -91,6 +91,7 @@ enum GameFunction {
   LogLevelWarn,
   LogLevelOff,
   Quit,
+  FocusSearch,
 
   // Automatic max value
   Max

@@ -17,7 +17,6 @@
 #include "prime/ElementSelectorViewController.h"
 #include "prime/BookmarksManager.h"
 #include "prime/ChatManager.h"
-#include "prime/ChatMessageListLocalViewController.h"
 #include "prime/DeploymentManager.h"
 #include "prime/FleetBarViewController.h"
 #include "prime/FleetLocalViewController.h"
@@ -33,6 +32,7 @@
 
 #include "patches/key.h"
 #include "patches/mapkey.h"
+#include "patches/parts/focus_search.h"
 
 #include <EASTL/vector.h>
 
@@ -243,6 +243,12 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
       if (MapKey::IsDown(GameFunction::MoveRight)) {
         auto const result = MoveOfficerCanvas(false);
         if (result) {
+          return;
+        }
+      }
+
+      if (Config::Get().installFocusSearchHooks && MapKey::IsDown(GameFunction::FocusSearch)) {
+        if (FocusSearchBox()) {
           return;
         }
       }

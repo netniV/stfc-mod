@@ -3,12 +3,15 @@
 #include "prime/AllianceStarbaseObjectViewerWidget.h"
 #include "prime/AnimatedRewardsScreenViewController.h"
 #include "prime/ArmadaObjectViewerWidget.h"
+#include "prime/AssignShipsWidget.h"
 #include "prime/CelestialObjectViewerWidget.h"
 #include "prime/EmbassyObjectViewer.h"
 #include "prime/FleetBarViewController.h"
 #include "prime/FullScreenChatViewController.h"
 #include "prime/HousingObjectViewerWidget.h"
+#include "prime/InventoryListViewController.h"
 #include "prime/MiningObjectViewerWidget.h"
+#include "prime/OfficerAssignmentViewController.h"
 #include "prime/MissionsObjectViewerWidget.h"
 #include "prime/NavigationInteractionUIViewController.h"
 #include "prime/PreScanTargetWidget.h"
@@ -174,13 +177,16 @@ void InstallObjectTrackers()
   TrackObject<AllianceStarbaseObjectViewerWidget>();
   TrackObject<AnimatedRewardsScreenViewController>();
   TrackObject<ArmadaObjectViewerWidget>();
+  TrackObject<AssignShipsWidget>();
   TrackObject<CelestialObjectViewerWidget>();
   TrackObject<EmbassyObjectViewer>();
   TrackObject<FullScreenChatViewController>();
   TrackObject<HousingObjectViewerWidget>();
+  TrackObject<InventoryListViewController>();
   TrackObject<MiningObjectViewerWidget>();
   TrackObject<MissionsObjectViewerWidget>();
   TrackObject<NavigationInteractionUIViewController>();
+  TrackObject<OfficerAssignmentViewController>();
   TrackObject<ElementSelectorViewController>();
   TrackObject<StarNodeObjectViewerWidget>();
 

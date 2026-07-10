@@ -521,6 +521,8 @@ void Config::Load()
       get_config_or_default(config, parsed, "patches", "transitionscreenhooks", DCP::transitionscreenhooks, write_config);
   this->installGiftsBulkClaimHooks =
       get_config_or_default(config, parsed, "patches", "giftsbulkclaimhooks", DCP::giftsbulkclaimhooks, write_config);
+  this->installFocusSearchHooks =
+      get_config_or_default(config, parsed, "patches", "focussearch", DCP::focussearch, write_config);
   spdlog::debug("");
 
   this->queue_enabled =
@@ -811,6 +813,7 @@ void Config::Load()
   parse_config_shortcut(config, parsed, "select_ship7", GameFunction::SelectShip7, DCSH::select_ship7);
   parse_config_shortcut(config, parsed, "select_ship8", GameFunction::SelectShip8, DCSH::select_ship8);
   parse_config_shortcut(config, parsed, "select_current", GameFunction::SelectCurrent, DCSH::select_current);
+  parse_config_shortcut(config, parsed, "focus_search", GameFunction::FocusSearch, DCSH::focus_search);
 
   parse_config_shortcut(config, parsed, "action_primary", GameFunction::ActionPrimary, DCSH::action_primary);
   parse_config_shortcut(config, parsed, "action_secondary", GameFunction::ActionSecondary, DCSH::action_secondary);
