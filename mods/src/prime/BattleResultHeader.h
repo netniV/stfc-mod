@@ -56,6 +56,12 @@ public:
     return *reinterpret_cast<Il2CppObject**>(reinterpret_cast<char*>(this) + 0x18);
   }
 
+  int get_BattleType()
+  {
+    static auto prop = get_class_helper().GetProperty("BattleType");
+    return *prop.Get<int>(this);
+  }
+
 private:
   static IL2CppClassHelper& get_class_helper()
   {

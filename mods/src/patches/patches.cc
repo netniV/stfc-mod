@@ -35,7 +35,6 @@ void InstallResolutionListFix();
 void InstallTempCrashFixes();
 void InstallSyncPatches();
 void InstallObjectTrackers();
-void InstallLifecycleLogger();
 void InstallLoadingScreenHooks();
 void InstallTransitionScreenHooks();
 void InstallLoadingTipHooks();
@@ -120,7 +119,6 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
       {"ResolutionListFix", {InstallResolutionListFix, &cfg.installResolutionListFix}},
       {"SyncPatches", {InstallSyncPatches, &cfg.installSyncPatches}},
       {"ObjectTracker", {InstallObjectTrackers, &cfg.installObjectTracker}},
-      {"LifecycleLogger",      {InstallLifecycleLogger,      &cfg.installLifecycleLogger}},
       {"LoadingScreen",        {InstallLoadingScreenHooks,   &cfg.installLoadingScreenHooks}},
       {"TransitionScreen",     {InstallTransitionScreenHooks, &cfg.installTransitionScreenHooks}},
       {"LoadingTip",           {InstallLoadingTipHooks,       &cfg.loader_tip_enabled}},

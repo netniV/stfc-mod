@@ -515,8 +515,6 @@ void Config::Load()
       get_config_or_default(config, parsed, "patches", "loadingscreenhooks", DCP::loadingscreenhooks, write_config);
   this->installTransitionScreenHooks =
       get_config_or_default(config, parsed, "patches", "transitionscreenhooks", DCP::transitionscreenhooks, write_config);
-  this->installLifecycleLogger =
-      get_config_or_default(config, parsed, "patches", "lifecyclelogger", DCP::lifecyclelogger, write_config);
   spdlog::debug("");
 #else
   this->installUiScaleHooks               = true;
@@ -535,7 +533,6 @@ void Config::Load()
   this->installObjectTracker              = true;
   this->installLoadingScreenHooks         = true;
   this->installTransitionScreenHooks      = true;
-  this->installLifecycleLogger            = false; // diagnostic only, enable via _MODDBG config
 #endif
 
   this->queue_enabled =

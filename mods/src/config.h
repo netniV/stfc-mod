@@ -217,5 +217,4 @@ public:
 
   bool installLoadingScreenHooks;
   bool installTransitionScreenHooks;
-  bool installLifecycleLogger;
 };

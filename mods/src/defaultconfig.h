@@ -61,7 +61,6 @@ namespace Patches
   constexpr bool hotkeyhooks                = true;
   constexpr bool loadingscreenhooks           = true;
   constexpr bool transitionscreenhooks          = true;
-  constexpr bool lifecyclelogger            = false; // DISABLED by default - diagnostic only
   constexpr bool objecttracker              = true;
   constexpr bool panhooks                   = true;
   constexpr bool resolutionlistfix          = false;
@@ -71,6 +70,7 @@ namespace Patches
   constexpr bool toastbannerhooks           = true;
   constexpr bool uiscalehooks               = true;
   constexpr bool zoomhooks                  = true;
+  constexpr bool miscpatches                = true;
 } // namespace Patches
 
 namespace Shortcuts
