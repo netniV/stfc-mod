@@ -4,13 +4,13 @@
 #define VERSION_MAJOR               1
 #define VERSION_MINOR               1
 #define VERSION_REVISION            2
-#define VERSION_PATCH               1
+#define VERSION_PATCH               2
 
 #define STRINGIFY_(s)               #s
 #define STRINGIFY(s)                STRINGIFY_(s)
 
 #if VERSION_PATCH
-	#define VERSION_PATCH_STR " (Beta)"
+	#define VERSION_PATCH_STR " (CX-Beta)"
 #else
 	#define VERSION_PATCH_STR ""
 #endif

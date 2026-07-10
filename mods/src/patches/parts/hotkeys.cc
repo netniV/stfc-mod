@@ -14,6 +14,7 @@
 
 #include "prime/ActionQueueManager.h"
 #include "prime/AnimatedRewardsScreenViewController.h"
+#include "prime/ElementSelectorViewController.h"
 #include "prime/BookmarksManager.h"
 #include "prime/ChatManager.h"
 #include "prime/ChatMessageListLocalViewController.h"
@@ -58,14 +59,25 @@ bool     DidHideViewers();
 
 bool MoveOfficerCanvas(bool goLeft)
 {
-  // ScreenManager/CanvasRoot/MainFrame/ShipManagement_Canvas/Content/Pagination/
-  // ScreenManager/CanvasRoot/MainFrame/OfficerShowcase_Canvas/
-  // ScreenManager/CanvasRoot/MainFrame/LeftArrow and RightArrow
+  auto selectors = ObjectFinder<ElementSelectorViewController>::GetAll();
+  if (selectors.empty()) {
+    return false;
+  }
 
-  auto const canvas = ScreenManager::GetTopCanvas(true);
-  if (strcmp(((Il2CppObject*)(canvas))->klass->name, "OfficerShowcase_Canvas") == 0) {}
+  bool acted = false;
+  for (auto selector : selectors) {
+    if (!selector || !selector->isActiveAndEnabled()) {
+      continue;
+    }
+    if (goLeft) {
+      selector->PressDecrement();
+    } else {
+      selector->PressIncrement();
+    }
+    acted = true;
+  }
 
-  return false;
+  return acted;
 }
 
 void ScreenManager_Update_Hook(auto original, ScreenManager* _this)

@@ -44,13 +44,33 @@ enum ToastState {
   ArenaTimeLeft             = 38,
   ChainedEventScored        = 39,
   FleetPresetApplied        = 40,
-  SurgeWarmUpEnded          = 41,
-  SurgeHostileGroupDefeated = 42,
-  SurgeTimeLeft             = 43,
+  SurgeWarmUpEnded              = 41,
+  SurgeHostileGroupDefeated     = 42,
+  SurgeTimeLeft                 = 43,
+  QueueForLeaseActivated        = 44,
+  QueueForLeaseExpired          = 45,
+  PermanentQueuePurchased       = 46,
+  OutpostStartedOrEnded         = 47,
+  CrossAllianceArmadaVictory    = 48,
+  CrossAllianceArmadaDefeat     = 49,
+  CrossAllianceArmadaPartialVictory = 50,
+  FactionWeeklyEventsProgress   = 51,
+  FactionWeeklyEventsComplete   = 52,
+  ArmadaPlayerBlocked           = 53,
+  ArmadaPlayerUnblocked         = 54,
+  DynamicCrisisUpdate           = 55,
+  DynamicCrisisFailed           = 56,
+  DynamicCrisisCompleted        = 57,
+  GalacticAnomalySystemEntered  = 58,
 };
 
 struct Toast {
 public:
+  Il2CppArray* get_TextParameters()
+  {
+    return *reinterpret_cast<Il2CppArray**>(reinterpret_cast<char*>(this) + 0x18);
+  }
+
   void* get_TextLocaleTextContext()
   {
     return *reinterpret_cast<void**>(reinterpret_cast<char*>(this) + 0x20);

@@ -21,7 +21,9 @@
 // ---------------------------------------------------------------------------
 // IL2CPP method cache
 // ---------------------------------------------------------------------------
-static const MethodInfo* s_localize_ltc = nullptr;
+static const MethodInfo* s_localize_ltc    = nullptr; // LanguageManager.Localize(out string, LocaleTextContext) — instance
+static const MethodInfo* s_locale_utils_localize = nullptr; // LocaleUtilities.Localize(LocaleTextContext, bool, bool) — static
+static const MethodInfo* s_object_tostring = nullptr;
 
 // ---------------------------------------------------------------------------
 // Toast state → human-readable title
@@ -29,45 +31,64 @@ static const MethodInfo* s_localize_ltc = nullptr;
 static const char* toast_state_title(int state)
 {
   switch (state) {
-    case Victory:                   return "Victory!";
-    case Defeat:                    return "Defeat";
-    case PartialVictory:            return "Partial Victory";
-    case StationVictory:            return "Station Victory!";
-    case StationDefeat:             return "Station Defeat";
-    case StationBattle:             return "Station Under Attack!";
+    case Standard:                  return "Notification";
+    case FactionWarning:            return "Faction Warning";
+    case FactionLevelUp:            return "Faction Level Up";
+    case FactionLevelDown:          return "Faction Level Down";
+    case FactionDiscovered:         return "Faction Discovered";
     case IncomingAttack:            return "Incoming Attack!";
     case IncomingAttackFaction:     return "Incoming Faction Attack!";
     case FleetBattle:               return "Fleet Battle";
-    case ArmadaBattleWon:           return "Armada Victory!";
-    case ArmadaBattleLost:          return "Armada Defeated";
+    case StationBattle:             return "Station Under Attack!";
+    case StationVictory:            return "Station Victory!";
+    case Victory:                   return "Victory!";
+    case Defeat:                    return "Defeat";
+    case StationDefeat:             return "Station Defeat";
+    case Tournament:                return "Event Progress";
     case ArmadaCreated:             return "Armada Created";
     case ArmadaCanceled:            return "Armada Canceled";
     case ArmadaIncomingAttack:      return "Armada Under Attack!";
-    case AssaultVictory:            return "Assault Victory!";
-    case AssaultDefeat:             return "Assault Defeat";
-    case Tournament:                return "Event Progress";
-    case ChainedEventScored:        return "Event Progress";
-    case Achievement:               return "Achievement";
-    case ChallengeComplete:         return "Challenge Complete";
-    case ChallengeFailed:           return "Challenge Failed";
+    case ArmadaBattleWon:           return "Armada Victory!";
+    case ArmadaBattleLost:          return "Armada Defeated";
+    case DiplomacyUpdated:          return "Diplomacy Updated";
+    case JoinedTakeover:            return "Territory Capture Joined";
+    case CompetitorJoinedTakeover:  return "Competitor Joined Territory";
+    case AbandonedTerritory:        return "Territory Abandoned";
     case TakeoverVictory:           return "Takeover Victory!";
     case TakeoverDefeat:            return "Takeover Defeat";
     case TreasuryProgress:          return "Treasury Progress";
     case TreasuryFull:              return "Treasury Full";
-    case WarchestProgress:          return "Warchest Progress";
-    case WarchestFull:              return "Warchest Full";
-    case FactionLevelUp:            return "Faction Level Up";
-    case FactionLevelDown:          return "Faction Level Down";
-    case FactionDiscovered:         return "Faction Discovered";
-    case FactionWarning:            return "Faction Warning";
-    case DiplomacyUpdated:          return "Diplomacy Updated";
+    case Achievement:               return "Achievement";
+    case AssaultVictory:            return "Assault Victory!";
+    case AssaultDefeat:             return "Assault Defeat";
+    case ChallengeComplete:         return "Challenge Complete";
+    case ChallengeFailed:           return "Challenge Failed";
     case StrikeHit:                 return "Strike Hit";
     case StrikeDefeat:              return "Strike Defeat";
+    case WarchestProgress:          return "Warchest Progress";
+    case WarchestFull:              return "Warchest Full";
+    case PartialVictory:            return "Partial Victory";
+    case ArenaTimeLeft:             return "Arena Time Warning";
+    case ChainedEventScored:        return "Event Progress";
+    case FleetPresetApplied:        return "Fleet Preset Applied";
     case SurgeWarmUpEnded:          return "Surge Started";
     case SurgeHostileGroupDefeated: return "Surge Hostiles Defeated";
     case SurgeTimeLeft:             return "Surge Time Warning";
-    case ArenaTimeLeft:             return "Arena Time Warning";
-    case FleetPresetApplied:        return "Fleet Preset Applied";
+    case QueueForLeaseActivated:    return "Queue Activated";
+    case QueueForLeaseExpired:      return "Queue Expired";
+    case PermanentQueuePurchased:   return "Permanent Queue Purchased";
+    case OutpostStartedOrEnded:     return "Outpost Update";
+    case CrossAllianceArmadaVictory:      return "Cross-Armada Victory!";
+    case CrossAllianceArmadaDefeat:       return "Cross-Armada Defeated";
+    case CrossAllianceArmadaPartialVictory: return "Cross-Armada Partial Victory";
+    case FactionWeeklyEventsProgress:     return "Faction Weekly Event Progress";
+    case FactionWeeklyEventsComplete:     return "Faction Weekly Event Complete";
+    case ArmadaPlayerBlocked:       return "Armada Player Blocked";
+    case ArmadaPlayerUnblocked:     return "Armada Player Unblocked";
+    case DynamicCrisisUpdate:       return "Dynamic Crisis Update";
+    case DynamicCrisisFailed:       return "Dynamic Crisis Failed";
+    case DynamicCrisisCompleted:    return "Dynamic Crisis Completed";
+    case GalacticAnomalySystemEntered: return "Galactic Anomaly Entered";
     default:                        return nullptr;
   }
 }
@@ -99,25 +120,277 @@ static void show_system_notification(const char* title, const char* body)
 #endif
 
 // ---------------------------------------------------------------------------
+// Convert an IL2CPP object to string via virtual ToString()
+// ---------------------------------------------------------------------------
+static std::string il2cpp_object_to_string(Il2CppObject* obj)
+{
+  if (!obj) return {};
+
+  // Fast path: if it's a String, convert directly
+  auto* cls = il2cpp_object_get_class(obj);
+  if (cls) {
+    auto* name = il2cpp_class_get_name(cls);
+    if (name && std::string_view(name) == "String")
+      return to_string(reinterpret_cast<Il2CppString*>(obj));
+  }
+
+  // Call virtual ToString() — resolve Object.ToString once, then dispatch per object
+  if (!s_object_tostring) return {};
+
+  auto* vm = il2cpp_object_get_virtual_method(obj, s_object_tostring);
+  if (!vm) return {};
+
+  Il2CppException* exc = nullptr;
+  auto* result = reinterpret_cast<Il2CppString*>(il2cpp_runtime_invoke(vm, obj, nullptr, &exc));
+  if (exc || !result) return {};
+  return to_string(result);
+}
+
+// ---------------------------------------------------------------------------
+// Read an Il2CppArray* from a raw pointer at the given offset
+// ---------------------------------------------------------------------------
+static Il2CppArray* read_array_field(void* obj, size_t offset)
+{
+  if (!obj) return nullptr;
+  return *reinterpret_cast<Il2CppArray**>(reinterpret_cast<char*>(obj) + offset);
+}
+
+// ---------------------------------------------------------------------------
+// SEH wrapper — catches access violations from bad IL2CPP pointers
+// ---------------------------------------------------------------------------
+template <typename Fn>
+static bool seh_call(Fn fn)
+{
+#if _WIN32
+  __try {
+    fn();
+    return true;
+  } __except (EXCEPTION_EXECUTE_HANDLER) {
+    return false;
+  }
+#else
+  fn();
+  return true;
+#endif
+}
+
+// ---------------------------------------------------------------------------
+// SEH-protected object to string conversion
+// ---------------------------------------------------------------------------
+static Il2CppString* seh_to_string_raw(Il2CppObject* obj)
+{
+  auto* cls = il2cpp_object_get_class(obj);
+  if (cls) {
+    auto* name = il2cpp_class_get_name(cls);
+    if (name && strcmp(name, "String") == 0)
+      return reinterpret_cast<Il2CppString*>(obj);
+  }
+  if (!s_object_tostring) return nullptr;
+  auto* vm = il2cpp_object_get_virtual_method(obj, s_object_tostring);
+  if (!vm) return nullptr;
+  Il2CppException* exc = nullptr;
+  return reinterpret_cast<Il2CppString*>(il2cpp_runtime_invoke(vm, obj, nullptr, &exc));
+}
+
+static std::string safe_il2cpp_to_string(Il2CppObject* obj, il2cpp_array_size_t index)
+{
+  Il2CppString* raw = nullptr;
+  if (!seh_call([&] { raw = seh_to_string_raw(obj); })) {
+    spdlog::warn("[Notify] SEH: ToString crashed for param {}", index);
+    return {};
+  }
+  if (!raw) return {};
+  return to_string(raw);
+}
+
+// ---------------------------------------------------------------------------
+// Replace {N} placeholders in template with values from an IL2CPP object[]
+// ---------------------------------------------------------------------------
+static std::string format_with_array(const std::string& tmpl, Il2CppArray* arr)
+{
+  if (!arr) return tmpl;
+
+  auto  len   = static_cast<il2cpp_array_size_t>(reinterpret_cast<Il2CppArraySize*>(arr)->max_length);
+  if (len == 0) return tmpl;
+
+  std::string result = tmpl;
+  for (il2cpp_array_size_t i = 0; i < len; ++i) {
+    auto* elem = reinterpret_cast<Il2CppObject**>(reinterpret_cast<Il2CppArraySize*>(arr)->vector)[i];
+    if (!elem) continue;
+
+    auto val = safe_il2cpp_to_string(elem, i);
+    if (val.empty()) continue;
+
+    auto  placeholder = "{" + std::to_string(i) + "}";
+    for (auto pos = result.find(placeholder); pos != std::string::npos; pos = result.find(placeholder, pos + val.size()))
+      result.replace(pos, placeholder.size(), val);
+  }
+  return result;
+}
+
+// ---------------------------------------------------------------------------
+// Replace {N} placeholders using Toast.TextParameters, falling back to
+// LocaleTextContext._textParameters (offset 0x40) if the Toast array is empty.
+// ---------------------------------------------------------------------------
+static std::string format_placeholders(const std::string& tmpl, Toast* toast, void* ltc)
+{
+  // Try Toast.TextParameters first (offset 0x18)
+  auto* toast_arr = toast->get_TextParameters();
+  if (toast_arr) {
+    auto len = static_cast<il2cpp_array_size_t>(reinterpret_cast<Il2CppArraySize*>(toast_arr)->max_length);
+    if (len > 0) {
+      return format_with_array(tmpl, toast_arr);
+    }
+  }
+
+  // Fall back to LocaleTextContext._textParameters (offset 0x40)
+  auto* ltc_arr = read_array_field(ltc, 0x40);
+  if (ltc_arr) {
+    auto len = static_cast<il2cpp_array_size_t>(reinterpret_cast<Il2CppArraySize*>(ltc_arr)->max_length);
+    if (len > 0) {
+      return format_with_array(tmpl, ltc_arr);
+    }
+  }
+
+  // Also try LocaleTextContext._identifierParameters (offset 0x38)
+  auto* id_arr = read_array_field(ltc, 0x38);
+  if (id_arr) {
+    auto len = static_cast<il2cpp_array_size_t>(reinterpret_cast<Il2CppArraySize*>(id_arr)->max_length);
+    if (len > 0) {
+      return format_with_array(tmpl, id_arr);
+    }
+  }
+
+  if (tmpl.find('{') != std::string::npos)
+    spdlog::warn("[Notify] Placeholders in template but no parameter arrays found: \"{}\"", tmpl);
+  return tmpl;
+}
+
+// ---------------------------------------------------------------------------
 // Resolve basic localized text from a Toast's TextLocaleTextContext
 // ---------------------------------------------------------------------------
 static std::string resolve_toast_text(Toast* toast)
 {
-  if (!s_localize_ltc) return {};
-
   auto* ltc = toast->get_TextLocaleTextContext();
-  if (!ltc) return {};
+  if (!ltc) {
+    spdlog::debug("[Notify] No TextLocaleTextContext for toast state {}", toast->get_State());
+    return {};
+  }
 
-  auto* langMgr = LanguageManager::Instance();
-  if (!langMgr) return {};
+  // Try the static LocaleUtilities.Localize(LTC, bool, bool) first — it handles
+  // parameter substitution internally and returns a fully formatted string.
+  if (s_locale_utils_localize) {
+    void* params[3] = { ltc, nullptr, nullptr };
+    // localizeTextParams = true, invariantCulture = false
+    bool localizeTextParams = true;
+    bool invariantCulture  = false;
+    params[1] = &localizeTextParams;
+    params[2] = &invariantCulture;
 
-  Il2CppString*  resolved = nullptr;
-  void*          params[2] = { &resolved, ltc };
-  Il2CppException* exc = nullptr;
-  il2cpp_runtime_invoke(s_localize_ltc, langMgr, params, &exc);
+    Il2CppException* exc = nullptr;
+    auto* ret = il2cpp_runtime_invoke(s_locale_utils_localize, nullptr, params, &exc);
 
-  if (exc || !resolved) return {};
-  return to_string(resolved);
+    if (exc) {
+      spdlog::warn("[Notify] LocaleUtilities.Localize threw exception");
+    } else if (ret) {
+      auto result = to_string(reinterpret_cast<Il2CppString*>(ret));
+      // LocaleUtilities.Localize may return a template with unresolved {N}
+      // placeholders if the LTC's own _textParameters are empty.  The actual
+      // parameter values may be in Toast.TextParameters (offset 0x18), so run
+      // format_placeholders to substitute them.
+      if (result.find('{') != std::string::npos)
+        result = format_placeholders(result, toast, ltc);
+      return result;
+    } else {
+      spdlog::debug("[Notify] LocaleUtilities.Localize returned null for toast state {}", toast->get_State());
+    }
+  }
+
+  // Fall back to instance LanguageManager.Localize(out string, LTC)
+  if (s_localize_ltc) {
+    auto* langMgr = LanguageManager::Instance();
+    if (!langMgr) return {};
+
+    Il2CppString*  resolved = nullptr;
+    void*          params[2] = { &resolved, ltc };
+    Il2CppException* exc = nullptr;
+    auto* ret = il2cpp_runtime_invoke(s_localize_ltc, langMgr, params, &exc);
+
+    if (exc) {
+      spdlog::warn("[Notify] LanguageManager.Localize threw exception");
+      return {};
+    }
+
+    bool success = ret ? (*static_cast<bool*>(il2cpp_object_unbox(ret))) : false;
+    if (!success || !resolved) {
+      spdlog::debug("[Notify] LanguageManager.Localize returned false for toast state {}", toast->get_State());
+      return {};
+    }
+
+    auto tmpl = to_string(resolved);
+    return format_placeholders(tmpl, toast, ltc);
+  }
+
+  return {};
+}
+
+// ---------------------------------------------------------------------------
+// Resolve the event category from Toast.Data (EventModel) and map it to a
+// human-readable name.  EventModel.category_ is at offset 0x1E8 and holds an
+// EventCategories struct whose sole field (_flagValue) is an int32.
+// ---------------------------------------------------------------------------
+static const char* event_category_name(int32_t cat)
+{
+  switch (cat) {
+    case 0:  return "Standard";
+    case 1:  return "Daily Goals";
+    case 2:  return "Daily Milestone";
+    case 3:  return "Leaderboard";
+    case 4:  return "Stat";
+    case 5:  return "Battle Pass Season";
+    case 6:  return "Battle Pass Event";
+    case 7:  return "Treasury Progress";
+    case 8:  return "Treasury Reward";
+    case 9:  return "Server Clash";
+    case 10: return "Webstore Event";
+    case 11: return "Player Lifecycle";
+    case 12: return "Field Training";
+    case 13: return "FT Category";
+    case 14: return "Cutscenes";
+    case 15: return "Minigame";
+    case 16: return "Minigame Stage";
+    case 17: return "Warchest";
+    case 18: return "Alliance Game";
+    case 19: return "Alliance Game Task";
+    case 20: return "Meta Event";
+    case 21: return "Meta Event Objective";
+    case 22: return "Invasion";
+    case 23: return "Loop Museum";
+    case 24: return "Loop Museum Task";
+    case 25: return "PLC BP Season";
+    case 26: return "PLC BP Event";
+    case 27: return "Progression Reward";
+    case 28: return "Faction Weekly Events";
+    default: return nullptr;
+  }
+}
+
+static std::string resolve_event_category(Toast* toast)
+{
+  auto* data = toast->get_Data();
+  if (!data) return {};
+
+  std::string result;
+  if (!seh_call([&] {
+        // EventModel.category_ is at offset 0x1E8 (int32 _flagValue)
+        auto cat = *reinterpret_cast<int32_t*>(reinterpret_cast<char*>(data) + 0x1E8);
+        auto* name = event_category_name(cat);
+        if (name) result = name;
+      })) {
+    spdlog::warn("[Notify] SEH: reading EventModel.category_ crashed");
+  }
+
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -156,7 +429,6 @@ void notification_init()
         auto pc   = il2cpp_method_get_param_count(method);
         if (name == "Localize" && pc == 2) {
           s_localize_ltc = method;
-          spdlog::info("[Notify] Resolved LanguageManager::Localize(out, LTC) at {:p}", (const void*)method);
           break;
         }
       }
@@ -164,17 +436,47 @@ void notification_init()
   }
 
   if (!s_localize_ltc) {
-    spdlog::warn("[Notify] Could not resolve LanguageManager::Localize — notifications will show titles only");
+    spdlog::warn("[Notify] Could not resolve LanguageManager::Localize — falling back to LocaleUtilities");
+  }
+
+  // Resolve LocaleUtilities::Localize(LocaleTextContext, bool, bool) — static method
+  // that handles parameter substitution internally and returns a fully formatted string.
+  auto lu_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.Localization", "LocaleUtilities");
+  if (lu_helper.isValidHelper()) {
+    auto* cls = lu_helper.get_cls();
+    if (cls) {
+      void* iter = nullptr;
+      while (auto* method = il2cpp_class_get_methods(cls, &iter)) {
+        auto name = std::string_view(il2cpp_method_get_name(method));
+        auto pc   = il2cpp_method_get_param_count(method);
+        if (name == "Localize" && pc == 3) {
+          s_locale_utils_localize = method;
+          break;
+        }
+      }
+    }
+  }
+
+  if (!s_locale_utils_localize) {
+    spdlog::warn("[Notify] Could not resolve LocaleUtilities::Localize — will use LanguageManager fallback");
+  }
+
+  // Resolve System.Object::ToString() for converting IL2CPP objects to strings
+  s_object_tostring = il2cpp_get_class_helper("mscorlib", "System", "Object").GetMethodInfo("ToString", 0);
+  if (!s_object_tostring) {
+    spdlog::warn("[Notify] Could not resolve Object::ToString — placeholder formatting may be incomplete");
   }
 
 #if _WIN32
   try {
-    winrt::init_apartment();
+    winrt::init_apartment(winrt::apartment_type::single_threaded);
     spdlog::info("[Notify] Windows notification service initialized");
+  } catch (const winrt::hresult_error& e) {
+    spdlog::warn("[Notify] Windows notification service failed: {:#x} {}",
+                 static_cast<unsigned long>(e.code()), winrt::to_string(e.message()));
   } catch (...) {
-    spdlog::info("[Notify] Windows notification service failed");
+    spdlog::warn("[Notify] Windows notification service failed (unknown error)");
   }
-  
 #else
   spdlog::info("[Notify] Notification service: platform not supported (no-op)");
 #endif
@@ -207,7 +509,17 @@ void notification_handle_toast(Toast* toast)
     body = "(no details available)";
   }
 
-  spdlog::info("[Notify] {} — {}", title, body);
+  // Prepend event category for event-based toasts that use EventModel as Data
+  if (state == Achievement || state == Tournament || state == ChainedEventScored ||
+      state == TreasuryProgress || state == TreasuryFull ||
+      state == WarchestProgress || state == WarchestFull ||
+      state == FactionWeeklyEventsProgress || state == FactionWeeklyEventsComplete) {
+    auto category = resolve_event_category(toast);
+    if (!category.empty()) {
+      body = category + " - " + body;
+    }
+  }
+
   show_system_notification(title, body.c_str());
 #endif
 }

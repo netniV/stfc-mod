@@ -45,9 +45,16 @@ namespace Graphics
   constexpr bool        use_presets_as_default      = true;
   constexpr auto        zoom                        = 5000;
   constexpr auto        fr_scale                    = 2.0;
-  constexpr bool        loader_transition           = true; // replace TVC/SlideShow backgrounds
   constexpr bool        loader_enabled              = true; // replace LoginSequence background
+  constexpr bool        loader_transition           = true; // replace TVC/SlideShow backgrounds
+#ifdef _USE_ORIGINAL_BG
+  constexpr bool        loader_transition_black     = true;  // original BG mode: use black transition
+#else
+  constexpr bool        loader_transition_black     = false; // transition: use black BG instead of custom image
+#endif
   constexpr const char* loader_image                = "";   // Empty = use embedded fallback
+  constexpr auto        loader_logo_scale           = 1.0;  // multiplier for logo size
+  constexpr bool        loader_tip_enabled           = true; // show custom tip on loading screen
 } // namespace Graphics
 
 namespace Patches
@@ -56,8 +63,8 @@ namespace Patches
   constexpr bool chatpatches                = true;
   constexpr bool freeresizehooks            = true;
   constexpr bool hotkeyhooks                = true;
-  constexpr bool improveresponsivenesshooks = true;
-  constexpr bool miscpatches                = true;
+  constexpr bool loadingscreenhooks           = true;
+  constexpr bool transitionscreenhooks          = true;
   constexpr bool objecttracker              = true;
   constexpr bool panhooks                   = true;
   constexpr bool resolutionlistfix          = false;
@@ -67,7 +74,7 @@ namespace Patches
   constexpr bool toastbannerhooks           = true;
   constexpr bool uiscalehooks               = true;
   constexpr bool zoomhooks                  = true;
-  constexpr bool loadingscreenbghooks       = true; // ENABLED - new BlurController approach
+  constexpr bool miscpatches                = true;
   constexpr bool giftsbulkclaimhooks        = true;
 } // namespace Patches
 
@@ -161,8 +168,8 @@ namespace Shortcuts
   constexpr const char* zoom_preset5          = "F5";
   constexpr const char* move_up               = "W";
   constexpr const char* move_down             = "S";
-  constexpr const char* move_left             = "A";
-  constexpr const char* move_right            = "D";
+  constexpr const char* move_left             = "LEFT";
+  constexpr const char* move_right            = "RIGHT";
 } // namespace Shortcuts
 
 namespace Sync

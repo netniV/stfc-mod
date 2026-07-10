@@ -27,4 +27,5 @@ public:
     static auto field = get_class_helper().GetField("name_").offset();
     return *(Il2CppString**)((char*)this + field);
   }
+
 };
