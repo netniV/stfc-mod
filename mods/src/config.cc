@@ -729,6 +729,9 @@ void Config::Load()
   // If transition customization is disabled, force black mode (game's default background)
   if (!this->loader_transition)
     this->loader_transition_black = true;
+#ifdef _USE_ORIGINAL_BG
+  this->loader_transition_black = true;
+#endif
   this->loader_image =
       get_config_or_default<std::string>(config, parsed, "graphics", "loader_image", DCG::loader_image, write_log);
   this->loader_logo_scale =

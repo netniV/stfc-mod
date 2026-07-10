@@ -83,7 +83,9 @@ static void LS_LoginSequence_Awake_Hook(auto original, void* _this)
     if (!bgImg) bgImg = first;
     if (!bgImg) return;
 
+#ifndef _USE_ORIGINAL_BG
     ls::ApplySpriteToImage(bgImg, texture);
+#endif
 
     void* bgImgTr = reinterpret_cast<void* (*)(void*)>(fn_ct)(bgImg);
     if (bgImgTr) {

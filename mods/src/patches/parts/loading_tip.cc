@@ -38,7 +38,7 @@ constexpr int kPassThroughChance  = 50;
 std::string GetLoadingScreenTip()
 {
   return "Welcome to Star Trek Fleet Command, Supported by the Community Mod v"
-         VER_FILE_VERSION_STR "! Please check our discord for the latest information!";
+         VER_FILE_VERSION_STR VERSION_PATCH_STR "! Please check our discord for the latest information!";
 }
 
 void SetTMPText(void* tmpObj, const std::string& text)

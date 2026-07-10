@@ -123,6 +123,22 @@ static void ApplyTransitionCustomization(void* _this)
         logoParent = reinterpret_cast<void* (*)(void*)>(fn_get_tr)(g_bgImageComp);
     }
 
+    if (!g_canvasAnimator) {
+      static auto tv_h = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.LoadingScreen", "TransitionViewController");
+      static auto fn_animField = tv_h.GetField("_animator");
+      static auto behav_h      = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "Behaviour");
+      static auto fn_setEn     = behav_h.GetMethodInfo("set_enabled");
+      if (fn_animField.isValidHelper() && fn_setEn) {
+        void* anim = *reinterpret_cast<void**>((char*)_this + fn_animField.offset());
+        if (anim) {
+          bool  off     = false;
+          void* args[1] = {&off};
+          ls::InvokeVoid(fn_setEn, anim, args, "canvasAnimator.set_enabled(false)");
+          g_canvasAnimator = anim;
+        }
+      }
+    }
+
     if (cfg.loader_transition_black) {
       if (logoParent) {
         ls::CreateLogoOverlay(logoParent, g_logoGO);
@@ -132,30 +148,37 @@ static void ApplyTransitionCustomization(void* _this)
       return;
     }
 
-    ls::HideImage(imageComp);
+#ifndef _USE_ORIGINAL_BG
+    {
+      ls::HideImage(imageComp);
 
-    if (g_bgRectTransform) {
-      ls::SetFullRect(g_bgRectTransform, {0.0f, 0.0f}, {1.0f, 1.0f}, {0.5f, 0.5f}, {0.0f, 0.0f}, {0.0f, 0.0f});
-      static auto tr_h = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "Transform");
-      static auto fn_eu = tr_h.GetMethodInfo("set_localEulerAngles");
-      if (fn_eu) {
-        ls::FakeVector3 z{0, 0, 0};
-        void* args[1] = {&z};
-        ls::InvokeVoid(fn_eu, g_bgRectTransform, args, "Transform.set_localEulerAngles");
+      if (g_bgRectTransform) {
+        ls::SetFullRect(g_bgRectTransform, {0.0f, 0.0f}, {1.0f, 1.0f}, {0.5f, 0.5f}, {0.0f, 0.0f}, {0.0f, 0.0f});
+        static auto tr_h = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "Transform");
+        static auto fn_eu = tr_h.GetMethodInfo("set_localEulerAngles");
+        if (fn_eu) {
+          ls::FakeVector3 z{0, 0, 0};
+          void* args[1] = {&z};
+          ls::InvokeVoid(fn_eu, g_bgRectTransform, args, "Transform.set_localEulerAngles");
+        }
+        static auto fn_sc = tr_h.GetMethodInfo("set_localScale");
+        if (fn_sc) {
+          ls::FakeVector3 o{1, 1, 1};
+          void* args[1] = {&o};
+          ls::InvokeVoid(fn_sc, g_bgRectTransform, args, "Transform.set_localScale");
+        }
       }
-      static auto fn_sc = tr_h.GetMethodInfo("set_localScale");
-      if (fn_sc) {
-        ls::FakeVector3 o{1, 1, 1};
-        void* args[1] = {&o};
-        ls::InvokeVoid(fn_sc, g_bgRectTransform, args, "Transform.set_localScale");
+
+      if (logoParent) {
+        void* texture = ls::GetLoadingTexture();
+        if (texture && !g_bgOverlayGO) {
+          g_bgOverlayGO = ls::CreateBGOverlay(logoParent, texture);
+        }
       }
     }
+#endif
 
     if (logoParent) {
-      void* texture = ls::GetLoadingTexture();
-      if (texture && !g_bgOverlayGO) {
-        g_bgOverlayGO = ls::CreateBGOverlay(logoParent, texture);
-      }
       ls::CreateLogoOverlay(logoParent, g_logoGO);
       ls::CreateCCLogoOverlay(logoParent, g_ccLogoGO);
     }
@@ -195,22 +218,6 @@ static void ApplyTransitionCustomization(void* _this)
             rt = reinterpret_cast<void* (*)(void*, void*)>(fn_gcR)(cg, rtType);
             ls::SetFullRect(rt, {0.5f, 0.5f}, {0.5f, 0.5f}, {0.5f, 0.5f}, {1024.0f, 100.0f}, {0.0f, -320.0f});
           }
-        }
-      }
-    }
-
-    if (!g_canvasAnimator) {
-      static auto tv_h = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.LoadingScreen", "TransitionViewController");
-      static auto fn_animField = tv_h.GetField("_animator");
-      static auto behav_h      = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "Behaviour");
-      static auto fn_setEn     = behav_h.GetMethodInfo("set_enabled");
-      if (fn_animField.isValidHelper() && fn_setEn) {
-        void* anim = *reinterpret_cast<void**>((char*)_this + fn_animField.offset());
-        if (anim) {
-          bool  off     = false;
-          void* args[1] = {&off};
-          ls::InvokeVoid(fn_setEn, anim, args, "canvasAnimator.set_enabled(false)");
-          g_canvasAnimator = anim;
         }
       }
     }

@@ -47,7 +47,11 @@ namespace Graphics
   constexpr auto        fr_scale                    = 2.0;
   constexpr bool        loader_enabled              = true; // replace LoginSequence background
   constexpr bool        loader_transition           = true; // replace TVC/SlideShow backgrounds
+#ifdef _USE_ORIGINAL_BG
+  constexpr bool        loader_transition_black     = true;  // original BG mode: use black transition
+#else
   constexpr bool        loader_transition_black     = false; // transition: use black BG instead of custom image
+#endif
   constexpr const char* loader_image                = "";   // Empty = use embedded fallback
   constexpr auto        loader_logo_scale           = 1.0;  // multiplier for logo size
   constexpr bool        loader_tip_enabled           = true; // show custom tip on loading screen
