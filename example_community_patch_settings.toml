@@ -202,6 +202,7 @@ bufffixhooks = true
 chatpatches = true
 freeresizehooks = true
 hotkeyhooks = true
+giftsbulkclaimhooks = true
 improveresponsivenesshooks = true
 miscpatches = true
 objecttracker = true
@@ -536,6 +537,9 @@ zoom_reset = "="
 [ui]
 # Skip the reveal box animation, and just open the boxes
 always_skip_reveal_sequence = true
+
+# Open the existing bulk-claim selection flyout automatically when Gifts supports it
+auto_open_bulk_claim_flyout = false
 
 # Prevent "escape" from prompting to exit the game
 disable_escape_exit = true
