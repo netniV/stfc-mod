@@ -9,7 +9,7 @@ public:
 private:
   static IL2CppClassHelper& get_class_helper()
   {
-    static auto class_helper = il2cpp_get_class_helper("UnityEngine.UI", "UnityEngine.UI", "Canvas");
+    static auto class_helper = il2cpp_get_class_helper("UnityEngine.UIModule", "UnityEngine", "Canvas");
     return class_helper;
   }
 

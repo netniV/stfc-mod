@@ -173,6 +173,7 @@ public:
   bool disable_veil_chat;
   bool disable_first_popup;
   bool disable_toast_banners;
+  bool auto_open_bulk_claim_flyout;
 
   bool show_cargo_default;
   bool show_player_cargo;
@@ -203,6 +204,7 @@ public:
   bool installResolutionListFix;
   bool installSyncPatches;
   bool installObjectTracker;
+  bool installGiftsBulkClaimHooks;
 
   std::string config_settings_url;
   std::string config_assets_url_override;

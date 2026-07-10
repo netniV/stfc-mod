@@ -199,7 +199,7 @@ private:
 public:
   int __get__flagValue()
   {
-    static auto field = get_class_helper().GetProperty("Value");
+    static auto field = get_class_helper().GetProperty("value");
     return *field.GetUnboxedSelf<int>(this);
   }
 };
