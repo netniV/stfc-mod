@@ -163,8 +163,6 @@ void calc_liveness_hook(auto original, void* state)
     remove_from_tracking_all((void*)object);
   }
 #undef GET_CLASS
-
-  tracked_objects = tracked_objects;
 }
 
 static eastl::unordered_set<void*> seen_ctor;

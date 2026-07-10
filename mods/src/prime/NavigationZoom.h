@@ -71,7 +71,7 @@ public:
   void __set_Distance(float depth)
   {
     static auto field = get_class_helper().GetProperty("Distance");
-    return field.SetRaw(this, depth);
+    field.SetRaw(this, depth);
   }
 
   NodeDepth __get__depth()
