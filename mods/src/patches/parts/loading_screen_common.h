@@ -53,14 +53,16 @@ inline bool InvokeBool(const MethodInfo* method, void* target, void** args, cons
 {
   Il2CppObject* result = InvokeRuntime(method, target, args, name);
   if (!result) return false;
-  return *reinterpret_cast<bool*>(il2cpp_object_unbox(result));
+  void* value = il2cpp_object_unbox(result);
+  return value ? *reinterpret_cast<bool*>(value) : false;
 }
 
 inline int32_t InvokeInt32(const MethodInfo* method, void* target, int32_t fallback, const char* name)
 {
   Il2CppObject* result = InvokeRuntime(method, target, nullptr, name);
   if (!result) return fallback;
-  return *reinterpret_cast<int32_t*>(il2cpp_object_unbox(result));
+  void* value = il2cpp_object_unbox(result);
+  return value ? *reinterpret_cast<int32_t*>(value) : fallback;
 }
 
 inline void* InvokeObject(const MethodInfo* method, void* target, void** args, const char* name)
@@ -90,53 +92,46 @@ inline void SetFullRect(void* rt, FakeVector2 aMin, FakeVector2 aMax, FakeVector
   InvokeVoid(fn_ap, rt, apA, "RT.set_anchoredPosition");
 }
 
-inline void GetTextureSize(void* tex, int32_t& w, int32_t& h, int32_t fallbackW, int32_t fallbackH)
+inline void* CreateSpriteFromTexture(void* tex, int32_t width, int32_t height)
 {
-  static auto tex_h = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "Texture2D");
-  static auto fn_w  = tex_h.GetMethodInfo("get_width");
-  static auto fn_h  = tex_h.GetMethodInfo("get_height");
-  w = InvokeInt32(fn_w, tex, fallbackW, "Texture2D.get_width");
-  h = InvokeInt32(fn_h, tex, fallbackH, "Texture2D.get_height");
-}
-
-inline void* CreateSpriteFromTexture(void* tex, int32_t fallbackW, int32_t fallbackH)
-{
-  if (!tex) return nullptr;
+  if (!tex || width <= 0 || height <= 0) return nullptr;
   static auto spr_h  = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "Sprite");
   static auto fn_cre = spr_h.GetMethodInfo("Create", 3);
   if (!fn_cre) return nullptr;
-  int32_t w, h;
-  GetTextureSize(tex, w, h, fallbackW, fallbackH);
-  FakeRect    rect{0.0f, 0.0f, (float)w, (float)h};
+  FakeRect    rect{0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)};
   FakeVector2 pivot{0.5f, 0.5f};
   void*       args[3] = {tex, &rect, &pivot};
   return InvokeObject(fn_cre, nullptr, args, "Sprite.Create");
 }
 
-inline void ConfigureImageSprite(void* imgComp, void* spr, bool preserveAspect)
+inline bool ConfigureImageSprite(void* imgComp, void* spr, bool preserveAspect)
 {
-  if (!imgComp) return;
+  if (!imgComp || !spr) return false;
   static auto img_h  = il2cpp_get_class_helper("UnityEngine.UI", "UnityEngine.UI", "Image");
   static auto fn_spr = img_h.GetMethodInfo("set_sprite");
   static auto fn_col = img_h.GetMethodInfo("set_color");
   static auto fn_typ = img_h.GetMethodInfo("set_type");
   static auto fn_asp = img_h.GetMethodInfo("set_preserveAspect");
   static auto fn_ray = img_h.GetMethodInfo("set_raycastTarget");
+  if (!fn_spr || !fn_col || !fn_typ || !fn_asp) return false;
+
+  bool        ok         = true;
   void*       sprArgs[1] = {spr};
-  InvokeVoid(fn_spr, imgComp, sprArgs, "Image.set_sprite");
+  ok &= InvokeVoid(fn_spr, imgComp, sprArgs, "Image.set_sprite");
   FakeColor white{1.0f, 1.0f, 1.0f, 1.0f};
   void*     colArgs[1] = {&white};
-  InvokeVoid(fn_col, imgComp, colArgs, "Image.set_color");
+  ok &= InvokeVoid(fn_col, imgComp, colArgs, "Image.set_color");
   int32_t simple     = 0;
   void*   typArgs[1] = {&simple};
-  InvokeVoid(fn_typ, imgComp, typArgs, "Image.set_type");
+  ok &= InvokeVoid(fn_typ, imgComp, typArgs, "Image.set_type");
   void* aspArgs[1] = {&preserveAspect};
-  InvokeVoid(fn_asp, imgComp, aspArgs, "Image.set_preserveAspect");
+  ok &= InvokeVoid(fn_asp, imgComp, aspArgs, "Image.set_preserveAspect");
   if (fn_ray) {
     bool  rayOff    = false;
     void* rayArgs[1] = {&rayOff};
-    InvokeVoid(fn_ray, imgComp, rayArgs, "Image.set_raycastTarget(false)");
+    ok &= InvokeVoid(fn_ray, imgComp, rayArgs, "Image.set_raycastTarget(false)");
   }
+  return ok;
 }
 
 inline void HideImage(void* imgComp)
@@ -195,7 +190,7 @@ inline void* FindRootCanvas(void* parentTransform)
   return parentTransform;
 }
 
-inline void* LoadTextureFromBytes(const uint8_t* data, size_t size)
+inline Il2CppGCHandle LoadTextureFromBytes(const uint8_t* data, size_t size)
 {
   if (!data || size == 0) return nullptr;
   static auto tex_h   = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "Texture2D");
@@ -204,12 +199,25 @@ inline void* LoadTextureFromBytes(const uint8_t* data, size_t size)
     return param_count == 3 && param[1]->type == IL2CPP_TYPE_SZARRAY && param[2]->type == IL2CPP_TYPE_BOOLEAN;
   });
   if (!tex_h.isValidHelper() || !fn_load) return nullptr;
+
   static auto  byte_h = il2cpp_get_class_helper("mscorlib", "System", "Byte");
   Il2CppArray* arr    = il2cpp_array_new(byte_h.get_cls(), size);
   if (!arr) return nullptr;
   std::memcpy(((Il2CppArraySize*)arr)->vector, data, size);
-  void* tex = il2cpp_object_new(tex_h.get_cls());
+
+  auto* tex = il2cpp_object_new(tex_h.get_cls());
   if (!tex) return nullptr;
+
+  // Root both managed objects before invoking Unity; native local pointers are
+  // not sufficient roots if an invocation triggers a collection.
+  Il2CppGCHandle bytes_handle   = il2cpp_gchandle_new(reinterpret_cast<Il2CppObject*>(arr), false);
+  Il2CppGCHandle texture_handle = il2cpp_gchandle_new(tex, false);
+  if (!bytes_handle || !texture_handle) {
+    if (bytes_handle) il2cpp_gchandle_free(bytes_handle);
+    if (texture_handle) il2cpp_gchandle_free(texture_handle);
+    return nullptr;
+  }
+
   static auto ctor = tex_h.GetMethodInfoSpecial(".ctor", [](int param_count, const Il2CppType** param) {
     return param_count == 4 && param[3]->type == IL2CPP_TYPE_BOOLEAN;
   });
@@ -217,82 +225,196 @@ inline void* LoadTextureFromBytes(const uint8_t* data, size_t size)
     int32_t width = 2, height = 2, textureFormat = 4;
     bool    mipChain    = false;
     void*   ctorArgs[4] = {&width, &height, &textureFormat, &mipChain};
-    if (!InvokeVoid(ctor, tex, ctorArgs, "Texture2D.ctor"))
+    if (!InvokeVoid(ctor, il2cpp_gchandle_get_target(texture_handle), ctorArgs, "Texture2D.ctor")) {
+      il2cpp_gchandle_free(bytes_handle);
+      il2cpp_gchandle_free(texture_handle);
       return nullptr;
+    }
   }
+
   bool  markNonReadable = false;
-  void* loadArgs[3]     = {tex, arr, &markNonReadable};
-  return InvokeBool(fn_load, nullptr, loadArgs, "ImageConversion.LoadImage") ? tex : nullptr;
+  void* loadArgs[3]     = {il2cpp_gchandle_get_target(texture_handle), il2cpp_gchandle_get_target(bytes_handle),
+                           &markNonReadable};
+  const bool loaded = InvokeBool(fn_load, nullptr, loadArgs, "ImageConversion.LoadImage");
+  il2cpp_gchandle_free(bytes_handle);
+  if (!loaded) {
+    il2cpp_gchandle_free(texture_handle);
+    return nullptr;
+  }
+  return texture_handle;
 }
 
 // --- Texture management (shared state) ---
 
-inline void*& LoadingTextureRef()
+inline uint32_t ReadBigEndian32(const uint8_t* value)
 {
-  static void* texture = nullptr;
-  return texture;
+  return (static_cast<uint32_t>(value[0]) << 24) | (static_cast<uint32_t>(value[1]) << 16)
+         | (static_cast<uint32_t>(value[2]) << 8) | static_cast<uint32_t>(value[3]);
 }
 
-inline void*& LogoTextureRef()
+inline bool ReadPngDimensions(const uint8_t* data, size_t size, int32_t& width, int32_t& height)
 {
-  static void* texture = nullptr;
-  return texture;
+  static constexpr uint8_t png_signature[] = {0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A};
+  if (!data || size < 24 || std::memcmp(data, png_signature, sizeof(png_signature)) != 0
+      || std::memcmp(data + 12, "IHDR", 4) != 0) {
+    return false;
+  }
+
+  const auto parsed_width  = ReadBigEndian32(data + 16);
+  const auto parsed_height = ReadBigEndian32(data + 20);
+  if (parsed_width == 0 || parsed_height == 0 || parsed_width > INT32_MAX || parsed_height > INT32_MAX) {
+    return false;
+  }
+
+  width  = static_cast<int32_t>(parsed_width);
+  height = static_cast<int32_t>(parsed_height);
+  return true;
 }
 
-inline void*& CCLogoTextureRef()
+// Loading assets live for one LoginSequence generation. Strong handles keep
+// the managed wrappers reachable while that generation is active; the next
+// LoginSequence releases them and creates fresh Unity native resources.
+class RootedImageAsset final
 {
-  static void* texture = nullptr;
-  return texture;
+public:
+  [[nodiscard]] bool Load(const uint8_t* data, size_t size, int32_t fallback_width, int32_t fallback_height,
+                          const char* name)
+  {
+    if (Texture()) return true;
+
+    width_  = fallback_width;
+    height_ = fallback_height;
+    if (!ReadPngDimensions(data, size, width_, height_)) {
+      spdlog::warn("[LS] {} is not a supported PNG; using fallback dimensions {}x{}", name, width_, height_);
+    }
+
+    texture_handle_ = LoadTextureFromBytes(data, size);
+    if (!texture_handle_) {
+      spdlog::warn("[LS] failed to load and root {} texture", name);
+      return false;
+    }
+    name_ = name;
+    spdlog::debug("[LS] loaded and rooted {} texture ({}x{})", name_, width_, height_);
+    return true;
+  }
+
+  [[nodiscard]] void* Texture() const
+  {
+    return texture_handle_ ? il2cpp_gchandle_get_target(texture_handle_) : nullptr;
+  }
+
+  [[nodiscard]] void* Sprite()
+  {
+    if (sprite_handle_) return il2cpp_gchandle_get_target(sprite_handle_);
+
+    void* texture = Texture();
+    if (!texture) return nullptr;
+    auto* sprite = reinterpret_cast<Il2CppObject*>(CreateSpriteFromTexture(texture, width_, height_));
+    if (!sprite) {
+      spdlog::warn("[LS] failed to create {} sprite", name_);
+      return nullptr;
+    }
+
+    sprite_handle_ = il2cpp_gchandle_new(sprite, false);
+    if (!sprite_handle_) spdlog::warn("[LS] failed to root {} sprite", name_);
+    return sprite_handle_ ? il2cpp_gchandle_get_target(sprite_handle_) : nullptr;
+  }
+
+  void Reset()
+  {
+    if (sprite_handle_) {
+      il2cpp_gchandle_free(sprite_handle_);
+      sprite_handle_ = nullptr;
+    }
+    if (texture_handle_) {
+      il2cpp_gchandle_free(texture_handle_);
+      texture_handle_ = nullptr;
+    }
+    width_  = 0;
+    height_ = 0;
+    name_   = "loading asset";
+  }
+
+  [[nodiscard]] int32_t Width() const { return width_; }
+  [[nodiscard]] int32_t Height() const { return height_; }
+
+private:
+  Il2CppGCHandle texture_handle_ = nullptr;
+  Il2CppGCHandle sprite_handle_  = nullptr;
+  int32_t        width_          = 0;
+  int32_t        height_         = 0;
+  const char*    name_           = "loading asset";
+};
+
+inline RootedImageAsset& LoadingAsset()
+{
+  static RootedImageAsset asset;
+  return asset;
 }
 
-inline void* GetLoadingTexture()
+inline RootedImageAsset& LogoAsset()
 {
-  void*& texture = LoadingTextureRef();
-  if (texture) return texture;
+  static RootedImageAsset asset;
+  return asset;
+}
+
+inline RootedImageAsset& CCLogoAsset()
+{
+  static RootedImageAsset asset;
+  return asset;
+}
+
+inline void ResetLoadingAssetsForScene()
+{
+  LoadingAsset().Reset();
+  LogoAsset().Reset();
+  CCLogoAsset().Reset();
+  spdlog::debug("[LS] released previous loading assets for new LoginSequence");
+}
+
+inline RootedImageAsset* GetLoadingAsset()
+{
+  auto& asset = LoadingAsset();
+  if (asset.Texture()) return &asset;
+
   const std::string& path = Config::Get().loader_image;
   if (!path.empty() && std::filesystem::exists(path)) {
     std::ifstream f(path, std::ios::binary);
     if (f.is_open()) {
       std::vector<uint8_t> data(std::istreambuf_iterator<char>(f), {});
-      if (!data.empty())
-        texture = LoadTextureFromBytes(data.data(), data.size());
+      if (!data.empty() && asset.Load(data.data(), data.size(), 1334, 750, "custom loading background")) {
+        return &asset;
+      }
     }
   }
-  if (!texture)
-    texture = LoadTextureFromBytes(g_embeddedLoadingImage, g_embeddedLoadingImage_SIZE);
-  return texture;
+
+  return asset.Load(g_embeddedLoadingImage, g_embeddedLoadingImage_SIZE, 1334, 750, "embedded loading background")
+             ? &asset
+             : nullptr;
 }
 
-inline void* GetLogoTexture()
+inline RootedImageAsset* GetLogoAsset()
 {
-  void*& texture = LogoTextureRef();
-  if (!texture) {
-    texture = LoadTextureFromBytes(g_embeddedLogoImage, g_embeddedLogoImage_SIZE);
-  }
-  return texture;
+  auto& asset = LogoAsset();
+  return (asset.Texture() || asset.Load(g_embeddedLogoImage, g_embeddedLogoImage_SIZE, 600, 828, "mod logo"))
+             ? &asset
+             : nullptr;
 }
 
-inline void* GetCCLogoTexture()
+inline RootedImageAsset* GetCCLogoAsset()
 {
-  void*& texture = CCLogoTextureRef();
-  if (!texture) {
-    texture = LoadTextureFromBytes(g_embeddedCCLogoImage, g_embeddedCCLogoImage_SIZE);
-  }
-  return texture;
+  auto& asset = CCLogoAsset();
+  return (asset.Texture()
+          || asset.Load(g_embeddedCCLogoImage, g_embeddedCCLogoImage_SIZE, 600, 815, "community logo"))
+             ? &asset
+             : nullptr;
 }
 
-inline void ResetTexturesForReload()
-{
-  LoadingTextureRef() = nullptr;
-  LogoTextureRef()    = nullptr;
-  CCLogoTextureRef()  = nullptr;
-}
-
-inline void* CreateImageOverlay(const char* name, void* texture, void* parentTransform, FakeVector2 aMin,
+inline void* CreateImageOverlay(const char* name, RootedImageAsset& asset, void* parentTransform, FakeVector2 aMin,
                                 FakeVector2 aMax, FakeVector2 pivot, FakeVector2 sd, FakeVector2 ap,
-                                bool preserveAspect, bool placeAsFirstSibling, int32_t fallbackW, int32_t fallbackH)
+                                bool preserveAspect, bool placeAsFirstSibling)
 {
-  if (!texture || !parentTransform) return nullptr;
+  if (!parentTransform) return nullptr;
 
   static auto go_h  = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "GameObject");
   static auto rt_h  = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "RectTransform");
@@ -309,41 +431,77 @@ inline void* CreateImageOverlay(const char* name, void* texture, void* parentTra
   static auto fn_gc      = go_h.GetMethodInfo("GetComponent", 1);
   if (!fn_go_ctor || !fn_get_tr || !fn_setpar || !fn_addcomp || !fn_gc) return nullptr;
 
-  void* spr = CreateSpriteFromTexture(texture, fallbackW, fallbackH);
+  void* spr = asset.Sprite();
   if (!spr) return nullptr;
 
-  void* go = il2cpp_object_new(go_h.get_cls());
+  auto* go = il2cpp_object_new(go_h.get_cls());
   if (!go) return nullptr;
+  Il2CppGCHandle go_handle = il2cpp_gchandle_new(go, false);
+  if (!go_handle) return nullptr;
+
   void* nameStr   = il2cpp_string_new(name);
   void* goArgs[1] = {nameStr};
-  if (!InvokeVoid(fn_go_ctor, go, goArgs, "GameObject.ctor")) return nullptr;
+  if (!InvokeVoid(fn_go_ctor, go, goArgs, "GameObject.ctor")) {
+    il2cpp_gchandle_free(go_handle);
+    return nullptr;
+  }
 
   void* tr = InvokeObject(fn_get_tr, go, nullptr, "get_transform");
-  if (!tr) return nullptr;
+  if (!tr) {
+    il2cpp_gchandle_free(go_handle);
+    return nullptr;
+  }
   bool  worldStays = false;
   void* parArgs[2] = {FindRootCanvas(parentTransform), &worldStays};
-  InvokeVoid(fn_setpar, tr, parArgs, "Transform.SetParent");
+  if (!parArgs[0] || !InvokeVoid(fn_setpar, tr, parArgs, "Transform.SetParent")) {
+    il2cpp_gchandle_free(go_handle);
+    return nullptr;
+  }
   if (placeAsFirstSibling && fn_setfst)
     InvokeVoid(fn_setfst, tr, nullptr, "Transform.SetAsFirstSibling");
 
   void* imgType   = img_h.GetType();
+  if (!imgType) {
+    il2cpp_gchandle_free(go_handle);
+    return nullptr;
+  }
   void* acArgs[1] = {imgType};
   void* imgComp   = InvokeObject(fn_addcomp, go, acArgs, "AddComponent<Image>");
+  if (!imgComp) {
+    il2cpp_gchandle_free(go_handle);
+    return nullptr;
+  }
 
   void* rtType    = rt_h.GetType();
+  if (!rtType) {
+    il2cpp_gchandle_free(go_handle);
+    return nullptr;
+  }
   void* rtArgs[1] = {rtType};
   void* rt        = InvokeObject(fn_gc, go, rtArgs, "GetComponent<RectTransform>");
+  if (!rt) {
+    il2cpp_gchandle_free(go_handle);
+    return nullptr;
+  }
   SetFullRect(rt, aMin, aMax, pivot, sd, ap);
 
-  ConfigureImageSprite(imgComp, spr, preserveAspect);
-  return go;
+  if (!ConfigureImageSprite(imgComp, spr, preserveAspect)) {
+    il2cpp_gchandle_free(go_handle);
+    return nullptr;
+  }
+
+  void* result = il2cpp_gchandle_get_target(go_handle);
+  il2cpp_gchandle_free(go_handle);
+  spdlog::debug("[LS] created {} overlay", name);
+  return result;
 }
 
-inline void CreateLogoOverlayEx(const char* name, void* texture, void* parentTransform, void*& outGO, float xSide)
+inline void CreateLogoOverlayEx(const char* name, RootedImageAsset* asset, void* parentTransform, void*& outGO,
+                                float xSide)
 {
   if (outGO) return;
   try {
-    if (!texture || !parentTransform) return;
+    if (!asset || !parentTransform) return;
 
     constexpr float kRefScreenWidth = 1920.0f;
     constexpr float kRefLogoWidth   = 150.0f;
@@ -360,8 +518,8 @@ inline void CreateLogoOverlayEx(const char* name, void* texture, void* parentTra
 
     float scale = (sw / kRefScreenWidth) * Config::Get().loader_logo_scale;
 
-    int32_t lw, lh;
-    GetTextureSize(texture, lw, lh, 256, 256);
+    const int32_t lw = asset->Width();
+    const int32_t lh = asset->Height();
     float logoWidth = kRefLogoWidth * scale;
     float logoPixH  = logoWidth * ((lw > 0) ? (float)lh / (float)lw : 1.0f);
     float padX      = kRefPadX * scale;
@@ -376,42 +534,42 @@ inline void CreateLogoOverlayEx(const char* name, void* texture, void* parentTra
       aMax = {(sw - padX) / sw, (padY + logoPixH) / sh};
     }
 
-    outGO = CreateImageOverlay(name, texture, parentTransform, aMin, aMax,
+    outGO = CreateImageOverlay(name, *asset, parentTransform, aMin, aMax,
                                {0.5f, 0.5f}, {0.0f, 0.0f}, {0.0f, 0.0f},
-                               true, false, 256, 256);
+                               true, false);
   } catch (...) {}
 }
 
 inline void CreateLogoOverlay(void* parentTransform, void*& logoGO)
 {
-  CreateLogoOverlayEx("STFCModLogo", GetLogoTexture(), parentTransform, logoGO, 1.0f);
+  CreateLogoOverlayEx("STFCModLogo", GetLogoAsset(), parentTransform, logoGO, 1.0f);
 }
 
 inline void CreateCCLogoOverlay(void* parentTransform, void*& ccLogoGO)
 {
-  CreateLogoOverlayEx("STFCCCLogo", GetCCLogoTexture(), parentTransform, ccLogoGO, -1.0f);
+  CreateLogoOverlayEx("STFCCCLogo", GetCCLogoAsset(), parentTransform, ccLogoGO, -1.0f);
 }
 
-inline void ApplySpriteToImage(void* imageComp, void* texture)
+inline void ApplySpriteToImage(void* imageComp, RootedImageAsset& asset)
 {
-  if (!imageComp || !texture) return;
-  void* spr = CreateSpriteFromTexture(texture, 792, 450);
+  if (!imageComp) return;
+  void* spr = asset.Sprite();
   if (!spr) return;
   static auto img_h  = il2cpp_get_class_helper("UnityEngine.UI", "UnityEngine.UI", "Image");
   static auto fn_ovr = img_h.GetMethodInfo("set_overrideSprite");
   static auto fn_drt = img_h.GetMethodInfo("SetVerticesDirty");
   void*       sprArgs[1] = {spr};
   InvokeVoid(fn_ovr, imageComp, sprArgs, "Image.set_overrideSprite");
-  ConfigureImageSprite(imageComp, spr, false);
+  if (!ConfigureImageSprite(imageComp, spr, false)) return;
   InvokeVoid(fn_drt, imageComp, nullptr, "Graphic.SetVerticesDirty");
 }
 
-inline void* CreateBGOverlay(void* parentTransform, void* texture)
+inline void* CreateBGOverlay(void* parentTransform, RootedImageAsset& asset)
 {
-  return CreateImageOverlay("STFCModBG", texture, parentTransform,
+  return CreateImageOverlay("STFCModBG", asset, parentTransform,
                             {0.0f, 0.0f}, {1.0f, 1.0f}, {0.5f, 0.5f},
                             {0.0f, 0.0f}, {0.0f, 0.0f}, false,
-                            true, 792, 450);
+                            true);
 }
 
 } // namespace ls_common
