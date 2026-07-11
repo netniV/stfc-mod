@@ -31,7 +31,6 @@ void ResetTransitionScreenState()
   g_logoGO          = nullptr;
   g_ccLogoGO        = nullptr;
   g_canvasAnimator  = nullptr;
-  ls::ResetTexturesForReload();
   ResetLoadingScreenState();
   ResetLoadingTipState();
 }
@@ -150,6 +149,18 @@ static void ApplyTransitionCustomization(void* _this)
 
 #ifndef _USE_ORIGINAL_BG
     {
+      if (logoParent && !g_bgOverlayGO) {
+        auto* asset = ls::GetLoadingAsset();
+        if (asset) g_bgOverlayGO = ls::CreateBGOverlay(logoParent, *asset);
+      }
+
+      // Preserve the game's background unless the custom replacement is fully
+      // constructed and attached. This keeps failures visible but harmless.
+      if (!g_bgOverlayGO) {
+        spdlog::warn("[LS] custom transition background unavailable; preserving game background");
+        return;
+      }
+
       ls::HideImage(imageComp);
 
       if (g_bgRectTransform) {
@@ -169,12 +180,6 @@ static void ApplyTransitionCustomization(void* _this)
         }
       }
 
-      if (logoParent) {
-        void* texture = ls::GetLoadingTexture();
-        if (texture && !g_bgOverlayGO) {
-          g_bgOverlayGO = ls::CreateBGOverlay(logoParent, texture);
-        }
-      }
     }
 #endif
 
@@ -234,6 +239,11 @@ static void TVC_Awake_Hook(auto original, void* _this)
 
   try {
     if (!Config::Get().loader_transition) return;
+
+    // A TransitionViewController can outlive the LoginSequence generation
+    // that created the cached Unity assets. Recreate them for this controller
+    // before touching its background hierarchy.
+    ls::ResetLoadingAssetsForScene();
 
     g_spriteApplied   = false;
     g_bgImageComp     = nullptr;
