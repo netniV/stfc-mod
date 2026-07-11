@@ -18,10 +18,19 @@ vec3 GetMouseWorldPos(void *cam, vec3 *pos)
   static auto class_helper = il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.Client.Core", "MathUtils");
   static auto fn           = class_helper.GetMethodInfo("GetMouseWorldPos");
 
+  if (fn == nullptr || cam == nullptr || pos == nullptr) {
+    return {0.0f, 0.0f, 0.0f};
+  }
+
   void            *args[2]   = {cam, (void *)pos};
-  Il2CppException *exception = NULL;
+  Il2CppException *exception = nullptr;
   auto             result    = il2cpp_runtime_invoke(fn, nullptr, args, &exception);
-  return *(vec3 *)(il2cpp_object_unbox(result));
+  if (exception != nullptr || result == nullptr) {
+    return {0.0f, 0.0f, 0.0f};
+  }
+
+  auto unboxed = il2cpp_object_unbox(result);
+  return unboxed != nullptr ? *reinterpret_cast<vec3 *>(unboxed) : vec3{0.0f, 0.0f, 0.0f};
 }
 
 auto do_default_zoom = false;

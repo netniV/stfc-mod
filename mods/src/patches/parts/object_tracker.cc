@@ -73,8 +73,18 @@ void (*GC_register_finalizer_inner)(unsigned __int64 obj, void (*fn)(void*, void
 
 void track_finalizer(void* _this, void*)
 {
+  if (_this == nullptr) {
+    return;
+  }
+
+  auto object = (Il2CppObject*)_this;
+  if (object->klass == nullptr) {
+    remove_from_tracking_all(_this);
+    return;
+  }
+
 #define GET_CLASS(obj) ((Il2CppClass*)(((size_t)obj) & ~(size_t)1))
-  spdlog::trace("Clearing {}({})", (void*)_this, GET_CLASS(((Il2CppObject*)_this)->klass)->name);
+  spdlog::trace("Clearing {}({})", (void*)_this, GET_CLASS(object->klass)->name);
   remove_from_tracking_all(_this);
 #undef GET_CLASS
 }
@@ -86,14 +96,20 @@ void* track_ctor(auto original, void* _this)
     return _this;
   }
 
+  auto cls = (Il2CppObject*)_this;
+  if (cls->klass == nullptr) {
+    return obj;
+  }
+
   std::scoped_lock lk{tracked_objects_mutex};
-  auto             cls = (Il2CppObject*)_this;
   spdlog::trace("Tracking {}({})", _this, cls->klass->name);
-  typedef void      (*FinalizerCallback)(void* object, void* client_data);
-  FinalizerCallback oldCallback = nullptr;
-  void*             oldData     = nullptr;
-  GC_register_finalizer_inner((intptr_t)_this, track_finalizer, nullptr, &oldCallback, &oldData);
-  assert(!oldCallback);
+  if (GC_register_finalizer_inner != nullptr) {
+    typedef void (*FinalizerCallback)(void* object, void* client_data);
+    FinalizerCallback oldCallback = nullptr;
+    void*             oldData     = nullptr;
+    GC_register_finalizer_inner((intptr_t)_this, track_finalizer, nullptr, &oldCallback, &oldData);
+    assert(!oldCallback);
+  }
   add_to_tracking_recursive(cls->klass, _this);
   return obj;
 }
@@ -204,6 +220,11 @@ void InstallObjectTrackers()
       "55 48 89 E5 41 57 41 56 41 55 41 54 53 48 83 EC ? 4C 89 45 ? 48 89 4D ? 83 3D", "GameAssembly.dylib");
 #endif
 #endif
+
+  if (GC_register_finalizer_inner_matches.size() == 0) {
+    spdlog::warn("Unable to resolve GC_register_finalizer_inner; object finalizers disabled");
+    return;
+  }
 
   const auto GC_register_finalizer_inner_match = GC_register_finalizer_inner_matches.get(0);
   GC_register_finalizer_inner = (decltype(GC_register_finalizer_inner))GC_register_finalizer_inner_match.address();
