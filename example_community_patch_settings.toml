@@ -227,6 +227,7 @@ uiscalehooks = true
 zoomhooks = true
 loadingscreenhooks = true
 transitionscreenhooks = true
+focussearch = true
 
 #  <[=========================================================================================================================================]>
 #
@@ -302,6 +303,9 @@ select_ship7 = "7"
 
 # See select_timer
 select_ship8 = "8"
+
+# Focus the search input field in the current view
+focus_search = "CTRL-F"
 
 # Subgroup: Experimental
 # ----------------------

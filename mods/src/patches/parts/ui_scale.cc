@@ -54,9 +54,15 @@ void ScreenManager_UpdateCanvasRootScaleFactor_Hook(auto original, ScreenManager
 void CanvasController_Show(auto original, CanvasController* _this, int desiredEntryPoint, bool instant)
 {
   const auto ui_scale_viewer = Config::Get().ui_scale_viewer;
-  if (ui_scale_viewer != 0.0f && to_wstring(_this->name) == L"ObjectViewerTemplate_Canvas") {
-    auto transform        = _this->transform;
-    auto localScale       = transform->localScale;
+  if (_this && ui_scale_viewer != 0.0f && to_wstring(_this->name) == L"ObjectViewerTemplate_Canvas") {
+    auto transform = _this->transform;
+    if (transform == nullptr) {
+      return original(_this, desiredEntryPoint, instant);
+    }
+    auto localScale = transform->localScale;
+    if (localScale == nullptr) {
+      return original(_this, desiredEntryPoint, instant);
+    }
     localScale->x         = ui_scale_viewer;
     localScale->y         = ui_scale_viewer;
     localScale->z         = ui_scale_viewer;

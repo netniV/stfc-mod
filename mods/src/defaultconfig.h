@@ -77,6 +77,7 @@ namespace Patches
   constexpr bool zoomhooks                  = true;
   constexpr bool miscpatches                = true;
   constexpr bool giftsbulkclaimhooks        = true;
+  constexpr bool focussearch                = true;
 } // namespace Patches
 
 namespace Shortcuts
@@ -111,6 +112,7 @@ namespace Shortcuts
   constexpr const char* select_ship6          = "6";
   constexpr const char* select_ship7          = "7";
   constexpr const char* select_ship8          = "8";
+  constexpr const char* focus_search          = "CTRL-F";
   constexpr const char* set_zoom_default      = "CTRL-=";
   constexpr const char* set_zoom_preset1      = "SHIFT-F1";
   constexpr const char* set_zoom_preset2      = "SHIFT-F2";

@@ -220,4 +220,5 @@ public:
 
   bool installLoadingScreenHooks;
   bool installTransitionScreenHooks;
+  bool installFocusSearchHooks;
 };

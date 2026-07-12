@@ -115,6 +115,9 @@ AppConfig* Model_LoadConfigs(auto original, Model* _this)
 {
   original(_this);
   auto config = _this->AppConfig_;
+  if (!config) {
+    return nullptr;
+  }
 
   if (!Config::Get().config_settings_url.empty()) {
     auto new_settings_url       = il2cpp_string_new(Config::Get().config_settings_url.c_str());
