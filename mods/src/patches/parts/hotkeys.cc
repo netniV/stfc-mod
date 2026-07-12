@@ -636,10 +636,6 @@ void ExecuteSpaceAction(FleetBarViewController* fleet_bar)
   } else if (has_recall_cancel
              && (fleet->CurrentState == FleetState::WarpCharging || fleet->CurrentState == FleetState::Warping)) {
     fleet_controller->CancelButtonClicked();
-  } else if (has_recall && DidExecuteRecall(fleet_bar)) {
-    return;
-  } else if (has_repair && DidExecuteRepair(fleet_bar)) {
-    return;
   } else {
     auto all_pre_scan_widgets = ObjectFinder<PreScanTargetWidget>::GetAll();
     for (auto pre_scan_widget : all_pre_scan_widgets) {
@@ -787,6 +783,15 @@ void ExecuteSpaceAction(FleetBarViewController* fleet_bar)
         navigation_ui_controller->OnSetCourseButtonClick();
         return;
       }
+    }
+
+    if (has_recall && DidExecuteRecall(fleet_bar)) {
+      force_space_action_next_frame = false;
+      return;
+    }
+    if (has_repair && DidExecuteRepair(fleet_bar)) {
+      force_space_action_next_frame = false;
+      return;
     }
   }
 }
