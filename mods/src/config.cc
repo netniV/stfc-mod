@@ -253,9 +253,9 @@ inline std::string mask_token(const std::string& token)
       }
     }
     return masked;
-  } else {
-    return token;
   }
+
+  return token;
 }
 
 std::string get_config_type_as_string(const toml::node_type type)
@@ -873,28 +873,30 @@ void Config::Load()
   auto sync_token = config["sync"]["token"].value<std::string>();
 
   if (sync_url.has_value() && sync_token.has_value()) {
-    spdlog::warn("Deprecation Warning: Legacy config options 'sync_url' and 'sync_token' have been moved to "
-                 "[sync.targets.<name>] sections and may be removed in a future version.");
-
     SyncTargetConfig converted_target;
     static_cast<SyncConfig&>(converted_target) = sync_defaults;
     converted_target.url                       = sync_url.value();
     converted_target.token                     = sync_token.value();
 
-    if (this->sync_targets.emplace("default", converted_target).second) {
-      toml::table default_target{
-          {"url", sync_url.value()}, {"token", sync_token.value()}, {"proxy", converted_target.proxy}};
-      for (const auto& opt : SyncOptions) {
-        default_target.insert(opt.option_str, converted_target.*opt.option);
+    if (!converted_target.url.empty() && !converted_target.token.empty()) {
+      if (this->sync_targets.emplace("default", converted_target).second) {
+        toml::table default_target{
+            {"url", sync_url.value()}, {"token", sync_token.value()}, {"proxy", converted_target.proxy}};
+
+        for (const auto& opt : SyncOptions) {
+          default_target.insert(opt.option_str, converted_target.*opt.option);
+        }
+
+        parsed["sync"]["targets"].as_table()->emplace<toml::table>("default", default_target);
+        spdlog::info("Legacy config options 'sync_url' and 'sync_token' were converted to "
+                     " sync.targets.default url: {}, token: {}",
+                     sync_url.value(), mask_token(sync_token.value()));
+      } else {
+        spdlog::error(
+            "Failed to convert legacy config options sync_url: {} and sync_token: {} "
+            "as [sync.targets.default] was already specified.",
+            sync_url.value(), mask_token(sync_token.value()));
       }
-      parsed["sync"]["targets"].as_table()->emplace<toml::table>("default", default_target);
-      spdlog::info(
-          "Legacy config options 'sync_url' and 'sync_token' were converted to sync.targets.default url: {}, token: {}",
-          sync_url.value(), sync_token.value());
-    } else {
-      spdlog::error("Failed to convert legacy config options sync_url: {} and sync_token: {} as [sync.targets.default] "
-                    "was already specified.",
-                    sync_url.value(), sync_token.value());
     }
   }
 
