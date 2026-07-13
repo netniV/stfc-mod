@@ -18,10 +18,19 @@ vec3 GetMouseWorldPos(void *cam, vec3 *pos)
   static auto class_helper = il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.Client.Core", "MathUtils");
   static auto fn           = class_helper.GetMethodInfo("GetMouseWorldPos");
 
+  if (fn == nullptr || cam == nullptr || pos == nullptr) {
+    return {0.0f, 0.0f, 0.0f};
+  }
+
   void            *args[2]   = {cam, (void *)pos};
-  Il2CppException *exception = NULL;
+  Il2CppException *exception = nullptr;
   auto             result    = il2cpp_runtime_invoke(fn, nullptr, args, &exception);
-  return *(vec3 *)(il2cpp_object_unbox(result));
+  if (exception != nullptr || result == nullptr) {
+    return {0.0f, 0.0f, 0.0f};
+  }
+
+  auto unboxed = il2cpp_object_unbox(result);
+  return unboxed != nullptr ? *reinterpret_cast<vec3 *>(unboxed) : vec3{0.0f, 0.0f, 0.0f};
 }
 
 auto do_default_zoom = false;
@@ -33,9 +42,61 @@ inline void StoreZoom(std::string label, float &zoom, NavigationZoom *_this)
   spdlog::info("Changing {} from {} to {}", label, old_zoom, zoom);
 }
 
-static float          s_expectedScale = 0;
-static void          *s_cachedFR      = nullptr;
-static NavigationZoom *s_navZoom     = nullptr;
+static float           s_expectedScale = 0;
+static void           *s_cachedFR      = nullptr;
+static NavigationZoom *s_navZoom       = nullptr;
+
+static void ApplySystemZoomRange(NavigationZoom *_this, float radius)
+{
+  if (!_this || radius <= 0.0f) {
+    return;
+  }
+
+  auto ratio                     = (Config::Get().zoom / radius);
+  _this->_farRatioSystemNormal   = 0.55f * ratio;
+  _this->_farRatioSystemExtended = ratio;
+  s_navZoom                      = _this;
+}
+
+static void SetSceneCameraFarClip(NavigationZoom *_this)
+{
+  if (!_this) {
+    return;
+  }
+
+  auto *cam = _this->_sceneCamera;
+  if (!cam) {
+    return;
+  }
+
+  cam->farClipPlane    = Config::Get().zoom * 3.75f;
+  cam->clearFlags      = 2;
+  cam->backgroundColor = {0, 0, 0, 0};
+}
+
+static void EnsureSystemZoomRange(NavigationZoom *_this)
+{
+  if (!_this || _this->_depth != NodeDepth::SolarSystem) {
+    return;
+  }
+
+  const auto max_zoom = Config::Get().zoom;
+  if (max_zoom <= 0.0f) {
+    return;
+  }
+
+  ApplySystemZoomRange(_this, _this->_viewRadius);
+  if (_this->_maximum < max_zoom) {
+    _this->_maximum = max_zoom;
+  }
+
+  const auto zoom_total = _this->_maximum - _this->_minimum;
+  if (zoom_total > 0.0f) {
+    _this->_zoomtotal = zoom_total;
+  }
+
+  SetSceneCameraFarClip(_this);
+}
 
 static void ScaleFR(void *fr)
 {
@@ -51,8 +112,8 @@ static void ScaleFR(void *fr)
   static auto comp_helper   = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "Component");
   static auto get_transform = comp_helper.GetProperty("transform");
 
-  auto* t     = (Transform*)get_transform.GetRaw<Il2CppObject>(fr);
-  auto* scale = t->localScale;
+  auto *t     = (Transform *)get_transform.GetRaw<Il2CppObject>(fr);
+  auto *scale = t->localScale;
 
   if (s_expectedScale > 0 && fabsf(scale->x - s_expectedScale) < 0.1f) {
     return;
@@ -74,6 +135,8 @@ void NavigationZoom_Update_Hook(auto original, NavigationZoom *_this)
   bool       do_absolute_zoom = false;
   bool       do_store_zoom    = false;
   auto       config           = &Config::Get();
+
+  EnsureSystemZoomRange(_this);
 
   if (!Key::IsInputFocused()) {
     if (MapKey::IsDown(GameFunction::SetZoomPreset1)) {
@@ -162,6 +225,8 @@ void NavigationZoom_Update_Hook(auto original, NavigationZoom *_this)
   do_default_zoom = false;
 
   original(_this);
+
+  EnsureSystemZoomRange(_this);
 }
 
 void PlanetViewUtils_CameraZoomedEventHandler_Hook(auto original, PlanetViewUtils *_this, float zoomDistance,
@@ -169,7 +234,8 @@ void PlanetViewUtils_CameraZoomedEventHandler_Hook(auto original, PlanetViewUtil
 {
   original(_this, zoomDistance, normalizedZoom);
 
-  _this->GetFlatRenderable(); // probe: triggers get_FlatRenderable_Hook, which scales the FR; game often reads the field directly so our detour needs this call-path
+  _this->GetFlatRenderable(); // probe: triggers get_FlatRenderable_Hook, which scales the FR; game often reads the
+                              // field directly so our detour needs this call-path
 
   if (s_navZoom) {
     auto *cam = s_navZoom->_sceneCamera;
@@ -187,23 +253,13 @@ void PlanetViewUtils_CameraZoomedEventHandler_Hook(auto original, PlanetViewUtil
 void NavigationZoom_SetViewParameters_Hook(auto original, NavigationZoom *_this, float radius, NodeDepth depth)
 {
   if (depth == NodeDepth::SolarSystem) {
-    auto ratio = (Config::Get().zoom / radius);
-    _this->_farRatioSystemNormal   = 0.55f * ratio;
-    _this->_farRatioSystemExtended = 1 * ratio;
-    s_navZoom                     = _this;
-
-    auto *cam                 = _this->_sceneCamera;
-    cam->farClipPlane         = Config::Get().zoom * 3.75f;
-    cam->clearFlags           = 2;
-    cam->backgroundColor      = {0, 0, 0, 0};
+    ApplySystemZoomRange(_this, radius);
+    SetSceneCameraFarClip(_this);
 
     original(_this, radius, depth);
 
-    cam                       = _this->_sceneCamera;
-    cam->farClipPlane         = Config::Get().zoom * 3.75f;
-    cam->clearFlags           = 2;
-    cam->backgroundColor      = {0, 0, 0, 0};
-    do_default_zoom           = true;
+    SetSceneCameraFarClip(_this);
+    do_default_zoom = true;
   } else {
     original(_this, radius, depth);
   }
@@ -212,24 +268,13 @@ void NavigationZoom_SetViewParameters_Hook(auto original, NavigationZoom *_this,
 void NavigationZoom_SetDepth_Hook(auto original, NavigationZoom *_this, NodeDepth depth)
 {
   if (depth == NodeDepth::SolarSystem) {
-    auto ratio = (Config::Get().zoom / _this->_viewRadius);
-    _this->_farRatioSystemNormal   = 0.55f * ratio;
-    _this->_farRatioSystemExtended = 1 * ratio;
-    s_navZoom                     = _this;
-
-    auto *cam                 = _this->_sceneCamera;
-    cam->farClipPlane         = Config::Get().zoom * 3.75f;
-    cam->clearFlags           = 2;
-    cam->backgroundColor      = {0, 0, 0, 0};
+    ApplySystemZoomRange(_this, _this->_viewRadius);
+    SetSceneCameraFarClip(_this);
 
     original(_this, depth);
 
-    cam                       = _this->_sceneCamera;
-
-    cam->farClipPlane         = Config::Get().zoom * 3.75f;
-    cam->clearFlags           = 2;
-    cam->backgroundColor      = {0, 0, 0, 0};
-    do_default_zoom           = true;
+    SetSceneCameraFarClip(_this);
+    do_default_zoom = true;
 
     if (s_cachedFR) {
       ScaleFR(s_cachedFR);
@@ -239,9 +284,9 @@ void NavigationZoom_SetDepth_Hook(auto original, NavigationZoom *_this, NodeDept
   }
 }
 
-void* PlanetViewUtils_get_FlatRenderable_Hook(auto original, PlanetViewUtils *_this)
+void *PlanetViewUtils_get_FlatRenderable_Hook(auto original, PlanetViewUtils *_this)
 {
-  auto* fr = original(_this);
+  auto *fr = original(_this);
   if (!fr) {
     return fr;
   }

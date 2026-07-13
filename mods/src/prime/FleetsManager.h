@@ -38,7 +38,8 @@ public:
   private:
     static IL2CppClassHelper& get_class_helper()
     {
-      static auto class_helper = FleetsManager::get_class_helper().GetNestedType("<Tow>d__170");
+      static auto class_helper =
+          il2cpp_get_class_helper("Assembly-CSharp", "", "FleetsManager.<Tow>d__192");
       return class_helper;
     }
   };

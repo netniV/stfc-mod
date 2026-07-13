@@ -20,19 +20,20 @@
 #include <prime/ActionQueueManager.h>
 #include <prime/InterstitialViewController.h>
 
-int64_t InventoryForPopup_set_MaxItemsToUse(auto original, InventoryForPopup* a1, int64_t a2)
+void InventoryForPopup_set_MaxItemsToUse(auto original, InventoryForPopup* a1, int64_t a2)
 {
+  if (!a1) {
+    return;
+  }
+
   if (a1->IsDonationUse && a2 == 50 && Config::Get().extend_donation_slider) {
     const auto max = Config::Get().extend_donation_max;
     if (max > 0) {
       a2 = max;
-    } else {
-      return -1;
     }
   }
 
-  int64_t standard = original(a1, a2);
-  return standard;
+  original(a1, a2);
 }
 
 void BundleDataWidget_OnActionButtonPressedCallback(auto original, BundleDataWidget* _this)
@@ -93,6 +94,9 @@ struct ResolutionArray {
 ResolutionArray* GetResolutions_Hook(auto original)
 {
   auto resolutions = original();
+  if (!resolutions) {
+    return nullptr;
+  }
 
 #if _WIN32
   // Modify
@@ -120,12 +124,11 @@ ResolutionArray* GetResolutions_Hook(auto original)
 
   res.erase(unique(res.begin(), res.end()), res.end());
 
-  int i = 0;
-  for (const auto& resultRes : res) {
-    resolutions->data[i] = resultRes;
-    ++i;
+  const auto result_count = std::min(res.size(), resolutions->maxlength);
+  for (size_t i = 0; i < result_count; ++i) {
+    resolutions->data[i] = res[i];
   }
-  resolutions->maxlength = res.size();
+  resolutions->maxlength = result_count;
 #endif
 
   return resolutions;
@@ -199,7 +202,7 @@ private:
 public:
   int __get__flagValue()
   {
-    static auto field = get_class_helper().GetProperty("Value");
+    static auto field = get_class_helper().GetProperty("value");
     return *field.GetUnboxedSelf<int>(this);
   }
 };

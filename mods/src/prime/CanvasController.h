@@ -2,6 +2,8 @@
 
 #include <il2cpp/il2cpp_helper.h>
 
+#include "errormsg.h"
+
 #include "Canvas.h"
 #include "Transform.h"
 
@@ -67,3 +69,27 @@ private:
     return class_helper;
   }
 };
+
+inline CanvasController* GetCanvasControllerFromComponent(void* component)
+{
+  if (!component) {
+    return nullptr;
+  }
+
+  static auto component_class = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "Component");
+  static auto method          = component_class.GetMethodInfo("GetComponentInParent", 1);
+  if (!method) {
+    return nullptr;
+  }
+
+  static auto canvas_type = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.UI", "CanvasController").GetType();
+
+  Il2CppException* exception = nullptr;
+  void*            params[1] = {canvas_type};
+  auto             result    = il2cpp_runtime_invoke(method, component, params, &exception);
+  if (exception) {
+    spdlog::error("[CanvasController] GetComponentInParent threw an exception");
+    return nullptr;
+  }
+  return (CanvasController*)result;
+}

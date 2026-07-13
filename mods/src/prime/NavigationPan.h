@@ -85,7 +85,7 @@ public:
 
   float __get__nearMagRadiusRatioSystem()
   {
-    static auto field = get_class_helper().GetField("_nearMagRadiusRatioSystem");
+    static auto field = get_class_helper().GetField("_nearMagRadiusRatioSystemNormal");
     return *(float*)((ptrdiff_t)this + field.offset());
   }
 

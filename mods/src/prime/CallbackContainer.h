@@ -84,7 +84,7 @@ private:
   static IL2CppClassHelper& get_class_helper()
   {
     static auto class_helper =
-        il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.Networking.Core", "CallbackContainer`1");
+        il2cpp_get_class_helper("Digit.Engine.Utilities.Runtime", "Digit.Networking.Core", "CallbackContainer`1");
     return class_helper;
   }
 };

@@ -14,9 +14,9 @@
 
 #include "prime/ActionQueueManager.h"
 #include "prime/AnimatedRewardsScreenViewController.h"
+#include "prime/ElementSelectorViewController.h"
 #include "prime/BookmarksManager.h"
 #include "prime/ChatManager.h"
-#include "prime/ChatMessageListLocalViewController.h"
 #include "prime/DeploymentManager.h"
 #include "prime/FleetBarViewController.h"
 #include "prime/FleetLocalViewController.h"
@@ -32,6 +32,7 @@
 
 #include "patches/key.h"
 #include "patches/mapkey.h"
+#include "patches/parts/focus_search.h"
 
 #include <EASTL/vector.h>
 
@@ -58,14 +59,25 @@ bool     DidHideViewers();
 
 bool MoveOfficerCanvas(bool goLeft)
 {
-  // ScreenManager/CanvasRoot/MainFrame/ShipManagement_Canvas/Content/Pagination/
-  // ScreenManager/CanvasRoot/MainFrame/OfficerShowcase_Canvas/
-  // ScreenManager/CanvasRoot/MainFrame/LeftArrow and RightArrow
+  auto selectors = ObjectFinder<ElementSelectorViewController>::GetAll();
+  if (selectors.empty()) {
+    return false;
+  }
 
-  auto const canvas = ScreenManager::GetTopCanvas(true);
-  if (strcmp(((Il2CppObject*)(canvas))->klass->name, "OfficerShowcase_Canvas") == 0) {}
+  bool acted = false;
+  for (auto selector : selectors) {
+    if (!selector || !selector->isActiveAndEnabled()) {
+      continue;
+    }
+    if (goLeft) {
+      selector->PressDecrement();
+    } else {
+      selector->PressIncrement();
+    }
+    acted = true;
+  }
 
-  return false;
+  return acted;
 }
 
 void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
@@ -158,7 +170,11 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
         if (can_locate && ship_select_request == last_ship_select_request
             && fleet_bar->IsIndexSelected(ship_select_request)
             && select_diff < std::chrono::milliseconds((int)Config::Get().select_timer)) {
-          auto fleet = fleet_bar->_fleetPanelController->fleet;
+          auto fleet_controller = fleet_bar->_fleetPanelController;
+          auto fleet            = fleet_controller ? fleet_controller->fleet : nullptr;
+          if (!fleet) {
+            return;
+          }
           if (NavigationSectionManager::Instance() && NavigationSectionManager::Instance()->SNavigationManager) {
             NavigationSectionManager::Instance()->SNavigationManager->HideInteraction();
           }
@@ -186,7 +202,8 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
       if (MapKey::IsDown(GameFunction::SelectCurrent)) {
         auto fleet_bar = ObjectFinder<FleetBarViewController>::Get();
         if (fleet_bar) {
-          auto fleet = fleet_bar->_fleetPanelController->fleet;
+          auto fleet_controller = fleet_bar->_fleetPanelController;
+          auto fleet            = fleet_controller ? fleet_controller->fleet : nullptr;
           if (fleet) {
             if (NavigationSectionManager::Instance() && NavigationSectionManager::Instance()->SNavigationManager) {
               NavigationSectionManager::Instance()->SNavigationManager->HideInteraction();
@@ -231,6 +248,12 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
       if (MapKey::IsDown(GameFunction::MoveRight)) {
         auto const result = MoveOfficerCanvas(false);
         if (result) {
+          return;
+        }
+      }
+
+      if (Config::Get().installFocusSearchHooks && MapKey::IsDown(GameFunction::FocusSearch)) {
+        if (FocusSearchBox()) {
           return;
         }
       }
@@ -338,9 +361,9 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
         spdlog::flush_on(spdlog::level::trace);
         // spdlog::log("Setting log level to TRACE");
       } else if (MapKey::IsDown(GameFunction::ShowShips)) {
-        auto fleet_bar        = ObjectFinder<FleetBarViewController>::Get();
-        auto fleet_controller = fleet_bar->_fleetPanelController;
-        auto fleet            = fleet_bar->_fleetPanelController->fleet;
+        auto fleet_bar = ObjectFinder<FleetBarViewController>::Get();
+        auto fleet_controller = fleet_bar ? fleet_bar->_fleetPanelController : nullptr;
+        auto fleet            = fleet_controller ? fleet_controller->fleet : nullptr;
         if (fleet) {
           fleet_controller->RequestAction(fleet, ActionType::Manage, 0, ActionBehaviour::Default);
         }
@@ -393,15 +416,18 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
       auto all_pre_scan_widgets = ObjectFinder<PreScanTargetWidget>::GetAll();
 
       for (auto& pre_scan_widget : all_pre_scan_widgets) {
-        if (pre_scan_widget
-            && (pre_scan_widget->_visibilityController->_state == VisibilityState::Visible
-                || pre_scan_widget->_visibilityController->_state == VisibilityState::Show)) {
-          auto rewardsWidget = pre_scan_widget->_rewardsButtonWidget;
-          if (rewardsWidget->_rewardsController->_state != VisibilityState::Visible
-              && rewardsWidget->_rewardsController->_state != VisibilityState::Show) {
+        auto visibility_controller = pre_scan_widget ? pre_scan_widget->_visibilityController : nullptr;
+        auto rewardsWidget         = pre_scan_widget ? pre_scan_widget->_rewardsButtonWidget : nullptr;
+        auto rewards_controller    = rewardsWidget ? rewardsWidget->_rewardsController : nullptr;
+        if (visibility_controller
+            && (visibility_controller->_state == VisibilityState::Visible
+                || visibility_controller->_state == VisibilityState::Show)
+            && rewards_controller) {
+          if (rewards_controller->_state != VisibilityState::Visible
+              && rewards_controller->_state != VisibilityState::Show) {
             show_info_pending = 5;
           } else {
-            rewardsWidget->_rewardsController->Hide();
+            rewards_controller->Hide();
           }
         }
       }
@@ -412,15 +438,17 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
       auto all_pre_scan_widgets = ObjectFinder<PreScanTargetWidget>::GetAll();
 
       for (auto& pre_scan_widget : all_pre_scan_widgets) {
-        const auto pre_scan_visible = pre_scan_widget
-                                      && (pre_scan_widget->_visibilityController->_state == VisibilityState::Visible
-                                          || pre_scan_widget->_visibilityController->_state == VisibilityState::Show);
-        if (pre_scan_visible) {
-          auto       rewardsWidget          = pre_scan_widget->_rewardsButtonWidget;
-          const auto rewards_widget_visible = rewardsWidget->_rewardsController->_state == VisibilityState::Visible
-                                              || rewardsWidget->_rewardsController->_state == VisibilityState::Show;
+        auto visibility_controller = pre_scan_widget ? pre_scan_widget->_visibilityController : nullptr;
+        auto rewardsWidget         = pre_scan_widget ? pre_scan_widget->_rewardsButtonWidget : nullptr;
+        auto rewards_controller    = rewardsWidget ? rewardsWidget->_rewardsController : nullptr;
+        const auto pre_scan_visible = visibility_controller
+                                      && (visibility_controller->_state == VisibilityState::Visible
+                                          || visibility_controller->_state == VisibilityState::Show);
+        if (pre_scan_visible && rewards_controller) {
+          const auto rewards_widget_visible = rewards_controller->_state == VisibilityState::Visible
+                                              || rewards_controller->_state == VisibilityState::Show;
           if (!rewards_widget_visible) {
-            rewardsWidget->_rewardsController->Show(true);
+            rewards_controller->Show(true);
           }
         }
       }
@@ -517,8 +545,15 @@ inline bool DidExecuteFleetAction(std::string_view actionText, ActionType action
                                   const std::span<const FleetState> wantedStates,
                                   FleetState                        helpState = FleetState::Unknown)
 {
+  if (!fleet_bar) {
+    return false;
+  }
+
   auto fleet_controller = fleet_bar->_fleetPanelController;
-  auto fleet            = fleet_bar->_fleetPanelController->fleet;
+  auto fleet            = fleet_controller ? fleet_controller->fleet : nullptr;
+  if (!fleet) {
+    return false;
+  }
   auto fleet_state      = fleet->CurrentState;
 
   auto       fleet_id   = fleet->Id;
@@ -572,10 +607,20 @@ bool DidExecuteRepair(FleetBarViewController* fleet_bar)
 
 void ExecuteSpaceAction(FleetBarViewController* fleet_bar)
 {
+  if (!fleet_bar) {
+    return;
+  }
+
   auto fleet_controller = fleet_bar->_fleetPanelController;
-  auto fleet            = fleet_controller->fleet;
+  auto fleet            = fleet_controller ? fleet_controller->fleet : nullptr;
+  if (!fleet) {
+    return;
+  }
 
   auto action_queue = ActionQueueManager::Instance();
+  if (!action_queue) {
+    return;
+  }
 
   auto has_primary       = MapKey::IsDown(GameFunction::ActionPrimary) || force_space_action_next_frame;
   auto has_repair        = MapKey::IsDown(GameFunction::ActionRepair);
@@ -594,15 +639,16 @@ void ExecuteSpaceAction(FleetBarViewController* fleet_bar)
   } else {
     auto all_pre_scan_widgets = ObjectFinder<PreScanTargetWidget>::GetAll();
     for (auto pre_scan_widget : all_pre_scan_widgets) {
-      if (pre_scan_widget
-          && (pre_scan_widget->_visibilityController->_state == VisibilityState::Visible
-              || pre_scan_widget->_visibilityController->_state == VisibilityState::Show)) {
+      auto visibility_controller = pre_scan_widget ? pre_scan_widget->_visibilityController : nullptr;
+      if (visibility_controller
+          && (visibility_controller->_state == VisibilityState::Visible
+              || visibility_controller->_state == VisibilityState::Show)) {
 
         if (auto mine_object_viewer_widget = ObjectFinder<MiningObjectViewerWidget>::Get();
-            mine_object_viewer_widget
+            mine_object_viewer_widget && mine_object_viewer_widget->_visibilityController
             && (mine_object_viewer_widget->_visibilityController->_state == VisibilityState::Visible
                 || mine_object_viewer_widget->_visibilityController->_state == VisibilityState::Show)) {
-          if (has_secondary) {
+          if (has_secondary && pre_scan_widget->_scanEngageButtonsWidget) {
             return pre_scan_widget->_scanEngageButtonsWidget->OnScanButtonClicked();
           } else if (has_primary) {
             return mine_object_viewer_widget->MineClicked();
@@ -634,7 +680,7 @@ void ExecuteSpaceAction(FleetBarViewController* fleet_bar)
           }
         }
 
-        if (has_secondary) {
+        if (has_secondary && pre_scan_widget->_scanEngageButtonsWidget) {
           return pre_scan_widget->_scanEngageButtonsWidget->OnScanButtonClicked();
         }
 
@@ -693,10 +739,10 @@ void ExecuteSpaceAction(FleetBarViewController* fleet_bar)
     }
 
     if (auto mine_object_viewer_widget = ObjectFinder<MiningObjectViewerWidget>::Get();
-        mine_object_viewer_widget
+        mine_object_viewer_widget && mine_object_viewer_widget->_visibilityController
         && (mine_object_viewer_widget->_visibilityController->_state == VisibilityState::Visible
             || mine_object_viewer_widget->_visibilityController->_state == VisibilityState::Show)) {
-      if (has_secondary) {
+      if (has_secondary && mine_object_viewer_widget->_scanEngageButtonsWidget) {
         if (mine_object_viewer_widget->_scanEngageButtonsWidget->Context) {
           return mine_object_viewer_widget->_scanEngageButtonsWidget->OnScanButtonClicked();
         }
@@ -707,8 +753,10 @@ void ExecuteSpaceAction(FleetBarViewController* fleet_bar)
                star_node_object_viewer_widget && star_node_object_viewer_widget->Context) {
       if (has_secondary) {
         star_node_object_viewer_widget->OnViewButtonActivation();
+        return;
       } else if (has_primary) {
         star_node_object_viewer_widget->InitiateWarp();
+        return;
       }
     } else if (auto navigation_ui_controller = ObjectFinder<NavigationInteractionUIViewController>::Get();
                navigation_ui_controller && has_primary) {
@@ -735,9 +783,14 @@ void ExecuteSpaceAction(FleetBarViewController* fleet_bar)
         navigation_ui_controller->OnSetCourseButtonClick();
         return;
       }
-    } else if (has_recall && DidExecuteRecall(fleet_bar)) {
+    }
+
+    if (has_recall && DidExecuteRecall(fleet_bar)) {
+      force_space_action_next_frame = false;
       return;
-    } else if (has_repair && DidExecuteRepair(fleet_bar)) {
+    }
+    if (has_repair && DidExecuteRepair(fleet_bar)) {
+      force_space_action_next_frame = false;
       return;
     }
   }
@@ -779,7 +832,7 @@ void InitializeActions_Hook(auto original, void* _this)
 
 bool CheckShowCargo(RewardsButtonWidget* widget)
 {
-  if (!Config::Get().show_cargo_default) {
+  if (!widget || !Config::Get().show_cargo_default) {
     return false;
   }
 
@@ -808,14 +861,20 @@ bool CheckShowCargo(RewardsButtonWidget* widget)
 
 void OnDidBindContext_Hook(auto original, RewardsButtonWidget* _this)
 {
-  auto pre_state = _this->_rewardsController->_state;
-  pre_state      = pre_state;
+  if (!_this) {
+    return original(_this);
+  }
+
+  auto rewards_controller = _this->_rewardsController;
+  auto pre_state          = rewards_controller ? rewards_controller->_state : VisibilityState::Unknown;
+  pre_state               = pre_state;
   original(_this);
 
-  auto post_state = _this->_rewardsController->_state;
+  rewards_controller = _this->_rewardsController;
+  auto post_state = rewards_controller ? rewards_controller->_state : VisibilityState::Unknown;
   post_state      = post_state;
-  if (CheckShowCargo(_this)) {
-    _this->_rewardsController->Show(true);
+  if (rewards_controller && CheckShowCargo(_this)) {
+    rewards_controller->Show(true);
     show_info_pending = 1;
   }
 }
@@ -823,9 +882,14 @@ void OnDidBindContext_Hook(auto original, RewardsButtonWidget* _this)
 void ShowWithFleet_Hook(auto original, PreScanTargetWidget* _this, void* a1)
 {
   original(_this, a1);
+  if (!_this) {
+    return;
+  }
+
   auto rewards_button_widget = _this->_rewardsButtonWidget;
-  if (CheckShowCargo(rewards_button_widget)) {
-    rewards_button_widget->_rewardsController->Show(true);
+  auto rewards_controller    = rewards_button_widget ? rewards_button_widget->_rewardsController : nullptr;
+  if (rewards_controller && CheckShowCargo(rewards_button_widget)) {
+    rewards_controller->Show(true);
     show_info_pending = 1;
   }
 }

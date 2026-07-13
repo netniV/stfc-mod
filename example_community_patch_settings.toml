@@ -128,14 +128,26 @@ system_pan_momentum_falloff = 0.8
 # Subgroup: Loader
 # ----------------
 
-# Set to true to use the loader_image for the loading screen
+# Set to true to use the custom background + logos on the loading (login) screen
 loader_enabled = true
 
-# Path to the custom loading screen image (leave blank for embedded image)
+# Set to true to use the custom background + logos on the transition screen
+# When false, the game's default black background is used and only logos are added
+loader_transition = true
+
+# If true, transition screen uses the game's default black background instead of
+# the custom image. Logos are still shown. Automatically set to true when
+# loader_transition is false.
+loader_transition_black = false
+
+# Path to the custom loading/transition screen image (leave blank for embedded image)
 loader_image = ""
 
-# Set to true to use the loader image for the transition screen
-loader_transition = true
+# Scale multiplier for the embedded mod logo and CC logo on loading/transition screens.
+loader_logo_scale = 1.0
+
+# Set to true to show custom tips on the loading/transition screen
+loader_tip_enabled = true
 
 # Subgroup: Options
 # -----------------
@@ -202,7 +214,7 @@ bufffixhooks = true
 chatpatches = true
 freeresizehooks = true
 hotkeyhooks = true
-improveresponsivenesshooks = true
+giftsbulkclaimhooks = true
 miscpatches = true
 objecttracker = true
 panhooks = true
@@ -213,6 +225,9 @@ testpatches = true
 toastbannerhooks = true
 uiscalehooks = true
 zoomhooks = true
+loadingscreenhooks = true
+transitionscreenhooks = true
+focussearch = true
 
 #  <[=========================================================================================================================================]>
 #
@@ -289,17 +304,20 @@ select_ship7 = "7"
 # See select_timer
 select_ship8 = "8"
 
+# Focus the search input field in the current view
+focus_search = "CTRL-F"
+
 # Subgroup: Experimental
 # ----------------------
 
 # ⚠️ EXPERIMENTAL: Moves down the screen
 move_down = "S"
 
-# ⚠️ EXPERIMENTAL: Moves left the screen
-move_left = "A"
+# Navigate to previous ship/officer in details view
+move_left = "LEFT"
 
-# ⚠️ EXPERIMENTAL: Moves right the screen
-move_right = "D"
+# Navigate to next ship/officer in details view
+move_right = "RIGHT"
 
 # ⚠️ EXPERIMENTAL: Moves up the screen
 move_up = "W"
@@ -536,6 +554,9 @@ zoom_reset = "="
 [ui]
 # Skip the reveal box animation, and just open the boxes
 always_skip_reveal_sequence = true
+
+# Open the existing bulk-claim selection flyout automatically when Gifts supports it
+auto_open_bulk_claim_flyout = false
 
 # Prevent "escape" from prompting to exit the game
 disable_escape_exit = true

@@ -12,7 +12,7 @@ public:
 private:
   static IL2CppClassHelper& get_class_helper()
   {
-    static auto class_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.PrimeServer.Models", "FleetPlayerData.CanRepairRequirement");
+    static auto class_helper = il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "", "FleetPlayerData.CanRepairRequirement");
     return class_helper;
   }
 };

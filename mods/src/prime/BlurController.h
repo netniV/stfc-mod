@@ -37,4 +37,11 @@ public:
     static auto field                           = get_class_helper().GetField("_waitFrames");
     *(float*)((ptrdiff_t)this + field.offset()) = v;
   }
+
+  void ForceCompletion()
+  {
+    static auto method = get_class_helper().GetMethod("ForceCompletion");
+    if (method)
+      reinterpret_cast<void (*)(BlurController*)>(method)(this);
+  }
 };

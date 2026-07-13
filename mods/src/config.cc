@@ -553,7 +553,9 @@ void Config::Load()
     write_log    = false;
   }
 
-#if _MODDBG
+  // Patch switches are honoured in release builds too (previously debug-only):
+  // needed to selectively disable hook groups that collide with BepInEx plugins
+  // hooking the same il2cpp methods (native + managed detour on one prologue crashes).
   this->installUiScaleHooks =
       get_config_or_default(config, parsed, "patches", "uiscalehooks", DCP::uiscalehooks, write_config);
   this->installZoomHooks = get_config_or_default(config, parsed, "patches", "zoomhooks", DCP::zoomhooks, write_config);
@@ -562,8 +564,6 @@ void Config::Load()
   this->installToastBannerHooks =
       get_config_or_default(config, parsed, "patches", "toastbannerhooks", DCP::toastbannerhooks, write_config);
   this->installPanHooks = get_config_or_default(config, parsed, "patches", "panhooks", DCP::panhooks, write_config);
-  this->installImproveResponsivenessHooks = get_config_or_default(
-      config, parsed, "patches", "improveresponsivenesshooks", DCP::improveresponsivenesshooks, write_config);
   this->installHotkeyHooks =
       get_config_or_default(config, parsed, "patches", "hotkeyhooks", DCP::hotkeyhooks, write_config);
   this->installFreeResizeHooks =
@@ -581,31 +581,19 @@ void Config::Load()
       get_config_or_default(config, parsed, "patches", "resolutionlistfix", DCP::resolutionlistfix, write_config);
   this->installSyncPatches =
       get_config_or_default(config, parsed, "patches", "syncpatches", DCP::syncpatches, write_config);
+  this->installGameVersionHook =
+      get_config_or_default(config, parsed, "patches", "game_version", DCP::game_version, write_config);
   this->installObjectTracker =
       get_config_or_default(config, parsed, "patches", "objecttracker", DCP::objecttracker, write_config);
-  this->installLoadingScreenBgHooks =
-      get_config_or_default(config, parsed, "patches", "loadingscreenbghooks", DCP::loadingscreenbghooks, write_config);
+  this->installLoadingScreenHooks =
+      get_config_or_default(config, parsed, "patches", "loadingscreenhooks", DCP::loadingscreenhooks, write_config);
+  this->installTransitionScreenHooks =
+      get_config_or_default(config, parsed, "patches", "transitionscreenhooks", DCP::transitionscreenhooks, write_config);
+  this->installGiftsBulkClaimHooks =
+      get_config_or_default(config, parsed, "patches", "giftsbulkclaimhooks", DCP::giftsbulkclaimhooks, write_config);
+  this->installFocusSearchHooks =
+      get_config_or_default(config, parsed, "patches", "focussearch", DCP::focussearch, write_config);
   spdlog::debug("");
-#else
-  this->installUiScaleHooks               = true;
-  this->installZoomHooks                  = true;
-  this->installBuffFixHooks               = true;
-  this->installToastBannerHooks           = true;
-  this->installPanHooks                   = true;
-  this->installImproveResponsivenessHooks = true;
-  this->installHotkeyHooks                = true;
-  this->installFreeResizeHooks            = true;
-  this->installTempCrashFixes             = true;
-  this->installTestPatches                = true;
-  this->installMiscPatches                = true;
-  this->installMissionHudTweaksHooks      = false;
-  this->installChatPatches                = true;
-  this->installResolutionListFix          = false; // this patch does not work after unity 6 update
-  this->installSyncPatches                = true;
-  this->installObjectTracker              = true;
-  this->installLoadingScreenBgHooks       = true;
-#endif
-
   this->queue_enabled =
       get_config_or_default(config, parsed, "control", "queue_enabled", DCC::queue_enabled, write_config);
   this->hotkeys_enabled =
@@ -686,6 +674,8 @@ void Config::Load()
       get_config_or_default(config, parsed, "ui", "disable_move_keys", DCU::disable_move_keys, write_config);
   this->disable_toast_banners =
       get_config_or_default(config, parsed, "ui", "disable_toast_banners", DCU::disable_toast_banners, write_config);
+  this->auto_open_bulk_claim_flyout = get_config_or_default(config, parsed, "ui", "auto_open_bulk_claim_flyout",
+                                                            DCU::auto_open_bulk_claim_flyout, write_config);
 
 #if _WIN32
   this->extend_donation_slider =
@@ -804,13 +794,25 @@ void Config::Load()
   this->config_assets_url_override = get_config_or_default<std::string>(config, parsed, "config", "assets_url_override",
                                                                         DCSC::assets_url_override, write_log);
 
-  // Loading Screen Background settings
-  this->loader_transition =
-      get_config_or_default(config, parsed, "graphics", "loader_transition", DCG::loader_transition, write_log);
+  // Loading Screen / Transition Screen settings
   this->loader_enabled =
       get_config_or_default(config, parsed, "graphics", "loader_enabled", DCG::loader_enabled, write_log);
+  this->loader_transition =
+      get_config_or_default(config, parsed, "graphics", "loader_transition", DCG::loader_transition, write_log);
+  this->loader_transition_black =
+      get_config_or_default(config, parsed, "graphics", "loader_transition_black", DCG::loader_transition_black, write_log);
+  // If transition customization is disabled, force black mode (game's default background)
+  if (!this->loader_transition)
+    this->loader_transition_black = true;
+#ifdef _USE_ORIGINAL_BG
+  this->loader_transition_black = true;
+#endif
   this->loader_image =
       get_config_or_default<std::string>(config, parsed, "graphics", "loader_image", DCG::loader_image, write_log);
+  this->loader_logo_scale =
+      get_config_or_default(config, parsed, "graphics", "loader_logo_scale", DCG::loader_logo_scale, write_log);
+  this->loader_tip_enabled =
+      get_config_or_default(config, parsed, "graphics", "loader_tip_enabled", DCG::loader_tip_enabled, write_log);
 
   std::vector<std::string> types = StrSplit(disabled_banner_types_str, ',');
 
@@ -872,12 +874,8 @@ void Config::Load()
 
   spdlog::debug("");
 
-  // if (this->enable_experimental) {
-  //   parse_config_shortcut(config, parsed, "move_left",  GameFunction::MoveLeft,  DCSH::move_left);
-  //   parse_config_shortcut(config, parsed, "move_right", GameFunction::MoveRight, DCSH::move_right);
-  //   parse_config_shortcut(config, parsed, "move_down",  GameFunction::MoveDown,  DCSH::move_down);
-  //   parse_config_shortcut(config, parsed, "move_up",    GameFunction::MoveUp,    DCSH::move_up);
-  // }
+  parse_config_shortcut(config, parsed, "move_left",  GameFunction::MoveLeft,  DCSH::move_left);
+  parse_config_shortcut(config, parsed, "move_right", GameFunction::MoveRight, DCSH::move_right);
 
   parse_config_shortcut(config, parsed, "set_hotkeys_disble", GameFunction::DisableHotKeys, DCSH::set_hotkeys_disabled);
   parse_config_shortcut(config, parsed, "set_hotkeys_enable", GameFunction::EnableHotKeys, DCSH::set_hotkeys_enabled);
@@ -898,6 +896,7 @@ void Config::Load()
   parse_config_shortcut(config, parsed, "select_ship7", GameFunction::SelectShip7, DCSH::select_ship7);
   parse_config_shortcut(config, parsed, "select_ship8", GameFunction::SelectShip8, DCSH::select_ship8);
   parse_config_shortcut(config, parsed, "select_current", GameFunction::SelectCurrent, DCSH::select_current);
+  parse_config_shortcut(config, parsed, "focus_search", GameFunction::FocusSearch, DCSH::focus_search);
 
   parse_config_shortcut(config, parsed, "action_primary", GameFunction::ActionPrimary, DCSH::action_primary);
   parse_config_shortcut(config, parsed, "action_secondary", GameFunction::ActionSecondary, DCSH::action_secondary);

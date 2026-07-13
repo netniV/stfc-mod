@@ -182,6 +182,7 @@ public:
   bool disable_veil_chat;
   bool disable_first_popup;
   bool disable_toast_banners;
+  bool auto_open_bulk_claim_flyout;
 
   bool show_cargo_default;
   bool show_player_cargo;
@@ -204,7 +205,6 @@ public:
   bool installBuffFixHooks;
   bool installToastBannerHooks;
   bool installPanHooks;
-  bool installImproveResponsivenessHooks;
   bool installHotkeyHooks;
   bool installFreeResizeHooks;
   bool installTempCrashFixes;
@@ -214,15 +214,22 @@ public:
   bool installChatPatches;
   bool installResolutionListFix;
   bool installSyncPatches;
+  bool installGameVersionHook;
   bool installObjectTracker;
+  bool installGiftsBulkClaimHooks;
 
   std::string config_settings_url;
   std::string config_assets_url_override;
 
-  // Loading Screen Background
-  bool        loader_transition;
+  // Loading Screen / Transition Screen
   bool        loader_enabled;
+  bool        loader_transition;
+  bool        loader_transition_black;
   std::string loader_image;
+  float       loader_logo_scale;
+  bool        loader_tip_enabled;
 
-  bool installLoadingScreenBgHooks;
+  bool installLoadingScreenHooks;
+  bool installTransitionScreenHooks;
+  bool installFocusSearchHooks;
 };
