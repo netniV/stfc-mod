@@ -403,7 +403,7 @@ void set_shortcut_noop(toml::node_view<toml::node> sectionTable, toml::node_view
 }
 
 void parse_config_shortcut_value(toml::table& new_config, std::string_view item, GameFunction gameFunction,
-                                 const ShortcutConfigValue& shortcut_value)
+                                 std::string_view default_value, const ShortcutConfigValue& shortcut_value)
 {
   auto section = "shortcuts";
   auto source  = "shortcuts_source";
@@ -416,19 +416,26 @@ void parse_config_shortcut_value(toml::table& new_config, std::string_view item,
   auto sourceLabel  = shortcut_source_label(shortcut_value, item);
 
   if (!shortcut_value.valid_type) {
-    spdlog::error("Invalid shortcut value [shortcuts].{} must be a string; [shortcuts].{} disabled.",
+    spdlog::error("Invalid shortcut value [shortcuts].{} must be a string; using default for [shortcuts].{}.",
                   shortcut_value.source_item, item);
-    set_shortcut_noop(sectionTable, sourceTable, item, "invalid");
-    return;
+    return parse_config_shortcut_value(new_config, item, gameFunction, default_value,
+                                       {std::string(default_value), std::string(item), false, true});
   }
 
   auto config_value = shortcut_value.value;
   auto valueTrimmed = StripTrailingAsciiWhitespace(config_value);
   auto valueLowered = AsciiStrToUpper(valueTrimmed);
 
-  if (valueLowered == "NONE" || valueTrimmed.empty()) {
+  if (valueLowered == "NONE") {
     set_shortcut_noop(sectionTable, sourceTable, item, sourceLabel);
     return;
+  }
+
+  if (valueTrimmed.empty()) {
+    spdlog::error("Empty shortcut value [shortcuts].{}; using default for [shortcuts].{}.", shortcut_value.source_item,
+                  item);
+    return parse_config_shortcut_value(new_config, item, gameFunction, default_value,
+                                       {std::string(default_value), std::string(item), false, true});
   }
 
   auto wantedKeys   = StrSplit(valueLowered, '|');
@@ -448,8 +455,10 @@ void parse_config_shortcut_value(toml::table& new_config, std::string_view item,
 
   if (!keyAdded) {
     if (shortcut_value.from_config) {
-      spdlog::error("No valid shortcut tokens for [shortcuts].{} value='{}'; [shortcuts].{} disabled.",
+      spdlog::error("No valid shortcut tokens for [shortcuts].{} value='{}'; using default for [shortcuts].{}.",
                     shortcut_value.source_item, config_value, item);
+      return parse_config_shortcut_value(new_config, item, gameFunction, default_value,
+                                         {std::string(default_value), std::string(item), false, true});
     } else {
       spdlog::error("Default shortcut [shortcuts].{} value='{}' has no valid tokens; action disabled.", item,
                     config_value);
@@ -493,7 +502,7 @@ void parse_config_shortcut(toml::table& config, toml::table& new_config, std::st
 
   config.emplace<toml::table>(section, toml::table());
 
-  parse_config_shortcut_value(new_config, item, gameFunction,
+  parse_config_shortcut_value(new_config, item, gameFunction, default_value,
                               get_shortcut_value_or_default(config, item, default_value));
 }
 
@@ -524,7 +533,7 @@ void parse_config_shortcut_aliases(toml::table& config, toml::table& new_config,
     break;
   }
 
-  parse_config_shortcut_value(new_config, item, gameFunction, config_value);
+  parse_config_shortcut_value(new_config, item, gameFunction, default_value, config_value);
 }
 
 void migrate_mac_config_if_needed(const char* filename)
