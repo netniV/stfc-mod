@@ -340,33 +340,30 @@ MissionHudVisibility parse_mission_hud_visibility(std::string_view item, std::st
     return MissionHudVisibility::Auto;
   }
 
-  spdlog::warn("invalid config value ui.mission_hud.{}: '{}'; using auto", item, value);
+  spdlog::warn("invalid config value ui.{}: '{}'; using auto", item, value);
   return MissionHudVisibility::Auto;
 }
 
-toml::table& ensure_ui_mission_hud_table(toml::table& config)
+MissionHudVisibility get_mission_hud_visibility(toml::table& config, toml::table& new_config, std::string_view item,
+                                                std::string_view legacy_item, std::string_view default_value,
+                                                bool write_log)
 {
-  config.emplace<toml::table>("ui", toml::table());
-  auto* ui_table = config["ui"].as_table();
-
-  if (!ui_table->contains("mission_hud") || !(*ui_table)["mission_hud"].is_table()) {
-    ui_table->insert_or_assign("mission_hud", toml::table());
+  auto value = config["ui"][item].value<std::string>();
+  if (!value) {
+    value = config["ui"]["mission_hud"][legacy_item].value<std::string>();
+    if (value) {
+      spdlog::warn("Deprecated config value ui.mission_hud.{} is supported for compatibility; use ui.{}.", legacy_item,
+                   item);
+    }
   }
 
-  return *(*ui_table)["mission_hud"].as_table();
-}
+  const auto mode = parse_mission_hud_visibility(item, value.value_or(std::string(default_value)));
 
-MissionHudVisibility get_mission_hud_visibility(toml::table& config, toml::table& new_config, std::string_view item,
-                                                std::string_view default_value, bool write_log)
-{
-  const auto value = config["ui"]["mission_hud"][item].value<std::string>().value_or(std::string(default_value));
-  const auto mode  = parse_mission_hud_visibility(item, value);
-
-  auto& mission_hud = ensure_ui_mission_hud_table(new_config);
-  mission_hud.insert_or_assign(item, std::string(to_string(mode)));
+  new_config.emplace<toml::table>("ui", toml::table());
+  new_config["ui"].as_table()->insert_or_assign(item, std::string(to_string(mode)));
 
   if (write_log) {
-    spdlog::debug("config value ui.mission_hud.{} value: {}", item, to_string(mode));
+    spdlog::debug("config value ui.{} value: {}", item, to_string(mode));
   }
 
   return mode;
@@ -716,15 +713,17 @@ void Config::Load()
                                                             DCU::always_skip_reveal_sequence, write_config);
   this->mission_hud_buttons.clear();
   this->mission_hud_buttons.emplace(
-      "q_trials", get_mission_hud_visibility(config, parsed, "q_trials", DCMH::q_trials, write_config));
-  this->mission_hud_buttons.emplace("field_training", get_mission_hud_visibility(config, parsed, "field_training",
-                                                                                 DCMH::field_training, write_config));
+      "q_trials", get_mission_hud_visibility(config, parsed, "hud_q_trials", "q_trials", DCMH::q_trials, write_config));
   this->mission_hud_buttons.emplace(
-      "outposts", get_mission_hud_visibility(config, parsed, "outposts", DCMH::outposts, write_config));
+      "field_training", get_mission_hud_visibility(config, parsed, "hud_field_training", "field_training",
+                                                     DCMH::field_training, write_config));
   this->mission_hud_buttons.emplace(
-      "daily_goals", get_mission_hud_visibility(config, parsed, "daily_goals", DCMH::daily_goals, write_config));
+      "outposts", get_mission_hud_visibility(config, parsed, "hud_outposts", "outposts", DCMH::outposts, write_config));
   this->mission_hud_buttons.emplace(
-      "missions", get_mission_hud_visibility(config, parsed, "missions", DCMH::missions, write_config));
+      "daily_goals", get_mission_hud_visibility(config, parsed, "hud_daily_goals", "daily_goals", DCMH::daily_goals,
+                                                  write_config));
+  this->mission_hud_buttons.emplace(
+      "missions", get_mission_hud_visibility(config, parsed, "hud_missions", "missions", DCMH::missions, write_config));
   this->installMissionHudTweaksHooks = this->MissionHudTweaksEnabled();
 
   spdlog::debug("");

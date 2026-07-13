@@ -613,12 +613,11 @@ auto_confirm_discovery = true
 # ---------------------
 
 # EXPERIMENTAL: Controls mission HUD button visibility. Valid values: "always", "auto", "never"
-[ui.mission_hud]
-q_trials = "auto"
-field_training = "auto"
-outposts = "auto"
-daily_goals = "auto"
-missions = "auto"
+hud_q_trials = "auto"
+hud_field_training = "auto"
+hud_outposts = "auto"
+hud_daily_goals = "auto"
+hud_missions = "auto"
 
 #  <[===================================================================]>
 #
