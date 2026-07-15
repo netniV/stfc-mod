@@ -110,12 +110,22 @@ static void ScaleFR(void *fr)
   }
 
   static auto comp_helper   = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "Component");
+  if (!comp_helper.isValidHelper()) {
+    return;
+  }
+
   static auto get_transform = comp_helper.GetProperty("transform");
+  if (!get_transform.isValidHelper()) {
+    return;
+  }
 
-  auto *t     = (Transform *)get_transform.GetRaw<Il2CppObject>(fr);
+  auto *t = reinterpret_cast<Transform *>(get_transform.GetRaw<Il2CppObject>(fr));
+  if (t == nullptr) {
+    return;
+  }
+
   auto *scale = t->localScale;
-
-  if (s_expectedScale > 0 && fabsf(scale->x - s_expectedScale) < 0.1f) {
+  if (scale == nullptr || (s_expectedScale > 0 && fabsf(scale->x - s_expectedScale) < 0.1f)) {
     return;
   }
 

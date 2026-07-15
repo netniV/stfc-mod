@@ -111,5 +111,5 @@ do
         add_frameworks("Cocoa")
     end
 
-    set_policy("build.optimization.lto", false)
+    set_policy("build.optimization.lto", true)
 end

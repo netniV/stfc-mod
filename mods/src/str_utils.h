@@ -2,19 +2,24 @@
 
 #include <algorithm>
 #include <cctype>
+#include <chrono>
+#include <sstream>
 #include <string>
 #include <string_view>
 #include <vector>
-#include <il2cpp/il2cpp_helper.h>
 
 #include <simdutf.h>
+#include <il2cpp/il2cpp_helper.h>
+
 #if _WIN32
 #include <winrt/base.h>
+#else
+#include <time.h>
 #endif
 
 inline bool ascii_isspace(unsigned char c)
 {
-  return std::isspace(static_cast<unsigned char>(c));
+  return std::isspace(c);
 }
 
 constexpr std::string_view StripTrailingAsciiWhitespace(const std::string_view str)
@@ -106,8 +111,34 @@ inline std::string to_string(const std::wstring& str)
 #endif
 }
 
-inline std::string to_string(Il2CppString* str)
+inline std::string to_string(const Il2CppString* str)
 {
-  const auto s = to_wstring(str);
-  return to_string(s);
+  size_t expected_utf8_bytes = simdutf::utf8_length_from_utf16(
+    reinterpret_cast<const char16_t*>(str->chars), str->length);
+  std::string result(expected_utf8_bytes, '\0');
+  size_t actual_utf8_bytes = simdutf::convert_utf16_to_utf8(
+    reinterpret_cast<const char16_t*>(str->chars), str->length, result.data());
+  result.resize(actual_utf8_bytes);
+  return result;
+}
+
+inline std::optional<std::chrono::time_point<std::chrono::system_clock>> parse_timestamp(const std::string& timestamp)
+{
+#ifdef _WIN32
+  std::istringstream ss(timestamp);
+  std::chrono::system_clock::time_point time_point;
+
+  if (!std::chrono::from_stream(ss, "%Y-%m-%dT%H:%M:%S", time_point)) {
+    return std::nullopt;
+  }
+
+  return time_point;
+#else
+  std::tm tm = {};
+  if (strptime(timestamp.c_str(), "%Y-%m-%dT%H:%M:%S", &tm) == nullptr) {
+    return std::nullopt;
+  }
+
+  return std::chrono::system_clock::from_time_t(std::mktime(&tm));
+#endif
 }

@@ -76,8 +76,8 @@ namespace headers
   static std::string    gameServerUrl;
   static std::string    instanceSessionId;
   static int32_t        instanceId;
-  static std::string    unityVersion{"6000.0.52f1"};
-  static std::string    primeVersion{"1.000.48084"};
+  static std::string    unityVersion{"6000.0.59f2-deadlock-fix-test"};
+  static std::string    primeVersion{"1.000.50540"};
   static std::string    poweredBy{"stfc community mod/" VER_FILE_VERSION_STR};
 } // namespace headers
 
@@ -286,9 +286,13 @@ static void target_worker_thread(std::shared_ptr<TargetWorker> worker)
       if (response.status_code == 0) {
         sync_log_error(CURL_TYPE_UPLOAD, identifier, "Failed to send request: " + response.error.message);
       } else if (response.status_code >= 400) {
-        sync_log_error(CURL_TYPE_UPLOAD, identifier, STR_FORMAT("Failed to communicate with server: {} (after {:.1f}s)", response.status_line, response.elapsed));
+        if (response.status_code == 501) {
+          sync_log_error(CURL_TYPE_UPLOAD, identifier, STR_FORMAT("Sync target does not support this operation ({}, after {:.0f} ms). Consider turning off this upload category for the target.", response.status_line, response.elapsed * 1'000));
+        } else {
+          sync_log_error(CURL_TYPE_UPLOAD, identifier, STR_FORMAT("Failed to communicate with server: {} (after {:.0f} ms)", response.status_line, response.elapsed * 1'000));
+        }
       } else {
-        sync_log_debug(CURL_TYPE_UPLOAD, identifier, STR_FORMAT("Response: {} ({:.1f}s elapsed)", response.status_line, response.elapsed));
+        sync_log_debug(CURL_TYPE_UPLOAD, identifier, STR_FORMAT("Response: {} ({:.0f} ms elapsed)", response.status_line, response.elapsed * 1'000));
       }
     } catch (const std::runtime_error& e) {
       ErrorMsg::SyncRuntime(identifier.c_str(), e);
@@ -487,7 +491,7 @@ static std::string get_scopely_data(const std::string& path, const std::string& 
     }
 
     sync_log_debug(CURL_TYPE_DOWNLOAD, path,
-                   STR_FORMAT("Response: {} ({}), {:.1f}s elapsed,", response.status_line, type, response.elapsed));
+                   STR_FORMAT("Response: {} ({}), {:.0f} ms elapsed,", response.status_line, type, response.elapsed * 1'000));
     response_text = response.text;
   }
 
@@ -1047,29 +1051,6 @@ void process_global_active_buffs(std::unique_ptr<std::string>&& bytes)
 
 static std::unordered_map<int64_t, int64_t> slot_states;
 static std::mutex                           slot_states_mtx;
-
-inline std::optional<std::chrono::time_point<std::chrono::system_clock>> parse_timestamp(const std::string& timestamp)
-{
-#ifdef _WIN32
-  std::istringstream ss(timestamp);
-  std::chrono::system_clock::time_point time_point;
-
-  if (!std::chrono::from_stream(ss, "%Y-%m-%dT%H:%M:%S", time_point)) {
-    spdlog::error("Failed to parse timestamp: {}", timestamp);
-    return std::nullopt;
-  }
-
-  return time_point;
-#else
-  std::tm tm = {};
-  if (strptime(timestamp.c_str(), "%Y-%m-%dT%H:%M:%S", &tm) == nullptr) {
-    spdlog::error("Failed to parse timestamp: {}", timestamp);
-    return std::nullopt;
-  }
-
-  return std::chrono::system_clock::from_time_t(std::mktime(&tm));
-#endif
-}
 
 void process_single_slot(const Digit::PrimeServer::Models::EntitySlot& slot, nlohmann::json& slot_array)
 {
@@ -2018,19 +1999,11 @@ void HandleEntityGroup(EntityGroup* entity_group)
   }
 }
 
-#if __APPLE__
 void DataContainer_ParseBinaryObject(auto original, void* _this, EntityGroup* group)
 {
   HandleEntityGroup(group);
   return original(_this, group);
 }
-#else
-void DataContainer_ParseBinaryObject(auto original, void* _this, EntityGroup* group, bool isPlayerData)
-{
-  HandleEntityGroup(group);
-  return original(_this, group, isPlayerData);
-}
-#endif
 
 void DataContainer_ParseEntitySlotsData(auto original, void* _this, EntityGroup* group)
 {
@@ -2038,44 +2011,32 @@ void DataContainer_ParseEntitySlotsData(auto original, void* _this, EntityGroup*
   return original(_this, group);
 }
 
-void DataContainer_ParseSlotData(auto original, void* _this, void* entity_slot, Il2CppString* channel_id)
+void* RtcParser_ParseFinalPayload(auto original, void* _this, void* centrifugoInfo,
+                                  RealtimeDataPayload* realtimeDataPayload, void* finalPayload)
 {
-  // TODO: figure out what is in this entity_slot struct.
-  return original(_this, entity_slot, channel_id);
+  if (realtimeDataPayload != nullptr && realtimeDataPayload->Target != nullptr
+      && realtimeDataPayload->DataType != nullptr && realtimeDataPayload->Data != nullptr) {
+    if (const auto type_string = to_string(realtimeDataPayload->DataType); std::stoi(type_string) == DataType::JSON) {
+      const auto target   = to_string(realtimeDataPayload->Target);
+      const auto rtc_data = to_string(realtimeDataPayload->Data);
+
+      // spdlog::debug("Received RTC payload for target '{}': {}", target, rtc_data);
+      auto payload = std::make_unique<std::string>(rtc_data);
+
+      std::thread([p = std::move(payload)]() mutable {
+        try {
+          process_entity_slots_rtc(std::move(p));
+        } catch (const std::exception& e) {
+          spdlog::error("Exception in RtcParser_ParseFinalPayload: {}", e.what());
+        } catch (...) {
+          spdlog::error("Unknown exception in RtcParser_ParseFinalPayload");
+        }
+      }).detach();
+    }
+  }
+
+  return original(_this, centrifugoInfo, realtimeDataPayload, finalPayload);
 }
-
-// This is unused after sync changes in v48084
-// void DataContainer_ParseRtcPayload(auto original, void* _this, bool incrementalJsonParsing, RealtimeDataPayload* data)
-// {
-//   original(_this, incrementalJsonParsing, data);
-
-//   if (data == nullptr || data->Target == nullptr || data->DataType == nullptr || data->Data == nullptr) {
-//     return;
-//   }
-
-//   const auto target = to_string(data->Target);
-//   if (target != "slot:assign" && target != "slot:clear") {
-//     return;
-//   }
-
-//   const auto type_string = to_string(data->DataType);
-//   if (std::stoi(type_string) != DataType::JSON) {
-//     return;
-//   }
-
-//   const auto rtcData = to_string(data->Data);
-//   auto payload = std::make_unique<std::string>(rtcData);
-
-//   std::thread([p = std::move(payload)]() mutable {
-//     try {
-//       process_entity_slots_rtc(std::move(p));
-//     } catch (const std::exception& e) {
-//       spdlog::error("Exception in ParseRtcPayload: {}", e.what());
-//     } catch (...) {
-//       spdlog::error("Unknown exception in ParseRtcPayload");
-//     }
-//   }).detach();
-// }
 
 void GameServerModelRegistry_ProcessResultInternal(auto original, void* _this, void* parsing_context,
                                                    ServiceResponse* service_response, MethodInfo* method)
@@ -2106,15 +2067,15 @@ void PrimeApp_InitPrimeServer(auto original, void* _this, Il2CppString* gameServ
                               Il2CppString* sessionId, Il2CppString* serverRegion)
 {
   original(_this, gameServerUrl, gatewayServerUrl, sessionId, serverRegion);
-  http::headers::instanceSessionId = to_string(to_wstring(sessionId));
-  http::headers::gameServerUrl     = to_string(to_wstring(gameServerUrl));
+  http::headers::instanceSessionId = to_string(sessionId);
+  http::headers::gameServerUrl     = to_string(gameServerUrl);
 }
 
 void GameServer_Initialise(auto original, void* _this, Il2CppString* sessionId, Il2CppString* gameVersion,
                            bool encryptRequests, Il2CppString* serverRegion)
 {
   original(_this, sessionId, gameVersion, encryptRequests, serverRegion);
-  http::headers::primeVersion = to_string(to_wstring(gameVersion));
+  http::headers::primeVersion = to_string(gameVersion);
 }
 
 void GameServer_SetInstanceIdHeader(auto original, void* _this, int32_t instanceId)
@@ -2278,20 +2239,6 @@ void InstallSyncPatches()
     } else {
       SPUD_STATIC_DETOUR(ptr, DataContainer_ParseEntitySlotsData);
     }
-
-    // v48084: ParseSlotUpdatedJson/ParseSlotRemovedJson renamed to UpdateSlotData/RemoveSlotData
-    // with new signature (EntitySlot, String channelId) — hook needs rewrite to match.
-    if (auto *const ptr = slot_data_container.GetMethod("UpdateSlotData"); ptr == nullptr) {
-      ErrorMsg::MissingMethod("SlotDataContainer", "UpdateSlotData");
-    } else {
-      SPUD_STATIC_DETOUR(ptr, DataContainer_ParseSlotData);
-    }
-
-    if (auto *const ptr = slot_data_container.GetMethod("RemoveSlotData"); ptr == nullptr) {
-      ErrorMsg::MissingMethod("SlotDataContainer", "RemoveSlotData");
-    } else {
-      SPUD_STATIC_DETOUR(ptr, DataContainer_ParseSlotData);
-    }
   }
 
   if (auto prime_app = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.Core", "PrimeApp");
@@ -2328,6 +2275,28 @@ void InstallSyncPatches()
       SPUD_STATIC_DETOUR(ptr, GameServer_SetInstanceIdHeader);
     }
   }
+
+  if (auto slot_assign_parser = il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Parsers", "SlotAssignRtcParser");
+    !slot_assign_parser.isValidHelper()) {
+    ErrorMsg::MissingHelper("Parsers", "SlotAssignRtcParser");
+    } else {
+      if (auto* const ptr = slot_assign_parser.GetMethod("ParseFinalPayload"); ptr == nullptr) {
+        ErrorMsg::MissingMethod("SlotAssignRtcParser", "ParseFinalPayload");
+      } else {
+        SPUD_STATIC_DETOUR(ptr, RtcParser_ParseFinalPayload);
+      }
+    }
+
+  if (auto slot_clear_parser = il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Parsers", "SlotClearRtcParser");
+    !slot_clear_parser.isValidHelper()) {
+    ErrorMsg::MissingHelper("Parsers", "SlotClearRtcParser");
+    } else {
+      if (auto* const ptr = slot_clear_parser.GetMethod("ParseFinalPayload"); ptr == nullptr) {
+        ErrorMsg::MissingMethod("SlotClearRtcParser", "ParseFinalPayload");
+      } else {
+        SPUD_STATIC_DETOUR(ptr, RtcParser_ParseFinalPayload);
+      }
+    }
 
   std::thread(ship_sync_data).detach();
   std::thread(ship_combat_log_data).detach();

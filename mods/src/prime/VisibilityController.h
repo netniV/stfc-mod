@@ -51,12 +51,20 @@ public:
   VisibilityState __get__state()
   {
     static auto field = get_class_helper().GetField("_state");
-    return *(VisibilityState*)((ptrdiff_t)this + field.offset());
+    if (field.isValidHelper()) {
+      return *(VisibilityState*)((ptrdiff_t)this + field.offset());
+    }
+
+    return VisibilityState::Unknown;
   }
 
   VisibilityState __get_State()
   {
     static auto prop = get_class_helper().GetProperty("VisibilityState");
-    return *prop.Get<VisibilityState>(this);
+    if (prop.isValidHelper()) {
+      return *prop.Get<VisibilityState>(this);
+    }
+
+    return VisibilityState::Unknown;
   }
 };
