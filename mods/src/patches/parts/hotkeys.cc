@@ -267,7 +267,14 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
         }
         return GotoSection(SectionID::Bookmarks_Main);
       } else if (MapKey::IsDown(GameFunction::ShowLookup)) {
-        return GotoSection(SectionID::Bookmarks_Search_Coordinates);
+        auto bookmark_manager = BookmarksManager::Instance();
+        if (bookmark_manager) {
+          bookmark_manager->ViewCoordinateSearch();
+          return;
+        }
+        spdlog::warn("[ShowLookup] BookmarksManager instance not available, falling back to main bookmarks");
+        GotoSection(SectionID::Bookmarks_Main);
+        return;
       } else if (MapKey::IsDown(GameFunction::ShowRefinery)) {
         return GotoSection(SectionID::Shop_Refining_List);
       } else if (MapKey::IsDown(GameFunction::ShowFactions)) {
