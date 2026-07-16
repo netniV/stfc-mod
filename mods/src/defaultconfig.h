@@ -213,6 +213,11 @@ namespace UI
   constexpr bool        disable_toast_banners       = false;
   constexpr bool        disable_veil_chat           = false;
   constexpr const char* disabled_banner_types       = "";
+  constexpr const char* hud_daily_goals             = "auto";
+  constexpr const char* hud_field_training          = "auto";
+  constexpr const char* hud_missions                = "auto";
+  constexpr const char* hud_outposts                = "auto";
+  constexpr const char* hud_q_trials                = "auto";
   constexpr const char* notify_banner_types         = "";
   constexpr auto        extend_donation_max         = 80;
   constexpr bool        extend_donation_slider      = true;
@@ -221,15 +226,6 @@ namespace UI
   constexpr bool        show_hostile_cargo          = true;
   constexpr bool        show_player_cargo           = true;
   constexpr bool        show_station_cargo          = true;
-
-  namespace MissionHud
-  {
-    constexpr const char* q_trials       = "auto";
-    constexpr const char* field_training = "auto";
-    constexpr const char* outposts       = "auto";
-    constexpr const char* daily_goals    = "auto";
-    constexpr const char* missions       = "auto";
-  } // namespace MissionHud
 } // namespace UI
 
 } // namespace DefaultConfig

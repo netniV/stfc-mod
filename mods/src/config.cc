@@ -21,7 +21,6 @@ namespace DCP  = DefaultConfig::Patches;
 namespace DCG  = DefaultConfig::Graphics;
 namespace DCC  = DefaultConfig::Control;
 namespace DCU  = DefaultConfig::UI;
-namespace DCMH = DefaultConfig::UI::MissionHud;
 namespace DCBS = DefaultConfig::Buffs;
 namespace DCS  = DefaultConfig::Sync;
 namespace DCSC = DefaultConfig::SystemConfig;
@@ -694,16 +693,17 @@ void Config::Load()
                                                             DCU::always_skip_reveal_sequence, write_config);
   this->mission_hud_buttons.clear();
   this->mission_hud_buttons.emplace(
-      "q_trials", get_mission_hud_visibility(config, parsed, "hud_q_trials", DCMH::q_trials, write_config));
+      "q_trials", get_mission_hud_visibility(config, parsed, "hud_q_trials", DCU::hud_q_trials, write_config));
   this->mission_hud_buttons.emplace(
-      "field_training", get_mission_hud_visibility(config, parsed, "hud_field_training", DCMH::field_training,
+      "field_training", get_mission_hud_visibility(config, parsed, "hud_field_training", DCU::hud_field_training,
                                                      write_config));
   this->mission_hud_buttons.emplace(
-      "outposts", get_mission_hud_visibility(config, parsed, "hud_outposts", DCMH::outposts, write_config));
+      "outposts", get_mission_hud_visibility(config, parsed, "hud_outposts", DCU::hud_outposts, write_config));
   this->mission_hud_buttons.emplace(
-      "daily_goals", get_mission_hud_visibility(config, parsed, "hud_daily_goals", DCMH::daily_goals, write_config));
+      "daily_goals",
+      get_mission_hud_visibility(config, parsed, "hud_daily_goals", DCU::hud_daily_goals, write_config));
   this->mission_hud_buttons.emplace(
-      "missions", get_mission_hud_visibility(config, parsed, "hud_missions", DCMH::missions, write_config));
+      "missions", get_mission_hud_visibility(config, parsed, "hud_missions", DCU::hud_missions, write_config));
   this->installMissionHudTweaksHooks = this->MissionHudTweaksEnabled();
 
   spdlog::debug("");
