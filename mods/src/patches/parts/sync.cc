@@ -144,7 +144,7 @@ public:
 
     return *this;
   }
-  
+
   void set_path(const std::string& path)
   {
     if (m_handle == nullptr) {
@@ -162,12 +162,12 @@ public:
       }
     }
   }
-  
+
   [[nodiscard]] const char* c_str() const
   {
     return m_url.c_str();
   }
-  
+
 private:
   CURLU *m_handle;
   std::string m_url;
@@ -1057,7 +1057,7 @@ void process_single_slot(const Digit::PrimeServer::Models::EntitySlot& slot, nlo
   using json = nlohmann::json;
 
   json    slot_params;
-  int64_t state_value = slot.has_slotitemid() ? slot.slotitemid().value() : -1;
+  int64_t state_value = slot.has_slotitemid() ? slot.slotitemid() : -1;
 
   switch (slot.slottype()) {
     case Digit::PrimeServer::Models::SLOTTYPE_CONSUMABLE:
@@ -1118,7 +1118,7 @@ void process_single_slot(const Digit::PrimeServer::Models::EntitySlot& slot, nlo
                           {"sid", slot.id()},
                           {"slot_type", slot.slottype()},
                           {"spec_id", slot.slotspecid()},
-                          {"item_id", slot.has_slotitemid() ? json(slot.slotitemid().value()) : json(nullptr)},
+                          {"item_id", slot.has_slotitemid() ? json(slot.slotitemid()) : json(nullptr)},
                           {"params", slot_params}});
   }
 }
