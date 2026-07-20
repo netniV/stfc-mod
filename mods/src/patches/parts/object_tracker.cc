@@ -204,7 +204,15 @@ void InstallObjectTrackers()
   TrackObject<ElementSelectorViewController>();
   TrackObject<StarNodeObjectViewerWidget>();
 
+#if defined(__APPLE__) && defined(SPUD_ARCH_ARM64)
+  // SPUD cannot safely relocate the current ARM64 prologue for
+  // il2cpp_unity_liveness_finalize. Its generated trampoline enters relocation
+  // data as code and traps with SIGILL while Unity unloads the loading scene.
+  // OnDestroy and GC finalizers still remove tracked objects on macOS.
+  spdlog::warn("Object tracker: macOS ARM64 crash workaround active; liveness-finalize hook disabled");
+#else
   SPUD_STATIC_DETOUR(il2cpp_unity_liveness_finalize, calc_liveness_hook);
+#endif
 
 #if _WIN32
   auto GC_register_finalizer_inner_matches =
