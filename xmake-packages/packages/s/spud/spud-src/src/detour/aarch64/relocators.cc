@@ -161,6 +161,13 @@ const static relocation_meta branch_relocator = {
           intptr_t result = 0;
           if (has_group(ARM64_GRP_BRANCH_RELATIVE) ||
               has_group(ARM64_GRP_JUMP) || has_group(ARM64_GRP_CALL)) {
+            assert(detail.op_count > 0 &&
+                   detail.operands[detail.op_count - 1].type == AARCH64_OP_IMM &&
+                   "Expected an immediate branch target");
+            if (detail.op_count == 0 ||
+                detail.operands[detail.op_count - 1].type != AARCH64_OP_IMM) {
+              return;
+            }
             result = detail.operands[detail.op_count - 1].imm;
           }
           const auto target_start = reinterpret_cast<intptr_t>(target.data());
