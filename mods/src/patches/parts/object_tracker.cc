@@ -204,14 +204,10 @@ void InstallObjectTrackers()
   TrackObject<ElementSelectorViewController>();
   TrackObject<StarNodeObjectViewerWidget>();
 
-#if defined(__APPLE__) && defined(SPUD_ARCH_ARM64)
-  // Keep this native-runtime detour disabled until the ARM64 indirect-branch
-  // relocation repair has been confirmed against the game at runtime. Managed
-  // constructor/OnDestroy hooks and GC finalizers remain active.
-  spdlog::warn("Object tracker: macOS ARM64 SPUD indirect-branch fix active; "
-               "liveness-finalize hook remains disabled pending runtime confirmation");
-#else
   SPUD_STATIC_DETOUR(il2cpp_unity_liveness_finalize, calc_liveness_hook);
+
+#if defined(__APPLE__) && defined(SPUD_ARCH_ARM64)
+  spdlog::warn("Object tracker: macOS ARM64 SPUD indirect-branch fix active; liveness-finalize hook enabled");
 #endif
 
 #if _WIN32
