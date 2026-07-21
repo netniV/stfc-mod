@@ -30,7 +30,6 @@ namespace Graphics
   constexpr auto        default_system_zoom         = 1750;
   constexpr bool        free_resize                 = true;
   constexpr auto        keyboard_zoom_speed         = 350;
-  constexpr bool        show_all_resolutions        = false;
   constexpr auto        system_pan_momentum_falloff = 0.8;
   constexpr auto        system_pan_momentum         = 0.4;
   constexpr auto        system_zoom_preset_1        = 50;
@@ -68,7 +67,6 @@ namespace Patches
   constexpr bool transitionscreenhooks          = true;
   constexpr bool objecttracker              = true;
   constexpr bool panhooks                   = true;
-  constexpr bool resolutionlistfix          = false;
   constexpr bool syncpatches                = true;
   constexpr bool tempcrashfixes             = true;
   constexpr bool testpatches                = true;

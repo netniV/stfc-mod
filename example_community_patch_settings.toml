@@ -161,9 +161,6 @@ borderless_fullscreen = true
 # Allow free resizing, set to false to disable
 free_resize = true
 
-# To enable additional resolution options set this to true
-show_all_resolutions = false
-
 # After using a zoom preset it will be set as default zoom
 use_presets_as_default = true
 
@@ -218,7 +215,6 @@ giftsbulkclaimhooks = true
 miscpatches = true
 objecttracker = true
 panhooks = true
-resolutionlistfix = true
 syncpatches = true
 tempcrashfixes = true
 testpatches = true

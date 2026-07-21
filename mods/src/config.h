@@ -135,7 +135,6 @@ public:
   bool  allow_cursor;
   bool  free_resize;
   bool  adjust_scale_res;
-  bool  show_all_resolutions;
 
   bool  use_out_of_dock_power;
   float system_pan_momentum;
@@ -201,7 +200,6 @@ public:
   bool installTestPatches;
   bool installMiscPatches;
   bool installChatPatches;
-  bool installResolutionListFix;
   bool installSyncPatches;
   bool installGameVersionHook;
   bool installObjectTracker;
