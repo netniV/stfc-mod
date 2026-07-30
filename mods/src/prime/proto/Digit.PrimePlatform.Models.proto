@@ -37,6 +37,7 @@ enum EventCategories {
   EVENTCATEGORIES_PLCBPSEASON = 25;
   EVENTCATEGORIES_PLCBPEVENT = 26;
   EVENTCATEGORIES_PROGRESSIONREWARD = 27;
+  EVENTCATEGORIES_FACTIONWEEKLYEVENTS = 28;
 }
 
 enum JoinForbidden {
@@ -47,6 +48,7 @@ enum JoinForbidden {
 enum BattlePassType {
   BATTLEPASSTYPE_STANDARD = 0;
   BATTLEPASSTYPE_TERRITORYCAPTURE = 1;
+  BATTLEPASSTYPE_CHALLENGE = 2;
 }
 
 enum PlacementType {
@@ -66,22 +68,29 @@ enum SegmentType {
   SEGMENTTYPE_RANGEMULTI = 7;
 }
 
+enum EventCardRarity {
+  EVENTCARDRARITY_COMMON = 0;
+  EVENTCARDRARITY_UNCOMMON = 1;
+  EVENTCARDRARITY_RARE = 2;
+  EVENTCARDRARITY_EPIC = 3;
+  EVENTCARDRARITY_LEGENDARY = 4;
+  EVENTCARDRARITY_COMMONSEASONAL = 5;
+  EVENTCARDRARITY_UNCOMMONSEASONAL = 6;
+  EVENTCARDRARITY_RARESEASONAL = 7;
+  EVENTCARDRARITY_EPICSEASONAL = 8;
+  EVENTCARDRARITY_LEGENDARYSEASONAL = 9;
+}
+
 enum PlayerlifecycleContentType {
   PLAYERLIFECYCLECONTENTTYPE_NEWS = 0;
   PLAYERLIFECYCLECONTENTTYPE_BUNDLES = 1;
   PLAYERLIFECYCLECONTENTTYPE_EVENTS = 2;
 }
 
-message AllianceGamesChangesNotification {
-  repeated string addedTaskIds = 1;
-  repeated string removedTaskIds = 2;
-}
-
-message ApmFiltersStatus {
-  bool apmRequired = 1;
-}
-
-message ApmFiltersNotification {
+message CTADeeplinkRange {
+  int32 levelMin = 1;
+  int32 levelMax = 2;
+  repeated string ctaDeeplinks = 3;
 }
 
 message EventEntryData {
@@ -140,6 +149,13 @@ message EventMetadata {
   repeated Precondition preconditions = 38;
   bool showOnCustomTab = 39;
   bool hiddenMilestoneReward = 40;
+  bool serverTransfer = 41;
+  bool shieldDown = 42;
+  repeated CTADeeplinkRange ctaDeeplinkRanges = 43;
+  int32 battlePassOrder = 44;
+  int64 ctaDeeplinkRangesFallbackCta = 45;
+  EventCardStyle cardStyle = 46;
+  string autojoinFactionEvent = 47;
 }
 
 message EventModel {
@@ -203,11 +219,74 @@ message EventScoringInfo {
   string icon = 2;
 }
 
+message GameNewsModel {
+  int32 newsId = 1;
+  int32 priority = 2;
+  bool pinned = 3;
+  bool important = 4;
+  google.protobuf.Timestamp startDate = 5;
+  google.protobuf.Timestamp endDate = 6;
+  GameNewsMetadata metadata = 7;
+  bool isPlayerlifecycle = 8;
+  int32 category = 9;
+}
+
+message PlayerStats {
+  string accountId = 1;
+  repeated PlayerStatsGroup groups = 2;
+}
+
+message CacheHints {
+  repeated TranslationCacheUpdate translationCacheUpdate = 1;
+}
+
+message Product {
+  uint32 id = 1;
+  string name = 2;
+  string code = 3;
+  uint32 status = 4;
+  repeated Instance instances = 5;
+}
+
+message Instance {
+  uint32 id = 1;
+  string name = 2;
+  uint32 priority = 3;
+  Region region = 4;
+  int32 status = 5;
+  int64 maintenance = 6;
+  PlayerTransferState playerTransferState = 7;
+}
+
+message AllianceGamesChangesNotification {
+  repeated string addedTaskIds = 1;
+  repeated string removedTaskIds = 2;
+}
+
+message ApmFiltersStatus {
+  bool apmRequired = 1;
+  string telemetryJwt = 2;
+  int64 telemetryJwtExpiresAt = 3;
+}
+
+message ApmFiltersNotification {
+}
+
 message EventNotification {
   string configId = 1;
   google.protobuf.Timestamp modified = 2;
   EventRank playerRank = 3;
   EventEntryData entryData = 4;
+}
+
+message LeaderboardRankingResponse {
+  repeated EventRank ranks = 1;
+  string configId = 2;
+}
+
+message LeaderboardsModelResponse {
+  repeated EventModel tournaments = 1;
+  repeated int32 categories = 2;
 }
 
 message Precondition {
@@ -225,6 +304,10 @@ message EventSegment {
 message NumberOfSlotsPerCategory {
   uint32 categoryId = 1;
   uint32 amount = 2;
+}
+
+message EventCardStyle {
+  EventCardRarity rarity = 1;
 }
 
 message EventVideoAssets {
@@ -275,25 +358,11 @@ message AllianceGameStateResponse {
   LeaderboardInfo leaderboardInfo = 5;
 }
 
-message PlayerlifecycleNotification {
-  PlayerlifecycleContentType contentType = 1;
-  string playgamiId = 2;
-  string category = 3;
-}
-
-message GameNewsModel {
-  int32 newsId = 1;
-  int32 priority = 2;
-  bool pinned = 3;
-  bool important = 4;
-  google.protobuf.Timestamp startDate = 5;
-  google.protobuf.Timestamp endDate = 6;
-  GameNewsMetadata metadata = 7;
-  bool isPlayerlifecycle = 8;
-  int32 category = 9;
-}
-
 message GameNewsHolder {
+  repeated GameNewsModel newsItems = 1;
+}
+
+message GameNewsVideoHolder {
   repeated GameNewsModel newsItems = 1;
 }
 
@@ -308,6 +377,17 @@ message Notifications {
   repeated PlayerlifecycleNotification playerlifecycleNotifications = 3;
 }
 
+message EventNotificationResponse {
+  repeated EventNotification tournamentNotifications = 1;
+}
+
+message LoginStreakResponse {
+  int32 currentStreak = 1;
+  int32 lastStreakGameDay = 2;
+  int32 resetTimeOfDay = 3;
+  int32 resetTimeDuration = 4;
+}
+
 message PlatformUserProfile {
   string accountId = 1;
   string name = 2;
@@ -315,11 +395,6 @@ message PlatformUserProfile {
 
 message PlatformUserProfileResponse {
   repeated PlatformUserProfile playerProfiles = 1;
-}
-
-message PlayerStats {
-  string accountId = 1;
-  repeated PlayerStatsGroup groups = 2;
 }
 
 message PlayerStatsGroup {
@@ -333,16 +408,22 @@ message PlayerStatsEntry {
   float value = 3;
 }
 
-message CacheHints {
-  repeated TranslationCacheUpdate translationCacheUpdate = 1;
+message InviteeMetadata {
+  string inviteeId = 1;
+  int32 score = 2;
+  google.protobuf.Timestamp connectionTimestamp = 3;
 }
 
-message Product {
-  uint32 id = 1;
-  string name = 2;
-  string code = 3;
-  uint32 status = 4;
-  repeated Instance instances = 5;
+message UserReferralStatus {
+  string inviterId = 1;
+  repeated InviteeMetadata inviteesMetadata = 2;
+}
+
+message PlayerlifecycleNotification {
+  PlayerlifecycleContentType contentType = 1;
+  string playgamiId = 2;
+  string category = 3;
+  bool showImmediately = 4;
 }
 
 message ProductInfoHolder {
@@ -355,16 +436,6 @@ message Region {
   string id = 1;
   string description = 2;
   uint32 num = 3;
-}
-
-message Instance {
-  uint32 id = 1;
-  string name = 2;
-  uint32 priority = 3;
-  Region region = 4;
-  int32 status = 5;
-  int64 maintenance = 6;
-  PlayerTransferState playerTransferState = 7;
 }
 
 message PlayerTransferState {

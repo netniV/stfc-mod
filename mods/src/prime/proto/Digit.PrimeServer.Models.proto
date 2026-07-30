@@ -5,8 +5,8 @@ option optimize_for = LITE_RUNTIME;
 
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/wrappers.proto";
-
 import "stfc.proto";
+
 package Digit.PrimeServer.Models;
 
 enum FleetSkillsType {
@@ -81,6 +81,7 @@ enum ActionType {
   ACTIONTYPE_COPY = 2106261;
   ACTIONTYPE_SHARE = 79847359;
   ACTIONTYPE_UPGRADETRAIT = -2019808789;
+  ACTIONTYPE_DEEPLINK = -1908513408;
 }
 
 enum ActivatedAbilityCostType {
@@ -121,6 +122,7 @@ enum Domain {
   DOMAIN_AWAYTEAMS = -846070968;
   DOMAIN_FORBIDDENTECH = -696223371;
   DOMAIN_MINIGAMES = 1618762116;
+  DOMAIN_DAILYGOALS = -1315542941;
 }
 
 enum GameActivityPhaseType {
@@ -235,17 +237,6 @@ enum DamageSources {
   DAMAGESOURCES_HAZARD = 2;
 }
 
-enum TargetAction {
-  TARGETACTION_RETURN = 0;
-  TARGETACTION_ORBIT = 1;
-  TARGETACTION_ATTACK = 2;
-  TARGETACTION_CAPTURE = 4;
-  TARGETACTION_DOCK = 5;
-  TARGETACTION_ATTACKSTATION = 6;
-  TARGETACTION_ARMADAATTACKJOIN = 7;
-  TARGETACTION_NULL = -1;
-}
-
 enum ForbiddenTechUpgradeType {
   FORBIDDENTECHUPGRADETYPE_FORBIDDENTECHUPGRADENONE = 0;
   FORBIDDENTECHUPGRADETYPE_FORBIDDENTECHUPGRADELEVEL = 1;
@@ -344,6 +335,8 @@ enum ClientModifierType {
   CLIENTMODIFIERTYPE_MODCARGOPROTECTION = 67;
   CLIENTMODIFIERTYPE_MODCARGOGENERATION = 809;
   CLIENTMODIFIERTYPE_MODAUTORECALL = 68;
+  CLIENTMODIFIERTYPE_MODCARGOCAPPING = 93100;
+  CLIENTMODIFIERTYPE_MODPROTECTEDCARGOCAPPING = 93101;
   CLIENTMODIFIERTYPE_MODENERGYLOADSPEED = 69;
   CLIENTMODIFIERTYPE_MODKINETICLOADSPEED = 70;
   CLIENTMODIFIERTYPE_MODENERGYRELOADSPEED = 71;
@@ -352,6 +345,7 @@ enum ClientModifierType {
   CLIENTMODIFIERTYPE_MODALLPIERCING = 74;
   CLIENTMODIFIERTYPE_MODSHIELDREGENTIME = 75;
   CLIENTMODIFIERTYPE_MODSHIELDMITIGATION = 76;
+  CLIENTMODIFIERTYPE_MODFPPOSALL = 83;
   CLIENTMODIFIERTYPE_MODHAZARDTYPEAMITIGATION = 810;
   CLIENTMODIFIERTYPE_MODHAZARDTYPEBMITIGATION = 811;
   CLIENTMODIFIERTYPE_MODHAZARDTYPECMITIGATION = 812;
@@ -457,6 +451,7 @@ enum ClientModifierType {
   CLIENTMODIFIERTYPE_MODBDABILITYEFFECT = 220;
   CLIENTMODIFIERTYPE_MODFCCOOLDOWNSPEED = 218;
   CLIENTMODIFIERTYPE_MODJANEWAYFCCOOLDOWNSPEED = 219;
+  CLIENTMODIFIERTYPE_MODADDRANDSTATE = 221;
   CLIENTMODIFIERTYPE_MODFORBIDDENTECHUNSLOTCOST = 222;
   CLIENTMODIFIERTYPE_MODFORBIDDENTECHTIERUPCOST = 227;
   CLIENTMODIFIERTYPE_MODFORBIDDENTECHLEVELUPCOST = 228;
@@ -465,8 +460,11 @@ enum ClientModifierType {
   CLIENTMODIFIERTYPE_CHAOSTECHLEVELUPCOST = 72003;
   CLIENTMODIFIERTYPE_MODBYPASSSHIELDS = 223;
   CLIENTMODIFIERTYPE_MODINSTANTARMADAUNLOCKED = 224;
+  CLIENTMODIFIERTYPE_MODINSTANTOUTPOSTUNLOCKED = 87001;
   CLIENTMODIFIERTYPE_MODHULLREPAIR = 225;
   CLIENTMODIFIERTYPE_MODSIMULTANEOUSARMADA = 233;
+  CLIENTMODIFIERTYPE_MODCROSSALLIANCESIMULTANEOUSARMADAS = 87005;
+  CLIENTMODIFIERTYPE_MODAPEXARMOR = 67001;
   CLIENTMODIFIERTYPE_MODJUMPINGPOINTSCOST = 67002;
   CLIENTMODIFIERTYPE_MODTRELLIUMREWARDS = 67003;
   CLIENTMODIFIERTYPE_MODSKILLCUTTINGBEAMACCUMULATEBEAMS = 251;
@@ -474,6 +472,7 @@ enum ClientModifierType {
   CLIENTMODIFIERTYPE_MODSKILLSELFHEALINGCOOLDOWN = 68002;
   CLIENTMODIFIERTYPE_MODSKILLSELFHEALINGINCREASE = 68003;
   CLIENTMODIFIERTYPE_MODHOSTILELOOT = 71001;
+  CLIENTMODIFIERTYPE_MODAPEXBARRIERSHRED = 76001;
   CLIENTMODIFIERTYPE_MODCHAINSHOTNUMBERTARGETS = 77005;
   CLIENTMODIFIERTYPE_MODSYNERGYDS9PROMOTIONSHARDCOST = 78001;
   CLIENTMODIFIERTYPE_MODSYNERGYTNGPROMOTIONSHARDCOST = 78002;
@@ -489,13 +488,17 @@ enum ClientModifierType {
   CLIENTMODIFIERTYPE_MODSYNERGYSYMBIOSISPROMOTIONSHARDCOST = 79004;
   CLIENTMODIFIERTYPE_MODSYNERGYRETALIATIONSQUADSPROMOTIONSHARDCOST = 79005;
   CLIENTMODIFIERTYPE_MODSYNERGYENTERPRISENX01PROMOTIONSHARDCOST = 79006;
+  CLIENTMODIFIERTYPE_MODSOLOOUTPOSTARMADAFLEETSIZE = 84001;
   CLIENTMODIFIERTYPE_MODXINDISCRAPSREWARDS = 242;
   CLIENTMODIFIERTYPE_MODHIROGENRELICSEXOTICBIOTOXINSREWARDS = 244;
+  CLIENTMODIFIERTYPE_MODCOMBATTECHNOLOGICALDISTINCTIVENESSREWARDS = 252;
+  CLIENTMODIFIERTYPE_MODAPEXISOMATTERAMOUNT = 65004;
   CLIENTMODIFIERTYPE_MODPVECHESTLOOTMULTIPLIERLIMITEDRESOURCES = 75004;
   CLIENTMODIFIERTYPE_MODWOKAUGMENTALLLOOTREWARDS = 78010;
   CLIENTMODIFIERTYPE_MODPVECHESTLOOTMULTIPLIERWOKTOKEN = 78016;
   CLIENTMODIFIERTYPE_MODM80TRANSOGENLOOT = 80002;
   CLIENTMODIFIERTYPE_MODM80TRANSOGENEPICLOOT = 80003;
+  CLIENTMODIFIERTYPE_MODSOLOOUTPOSTDUSTLOOT = 84004;
   CLIENTMODIFIERTYPE_MODNONE = -1000;
   CLIENTMODIFIERTYPE_SHIPDAMAGEPERROUND = -1;
   CLIENTMODIFIERTYPE_SHIPABSORPTION = -2;
@@ -515,6 +518,12 @@ enum ClientModifierType {
   CLIENTMODIFIERTYPE_FLEETOFFICERBONUSDEFENSE = -16;
   CLIENTMODIFIERTYPE_FLEETOFFICERBONUSHEALTH = -17;
   CLIENTMODIFIERTYPE_FLEETFORBIDDENTECHRATING = -18;
+}
+
+enum GameActivityType {
+  GAMEACTIVITYTYPE_UNKNOWNACTIVITYTYPE = 0;
+  GAMEACTIVITYTYPE_ARENA = 1676718364;
+  GAMEACTIVITYTYPE_SURGE = 675127621;
 }
 
 enum GameActivityResult {
@@ -627,6 +636,7 @@ enum ObjectiveType {
   OBJECTIVETYPE_DEFEATCHALLENGENPCINSTANTIATED = 24;
   OBJECTIVETYPE_MINIGAMESTAGE = 25;
   OBJECTIVETYPE_VISITSECTION = 26;
+  OBJECTIVETYPE_DONTDEFEATFLEET = 27;
 }
 
 enum HullType {
@@ -746,6 +756,12 @@ enum NotificationShipAbilityType {
   NOTIFICATIONSHIPABILITYTYPE_NOTIFICATIONSHIPABILITYSHIPDEBUFFED = 1;
 }
 
+enum NotificationAllianceApplicationType {
+  NOTIFICATIONALLIANCEAPPLICATIONTYPE_APPLICATIONAPPROVED = 0;
+  NOTIFICATIONALLIANCEAPPLICATIONTYPE_APPLICATIONREJECTED = 1;
+  NOTIFICATIONALLIANCEAPPLICATIONTYPE_APPLICATIONCREATED = 2;
+}
+
 enum NotificationProducerType {
   NOTIFICATIONPRODUCERTYPE_NONEXISTENT = 0;
   NOTIFICATIONPRODUCERTYPE_MISSION = 2;
@@ -763,6 +779,7 @@ enum NotificationProducerType {
   NOTIFICATIONPRODUCERTYPE_ALLIANCEDIPLOMACYCHANGED = 14;
   NOTIFICATIONPRODUCERTYPE_TERRITORY = 15;
   NOTIFICATIONPRODUCERTYPE_SHIPABILITY = 16;
+  NOTIFICATIONPRODUCERTYPE_ALLIANCEAPPLICATION = 17;
 }
 
 enum InventoryItemType {
@@ -821,6 +838,7 @@ enum EntityType {
   ENTITYTYPE_SYSTEM = 232004982;
   ENTITYTYPE_PARTY = 2028949976;
   ENTITYTYPE_GAMEWORLD = 1025095082;
+  ENTITYTYPE_OUTPOST = 853180751;
 }
 
 enum SlotType {
@@ -901,6 +919,7 @@ enum CosmeticType {
   COSMETICTYPE_FRAME = 2;
   COSMETICTYPE_SHIPSKIN = 3;
   COSMETICTYPE_HAILINGFREQUENCY = 4;
+  COSMETICTYPE_PLAYERTITLE = 5;
 }
 
 enum GameActivityRuleType {
@@ -911,6 +930,10 @@ enum GameActivityRuleType {
   GAMEACTIVITYRULETYPE_REPAIR = 1631870816;
   GAMEACTIVITYRULETYPE_RELOCATEENTRY = 605766716;
   GAMEACTIVITYRULETYPE_RELOCATEEXIT = 2018890572;
+  GAMEACTIVITYRULETYPE_SETHOSTILEGROUP = 64225781;
+  GAMEACTIVITYRULETYPE_RESETHOSTILEGROUP = 1997003721;
+  GAMEACTIVITYRULETYPE_DESPAWNHOSTILES = 508007933;
+  GAMEACTIVITYRULETYPE_ACTIVATIONSCORE = 381413253;
 }
 
 enum Faction {
@@ -926,6 +949,8 @@ enum FleetArmadaCategory {
   FLEETARMADACATEGORY_SOLO = 1;
   FLEETARMADACATEGORY_SOLOBOSS = 2;
   FLEETARMADACATEGORY_SQUADARMADA = 3;
+  FLEETARMADACATEGORY_SOLOOUTPOST = 4;
+  FLEETARMADACATEGORY_CROSSALLIANCE = 5;
 }
 
 enum OfficerType {
@@ -959,6 +984,7 @@ enum ArmadaTargetType {
   ARMADATARGETTYPE_STATION = 1;
   ARMADATARGETTYPE_FLEET = 2;
   ARMADATARGETTYPE_ALLIANCESTATION = 3;
+  ARMADATARGETTYPE_OUTPOST = 4;
 }
 
 enum BuffSource {
@@ -971,6 +997,19 @@ enum BuffSource {
   BUFFSOURCE_STARBASEMODULE = 6;
   BUFFSOURCE_RESEARCH = 7;
   BUFFSOURCE_FORBIDDENTECH = 8;
+  BUFFSOURCE_OUTPOST = 10;
+  BUFFSOURCE_GALACTICANOMALY = 11;
+}
+
+enum TargetAction {
+  TARGETACTION_RETURN = 0;
+  TARGETACTION_ORBIT = 1;
+  TARGETACTION_ATTACK = 2;
+  TARGETACTION_CAPTURE = 4;
+  TARGETACTION_DOCK = 5;
+  TARGETACTION_ATTACKSTATION = 6;
+  TARGETACTION_ARMADAATTACKJOIN = 7;
+  TARGETACTION_NULL = -1;
 }
 
 enum ForbiddenTechUpgradeChanceType {
@@ -1057,6 +1096,11 @@ enum ActivatedAbilityType {
   ACTIVATEDABILITYTYPE_CHARGEDABILITY = 75002;
   ACTIVATEDABILITYTYPE_CHAINSHOT = 77001;
   ACTIVATEDABILITYTYPE_CHAINSHOTIMMUNITY = 78001;
+  ACTIVATEDABILITYTYPE_AUTOHUNTING = 83001;
+  ACTIVATEDABILITYTYPE_ENHANCEABILITY = 86001;
+  ACTIVATEDABILITYTYPE_REVEALHOSTILEVGER = 86002;
+  ACTIVATEDABILITYTYPE_BORGSPHEREPROTOCOL = 89001;
+  ACTIVATEDABILITYTYPE_AMPLIFYABILITY = 91001;
 }
 
 enum BuffSchemaType {
@@ -1068,6 +1112,7 @@ enum BuffSchemaType {
 enum GameActivityGoalType {
   GAMEACTIVITYGOALTYPE_UNKNOWNACTIVITYGOALTYPE = 0;
   GAMEACTIVITYGOALTYPE_GOALSCORE = 1437210281;
+  GAMEACTIVITYGOALTYPE_ALLIANCEGOALSCORE = 515347855;
 }
 
 enum GameActivityInflectionType {
@@ -1076,14 +1121,15 @@ enum GameActivityInflectionType {
   GAMEACTIVITYINFLECTIONTYPE_SCORE = 1437210281;
 }
 
-enum GameActivityType {
-  GAMEACTIVITYTYPE_UNKNOWNACTIVITYTYPE = 0;
-  GAMEACTIVITYTYPE_ARENA = 1676718364;
-}
-
 enum GameActivityParticipantsType {
   GAMEACTIVITYPARTICIPANTSTYPE_UNKNOWNACTIVITYPARTICIPANTSTYPE = 0;
   GAMEACTIVITYPARTICIPANTSTYPE_ALLIANCEPARTY = 1407625899;
+  GAMEACTIVITYPARTICIPANTSTYPE_ALLIANCEPARTICIPANT = 1859714244;
+}
+
+enum RewardRequirementType {
+  REWARDREQUIREMENTTYPE_UNKNOWNREWARDREQUIREMENTTYPE = 0;
+  REWARDREQUIREMENTTYPE_SCOREREWARDREQUIREMENT = 1437210281;
 }
 
 enum ComponentSlotAction {
@@ -1160,6 +1206,7 @@ message AllianceProfile {
   int32 gameworldId = 8;
   int32 league = 9;
   repeated int32 profileTags = 10;
+  bool allowApplication = 11;
 }
 
 message ArmadaAttack {
@@ -1176,6 +1223,7 @@ message ArmadaAttack {
   map<string, int64> guaranteedSlots = 11;
   int32 serverInstanceId = 12;
   int64 multiTargetArmadaAttackId = 13;
+  repeated string blockedPlayers = 14;
 }
 
 message AwayAssignmentInstance {
@@ -1280,9 +1328,18 @@ message OptimisedGalaxy {
   repeated int64 destGalaxyIds = 35;
   int64 galaxyId = 36;
   IdRefs galaxyIdRefs = 37;
+  repeated FactionIds factionList = 38;
+  repeated FactionInfluences factionInfluenceList = 39;
+  repeated bool hasOutpost = 40;
 }
 
 message DeployedFleet {
+enum OutpostMarauderType {
+  OUTPOSTMARAUDERTYPE_NONE = 0;
+  OUTPOSTMARAUDERTYPE_OUTPOSTARMADA = 1;
+  OUTPOSTMARAUDERTYPE_OUTPOSTRETALIATOR = 2;
+}
+
   string uid = 1;
   DeployedFleetState state = 2;
   int64 courseId = 3;
@@ -1296,7 +1353,6 @@ message DeployedFleet {
   repeated int64 shipIds = 11;
   repeated int64 hullIds = 12;
   google.protobuf.Timestamp warpTime = 13;
-  WarpData warpData = 14;
   float latestCourseVectorX = 15;
   float latestCourseVectorY = 16;
   google.protobuf.Timestamp lastUpdateTime = 17;
@@ -1321,14 +1377,7 @@ message DeployedFleet {
   repeated ForbiddenTechData forbiddenTechs = 36;
   DamageSources causeOfDestruction = 37;
   repeated StatusCounter statusCounters = 38;
-}
-
-message WarpData {
-  repeated int64 nodeIds = 1;
-  int32 endX = 2;
-  int32 endY = 3;
-  TargetAction targetAction = 4;
-  int64 destinationNodeId = 5;
+  OutpostMarauderType outpostMarauderType = 39;
 }
 
 message ShipAttributes {
@@ -1367,6 +1416,10 @@ message Tier {
   repeated int64 researchTreeIds = 12;
 }
 
+message FactionStandingsResponse {
+  map<int64, FactionStandingEntry> factionTiers = 1;
+}
+
 message ForbiddenTech {
   int32 level = 1;
   int32 tier = 2;
@@ -1403,6 +1456,12 @@ message ForbiddenTechSpec {
   bool guaranteedUpgrade = 19;
 }
 
+message GalacticAnomaly {
+  string id = 1;
+  google.protobuf.Timestamp endTime = 2;
+  map<int64, SystemBuffs> anomalies = 3;
+}
+
 message IdRefs {
   string artFileReference = 1;
   int64 locaId = 2;
@@ -1416,14 +1475,44 @@ message NodeAddress {
   int32 instance = 4;
 }
 
+message GameActivity {
+  int64 activityId = 1;
+  int64 activitySpecId = 2;
+  repeated GameActivityTracker goalTracker = 3;
+  repeated EntityRef participants = 4;
+  google.protobuf.Timestamp startAt = 5;
+  EntityRef activityEntity = 6;
+  GameActivityPhase activityPhase = 7;
+  GameActivityType type = 8;
+}
+
 message GameActivityParticipantResult {
   EntityRef entityRef = 1;
   GameActivityResult result = 2;
+  int64 score = 3;
 }
 
 message GameActivityPhase {
   int64 phaseSpecId = 1;
   google.protobuf.Timestamp startAt = 2;
+}
+
+message GameActivityReference {
+  int64 gameActivityId = 1;
+  EntityRef activityOwner = 2;
+  GameActivityType type = 3;
+}
+
+message StaticSyncGameActivityRewardsSpecsResponse {
+  repeated GameActivityRewardSpec gameActivityRewardsSpecs = 1;
+}
+
+message GameActivityRewardSpec {
+  int64 id = 1;
+  string idStr = 2;
+  int64 rewardGroup = 3;
+  repeated RewardRequirement requirements = 4;
+  repeated Resource rewards = 5;
 }
 
 message GameActivityTracker {
@@ -1454,8 +1543,8 @@ oneof Params {
   google.protobuf.Timestamp startTime = 4;
   JobType type = 1;
   string uuid = 2;
-  int32 duration = 3;
-  int32 reductionInSeconds = 5;
+  int64 duration = 3;
+  int64 reductionInSeconds = 5;
   float jobSpeedupMod = 6;
   string userId = 7;
   EntityRef entityRef = 18;
@@ -1551,6 +1640,7 @@ oneof Attributes {
   MissionObjective.MoveStarbaseAttributes moveStarbaseAttributes = 22;
   MissionObjective.DefeatChallengeNPCInstantiatedAttributes defeatChallengeNpcInstantiatedAttributes = 23;
   MissionObjective.VisitSectionAttributes visitSectionAttributes = 24;
+  MissionObjective.DefeatNPCInstantiatedAttributes dontDefeatFleetAttributes = 25;
 }
 
 }
@@ -1796,6 +1886,7 @@ message BlueprintSpec {
   int64 viewLevel = 25;
   int32 scrapLevel = 26;
   map<int64, int64> scrapEarnings = 27;
+  int32 dynamicScrapLevel = 28;
 }
 
 message Notification {
@@ -1901,6 +1992,12 @@ message ShipAbilityParams {
   NotificationShipAbilityType abilityType = 4;
 }
 
+message AllianceApplicationParams {
+  string applicantUserId = 1;
+  int64 allianceId = 2;
+  NotificationAllianceApplicationType applicationNotificationType = 3;
+}
+
 oneof Params {
   MissionParams missionParams = 5;
   UserProfileParams userProfileParams = 6;
@@ -1917,6 +2014,7 @@ oneof Params {
   AllianceDiplomacyParams diplomacyParams = 17;
   TerritoryParams territoryParams = 18;
   ShipAbilityParams shipAbilityParams = 19;
+  AllianceApplicationParams allianceApplicationParams = 20;
 }
 
   string uuid = 1;
@@ -1932,6 +2030,46 @@ message Officer {
   int64 id = 4;
   int32 shardCount = 5;
   int64 awayAssignmentInstanceId = 6;
+}
+
+message Outpost {
+enum OutpostState {
+  OUTPOSTSTATE_INACTIVE = 0;
+  OUTPOSTSTATE_CONQUERING = 1;
+  OUTPOSTSTATE_DEFENDING = 2;
+}
+
+  int64 id = 1;
+  int64 specId = 2;
+  OutpostState state = 3;
+  repeated UpgradeLevel upgradeLevels = 4;
+  int32 currentHeadCount = 5;
+  google.protobuf.Timestamp startTime = 6;
+  google.protobuf.Timestamp nextMarauderSpawnTime = 7;
+  EntityRef ownerRef = 8;
+  repeated int64 dockedFleetIds = 9;
+  string outpostType = 10;
+  int64 systemId = 11;
+}
+
+message OutpostSpec {
+  int64 id = 1;
+  string name = 2;
+  Rarity rarity = 3;
+  int64 armadaPveSpecId = 4;
+  repeated int64 upgradeSpecIds = 5;
+  repeated OutpostDefenseSpawnRule defenseSpawnList = 7;
+}
+
+message OutpostUpgradeSpec {
+  int64 buffId = 1;
+  IdRefs idRefs = 2;
+  repeated OutpostUpgradeLevelSpec levels = 3;
+}
+
+message UpgradeLevel {
+  int64 upgradeId = 1;
+  int32 level = 2;
 }
 
 message Party {
@@ -2054,6 +2192,7 @@ oneof Params {
   int64 slotSpecId = 2;
   google.protobuf.Int64Value slotItemId = 3;
   SlotType slotType = 4;
+  google.protobuf.Timestamp slotExpires = 13;
 }
 
 message OfficerPresetSlotParams {
@@ -2136,6 +2275,9 @@ message Attributes {
   repeated int64 resources = 11;
   int32 grade = 12;
   int64 moduleId = 13;
+  int32 shipManagementDisplay = 14;
+  repeated int32 battleTypes = 15;
+  repeated BattleUnitState multiState = 16;
 }
 
   int64 buffId = 1;
@@ -2223,6 +2365,7 @@ oneof Attributes {
   ActiveShipRuleAttributes activeShip = 4;
   RelocateRuleAttributes relocate = 5;
   RepairRuleAttributes repair = 6;
+  SetHostileGroupAttributes setHostileGroup = 7;
 }
 
   GameActivityRuleType ruleType = 1;
@@ -2303,6 +2446,7 @@ message JobSpeedupResourceSpec {
 message Cost {
   float modifier = 1;
   int64 resourceId = 2;
+  int32 tier = 3;
 }
 
 message Costs {
@@ -2371,6 +2515,13 @@ message Requirement {
   int64 targetId = 2;
   int64 level = 3;
   RequirementParam params = 4;
+}
+
+message ResourceConversionRate {
+  float threshold = 1;
+  float multiplier = 2;
+  double thresholdV2 = 3;
+  double multiplierV2 = 4;
 }
 
 message StarbaseSpec {
@@ -2478,6 +2629,10 @@ message ThreatConfig {
   map<string, double> staticDouble = 4;
 }
 
+message UserHistoryResponse {
+  map<string, bool> userHistory = 1;
+}
+
 message UserProfile {
   string userId = 1;
   string name = 2;
@@ -2531,13 +2686,20 @@ message UserTemplateHeadersResponse {
 
 message CheckAccountResponse {
   AccountState accountState = 1;
-  int32 gameworldId = 2;
   ServerInstanceInfo currentInstance = 3;
   repeated ServerInstanceInfo instances = 4;
 }
 
 message AllianceMembersStarbasesLocations {
   map<string, NodeAddress> allianceMembersStarbasesLocations_ = 1;
+}
+
+message AllianceApplication {
+  int64 allianceId = 1;
+  string applicantId = 2;
+  string message = 3;
+  google.protobuf.Timestamp createdAt = 4;
+  google.protobuf.Timestamp expireAt = 5;
 }
 
 message AllianceGameProperty {
@@ -2593,6 +2755,10 @@ message AllianceTagSpecsResponse {
   repeated AllianceTagSpec specs = 1;
 }
 
+message AllianceApplicationResponse {
+  repeated AllianceApplication applications = 1;
+}
+
 message AllianceTagSpec {
   int32 id = 1;
   int32 category = 2;
@@ -2613,6 +2779,22 @@ message ArmadaAttackEnRouteFleetInfo {
 }
 
 message ArmadaAttackListResponse {
+  repeated ArmadaAttack armadaAttackList = 1;
+}
+
+message ArmadaAttackGetFromAllianceResponse {
+  repeated ArmadaAttack armadaAttackList = 1;
+}
+
+message ArmadaAttackIncomingThreatListResponse {
+  repeated ArmadaAttack armadaAttackList = 1;
+}
+
+message CrossAllianceArmadasFromRegionalResponse {
+  repeated ArmadaAttack armadaAttackList = 1;
+}
+
+message ArmadaAttackUserListSyncResponse {
   repeated ArmadaAttack armadaAttackList = 1;
 }
 
@@ -2757,6 +2939,8 @@ message ArmadasConfig {
   int32 armadaAttackImmunityShieldTimer = 4;
   map<int32, int32> armadaAttackLimitPerTarget = 5;
   int32 armadaAttackWaitTimer = 6;
+  int32 armadaAttackCombatLengthSeconds = 7;
+  int32 crossAllianceArmadaAttackCombatLengthSeconds = 8;
 }
 
 message BattleConfig {
@@ -2845,6 +3029,11 @@ message FactionConfig {
   int32 interceptTimeSeconds = 2;
 }
 
+message FactionStandingEntry {
+  bool isDiscovered = 1;
+  int32 currentStanding = 2;
+}
+
 message FleetConfig {
   int32 quickRecallTimer = 1;
   int32 quickRecallCooldownSeconds = 2;
@@ -2881,6 +3070,14 @@ message FtueProgressionConfig {
   int32 firstStage = 3;
 }
 
+message FactionIds {
+  repeated int64 factions = 1;
+}
+
+message FactionInfluences {
+  repeated int64 factionInfluences_ = 1;
+}
+
 message GalaxyNodeMarauderInfo {
   repeated int64 marauderInfoId = 1;
 }
@@ -2909,6 +3106,7 @@ message MarauderInfo {
   int32 minLevel = 1;
   int32 maxLevel = 2;
   HullType hullType = 3;
+  int64 factionId = 4;
 }
 
 message MiningSetup {
@@ -3137,7 +3335,29 @@ enum Type {
   TYPE_PARTYSPECS = 202;
   TYPE_RESOURCEAUTOCONVERTSPECS = 203;
   TYPE_VISITEDSYSTEMS = 204;
+  TYPE_LEASEDQUEUESPECS = 205;
+  TYPE_LEASEDQUEUERECORD = 206;
   TYPE_ALLIANCETAGSPECS = 207;
+  TYPE_GAMEACTIVITYREWARDSSPEC = 208;
+  TYPE_GAMEACTIVITYINDEX = 209;
+  TYPE_ALLIANCEAPPLICATION = 210;
+  TYPE_SCRAPYARDREWARDS = 211;
+  TYPE_FACTIONSTANDING = 212;
+  TYPE_ARMADAATTACKUSERLISTSYNCRESPONSE = 213;
+  TYPE_ARMADAATTACKGETFROMALLIANCERESPONSE = 214;
+  TYPE_ARMADAATTACKINCOMINGTHREATLISTRESPONSE = 215;
+  TYPE_CROSSALLIANCEARMADASFROMREGIONALRESPONSE = 216;
+  TYPE_PLAYERPARTYRESPONSE = 217;
+  TYPE_USERHISTORY = 218;
+  TYPE_OUTPOSTSTATICDATA = 8401;
+  TYPE_OUTPOSTUPGRADERESPONSE = 8402;
+  TYPE_OUTPOSTSYNC = 8403;
+  TYPE_OUTPOSTDEFAULTRESPONSE = 8404;
+  TYPE_OUTPOSTSTATICSPECS = 8405;
+  TYPE_GALACTICANOMALYBUFFSPECS = 8501;
+  TYPE_DYNAMICGALAXYDATASYNC = 8502;
+  TYPE_CROSSALLIANCEARMADAS = 87001;
+  TYPE_TRACKER = 9301;
 }
 
   Type type = 1;
@@ -3146,7 +3366,6 @@ enum Type {
 
 message ServiceResponse {
   repeated EntityGroup entityGroups = 1;
-  repeated EntityGroup playerEntityGroups = 2;
   google.protobuf.Timestamp serverTime = 3;
   string userId = 4;
   string serverVersion = 5;
@@ -3184,6 +3403,14 @@ message RespawnMarauderTimersToolingResponse {
   google.protobuf.Timestamp timeToRespawn = 1;
 }
 
+message WarpData {
+  repeated int64 nodeIds = 1;
+  int32 endX = 2;
+  int32 endY = 3;
+  TargetAction targetAction = 4;
+  int64 destinationNodeId = 5;
+}
+
 message StatusCounter {
   int64 statusId = 1;
   int64 counter = 2;
@@ -3209,24 +3436,18 @@ message ForbiddenTechsResponse {
   repeated ForbiddenTech forbiddenTechs = 1;
 }
 
-message HailingFrequency {
-  int64 hfId = 1;
-  int64 targetId = 2;
-}
-
-message GameActivity {
-  int64 activityId = 1;
-  int64 activitySpecId = 2;
-  repeated GameActivityTracker goalTracker = 3;
-  repeated EntityRef participants = 4;
-  google.protobuf.Timestamp startAt = 5;
-  EntityRef activityEntity = 6;
-  GameActivityPhase activityPhase = 7;
-}
-
 message GameActivityResultsResponse {
   GameActivity gameActivity = 1;
   repeated GameActivityParticipantResult results = 2;
+}
+
+message GameActivityIndexResponse {
+  map<int64, GameActivityReference> index = 1;
+}
+
+message HailingFrequency {
+  int64 hfId = 1;
+  int64 targetId = 2;
 }
 
 message RefinementParams {
@@ -3265,6 +3486,8 @@ message ScrapyardParams {
   int64 shipId = 2;
   int32 level = 3;
   repeated int64 componentIds = 4;
+  repeated InventoryItem dynamicRewards = 5;
+  int32 tier = 6;
 }
 
 message AwayAssignmentParams {
@@ -3300,10 +3523,30 @@ message MirrorUniverseDurationResponse {
 }
 
 message ActionFlow {
+oneof Params {
+  OverrideElementParams overrideElementParams = 5;
+  ZoomAnimationParams zoomAnimationParams = 6;
+  BackgroundColorTransitionParams backgroundColorParams = 7;
+}
+
   int64 type = 1;
   int64 actionId = 2;
   int64 transId = 3;
   bool hasBackground = 4;
+}
+
+message OverrideElementParams {
+  int64 changeType = 1;
+}
+
+message ZoomAnimationParams {
+  int64 fromZoom = 1;
+  int64 toZoom = 2;
+}
+
+message BackgroundColorTransitionParams {
+  string targetColor = 1;
+  float transitionTime = 2;
 }
 
 message MissionLocationContainer {
@@ -3341,6 +3584,49 @@ message OfficersResponse {
   repeated Officer officers = 1;
 }
 
+message OutpostUpgradeLevelSpec {
+  map<int64, int64> costs = 1;
+  int32 requirementLevel = 2;
+  int64 researchId = 3;
+}
+
+message OutpostDefenseSpawnRule {
+  int64 headCount = 1;
+  int64 marauderGroupId = 2;
+  int32 spawnTime = 3;
+}
+
+message OutpostRewardItems {
+  map<int64, int64> itemMap = 1;
+}
+
+message OutpostRewardsSpec {
+  int64 id = 1;
+  map<int64, OutpostRewardItems> outpostRewardMap = 2;
+}
+
+message OutpostStaticSpecs {
+  repeated OutpostSpec outpostSpecs = 1;
+  repeated OutpostUpgradeSpec outpostUpgradeSpecs = 2;
+  repeated OutpostRewardsSpec outpostRewardsSpecs = 3;
+  map<int64, BuffSpec> outpostBuffsSpecs = 4;
+}
+
+message OutpostStaticDataResponse {
+  repeated OutpostSpec outpostSpecs = 1;
+  repeated OutpostUpgradeSpec outpostUpgradeSpecs = 2;
+  repeated OutpostRewardsSpec outpostRewardsSpecs = 3;
+  map<int64, BuffSpec> outpostBuffsSpecs = 4;
+}
+
+message OutpostSyncResponse {
+  repeated Outpost outposts = 1;
+}
+
+message OutpostDefaultResponse {
+  Outpost outpost = 1;
+}
+
 message InstancedPvPPartyParams {
   int64 averageRating = 1;
   float averageRank = 2;
@@ -3376,6 +3662,10 @@ message PartyListResponse {
 message PartyResponse {
   Party party = 1;
   int64 partyId = 2;
+}
+
+message PlayerPartyResponse {
+  PartyResponse response = 1;
 }
 
 message CommonInventoryItemParams {
@@ -3594,6 +3884,18 @@ message DeflectorSpec {
   int32 deflection = 1;
 }
 
+message DynamicGalaxyDataResponse {
+  map<uint32, GalacticAnomaliesData> categories = 1;
+}
+
+message GalacticAnomaliesData {
+  repeated GalacticAnomaly anomalies = 1;
+}
+
+message SystemBuffs {
+  map<int64, uint32> buffs = 1;
+}
+
 message FactionBehaviourSpec {
   int32 factionInfluence = 1;
   int32 offsetSystemLevel = 2;
@@ -3669,6 +3971,12 @@ message RepairRuleAttributes {
   int32 amount = 3;
 }
 
+message SetHostileGroupAttributes {
+  int64 score = 1;
+  int64 targetType = 2;
+  repeated string marauderGroups = 3;
+}
+
 message InflectionPointSpec {
 oneof Attributes {
   int32 score = 2;
@@ -3691,6 +3999,8 @@ message GameActivitySpec {
   repeated int64 phases = 4;
   int64 rankId = 5;
   int64 participantId = 6;
+  int64 rewardGroup = 7;
+  Resource cost = 8;
 }
 
 message ParticipantPartySpec {
@@ -3715,6 +4025,14 @@ message ActivityScheduleSpec {
 
 message ActivityDayScheduleSpec {
   repeated ActivityScheduleSpec schedules = 1;
+}
+
+message RewardRequirement {
+oneof Attributes {
+  int64 score = 2;
+}
+
+  RewardRequirementType type = 1;
 }
 
 message StaticSyncResourceSpecsResponse {
@@ -3940,6 +4258,10 @@ message StaticSyncConsumableBuffsSpecsResponse {
   map<int64, BuffSpec> consumableBuffsSpecs = 1;
 }
 
+message StaticSyncGalacticAnomalyBuffsSpecsResponse {
+  map<int64, BuffSpec> galacticAnomalyBuffSpecs = 1;
+}
+
 message StaticSyncArmadaAttackSpecResponse {
   repeated ArmadaAttackSpec spec = 1;
 }
@@ -4093,6 +4415,18 @@ message StaticSyncPartySpecsResponse {
   map<int64, PartySpec> partiesSpecs = 1;
 }
 
+message StaticSyncAllianceTagSpecsResponse {
+  repeated AllianceTagSpec allianceTagSpecs = 1;
+}
+
+message StaticSyncLeasedQueueSpecsResponse {
+  repeated LeasedQueueSpec leasedQueueSpecs = 1;
+}
+
+message StaticSyncOutpostStaticDataResponse {
+  OutpostStaticSpecs outpostStaticSpecs = 1;
+}
+
 message HazardSpec {
 message HazardLevel {
   int32 level = 1;
@@ -4119,6 +4453,27 @@ message ComponentSlotModifier {
 message ImpulseSpec {
   float dodge = 1;
   float impulse = 2;
+}
+
+message LeasedQueueRecord {
+  map<int64, int32> activateCounts = 1;
+}
+
+message LeasedQueueSpecsResponse {
+  repeated LeasedQueueSpec leasedQueueSpecs = 1;
+}
+
+message LeasedQueueSpec {
+  int64 id = 1;
+  string idStr = 2;
+  int32 jobType = 3;
+  int32 queueNumber = 4;
+  int32 leaseDuration = 5;
+  bool isFirst = 6;
+  map<int64, int64> leasedQueueCost = 7;
+  int32 limitNum = 8;
+  int32 maxLevel = 9;
+  int32 minLevel = 10;
 }
 
 message LoyaltyConfig {
@@ -4249,6 +4604,7 @@ message ResearchProjectLevel {
   repeated Requirement requirements = 4;
   repeated InventoryItem rewards = 5;
   int64 militaryMight = 6;
+  int32 generation = 7;
 }
 
 message ResearchProjectSpec {
@@ -4261,11 +4617,6 @@ message ResearchProjectSpec {
   int64 viewLevel = 7;
   EntityType entityType = 8;
   int32 generation = 9;
-}
-
-message ResourceConversionRate {
-  float threshold = 1;
-  float multiplier = 2;
 }
 
 message ResourceConversionSpec {
@@ -4327,6 +4678,12 @@ message ScrapyardSpec {
   int32 level = 2;
   map<int64, int64> resources = 3;
   int32 scrapTimeSeconds = 4;
+  int32 tier = 5;
+  float percentOriginal = 6;
+  int64 linkedShip = 7;
+  int32 linkedShipTier = 8;
+  float percentLinkedShip = 9;
+  int32 demolishable = 10;
 }
 
 message SensorSpec {
@@ -4422,6 +4779,7 @@ oneof Params {
   IdRefs idRefs = 3;
   int32 maxSlots = 4;
   string name = 5;
+  bool isLease = 15;
 }
 
 message SpecialSpec {
@@ -4683,6 +5041,11 @@ enum FailureReason {
   FailureReason reason = 2;
 }
 
+message Tracker {
+  int32 counter = 1;
+  int32 limit = 2;
+}
+
 message ActiveTrait {
   int64 traitId = 1;
   int32 level = 2;
@@ -4735,9 +5098,16 @@ message ScrapyardJobResponse {
   string id = 1;
 }
 
+message DisplayDynamicScrappingRewardsResponse {
+  repeated InventoryItem scrappingRewards = 1;
+}
+
 message UserProfileSettings {
   bool anonymousPurchases = 1;
   bool disabledArmadaPushNotifications = 2;
+  bool autojoinFactionEventFederation = 3;
+  bool autojoinFactionEventKlingon = 4;
+  bool autojoinFactionEventRomulan = 5;
 }
 
 message UserProfilesResponse {

@@ -25,4 +25,3 @@ message Bookmark {
 message BookmarksSaveData {
   repeated Bookmark bookmarks = 1;
 }
-

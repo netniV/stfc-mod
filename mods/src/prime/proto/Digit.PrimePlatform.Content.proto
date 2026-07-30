@@ -42,17 +42,7 @@ message Bundle {
   int32 pityCap = 19;
   int32 pityCount = 20;
   string popupAssetFilename = 21;
-}
-
-message TranslationsContainer {
-  repeated TranslationSection sections = 1;
-}
-
-message TranslationSection {
-  string section = 1;
-  int32 sectionHash = 2;
-  repeated Translation translations = 3;
-  google.protobuf.Timestamp modified = 4;
+  bool isChainedOffer = 22;
 }
 
 message Translation {
@@ -70,6 +60,65 @@ message ContentItem {
   uint32 rewardIdx = 5;
 }
 
+message Hinting {
+message TranslationKey {
+  string field = 1;
+  bool isTranslated = 2;
+}
+
+  repeated TranslationKey translationKeys = 1;
+}
+
+message Metadata {
+  string color = 1;
+  string assetId = 2;
+  string assetFilename = 3;
+  string iconAssetFilename = 4;
+  Bucket bucket = 5;
+  string bundleMultiplier = 6;
+  int64 secondaryBundleId = 7;
+  AnimationOnClaimType animationOnClaimType = 8;
+  bool skipOnClaimAll = 9;
+  string deeplink = 10;
+  string valueLabel = 11;
+}
+
+message OfferDetails {
+  string bonusLabel = 1;
+  string bonusValue = 2;
+  int32 validCount = 3;
+  google.protobuf.Timestamp validFromTimestamp = 4;
+  google.protobuf.Timestamp validUntilTimestamp = 5;
+  int32 sameRemainingCount = 6;
+  bool sameRemainingCountVisible = 7;
+  bool cooldownConfigured = 8;
+}
+
+message TranslationsContainer {
+  repeated TranslationSection sections = 1;
+}
+
+message DynamicTranslationsContainer {
+  repeated TranslationSection sections = 1;
+}
+
+message TranslationSection {
+  string section = 1;
+  int32 sectionHash = 2;
+  repeated Translation translations = 3;
+  google.protobuf.Timestamp modified = 4;
+}
+
+message RewardRedeem {
+  RewardInfo rewardInfo = 4;
+}
+
+message RewardInfo {
+  Order order = 1;
+  repeated BundleContent orderBundles = 2;
+  repeated int64 data = 3;
+}
+
 message Bucket {
   int64 id = 1;
   string transId = 2;
@@ -84,6 +133,7 @@ message BundleContent {
   ContentItemList static = 4;
   ContentItemList multiplied = 5;
   repeated CustomizedSet customized = 6;
+  ContentItemList inviter = 7;
 }
 
 message ContentItemList {
@@ -111,6 +161,10 @@ message Bundles {
   repeated Bundle bundles_ = 1;
 }
 
+message TournamentBundlesResponse {
+  repeated Bundle bundles = 1;
+}
+
 message Cost {
   repeated Resource cost_ = 1;
   uint32 quantity = 2;
@@ -123,38 +177,6 @@ message Resource {
   string type = 4;
   int32 unavailableDisplayMode = 5;
   uint64 amountUlong = 6;
-}
-
-message Metadata {
-  string color = 1;
-  string assetId = 2;
-  string assetFilename = 3;
-  string iconAssetFilename = 4;
-  Bucket bucket = 5;
-  string bundleMultiplier = 6;
-  int64 secondaryBundleId = 7;
-  AnimationOnClaimType animationOnClaimType = 8;
-  bool skipOnClaimAll = 9;
-}
-
-message Hinting {
-message TranslationKey {
-  string field = 1;
-  bool isTranslated = 2;
-}
-
-  repeated TranslationKey translationKeys = 1;
-}
-
-message OfferDetails {
-  string bonusLabel = 1;
-  string bonusValue = 2;
-  int32 validCount = 3;
-  google.protobuf.Timestamp validFromTimestamp = 4;
-  google.protobuf.Timestamp validUntilTimestamp = 5;
-  int32 sameRemainingCount = 6;
-  bool sameRemainingCountVisible = 7;
-  bool cooldownConfigured = 8;
 }
 
 message StoreGroups {
