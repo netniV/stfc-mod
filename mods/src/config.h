@@ -221,4 +221,8 @@ public:
   bool installLoadingScreenHooks;
   bool installTransitionScreenHooks;
   bool installFocusSearchHooks;
+
+  // Cargo formatting
+  bool installCargoFormatHooks;
+  int  cargo_significant_decimals;
 };
