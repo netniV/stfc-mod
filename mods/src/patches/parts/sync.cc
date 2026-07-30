@@ -144,7 +144,7 @@ public:
 
     return *this;
   }
-  
+
   void set_path(const std::string& path)
   {
     if (m_handle == nullptr) {
@@ -162,12 +162,12 @@ public:
       }
     }
   }
-  
+
   [[nodiscard]] const char* c_str() const
   {
     return m_url.c_str();
   }
-  
+
 private:
   CURLU *m_handle;
   std::string m_url;
