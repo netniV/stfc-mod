@@ -30,6 +30,9 @@ void InventoryForPopup_set_MaxItemsToUse(auto original, InventoryForPopup* a1, i
     const auto max = Config::Get().extend_donation_max;
     if (max > 0) {
       a2 = max;
+    } else {
+      // Leave the initial unlimited value in place instead of applying the game's donation cap.
+      return;
     }
   }
 
