@@ -12,19 +12,13 @@
 // (Digit.Client.UI.TextLocalizer). Fields are resolved at runtime via the field
 // API — no hardcoded offsets are used.
 //
-// We hook ColourTextLocalizer.SetLocalTextParameters to temporarily override
-// m_significantDecimals for cargo localizers only, then restore it via an RAII
-// guard so the field is always restored even if the original throws.
+// The number formatting that reads m_significantDecimals happens in Localize(),
+// which runs AFTER SetLocalTextParameters. So we permanently set the field on
+// matching cargo localizer instances (rather than temporarily overriding and
+// restoring), ensuring Localize() reads the overridden value.
 
 static constexpr char  kCargoIdentifier[]    = "shared_x_of_y_x_coloured";
 static constexpr size_t kCargoIdentifierLen  = sizeof(kCargoIdentifier) - 1; // exclude trailing '\0'
-
-// RAII guard that restores an int field on destruction — exception-safe.
-struct FieldRestore {
-  int* ptr;
-  int  saved;
-  ~FieldRestore() { if (ptr) *ptr = saved; }
-};
 
 void ColourTextLocalizer_SetLocalTextParameters_Hook(auto original, void* _this, bool parseID, void* args)
 {
@@ -73,19 +67,15 @@ void ColourTextLocalizer_SetLocalTextParameters_Hook(auto original, void* _this,
     }
   }
 
-  // Identifier matches — override m_significantDecimals for this call only.
+  // Identifier matches — permanently set m_significantDecimals on this instance.
+  // The actual number formatting happens later in Localize(), so we must not
+  // restore the value here. The field is set every time SetLocalTextParameters
+  // fires for this localizer, keeping it consistent.
   auto* sig_decimals_ptr = reinterpret_cast<int*>((char*)_this + sig_decimals_field.offset());
-  int   original_decimals = *sig_decimals_ptr;
-
-  if (original_decimals == desired_decimals) {
-    original(_this, parseID, args);
-    return;
+  if (*sig_decimals_ptr != desired_decimals) {
+    *sig_decimals_ptr = desired_decimals;
   }
 
-  *sig_decimals_ptr = desired_decimals;
-  // RAII restore — runs even if original() throws a managed exception that
-  // unwinds the stack, so the localizer is never left in a corrupted state.
-  FieldRestore guard{sig_decimals_ptr, original_decimals};
   original(_this, parseID, args);
 }
 
