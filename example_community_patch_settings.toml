@@ -594,7 +594,7 @@ disable_veil_chat = false
 # Subgroup: Donations
 # -------------------
 
-# Extend donation slider to max value for next Alliance level
+# Extend donation slider to max value for next Alliance level; set to 0 for unlimited
 extend_donation_max = 80
 
 # Extend donation slider enable
