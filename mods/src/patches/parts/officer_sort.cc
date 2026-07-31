@@ -55,12 +55,14 @@ struct OfficerSortState {
   const MethodInfo* ascendingMethod      = nullptr; // OfficerSortByBelowDeckAbilityAscending
   const MethodInfo* descendingMethod     = nullptr; // OfficerSortByBelowDeckAbilityDescending
   const MethodInfo* unlockedStateMethod  = nullptr; // OfficerSortByUnlockedStateAscending
+  const MethodInfo* indexMethod          = nullptr; // OfficerSortByIndexAscending
   const MethodInfo* processingOptionCtor = nullptr; // .ctor(string, FilterFunction, SortFunction, string, bool)
 
   // Resolved method pointers for C++ wrapper functions.
   SortMethodPtr unlockedStatePtr = nullptr; // OfficerSortByUnlockedStateAscending
   SortMethodPtr bdaAscPtr        = nullptr; // OfficerSortByBelowDeckAbilityAscending
   SortMethodPtr bdaDescPtr       = nullptr; // OfficerSortByBelowDeckAbilityDescending
+  SortMethodPtr indexAscPtr      = nullptr; // OfficerSortByIndexAscending
 
   IL2CppFieldHelper* sortFunctionDisplayKey  = nullptr;
   IL2CppFieldHelper* sortFunctionAscending   = nullptr;
@@ -97,7 +99,15 @@ OfficerSortState& State()
 // The original sort methods take (obj1, obj2) and ignore the 3rd arg.
 // ---------------------------------------------------------------------------
 
-// Roster ascending: available first, then BDA first (BDA descending).
+// IMPORTANT: SortComparer.Compare always calls the _ascending delegate.
+// For Descending sort direction, it negates the _ascending result.
+// The _descending delegate is never called. So all logic must be in the
+// *Ascending wrappers, designed so that direct call = ascending behavior
+// and negated call = descending behavior.
+
+// Roster _ascending (called directly for Ascending, negated for Descending):
+//   Ascending:  available → BDA-first → newer-officers-first (index descending)
+//   Descending: negated → non-BDA-first → older-officers-first (index ascending)
 int RosterAscendingWrapper(void* obj1, void* obj2, void* /*delegatePtr*/)
 {
   auto& s = State();
@@ -105,10 +115,16 @@ int RosterAscendingWrapper(void* obj1, void* obj2, void* /*delegatePtr*/)
     int r = s.unlockedStatePtr(obj1, obj2, nullptr);
     if (r != 0) return r;
   }
-  return s.bdaDescPtr ? s.bdaDescPtr(obj1, obj2, nullptr) : 0;
+  if (s.bdaDescPtr) {
+    int r = s.bdaDescPtr(obj1, obj2, nullptr);
+    if (r != 0) return r;
+  }
+  // Negate index ascending to get index descending (newer officers first).
+  return s.indexAscPtr ? -s.indexAscPtr(obj1, obj2, nullptr) : 0;
 }
 
-// Roster descending: available first, then non-BDA first (BDA ascending).
+// Roster _descending (never called by SortComparer, kept for safety):
+//   If called directly: available → non-BDA-first → newer-officers-first
 int RosterDescendingWrapper(void* obj1, void* obj2, void* /*delegatePtr*/)
 {
   auto& s = State();
@@ -116,10 +132,16 @@ int RosterDescendingWrapper(void* obj1, void* obj2, void* /*delegatePtr*/)
     int r = s.unlockedStatePtr(obj1, obj2, nullptr);
     if (r != 0) return r;
   }
-  return s.bdaAscPtr ? s.bdaAscPtr(obj1, obj2, nullptr) : 0;
+  if (s.bdaAscPtr) {
+    int r = s.bdaAscPtr(obj1, obj2, nullptr);
+    if (r != 0) return r;
+  }
+  return s.indexAscPtr ? -s.indexAscPtr(obj1, obj2, nullptr) : 0;
 }
 
-// Assignment ascending: available first, then non-BDA first (BDA ascending).
+// Assignment _ascending (called directly for Ascending, negated for Descending):
+//   Ascending:  available → non-BDA-first → older-officers-first (index ascending)
+//   Descending: negated → BDA-first → newer-officers-first (index descending)
 int AssignmentAscendingWrapper(void* obj1, void* obj2, void* /*delegatePtr*/)
 {
   auto& s = State();
@@ -127,10 +149,15 @@ int AssignmentAscendingWrapper(void* obj1, void* obj2, void* /*delegatePtr*/)
     int r = s.unlockedStatePtr(obj1, obj2, nullptr);
     if (r != 0) return r;
   }
-  return s.bdaAscPtr ? s.bdaAscPtr(obj1, obj2, nullptr) : 0;
+  if (s.bdaAscPtr) {
+    int r = s.bdaAscPtr(obj1, obj2, nullptr);
+    if (r != 0) return r;
+  }
+  return s.indexAscPtr ? s.indexAscPtr(obj1, obj2, nullptr) : 0;
 }
 
-// Assignment descending: available first, then BDA first (BDA descending).
+// Assignment _descending (never called by SortComparer, kept for safety):
+//   If called directly: available → BDA-first → older-officers-first
 int AssignmentDescendingWrapper(void* obj1, void* obj2, void* /*delegatePtr*/)
 {
   auto& s = State();
@@ -138,7 +165,11 @@ int AssignmentDescendingWrapper(void* obj1, void* obj2, void* /*delegatePtr*/)
     int r = s.unlockedStatePtr(obj1, obj2, nullptr);
     if (r != 0) return r;
   }
-  return s.bdaDescPtr ? s.bdaDescPtr(obj1, obj2, nullptr) : 0;
+  if (s.bdaDescPtr) {
+    int r = s.bdaDescPtr(obj1, obj2, nullptr);
+    if (r != 0) return r;
+  }
+  return s.indexAscPtr ? s.indexAscPtr(obj1, obj2, nullptr) : 0;
 }
 
 // ---------------------------------------------------------------------------
@@ -241,6 +272,17 @@ bool InitializeState()
     spdlog::info("[OfficerSort] InitializeState: unlockedStatePtr = {}",
                  static_cast<const void*>(s.unlockedStatePtr));
   }
+  // Resolve the index predicate (used as a tertiary tiebreaker so officers
+  // within the same BDA tier are sorted by internal officer index).
+  s.indexMethod = s.sortingPredicates->GetMethodInfo("OfficerSortByIndexAscending", 2);
+  if (!s.indexMethod) {
+    spdlog::warn("[OfficerSort] OfficerSortByIndexAscending not found; no index tiebreaker");
+  } else {
+    s.indexAscPtr = reinterpret_cast<SortMethodPtr>(s.indexMethod->methodPointer);
+    spdlog::info("[OfficerSort] InitializeState: indexAscPtr = {}",
+                 static_cast<const void*>(s.indexAscPtr));
+  }
+
   s.bdaAscPtr  = reinterpret_cast<SortMethodPtr>(s.ascendingMethod->methodPointer);
   s.bdaDescPtr = reinterpret_cast<SortMethodPtr>(s.descendingMethod->methodPointer);
 
