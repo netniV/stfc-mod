@@ -44,7 +44,6 @@ inline void StoreZoom(std::string label, float &zoom, NavigationZoom *_this)
 
 static float           s_expectedScale = 0;
 static void           *s_cachedFR      = nullptr;
-static NavigationZoom *s_navZoom       = nullptr;
 
 static void ApplySystemZoomRange(NavigationZoom *_this, float radius)
 {
@@ -55,7 +54,6 @@ static void ApplySystemZoomRange(NavigationZoom *_this, float radius)
   auto ratio                     = (Config::Get().zoom / radius);
   _this->_farRatioSystemNormal   = 0.55f * ratio;
   _this->_farRatioSystemExtended = ratio;
-  s_navZoom                      = _this;
 }
 
 static void SetSceneCameraFarClip(NavigationZoom *_this)
@@ -246,18 +244,6 @@ void PlanetViewUtils_CameraZoomedEventHandler_Hook(auto original, PlanetViewUtil
 
   _this->GetFlatRenderable(); // probe: triggers get_FlatRenderable_Hook, which scales the FR; game often reads the
                               // field directly so our detour needs this call-path
-
-  if (s_navZoom) {
-    auto *cam = s_navZoom->_sceneCamera;
-    if (cam) {
-      int cf = cam->clearFlags;
-      if (cf >= 0 && cf <= 4 && cf != 2) {
-        cam->farClipPlane    = Config::Get().zoom * 3.75f;
-        cam->clearFlags      = 2;
-        cam->backgroundColor = {0, 0, 0, 0};
-      }
-    }
-  }
 }
 
 void NavigationZoom_SetViewParameters_Hook(auto original, NavigationZoom *_this, float radius, NodeDepth depth)
