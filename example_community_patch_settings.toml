@@ -229,9 +229,13 @@ loadingscreenhooks = true
 transitionscreenhooks = true
 focussearch = true
 
-# Set to true to override the number of decimal places shown for abbreviated cargo values
-# (e.g. 1.25M instead of 1M). When enabled, set cargo_significant_decimals in the [ui] section.
-cargoformathooks = false
+# Override the number of decimal places shown for abbreviated cargo values
+# (e.g. 1.25M instead of 1M). Enabled by default; set cargo_significant_decimals in the [ui] section.
+cargoformathooks = true
+
+# Restore the "Below Deck Ability" sort option in the officer roster & assignment sort dropdowns
+# (removed from the game in m93.1). Uses the game's own OfficerSortByBelowDeckAbility predicates.
+officersorthooks = true
 
 #  <[=========================================================================================================================================]>
 #

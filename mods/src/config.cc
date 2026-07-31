@@ -660,6 +660,8 @@ void Config::Load()
       get_config_or_default(config, parsed, "patches", "focussearch", DCP::focussearch, write_config);
   this->installCargoFormatHooks =
       get_config_or_default(config, parsed, "patches", "cargoformathooks", DCP::cargoformathooks, write_config);
+  this->installOfficerSortHooks =
+      get_config_or_default(config, parsed, "patches", "officersorthooks", DCP::officersorthooks, write_config);
   spdlog::debug("");
 
   this->queue_enabled =

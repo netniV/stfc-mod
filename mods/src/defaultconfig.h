@@ -78,7 +78,8 @@ namespace Patches
   constexpr bool miscpatches                = true;
   constexpr bool giftsbulkclaimhooks        = true;
   constexpr bool focussearch                = true;
-  constexpr bool cargoformathooks           = false; // opt-in: changes cargo number precision
+  constexpr bool cargoformathooks           = true;  // on by default: cargo number precision override
+  constexpr bool officersorthooks           = true;  // restore Below Deck Ability sort option
 } // namespace Patches
 
 namespace Shortcuts
