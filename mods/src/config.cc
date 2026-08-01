@@ -658,6 +658,10 @@ void Config::Load()
       get_config_or_default(config, parsed, "patches", "giftsbulkclaimhooks", DCP::giftsbulkclaimhooks, write_config);
   this->installFocusSearchHooks =
       get_config_or_default(config, parsed, "patches", "focussearch", DCP::focussearch, write_config);
+  this->installCargoFormatHooks =
+      get_config_or_default(config, parsed, "patches", "cargoformathooks", DCP::cargoformathooks, write_config);
+  this->installOfficerSortHooks =
+      get_config_or_default(config, parsed, "patches", "officersorthooks", DCP::officersorthooks, write_config);
   spdlog::debug("");
 
   this->queue_enabled =
@@ -764,6 +768,9 @@ void Config::Load()
       get_config_or_default(config, parsed, "ui", "show_hostile_cargo", DCU::show_hostile_cargo, write_config);
   this->show_armada_cargo =
       get_config_or_default(config, parsed, "ui", "show_armada_cargo", DCU::show_armada_cargo, write_config);
+
+  this->cargo_significant_decimals =
+      get_config_or_default(config, parsed, "ui", "cargo_significant_decimals", DCU::cargo_significant_decimals, write_config);
 
   this->always_skip_reveal_sequence = get_config_or_default(config, parsed, "ui", "always_skip_reveal_sequence",
                                                             DCU::always_skip_reveal_sequence, write_config);

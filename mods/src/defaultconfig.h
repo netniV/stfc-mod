@@ -78,6 +78,8 @@ namespace Patches
   constexpr bool miscpatches                = true;
   constexpr bool giftsbulkclaimhooks        = true;
   constexpr bool focussearch                = true;
+  constexpr bool cargoformathooks           = true;  // on by default: cargo number precision override
+  constexpr bool officersorthooks           = true;  // restore Below Deck Ability sort option
 } // namespace Patches
 
 namespace Shortcuts
@@ -221,6 +223,7 @@ namespace UI
   constexpr bool        show_hostile_cargo          = true;
   constexpr bool        show_player_cargo           = true;
   constexpr bool        show_station_cargo          = true;
+  constexpr int         cargo_significant_decimals  = 2; // decimal places for abbreviated cargo values (e.g. 1.25M)
 } // namespace UI
 
 } // namespace DefaultConfig
