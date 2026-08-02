@@ -7,10 +7,6 @@ import "google/protobuf/timestamp.proto";
 
 package Digit.Prime.PersistentPrefs;
 
-message PersistentPrefsData {
-  repeated PersistentPref preferences = 2;
-}
-
 message StringListPrefsData {
   repeated string list = 1;
 }
@@ -18,5 +14,9 @@ message StringListPrefsData {
 message PersistentPref {
   int64 key = 1;
   bytes data = 2;
+}
+
+message PersistentPrefsData {
+  repeated PersistentPref preferences = 2;
 }
 

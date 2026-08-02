@@ -13,6 +13,19 @@ enum OfficerSkillType {
   OFFICERSKILLTYPE_ACTIVATEDABILITY = 4;
 }
 
+enum EntityType {
+  ENTITYTYPE_INVALID = 0;
+  ENTITYTYPE_PLAYER = 859804212;
+  ENTITYTYPE_ALLIANCE = 1794481137;
+  ENTITYTYPE_DEPLOYEDFLEET = 2129559302;
+  ENTITYTYPE_NPC = 2100681965;
+  ENTITYTYPE_OFFICERS = 1211023646;
+  ENTITYTYPE_SHIP = 73015892;
+  ENTITYTYPE_SYSTEM = 232004982;
+  ENTITYTYPE_PARTY = 2028949976;
+  ENTITYTYPE_GAMEWORLD = 1025095082;
+}
+
 enum OfficerProgressType {
   OFFICERPROGRESSTYPE_UNKNOWN = 0;
   OFFICERPROGRESSTYPE_LEVELUP = 1;
@@ -24,6 +37,13 @@ message CommanderSkillSpec {
   int32 groupId = 2;
   int32 sortOrder = 3;
   OfficerSkillType skillType = 4;
+}
+
+message EntityRef {
+  int64 entityId = 1;
+  string entityIdStr = 2;
+  EntityType entityType = 3;
+  EntityRef parentEntity = 4;
 }
 
 message OfficerLevelRewardsSpec {
@@ -38,4 +58,17 @@ message OfficerProgressRewardSpec {
   int32 rank = 2;
   int32 schemaId = 3;
   repeated int32 amount = 4;
+}
+
+message OfficerRank {
+  int32 rank = 1;
+  repeated Resource costs = 2;
+  int32 shardsRequired = 3;
+  int32 maxLevel = 4;
+  int32 ratingFactor = 5;
+}
+
+message Resource {
+  int64 resourceId = 1;
+  int64 value = 2;
 }
