@@ -3,6 +3,7 @@
 #include <array>
 #include <map>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include <toml++/toml.h>
@@ -103,6 +104,12 @@ public:
   std::string token;
 };
 
+enum class MissionHudVisibility {
+  Auto,
+  Always,
+  Never,
+};
+
 class Config final
 {
 public:
@@ -120,6 +127,8 @@ public:
   void        Load();
   void        AdjustUiScale(bool scaleUp);
   void        AdjustUiViewerScale(bool scaleUp);
+  [[nodiscard]] MissionHudVisibility MissionHudButtonVisibility(std::string_view button_name) const;
+  [[nodiscard]] bool                 MissionHudTweaksEnabled() const;
 
   // Disallow copying/moving to enforce singleton
   Config(const Config&)            = delete;
@@ -181,7 +190,8 @@ public:
   bool show_hostile_cargo;
   bool show_armada_cargo;
 
-  bool always_skip_reveal_sequence;
+  bool                                        always_skip_reveal_sequence;
+  std::map<std::string, MissionHudVisibility> mission_hud_buttons;
 
   bool       sync_logging;
   bool       sync_debug;
@@ -200,6 +210,7 @@ public:
   bool installTempCrashFixes;
   bool installTestPatches;
   bool installMiscPatches;
+  bool installMissionHudTweaksHooks;
   bool installChatPatches;
   bool installResolutionListFix;
   bool installSyncPatches;

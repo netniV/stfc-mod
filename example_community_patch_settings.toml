@@ -642,6 +642,16 @@ cargo_significant_decimals = 2
 # This setting is not used
 auto_confirm_discovery = true
 
+# Subgroup: Mission HUD
+# ---------------------
+
+# EXPERIMENTAL: Controls mission HUD button visibility. Valid values: "always", "auto", "never"
+hud_q_trials = "auto"
+hud_field_training = "auto"
+hud_outposts = "auto"
+hud_daily_goals = "auto"
+hud_missions = "auto"
+
 #  <[===================================================================]>
 #
 #       ****           *                    ****

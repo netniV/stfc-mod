@@ -215,6 +215,11 @@ namespace UI
   constexpr bool        disable_toast_banners       = false;
   constexpr bool        disable_veil_chat           = false;
   constexpr const char* disabled_banner_types       = "";
+  constexpr const char* hud_daily_goals             = "auto";
+  constexpr const char* hud_field_training          = "auto";
+  constexpr const char* hud_missions                = "auto";
+  constexpr const char* hud_outposts                = "auto";
+  constexpr const char* hud_q_trials                = "auto";
   constexpr const char* notify_banner_types         = "";
   constexpr auto        extend_donation_max         = 80;
   constexpr bool        extend_donation_slider      = true;

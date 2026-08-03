@@ -31,6 +31,7 @@ void InstallGiftsBulkClaimHooks();
 
 void InstallTestPatches();
 void InstallMiscPatches();
+void InstallMissionHudTweaksHooks();
 void InstallChatPatches();
 void InstallResolutionListFix();
 void InstallTempCrashFixes();
@@ -120,6 +121,7 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
       {"TempCrashFixes", {InstallTempCrashFixes, &cfg.installTempCrashFixes}},
       {"TestPatches", {InstallTestPatches, &cfg.installTestPatches}},
       {"MiscPatches", {InstallMiscPatches, &cfg.installMiscPatches}},
+      {"MissionHudTweaksHooks", {InstallMissionHudTweaksHooks, &cfg.installMissionHudTweaksHooks}},
       {"ChatPatches", {InstallChatPatches, &cfg.installChatPatches}},
       {"ResolutionListFix", {InstallResolutionListFix, &cfg.installResolutionListFix}},
       {"SyncPatches", {InstallSyncPatches, &cfg.installSyncPatches}},
