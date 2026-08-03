@@ -44,7 +44,27 @@ jobs:
       - name: Configure
         id: configure_windows
         timeout-minutes: 20
-        run: xmake f -m release -y
+        shell: pwsh
+        run: |
+          $commit = (git rev-parse HEAD).Trim()
+          if ($commit -notmatch '^[0-9a-f]{40}$') {
+            throw "Unable to resolve the checked-out commit for DLL provenance."
+          }
+
+          $sourceState = "git:$commit"
+          $buildInvocation = "github:${{ github.run_id }}:${{ github.run_attempt }}:windows"
+          $identity = "stfc-identity-v1;distribution=netniv.stfc-community-mod;source=$sourceState;" +
+            "base=$commit;build=$buildInvocation;mode=release;channel=ci"
+          "STFC_EXPECTED_IDENTITY=$identity" >> $env:GITHUB_ENV
+
+          $xmakeArgs = @(
+            'f', '-m', 'release', '-y',
+            "--stfc_source_state_id=$sourceState",
+            "--stfc_base_commit=$commit",
+            "--stfc_build_invocation_id=$buildInvocation",
+            '--stfc_build_channel=ci'
+          )
+          xmake @xmakeArgs
 
       - name: Upload configure diagnostics
         if: ${{ failure() && steps.configure_windows.outcome == 'failure' }}
@@ -65,6 +85,16 @@ jobs:
           Move-Item `
             "build/windows/x64/release/stfc-community-mod.dll" `
             "version.dll"
+
+      - name: Verify DLL provenance
+        shell: pwsh
+        run: |
+          $dll = (Resolve-Path -LiteralPath 'version.dll').Path
+          $comments = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($dll).Comments
+          if (-not [string]::Equals($comments, $env:STFC_EXPECTED_IDENTITY, [System.StringComparison]::Ordinal)) {
+            throw "DLL provenance mismatch. Expected '$env:STFC_EXPECTED_IDENTITY'; found '$comments'."
+          }
+          Write-Host "Verified DLL provenance: $comments"
 
       - name: Upload
         uses: actions/upload-artifact@v7
