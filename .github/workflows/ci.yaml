@@ -21,17 +21,21 @@ env:
 jobs:
   build-win:
     runs-on: windows-2025-vs2026
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           fetch-depth: 1
           submodules: "recursive"
           show-progress: false
 
       - name: Setup XMake
-        uses: xmake-io/github-action-setup-xmake@v1
+        uses: xmake-io/github-action-setup-xmake@3a1a5dddfc7fa625d9a698738334bf55655a861a # v1.2.5
         with:
           xmake-version: ${{ env.XMAKE_VERSION }}
           package-cache: true
@@ -68,7 +72,7 @@ jobs:
 
       - name: Upload configure diagnostics
         if: ${{ failure() && steps.configure_windows.outcome == 'failure' }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: xmake-configure-diagnostics-windows
           path: ~/.xmake/cache/packages/**/installdir.failed/logs/install.txt
@@ -96,8 +100,18 @@ jobs:
           }
           Write-Host "Verified DLL provenance: $comments"
 
+      - name: Attest Windows DLL
+        if: >-
+          github.event_name == 'push' &&
+          github.repository == 'netniV/stfc-mod' &&
+          github.ref_protected &&
+          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
+        uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1
+        with:
+          subject-path: version.dll
+
       - name: Upload
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: stfc-community-mod
           path: version.dll
@@ -123,14 +137,14 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           fetch-depth: 1
           submodules: "recursive"
           show-progress: false
 
       - name: Setup XMake
-        uses: xmake-io/github-action-setup-xmake@v1
+        uses: xmake-io/github-action-setup-xmake@3a1a5dddfc7fa625d9a698738334bf55655a861a # v1.2.5
         with:
           xmake-version: ${{ env.XMAKE_VERSION }}
 
@@ -153,7 +167,7 @@ jobs:
 
       - name: Upload configure diagnostics
         if: ${{ failure() && steps.configure.outcome == 'failure' }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: xmake-configure-diagnostics-macos-${{ matrix.arch }}
           path: ~/.xmake/cache/packages/**/installdir.failed/logs/install.txt
@@ -213,7 +227,7 @@ jobs:
           fi
 
       - name: Upload intermediate build
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ${{ matrix.artifact }}
           path: macos-${{ matrix.arch }}-build.tar
@@ -228,20 +242,20 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           fetch-depth: 1
           submodules: false
           show-progress: false
 
       - name: Download ARM64 build
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: macos-arm64-build
           path: .artifacts/arm64
 
       - name: Download x86_64 build
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: macos-x86_64-build
           path: .artifacts/x86_64
@@ -404,7 +418,7 @@ jobs:
             build/macosx/arm64/release/
 
       - name: Upload installer
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: stfc-community-mod-installer
           path: stfc-community-mod-installer.dmg
@@ -412,7 +426,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload macOS mod archive
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: stfc-community-mod-macos-universal
           path: stfc-community-mod-macos-universal
