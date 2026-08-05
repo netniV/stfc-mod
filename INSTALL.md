@@ -74,7 +74,80 @@ Installation of the Community Mod is a manual process for Windows (or Wine).
    create `community_patch_settings.toml` and populate this with the default
    values.
 
-5. For first time users of the Community Mod, it recommended to utilise the
+   The mod creates the following folder structure next to `prime.exe`:
+   ```
+   <game folder>/
+     community_patch_settings.toml   ← mod configuration (edit this)
+     community_patch_runtime.vars    ← finalised config snapshot (read-only)
+     community_patch/
+       community_patch.log           ← mod log
+       game_data_maps/               ← ID → name lookup tables (do not edit)
+         stfc_id_mappings.json
+       game_state_exports/           ← exported game state JSON files
+          player.json
+          ships.json
+          resources.json
+          research.json
+          officers.json
+          missions.json
+          faction.json
+          buffs.json
+          territory.json
+          battlelog.json
+          manifest.json               ← index with Gist URLs
+   ```
+
+   > **Gamestate export player ID:** For `player.json` to populate `name` and `power`,
+   > you must set your player ID in `community_patch_settings.toml`:
+   > ```toml
+   > [sync.game_state]
+   > enabled   = true
+   > player_id = 'your-player-id-here'
+   > ```
+   > If `player_id` is not yet set, the mod logs all seen user IDs on login. Open
+   > `community_patch.log` and search for `UserProfile seen` — find the entry with
+   > your in-game name and copy the `userid` value shown there.
+
+   > **GitHub Gist sync (optional):** The mod can push all export files to a private
+   > GitHub Gist so AI assistants can read them via URL. Local export to disk always
+   > works regardless of whether Gist sync is configured.
+   > To enable Gist sync, add the following to `community_patch_settings.toml`:
+   > ```toml
+   > [sync.game_state.github]
+   > enabled  = true
+   > gist_id  = 'your-gist-id-here'       # the hex ID from your gist URL
+   > username = 'your-github-username'    # used to build raw file URLs in manifest.json
+   > token    = 'your-github-pat-here'    # Personal Access Token with gist scope
+   > ```
+   > `username` can be left blank — the mod will auto-resolve it from the GitHub API
+   > on the first successful sync and re-write `manifest.json` with correct URLs.
+   > See [GIST_SETUP_COMPLETE.md](GIST_SETUP_COMPLETE.md) for full setup instructions.
+
+5. **Navigate in-game to populate full game state data.** Most data is captured
+   automatically at login. The table below shows what each export file contains
+   and whether any in-game action is needed to populate it:
+
+   | File | Contents | Arrives at login? | Action required if not |
+   |---|---|---|---|
+   | `game_state_exports/player.json` | Player name, OPS level, power, server, syndicate level/XP, and alliance (name, tag, level, member count, power) | ✅ Yes (requires `player_id` set in config — see note above) | Set `player_id` in `community_patch_settings.toml` |
+   | `game_state_exports/player.json` | **Peace shield** — active status, expiry time, token counts | ❌ No | Tap your **station icon** in the **system view** of your home system (not the interior/exterior button, not the system button — the actual station icon on the map) |
+   | `game_state_exports/player.json` | **Drydock assignments** — which ship is in slot A, B, C… | ✅ Yes | None |
+   | `game_state_exports/ships.json` | All ships in hangar — hull, tier, level, tier max level, tier-up build time, components | ✅ Yes | None |
+   | `game_state_exports/ships.json` | **Blueprint parts** — count of every ship blueprint part type owned | ✅ Yes | None |
+   | `game_state_exports/resources.json` | All non-zero resource amounts | ✅ Yes | None |
+   | `game_state_exports/research.json` | All research nodes with current level and tree name | ✅ Yes | None |
+   | `game_state_exports/officers.json` | Officers — rank, level, shard count, trait ability levels | ✅ Yes | None |
+   | `game_state_exports/missions.json` | Active and completed mission IDs | ✅ Yes | None |
+   | `game_state_exports/faction.json` | Faction reputation, store tokens, armada credits, per-faction store favors (all tiers), syndicate loyalty buffs | ✅ Yes | None |
+   | `game_state_exports/buffs.json` | Full buff catalog with modifier types, operations and per-level values | ✅ Yes | None |
+   | `game_state_exports/territory.json` | Alliance territory holdings: held zones with tier and takeover windows; total vs used slot count | ✅ Yes | None |
+   | `game_state_exports/battlelog.json` | Battle history (last 500 battles) | N/A | Requires `battle_log = true` in `[sync.game_state]`; polls `prime_Data/` for new CSV files |
+   | `game_state_exports/manifest.json` | Index of all above files with Gist URLs and key lists | ✅ Yes | None |
+
+   **In summary:** all data arrives automatically at login provided `player_id` is set.
+   Battle log export requires `battle_log = true` in `[sync.game_state]` (disabled by default).
+
+6. For first time users of the Community Mod, it recommended to utilise the
    [sample configuration file](example_community_patch_settings.toml), which can
    be saved to the game folder with the name `community_patch_settings.toml`. This
    sample file contains additional comments that explain the available settings.

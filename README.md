@@ -49,6 +49,7 @@ This project is maintained solely at my own cost of time, energy and money. Any 
 - Create default toml file settings file if none exists
 - Create parsed toml file to show what settings have been applied
 - Customise your keyboard shortcuts
+- Export gamestate data to JSON with human-readable names (buildings, research, ships, officers, resources)
 
 ## Installing
 
