@@ -21,7 +21,8 @@ public:
   float __get_farClipPlane()
   {
     static auto field = get_class_helper().GetProperty("farClipPlane");
-    return *field.GetRaw<float>(this);
+    auto*       ptr   = field.GetRaw<float>(this);
+    return ptr ? *ptr : 0.0f;
   }
   void __set_farClipPlane(float v)
   {
@@ -32,7 +33,8 @@ public:
   float __get_nearClipPlane()
   {
     static auto field = get_class_helper().GetProperty("nearClipPlane");
-    return *field.GetRaw<float>(this);
+    auto*       ptr   = field.GetRaw<float>(this);
+    return ptr ? *ptr : 0.0f;
   }
   void __set_nearClipPlane(float v)
   {
@@ -43,7 +45,8 @@ public:
   int __get_clearFlags()
   {
     static auto field = get_class_helper().GetProperty("clearFlags");
-    return *field.GetRaw<int>(this);
+    auto*       ptr   = field.GetRaw<int>(this);
+    return ptr ? *ptr : 0;
   }
   void __set_clearFlags(int v)
   {
