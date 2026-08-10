@@ -2093,133 +2093,10 @@ void InstallSyncPatches()
       !game_server_model_registry.isValidHelper()) {
     ErrorMsg::MissingHelper("Core", "GameServerModelRegistry");
   } else {
-    auto *ptr = game_server_model_registry.GetMethod("ProcessResultInternal");
-    if (ptr == nullptr) {
+    if (auto *const ptr = game_server_model_registry.GetMethod("ProcessResultInternal"); ptr == nullptr) {
       ErrorMsg::MissingMethod("GameServerModelRegistry", "ProcessResultInternal");
     } else {
       SPUD_STATIC_DETOUR(ptr, GameServerModelRegistry_ProcessResultInternal);
-    }
-
-    ptr = game_server_model_registry.GetMethod("ParseBinaryObjectsHelper");
-    if (ptr == nullptr) {
-      ErrorMsg::MissingMethod("GameServerModelRegistry", "ParseBinaryObjectsHelper");
-    } else {
-      SPUD_STATIC_DETOUR(ptr, GameServerModelRegistry_ParseBinaryObjectsHelper);
-    }
-  }
-#if 0
-  if (auto platform_model_registry =
-          il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimePlatform.Core", "PlatformModelRegistry");
-      !platform_model_registry.isValidHelper()) {
-    ErrorMsg::MissingHelper("Core", "PlatformModelRegistry");
-  } else {
-    if (auto *const ptr = platform_model_registry.GetMethod("ProcessResultInternal"); ptr == nullptr) {
-      ErrorMsg::MissingMethod("PlatformModelRegistry", "ProcessResultInternal");
-    } else {
-      SPUD_STATIC_DETOUR(ptr, GameServerModelRegistry_ProcessResultInternal);
-    }
-  }
-#endif
-
-  if (auto buff_data_container =
-          il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Services", "BuffDataContainer");
-      !buff_data_container.isValidHelper()) {
-    ErrorMsg::MissingHelper("Services", "BuffDataContainer");
-  } else {
-    if (auto *const ptr = buff_data_container.GetMethod("ParseBinaryObject"); ptr == nullptr) {
-      ErrorMsg::MissingMethod("BuffDataContainer", "ParseBinaryObject");
-    } else {
-      SPUD_STATIC_DETOUR(ptr, DataContainer_ParseBinaryObject);
-    }
-  }
-
-#if __APPLE__
-  // 1.000.49105: BuffService.ParseBinaryObject is a 0x18-byte body immediately before HandleResponseData.
-  // Spud's ARM64 absolute jump is larger than that, so detouring it overwrites the next function entry.
-  spdlog::info("Skipping BuffService hook lookup on macOS");
-#else
-  if (auto buff_service =
-          il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Services", "BuffService");
-      !buff_service.isValidHelper()) {
-    ErrorMsg::MissingHelper("Services", "BuffService");
-  } else {
-    if (auto *const ptr = buff_service.GetMethod("ParseBinaryObject"); ptr == nullptr) {
-      ErrorMsg::MissingMethod("BuffService", "ParseBinaryObject");
-    } else {
-      SPUD_STATIC_DETOUR(ptr, DataContainer_ParseBinaryObject);
-    }
-  }
-#endif
-
-  if (auto inventory_data_container = il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime",
-                                                              "Digit.PrimeServer.Services", "InventoryDataContainer");
-      !inventory_data_container.isValidHelper()) {
-    ErrorMsg::MissingHelper("Services", "InventoryDataContainer");
-  } else {
-    if (auto *const ptr = inventory_data_container.GetMethod("ParseBinaryObject"); ptr == nullptr) {
-      ErrorMsg::MissingMethod("InventoryDataContainer", "ParseBinaryObject");
-    } else {
-      SPUD_STATIC_DETOUR(ptr, DataContainer_ParseBinaryObject);
-    }
-  }
-
-  if (auto job_service =
-          il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Services", "JobService");
-      !job_service.isValidHelper()) {
-    ErrorMsg::MissingHelper("Services", "JobService");
-  } else {
-    if (auto *const ptr = job_service.GetMethod("ParseBinaryObject"); ptr == nullptr) {
-      ErrorMsg::MissingMethod("JobService", "ParseBinaryObject");
-    } else {
-      SPUD_STATIC_DETOUR(ptr, DataContainer_ParseBinaryObject);
-    }
-  }
-
-  if (auto job_service_data_container = il2cpp_get_class_helper(
-          "Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Services", "JobServiceDataContainer");
-      !job_service_data_container.isValidHelper()) {
-    ErrorMsg::MissingHelper("Services", "JobServiceDataContainer");
-  } else {
-    if (auto *const ptr = job_service_data_container.GetMethod("ParseBinaryObject"); ptr == nullptr) {
-      ErrorMsg::MissingMethod("JobServiceDataContainer", "ParseBinaryObject");
-    } else {
-      SPUD_STATIC_DETOUR(ptr, DataContainer_ParseBinaryObject);
-    }
-  }
-
-  if (auto missions_data_container =
-          il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Models", "MissionsDataContainer");
-      !missions_data_container.isValidHelper()) {
-    ErrorMsg::MissingHelper("Models", "MissionsDataContainer");
-  } else {
-    if (auto *const ptr = missions_data_container.GetMethod("ParseBinaryObject"); ptr == nullptr) {
-      ErrorMsg::MissingMethod("MissionsDataContainer", "ParseBinaryObject");
-    } else {
-      SPUD_STATIC_DETOUR(ptr, DataContainer_ParseBinaryObject);
-    }
-  }
-
-  if (auto research_data_container = il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime",
-                                                             "Digit.PrimeServer.Services", "ResearchDataContainer");
-      !research_data_container.isValidHelper()) {
-    ErrorMsg::MissingHelper("Services", "ResearchDataContainer");
-  } else {
-    if (auto *const ptr = research_data_container.GetMethod("ParseBinaryObject"); ptr == nullptr) {
-      ErrorMsg::MissingHelper("ResearchDataContainer", "ParseBinaryObject");
-    } else {
-      SPUD_STATIC_DETOUR(ptr, DataContainer_ParseBinaryObject);
-    }
-  }
-
-  if (auto research_service =
-          il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Services", "ResearchService");
-      !research_service.isValidHelper()) {
-    ErrorMsg::MissingHelper("Services", "ResearchService");
-  } else {
-    if (auto *const ptr = research_service.GetMethod("ParseBinaryObject"); ptr == nullptr) {
-      ErrorMsg::MissingMethod("ResearchService", "ParseBinaryObject");
-    } else {
-      SPUD_STATIC_DETOUR(ptr, DataContainer_ParseBinaryObject);
     }
   }
 
@@ -2228,12 +2105,6 @@ void InstallSyncPatches()
       !slot_data_container.isValidHelper()) {
     ErrorMsg::MissingHelper("Services", "SlotDataContainer");
   } else {
-    if (auto *const ptr = slot_data_container.GetMethod("ParseBinaryObject"); ptr == nullptr) {
-      ErrorMsg::MissingMethod("SlotDataContainer", "ParseBinaryObject");
-    } else {
-      SPUD_STATIC_DETOUR(ptr, DataContainer_ParseBinaryObject);
-    }
-
     if (auto *const ptr = slot_data_container.GetMethod("ParseEntitySlotsData"); ptr == nullptr) {
       ErrorMsg::MissingMethod("SlotDataContainer", "ParseEntitySlotsData");
     } else {
