@@ -21,7 +21,7 @@ add_requires("spdlog")
 add_requires("toml++")
 add_requires("nlohmann_json")
 add_requires("cpr")
-add_requireconfs("cpr.libcurl", { configs = { zlib = true } })
+add_requireconfs("cpr.libcurl", { configs = { shared = false, openssl3 = true, zlib = true } })
 add_requires("protobuf 35.1")
 
 if is_plat("windows") then
