@@ -155,6 +155,58 @@ enum StatusCounterType {
   STATUSCOUNTERTYPE_ASSIMILATIONPOINTS = 1;
 }
 
+enum EntityType {
+  ENTITYTYPE_INVALID = 0;
+  ENTITYTYPE_PLAYER = 859804212;
+  ENTITYTYPE_ALLIANCE = 1794481137;
+  ENTITYTYPE_DEPLOYEDFLEET = 2129559302;
+  ENTITYTYPE_NPC = 2100681965;
+  ENTITYTYPE_OFFICERS = 1211023646;
+  ENTITYTYPE_SHIP = 73015892;
+  ENTITYTYPE_SYSTEM = 232004982;
+  ENTITYTYPE_PARTY = 2028949976;
+  ENTITYTYPE_GAMEWORLD = 1025095082;
+  ENTITYTYPE_OUTPOST = 853180751;
+}
+
+enum ActivatedAbilityType {
+  ACTIVATEDABILITYTYPE_INVALID = 0;
+  ACTIVATEDABILITYTYPE_INSTANTWARP = 1;
+  ACTIVATEDABILITYTYPE_TOWING = 2;
+  ACTIVATEDABILITYTYPE_CLOAKING = 3;
+  ACTIVATEDABILITYTYPE_SUPPORTSHIP = 4;
+  ACTIVATEDABILITYTYPE_DEBUFFSHIP = 5;
+  ACTIVATEDABILITYTYPE_WARSHIELD = 6;
+  ACTIVATEDABILITYTYPE_ARMADASUPPORT = 7;
+  ACTIVATEDABILITYTYPE_WEAPONDAMAGE = 8;
+  ACTIVATEDABILITYTYPE_WEAPONPENETRATION = 9;
+  ACTIVATEDABILITYTYPE_WEAPONSHOTS = 10;
+  ACTIVATEDABILITYTYPE_CRITICALDAMAGE = 11;
+  ACTIVATEDABILITYTYPE_SYSTEMWIDEBUFF = 12;
+  ACTIVATEDABILITYTYPE_SYSTEMWIDESUPREMEBUFF = 13;
+  ACTIVATEDABILITYTYPE_REVEAL = 14;
+  ACTIVATEDABILITYTYPE_DEEPSCAN = 15;
+  ACTIVATEDABILITYTYPE_ISOLYTICDAMAGE = 16;
+  ACTIVATEDABILITYTYPE_ISOLYTICMITIGATION = 17;
+  ACTIVATEDABILITYTYPE_CUTTINGBEAM = 18;
+  ACTIVATEDABILITYTYPE_ASSIMILATION = 19;
+  ACTIVATEDABILITYTYPE_SYSTEMREVEAL = 20;
+  ACTIVATEDABILITYTYPE_WORMHOLE = 21;
+  ACTIVATEDABILITYTYPE_CUTTINGBEAMIMMUNITY = 22;
+  ACTIVATEDABILITYTYPE_SELFHEALING = 24;
+  ACTIVATEDABILITYTYPE_INDESTRUCTIBILITY = 25;
+  ACTIVATEDABILITYTYPE_TAUNT = 71001;
+  ACTIVATEDABILITYTYPE_STATICABILITY = 75001;
+  ACTIVATEDABILITYTYPE_CHARGEDABILITY = 75002;
+  ACTIVATEDABILITYTYPE_CHAINSHOT = 77001;
+  ACTIVATEDABILITYTYPE_CHAINSHOTIMMUNITY = 78001;
+  ACTIVATEDABILITYTYPE_AUTOHUNTING = 83001;
+  ACTIVATEDABILITYTYPE_ENHANCEABILITY = 86001;
+  ACTIVATEDABILITYTYPE_REVEALHOSTILEVGER = 86002;
+  ACTIVATEDABILITYTYPE_BORGSPHEREPROTOCOL = 89001;
+  ACTIVATEDABILITYTYPE_AMPLIFYABILITY = 91001;
+}
+
 enum ArmadaAttackState {
   ARMADAATTACKSTATE_IDLE = 0;
   ARMADAATTACKSTATE_PREBATTLE = 1;
@@ -827,20 +879,6 @@ enum InventoryId {
   INVENTORYID_UNDEFINED = -1;
 }
 
-enum EntityType {
-  ENTITYTYPE_INVALID = 0;
-  ENTITYTYPE_PLAYER = 859804212;
-  ENTITYTYPE_ALLIANCE = 1794481137;
-  ENTITYTYPE_DEPLOYEDFLEET = 2129559302;
-  ENTITYTYPE_NPC = 2100681965;
-  ENTITYTYPE_OFFICERS = 1211023646;
-  ENTITYTYPE_SHIP = 73015892;
-  ENTITYTYPE_SYSTEM = 232004982;
-  ENTITYTYPE_PARTY = 2028949976;
-  ENTITYTYPE_GAMEWORLD = 1025095082;
-  ENTITYTYPE_OUTPOST = 853180751;
-}
-
 enum SlotType {
   SLOTTYPE_CONSUMABLE = 0;
   SLOTTYPE_WORKER = 1;
@@ -1065,44 +1103,6 @@ enum ActionBehaviours {
   ACTIONBEHAVIOURS_ACTIONBEHAVIOURREQUESTCONFIRMATION = 50;
 }
 
-enum ActivatedAbilityType {
-  ACTIVATEDABILITYTYPE_INVALID = 0;
-  ACTIVATEDABILITYTYPE_INSTANTWARP = 1;
-  ACTIVATEDABILITYTYPE_TOWING = 2;
-  ACTIVATEDABILITYTYPE_CLOAKING = 3;
-  ACTIVATEDABILITYTYPE_SUPPORTSHIP = 4;
-  ACTIVATEDABILITYTYPE_DEBUFFSHIP = 5;
-  ACTIVATEDABILITYTYPE_WARSHIELD = 6;
-  ACTIVATEDABILITYTYPE_ARMADASUPPORT = 7;
-  ACTIVATEDABILITYTYPE_WEAPONDAMAGE = 8;
-  ACTIVATEDABILITYTYPE_WEAPONPENETRATION = 9;
-  ACTIVATEDABILITYTYPE_WEAPONSHOTS = 10;
-  ACTIVATEDABILITYTYPE_CRITICALDAMAGE = 11;
-  ACTIVATEDABILITYTYPE_SYSTEMWIDEBUFF = 12;
-  ACTIVATEDABILITYTYPE_SYSTEMWIDESUPREMEBUFF = 13;
-  ACTIVATEDABILITYTYPE_REVEAL = 14;
-  ACTIVATEDABILITYTYPE_DEEPSCAN = 15;
-  ACTIVATEDABILITYTYPE_ISOLYTICDAMAGE = 16;
-  ACTIVATEDABILITYTYPE_ISOLYTICMITIGATION = 17;
-  ACTIVATEDABILITYTYPE_CUTTINGBEAM = 18;
-  ACTIVATEDABILITYTYPE_ASSIMILATION = 19;
-  ACTIVATEDABILITYTYPE_SYSTEMREVEAL = 20;
-  ACTIVATEDABILITYTYPE_WORMHOLE = 21;
-  ACTIVATEDABILITYTYPE_CUTTINGBEAMIMMUNITY = 22;
-  ACTIVATEDABILITYTYPE_SELFHEALING = 24;
-  ACTIVATEDABILITYTYPE_INDESTRUCTIBILITY = 25;
-  ACTIVATEDABILITYTYPE_TAUNT = 71001;
-  ACTIVATEDABILITYTYPE_STATICABILITY = 75001;
-  ACTIVATEDABILITYTYPE_CHARGEDABILITY = 75002;
-  ACTIVATEDABILITYTYPE_CHAINSHOT = 77001;
-  ACTIVATEDABILITYTYPE_CHAINSHOTIMMUNITY = 78001;
-  ACTIVATEDABILITYTYPE_AUTOHUNTING = 83001;
-  ACTIVATEDABILITYTYPE_ENHANCEABILITY = 86001;
-  ACTIVATEDABILITYTYPE_REVEALHOSTILEVGER = 86002;
-  ACTIVATEDABILITYTYPE_BORGSPHEREPROTOCOL = 89001;
-  ACTIVATEDABILITYTYPE_AMPLIFYABILITY = 91001;
-}
-
 enum BuffSchemaType {
   BUFFSCHEMATYPE_NONE = 0;
   BUFFSCHEMATYPE_BATTLEBUFFSCHEMA = 1;
@@ -1195,6 +1195,42 @@ enum PeaceShieldType {
   PEACESHIELDTYPE_MINE = 3;
 }
 
+message ActivatedAbilityDataStatusEffect {
+  int64 entityId = 1;
+  EntityType entityType = 2;
+  int64 statusEffect = 3;
+  google.protobuf.Timestamp expiryDate = 4;
+}
+
+message ActivatedAbilityDataCooldown {
+  int64 entityId = 1;
+  EntityType entityType = 2;
+  ActivatedAbilityType activatedAbilityType = 3;
+  google.protobuf.Timestamp expiryDate = 4;
+}
+
+message ActivatedAbilityDeepScanData {
+  int64 starbaseSystemId = 1;
+  google.protobuf.Timestamp starbasePeaceShieldExpiryTimestamp = 2;
+}
+
+message ActivatedAbilityDataMetaEntry {
+  int64 entityId = 1;
+  EntityType entityType = 2;
+  ActivatedAbilityDeepScanData deepScanResponse = 3;
+  bool successful = 4;
+  int64 systemId = 5;
+  google.protobuf.Timestamp expiryDate = 6;
+  int64 abilityId = 7;
+}
+
+message ActivatedAbilityDataResponse {
+  ActivatedAbilityDataStatusEffect statusEffect = 1;
+  ActivatedAbilityDataCooldown cooldown = 2;
+  repeated ActivatedAbilityDataStatusEffect targetedFleetsStatusEffects = 3;
+  repeated ActivatedAbilityDataMetaEntry abilityData = 4;
+}
+
 message AllianceProfile {
   int64 id = 1;
   string name = 2;
@@ -1207,6 +1243,46 @@ message AllianceProfile {
   int32 league = 9;
   repeated int32 profileTags = 10;
   bool allowApplication = 11;
+  string slogan = 12;
+  string announcement = 13;
+}
+
+message AllianceDiplomacyRelationshipsResponse {
+  map<int64, int32> relationships = 1;
+}
+
+message AllianceJobEntry {
+  string userId = 1;
+  int32 jobType = 2;
+  google.protobuf.Timestamp jobDueTime = 3;
+  repeated string helpingUserIds = 4;
+}
+
+message AllianceJobHelpInfoResponse {
+  map<string, AllianceJobEntry> jobs = 1;
+}
+
+message AllianceMembersActivityResponse {
+  map<string, int64> membersActivity = 1;
+}
+
+message AllianceMembersContributionResponse {
+  map<string, int64> membersContribution = 1;
+}
+
+message AllianceMembersResponse {
+  map<string, AllianceMemberEntry> members = 1;
+}
+
+message AllianceMemberEntry {
+  int64 rank = 1;
+  google.protobuf.Timestamp createdAt = 2;
+}
+
+message AllianceRankChangeResponse {
+  int64 allianceId = 1;
+  int64 newRankId = 2;
+  string memberUserId = 3;
 }
 
 message ArmadaAttack {
@@ -1418,6 +1494,14 @@ message Tier {
 
 message FactionStandingsResponse {
   map<int64, FactionStandingEntry> factionTiers = 1;
+}
+
+message FleetSkillEntry {
+  map<int32, int64> cooldowns = 1;
+}
+
+message FleetSkillsResponse {
+  map<int64, FleetSkillEntry> playerFleetSkills = 1;
 }
 
 message ForbiddenTech {
@@ -2109,6 +2193,10 @@ message Inventory {
   int32 numExtensions = 4;
 }
 
+message ResourcesResponse {
+  repeated ResourceEntry resources = 1;
+}
+
 message ResearchTreeSpec {
   int64 id = 1;
   IdRefs idRefs = 2;
@@ -2174,6 +2262,14 @@ message OfficerData {
   int64 officerId = 1;
   int32 officerLevel = 2;
   int64 officerRank = 3;
+}
+
+message StarbaseShield {
+  google.protobuf.Timestamp triggeredOn = 1;
+  google.protobuf.Timestamp expiryTime = 3;
+  int64 id = 4;
+  int32 target = 5;
+  int64 peaceShieldResourceId = 6;
 }
 
 message EntitySlot {
@@ -2573,6 +2669,32 @@ message TraitCostsPerLevelSpec {
   map<int32, TraitCostsSpec> costsPerLevel = 2;
 }
 
+message ResourceProducerEntry {
+  google.protobuf.Timestamp lastSnapshot = 1;
+  google.protobuf.Timestamp lastHarvest = 2;
+  double currentAmount = 3;
+  bool isActive = 4;
+  double totalAmount = 5;
+  int32 id = 6;
+}
+
+message ResourceProducersResponse {
+  repeated ResourceProducerEntry producers = 1;
+}
+
+message StarbaseModuleInfo {
+  int64 id = 1;
+  int64 level = 2;
+}
+
+message StarbaseModulesResponse {
+  repeated StarbaseModuleInfo moduleStates = 1;
+}
+
+message StarbaseResponse {
+  StarbaseInfo starbase = 1;
+}
+
 message AllianceAssignedTerritorySlot {
 enum TerritorySlotState {
   TERRITORYSLOTSTATE_TAKEOVER = 0;
@@ -2963,6 +3085,11 @@ message ChallengeConfig {
   int32 minimumLevelRequired = 1;
 }
 
+message CheatConfigResponse {
+  repeated string prebuiltShipNames = 1;
+  repeated string filterSetNames = 2;
+}
+
 message ClientShipStatLookupSpec {
   repeated ShipStats shipStats = 1;
 }
@@ -3144,6 +3271,14 @@ message OfficerConfig {
   map<int32, int32> statMaxima = 1;
 }
 
+message OpenedChestItems {
+  repeated InventoryItem items = 1;
+}
+
+message OpenedChestsResponse {
+  map<int64, OpenedChestItems> openedChests = 1;
+}
+
 message PeaceShieldRulesConfig {
   int32 suspendSystemLevel = 1;
 }
@@ -3152,11 +3287,30 @@ message PlacementConfig {
   int32 containerLimit = 1;
 }
 
+message ResourceEntry {
+  int64 id = 1;
+  int64 currentAmount = 2;
+  int64 upperCapacity = 3;
+}
+
 message ResourceConfig {
   int64 officerExchangeCurrencyId = 1;
   int32 harvestCooldown = 2;
   repeated int64 primaryResources = 3;
   int64 hardCurrencyId = 4;
+}
+
+message ResourceDeltaEntry {
+  int64 id = 1;
+  int64 amount = 2;
+}
+
+message ResourcesDeltaResponse {
+  repeated ResourceDeltaEntry resources = 1;
+}
+
+message AllianceResourcesDeltaResponse {
+  repeated ResourceDeltaEntry resources = 1;
 }
 
 message EntityGroup {
@@ -3349,6 +3503,29 @@ enum Type {
   TYPE_CROSSALLIANCEARMADASFROMREGIONALRESPONSE = 216;
   TYPE_PLAYERPARTYRESPONSE = 217;
   TYPE_USERHISTORY = 218;
+  TYPE_BATTLERESULTHEADERS = 219;
+  TYPE_HAZARDRESULTHEADERS = 220;
+  TYPE_BATTLEREPORT = 221;
+  TYPE_ACTIVATEDABILITYDATA = 222;
+  TYPE_MYSKILLDATA = 223;
+  TYPE_CHEATCONFIG = 224;
+  TYPE_ALLIANCEDETAILS = 225;
+  TYPE_ALLIANCEMEMBERS = 226;
+  TYPE_ALLIANCEMEMBER = 227;
+  TYPE_ALLIANCEDIPLOMACY = 228;
+  TYPE_ALLIANCECONTRIBUTIONS = 229;
+  TYPE_ALLIANCEMEMBERACTIVITY = 230;
+  TYPE_ALLIANCEJOBHELPINFO = 231;
+  TYPE_ALLIANCERANKCHANGE = 232;
+  TYPE_ALLIANCECREATEAPPLICATION = 233;
+  TYPE_RESOURCES = 234;
+  TYPE_RESOURCESDELTA = 235;
+  TYPE_RESOURCESDELTAALLIANCE = 236;
+  TYPE_OPENEDCHESTS = 237;
+  TYPE_MYSHIELDSTATE = 238;
+  TYPE_STARBASEMODULES = 239;
+  TYPE_RESOURCEPRODUCERS = 240;
+  TYPE_STARBASE = 241;
   TYPE_OUTPOSTSTATICDATA = 8401;
   TYPE_OUTPOSTUPGRADERESPONSE = 8402;
   TYPE_OUTPOSTSYNC = 8403;
@@ -3707,9 +3884,8 @@ message CrewData {
   map<int32, OfficerData> officers = 2;
 }
 
-message StarbaseShield {
-  google.protobuf.Timestamp triggeredOn = 1;
-  google.protobuf.Timestamp expiryTime = 3;
+message StarbaseShieldResponse {
+  StarbaseShield shield = 1;
 }
 
 message StarbaseDetailedScanResponse {
@@ -4803,11 +4979,11 @@ message StarbaseInfo {
   Point coordinates = 4;
   google.protobuf.Timestamp lastRelocation = 5;
   NodeAddress destination = 6;
-}
-
-message StarbaseModuleInfo {
-  int64 id = 1;
-  int64 level = 2;
+  StarbaseShield peaceShield = 7;
+  string battleId = 8;
+  google.protobuf.Timestamp ceasefireBrokenAt = 9;
+  string userId = 10;
+  google.protobuf.Timestamp autoPeaceShieldNextTrigger = 11;
 }
 
 message ResourceHarvester {
