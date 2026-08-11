@@ -108,16 +108,34 @@ jobs:
       - name: Build
         run: xmake -y
 
-      - name: Rebuild launcher assets
+      # Only the ARM64 build supplies the base .app bundle.
+      # Preserve its generated Info.plist before transferring the build
+      # to the separate package-mac job.
+      - name: Finalize launcher bundle
         if: ${{ matrix.arch == 'arm64' }}
+        shell: bash
         run: |
-          xmake -r -y macOSLauncher
-          test -f build/macosx/arm64/release/macOSLauncher.app/Contents/Resources/Assets.car
+          set -euo pipefail
 
-      # Tar the build before artifact upload so Unix permissions,
-      # symlinks, and bundle metadata survive transfer to package-mac.
+          xmake -r -y macOSLauncher
+
+          APP="build/macosx/arm64/release/macOSLauncher.app"
+
+          test -f "$APP/Contents/Resources/Assets.car"
+          test -f macos-launcher/src/Info.plist
+
+          cp macos-launcher/src/Info.plist \
+            "$APP/Contents/Info.plist"
+
+          test -f "$APP/Contents/Info.plist"
+
+      # Tar the build before artifact upload so executable permissions,
+      # symlinks, and bundle structure survive artifact transfer.
       - name: Package intermediate build
+        shell: bash
         run: |
+          set -euo pipefail
+
           tar -cf "macos-${{ matrix.arch }}-build.tar" \
             -C "build/macosx/${{ matrix.arch }}" \
             release
@@ -154,7 +172,10 @@ jobs:
           path: .artifacts/x86_64
 
       - name: Restore architecture builds
+        shell: bash
         run: |
+          set -euo pipefail
+
           mkdir -p build/macosx/arm64
           mkdir -p build/macosx/x86_64
 
@@ -166,75 +187,109 @@ jobs:
 
           test -f build/macosx/arm64/release/macOSLauncher
           test -f build/macosx/x86_64/release/macOSLauncher
+
           test -f build/macosx/arm64/release/stfc-community-mod-loader
           test -f build/macosx/x86_64/release/stfc-community-mod-loader
+
           test -f build/macosx/arm64/release/libstfc-community-mod.dylib
           test -f build/macosx/x86_64/release/libstfc-community-mod.dylib
-          test -f build/macosx/arm64/release/macOSLauncher.app/Contents/Resources/Assets.car
 
-      - name: Create App Bundle
+          test -f \
+            build/macosx/arm64/release/macOSLauncher.app/Contents/Resources/Assets.car
+
+          test -f \
+            build/macosx/arm64/release/macOSLauncher.app/Contents/Info.plist
+
+      - name: Create universal App Bundle
+        shell: bash
         run: |
+          set -euo pipefail
+
+          APP="build/macosx/arm64/release/macOSLauncher.app"
+
           lipo -create \
             build/macosx/arm64/release/macOSLauncher \
             build/macosx/x86_64/release/macOSLauncher \
-            -output build/macosx/arm64/release/macOSLauncher.app/Contents/MacOS/macOSLauncher
+            -output "$APP/Contents/MacOS/macOSLauncher"
 
           lipo -create \
             build/macosx/arm64/release/stfc-community-mod-loader \
             build/macosx/x86_64/release/stfc-community-mod-loader \
-            -output build/macosx/arm64/release/macOSLauncher.app/Contents/stfc-community-mod-loader
+            -output "$APP/Contents/stfc-community-mod-loader"
 
           lipo -create \
             build/macosx/arm64/release/libstfc-community-mod.dylib \
             build/macosx/x86_64/release/libstfc-community-mod.dylib \
-            -output build/macosx/arm64/release/macOSLauncher.app/Contents/libstfc-community-mod.dylib
+            -output "$APP/Contents/libstfc-community-mod.dylib"
 
           cp assets/launcher.icns \
-            build/macosx/arm64/release/macOSLauncher.app/Contents/Resources/
-
-          cp macos-launcher/src/Info.plist \
-            build/macosx/arm64/release/macOSLauncher.app/Contents/
+            "$APP/Contents/Resources/"
 
           mv \
             build/macosx/arm64/release/macOSLauncher.app \
-            build/macosx/arm64/release/STFC\ Community\ Mod.app
+            "build/macosx/arm64/release/STFC Community Mod.app"
 
-          test -f \
-            build/macosx/arm64/release/STFC\ Community\ Mod.app/Contents/Resources/Assets.car
+          FINAL_APP="build/macosx/arm64/release/STFC Community Mod.app"
+
+          test -f "$FINAL_APP/Contents/Info.plist"
+          test -f "$FINAL_APP/Contents/Resources/Assets.car"
+          test -f "$FINAL_APP/Contents/Resources/launcher.icns"
+          test -f "$FINAL_APP/Contents/MacOS/macOSLauncher"
+          test -f "$FINAL_APP/Contents/stfc-community-mod-loader"
+          test -f "$FINAL_APP/Contents/libstfc-community-mod.dylib"
 
       - name: Verify universal binaries
+        shell: bash
         run: |
-          lipo -archs \
-            build/macosx/arm64/release/STFC\ Community\ Mod.app/Contents/MacOS/macOSLauncher
+          set -euo pipefail
 
-          lipo -archs \
-            build/macosx/arm64/release/STFC\ Community\ Mod.app/Contents/stfc-community-mod-loader
+          APP="build/macosx/arm64/release/STFC Community Mod.app"
 
-          lipo -archs \
-            build/macosx/arm64/release/STFC\ Community\ Mod.app/Contents/libstfc-community-mod.dylib
+          verify_universal() {
+            local file="$1"
+            local archs
 
-          test "$(lipo -archs build/macosx/arm64/release/STFC\ Community\ Mod.app/Contents/MacOS/macOSLauncher)" = "x86_64 arm64" \
-            -o "$(lipo -archs build/macosx/arm64/release/STFC\ Community\ Mod.app/Contents/MacOS/macOSLauncher)" = "arm64 x86_64"
+            archs="$(lipo -archs "$file")"
+            echo "$file: $archs"
+
+            [[ " $archs " == *" arm64 "* ]]
+            [[ " $archs " == *" x86_64 "* ]]
+          }
+
+          verify_universal \
+            "$APP/Contents/MacOS/macOSLauncher"
+
+          verify_universal \
+            "$APP/Contents/stfc-community-mod-loader"
+
+          verify_universal \
+            "$APP/Contents/libstfc-community-mod.dylib"
 
       - name: Sign App Bundle
+        shell: bash
         run: |
+          set -euo pipefail
+
           codesign \
             --force \
             --verify \
             --verbose \
             --deep \
             --sign "-" \
-            build/macosx/arm64/release/STFC\ Community\ Mod.app
+            "build/macosx/arm64/release/STFC Community Mod.app"
 
       - name: Install packaging tools
         run: brew install zstd create-dmg
 
       - name: Package macOS mod archive
+        shell: bash
         run: |
+          set -euo pipefail
+
           mkdir -p stfc-community-mod-macos-universal
 
           tar -cf - \
-            -C build/macosx/arm64/release/STFC\ Community\ Mod.app/Contents \
+            -C "build/macosx/arm64/release/STFC Community Mod.app/Contents" \
             libstfc-community-mod.dylib \
             | zstd -19 -T0 \
               -o stfc-community-mod-macos-universal/stfc-community-mod-macos-universal.tar.zst
@@ -245,7 +300,10 @@ jobs:
             > stfc-community-mod-macos-universal/stfc-community-mod-macos-universal.tar.zst.sha256
 
       - name: Create installer
+        shell: bash
         run: |
+          set -euo pipefail
+
           create-dmg \
             --filesystem APFS \
             --format ULFO \
