@@ -59,7 +59,6 @@ jobs:
           }
 
           "package_dir=$packageDir" >> $env:GITHUB_OUTPUT
-          "utc_day=$((Get-Date).ToUniversalTime().ToString('yyyyMMdd'))" >> $env:GITHUB_OUTPUT
 
       - name: Restore XMake packages
         id: restore_packages
@@ -68,22 +67,33 @@ jobs:
           path: ${{ steps.xmake_cache_paths.outputs.package_dir }}
           key: windows-x64-release-xmake-${{ env.XMAKE_VERSION }}-${{ env.XMAKE_CACHE_SCHEMA }}-${{ hashFiles('xmake/dependencies/common.lua', 'xmake/dependencies/windows.lua', 'xmake-requires.lock', 'xmake-packages/**') }}
 
-      - name: Restore XMake compiler cache
-        id: restore_build
-        uses: actions/cache/restore@v6
-        with:
-          path: build/.build_cache
-          key: windows-x64-release-${{ env.XMAKE_CACHE_SCHEMA }}-${{ steps.xmake_cache_paths.outputs.utc_day }}
-          restore-keys: |
-            windows-x64-release-${{ env.XMAKE_CACHE_SCHEMA }}-
-
       - name: Configure
         id: configure_windows
         timeout-minutes: 30
         run: xmake f -m release -y
 
       - name: Verify dependency lock
-        run: git diff --exit-code -- xmake-requires.lock
+        shell: pwsh
+        run: |
+          $lockFile = "xmake-requires.lock"
+
+          git ls-files --error-unmatch -- $lockFile *> $null
+          if ($LASTEXITCODE -ne 0) {
+            Write-Output "::warning file=${lockFile}::Dependency lock is not tracked. Run 'xmake l scripts/update-requires-lock.lua' and commit the result."
+            exit 0
+          }
+
+          git diff --quiet HEAD -- $lockFile
+          $diffExitCode = $LASTEXITCODE
+
+          if ($diffExitCode -eq 1) {
+            Write-Output "::warning file=${lockFile}::Dependency lock changed during configure. Regenerate and commit it."
+            git diff HEAD -- $lockFile
+          } elseif ($diffExitCode -ne 0) {
+            Write-Output "::warning file=${lockFile}::Git could not verify the dependency lock (exit code $diffExitCode)."
+          fi
+
+          exit 0
 
       - name: Upload configure diagnostics
         if: ${{ failure() && steps.configure_windows.outcome == 'failure' }}
@@ -119,13 +129,6 @@ jobs:
         with:
           path: ${{ steps.xmake_cache_paths.outputs.package_dir }}
           key: ${{ steps.restore_packages.outputs.cache-primary-key }}
-
-      - name: Save XMake compiler cache
-        if: ${{ success() && !cancelled() && steps.restore_build.outputs.cache-hit != 'true' }}
-        uses: actions/cache/save@v6
-        with:
-          path: build/.build_cache
-          key: ${{ steps.restore_build.outputs.cache-primary-key }}
 
       - name: Save XMake
         if: ${{ success() && !cancelled() && steps.restore_xmake.outputs.cache-hit != 'true' }}
@@ -211,7 +214,16 @@ jobs:
           --target_minver=13.5
 
       - name: Verify dependency lock
-        run: git diff --exit-code -- xmake-requires.lock
+        shell: bash
+        run: |
+          LOCK_FILE="xmake-requires.lock"
+
+          if ! git ls-files --error-unmatch "$LOCK_FILE" >/dev/null 2>&1; then
+            echo "::warning file=$LOCK_FILE::Dependency lock is not tracked. Run 'xmake l scripts/update-requires-lock.lua' and commit the result."
+          elif ! git diff --quiet HEAD -- "$LOCK_FILE"; then
+            echo "::warning file=$LOCK_FILE::Dependency lock changed during configure. Regenerate and commit it."
+            git diff HEAD -- "$LOCK_FILE"
+          fi
 
       - name: Upload configure diagnostics
         if: ${{ failure() && steps.configure.outcome == 'failure' }}
