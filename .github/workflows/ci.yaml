@@ -23,12 +23,22 @@ jobs:
       - name: Setup
         uses: xmake-io/github-action-setup-xmake@v1
         with:
-          xmake-version: latest
+          xmake-version: '3.0.9'
           package-cache: true
           package-cache-key: ${{ hashFiles('**/xmake.lua', '!macos-*/xmake.lua') }}
 
       - name: Configure
+        id: configure_windows
         run: xmake f -m release -y
+
+      - name: Upload configure diagnostics
+        if: ${{ failure() && steps.configure_windows.outcome == 'failure' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: xmake-configure-diagnostics-windows
+          path: ~/.xmake/cache/packages/**/installdir.failed/logs/install.txt
+          if-no-files-found: warn
+          include-hidden-files: true
 
       - name: Build
         run: xmake -y
@@ -59,13 +69,33 @@ jobs:
           package-cache-key: ${{ hashFiles('**/xmake.lua', '!win-*/xmake.lua') }}
 
       - name: Configure (arm64)
+        id: configure_arm64
         run: xmake f -p macosx -a "arm64" -m release -y --target_minver=13.5
+
+      - name: Upload configure diagnostics (arm64)
+        if: ${{ failure() && steps.configure_arm64.outcome == 'failure' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: xmake-configure-diagnostics-macos-arm64
+          path: ~/.xmake/cache/packages/**/installdir.failed/logs/install.txt
+          if-no-files-found: warn
+          include-hidden-files: true
 
       - name: Build (arm64)
         run: xmake -y
 
       - name: Configure (x86)
+        id: configure_x86_64
         run: xmake f -p macosx -a "x86_64" -m release -y --target_minver=13.5
+
+      - name: Upload configure diagnostics (x86_64)
+        if: ${{ failure() && steps.configure_x86_64.outcome == 'failure' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: xmake-configure-diagnostics-macos-x86_64
+          path: ~/.xmake/cache/packages/**/installdir.failed/logs/install.txt
+          if-no-files-found: warn
+          include-hidden-files: true
 
       - name: Build (x86)
         run: xmake -y
