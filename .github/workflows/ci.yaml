@@ -16,7 +16,7 @@ concurrency:
 
 env:
   XMAKE_VERSION: "3.1.0"
-  XMAKE_CACHE_SCHEMA: "v1"
+  XMAKE_CACHE_SCHEMA: "v2"
 
 jobs:
   build-win:
@@ -133,6 +133,34 @@ jobs:
 
       - name: Build
         run: xmake -y
+
+      - name: Verify portable macOS linkage
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          RELEASE="build/macosx/${{ matrix.arch }}/release"
+
+          check_linkage() {
+            local binary="$1"
+            local deps
+
+            echo
+            echo "==> $binary"
+            deps="$(otool -L "$binary")"
+            printf '%s\n' "$deps"
+
+            if printf '%s\n' "$deps" | grep -E \
+              '/opt/homebrew/|/usr/local/(opt|Cellar)/|(^|/)libssl(\.[0-9]+)*\.dylib|(^|/)libcrypto(\.[0-9]+)*\.dylib|(^|/)libcurl(\.[0-9]+)*\.dylib'
+            then
+              echo "::error file=$binary::Forbidden dynamic dependency detected"
+              return 1
+            fi
+          }
+
+          check_linkage "$RELEASE/macOSLauncher"
+          check_linkage "$RELEASE/stfc-community-mod-loader"
+          check_linkage "$RELEASE/libstfc-community-mod.dylib"
 
       - name: Finalize launcher bundle
         if: ${{ matrix.arch == 'arm64' }}
@@ -309,6 +337,34 @@ jobs:
 
           verify_universal \
             "$APP/Contents/libstfc-community-mod.dylib"
+
+      - name: Verify universal app linkage
+        shell: bash
+        run: |
+          set -euo pipefail
+      
+          APP="build/macosx/arm64/release/STFC Community Mod.app"
+      
+          check_linkage() {
+            local binary="$1"
+            local deps
+      
+            echo
+            echo "==> $binary"
+            deps="$(otool -L "$binary")"
+            printf '%s\n' "$deps"
+      
+            if printf '%s\n' "$deps" | grep -E \
+              '/opt/homebrew/|/usr/local/(opt|Cellar)/|(^|/)libssl(\.[0-9]+)*\.dylib|(^|/)libcrypto(\.[0-9]+)*\.dylib|(^|/)libcurl(\.[0-9]+)*\.dylib'
+            then
+              echo "::error file=$binary::Forbidden dynamic dependency detected"
+              return 1
+            fi
+          }
+      
+          check_linkage "$APP/Contents/MacOS/macOSLauncher"
+          check_linkage "$APP/Contents/stfc-community-mod-loader"
+          check_linkage "$APP/Contents/libstfc-community-mod.dylib"
 
       - name: Sign App Bundle
         shell: bash

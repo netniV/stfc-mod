@@ -22,29 +22,48 @@ add_requires("toml++")
 add_requires("nlohmann_json")
 add_requires("protobuf 35.1")
 
-add_requires("cpr")
+add_requires("cpr", {system = false})
 
 if is_plat("windows") then
     add_requireconfs("cpr.libcurl", {
-        configs = { shared = false, openssl3 = false, zlib = true }
+        override = true,
+        version = "8.21.0",
+        system = false,
+        configs = {
+            shared = false,
+            openssl = false,
+            openssl3 = false,
+            zlib = true
+        }
     })
 elseif is_plat("macosx") then
     add_requireconfs("cpr.libcurl", {
+        override = true,
+        version = "8.21.0",
+        system = false,
         configs = {
             shared = false,
+            openssl = false,
             openssl3 = true,
-            zlib = true,
-            cxflags = "-DUSE_APPLE_SECTRUST=1",
-            ldflags = "-framework Security -framework CoreFoundation -framework CoreServices"
+            apple_sectrust = true,
+            zlib = true
         }
     })
+
     add_requireconfs("cpr.libcurl.openssl3", {
-        configs = { shared = false }
+        version = "3.6.3",
+        system = false,
+        configs = {
+            shared = false
+        }
     })
 end
 
 add_requireconfs("cpr.libcurl.zlib", {
-    configs = { shared = false }
+    system = false,
+    configs = {
+        shared = false
+    }
 })
 
 if is_plat("windows") then
