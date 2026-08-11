@@ -30,7 +30,13 @@ if is_plat("windows") then
     })
 elseif is_plat("macosx") then
     add_requireconfs("cpr.libcurl", {
-        configs = { shared = false, openssl3 = true, apple_sectrust = true, zlib = true }
+        configs = {
+            shared = false,
+            openssl3 = true,
+            zlib = true,
+            cxflags = "-DUSE_APPLE_SECTRUST=1",
+            ldflags = "-framework Security -framework CoreFoundation -framework CoreServices"
+        }
     })
     add_requireconfs("cpr.libcurl.openssl3", {
         configs = { shared = false }
