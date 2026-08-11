@@ -29,6 +29,7 @@ jobs:
 
       - name: Configure
         id: configure_windows
+        timeout-minutes: 20
         run: xmake f -m release -y
 
       - name: Upload configure diagnostics
@@ -70,6 +71,7 @@ jobs:
 
       - name: Configure (arm64)
         id: configure_arm64
+        timeout-minutes: 20
         run: xmake f -p macosx -a "arm64" -m release -y --target_minver=13.5
 
       - name: Upload configure diagnostics (arm64)
@@ -86,6 +88,7 @@ jobs:
 
       - name: Configure (x86)
         id: configure_x86_64
+        timeout-minutes: 20
         run: xmake f -p macosx -a "x86_64" -m release -y --target_minver=13.5
 
       - name: Upload configure diagnostics (x86_64)
