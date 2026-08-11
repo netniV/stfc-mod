@@ -37,8 +37,14 @@ test -f "build/macosx/$ARCH/$CONFIG/STFC Community Mod.app/Contents/Resources/As
 
 codesign --force --verify --verbose --deep --sign "-" build/macosx/$ARCH/$CONFIG/STFC\ Community\ Mod.app
 
+DMG_SOURCE="build/macosx/$ARCH/$CONFIG/dmg-source"
+mkdir "$DMG_SOURCE"
+mv "build/macosx/$ARCH/$CONFIG/STFC Community Mod.app" "$DMG_SOURCE/"
+
 create-dmg --filesystem APFS --format ULFO --volname "STFC Community Mod Installer" \
---volicon assets/launcher.icns --background assets/mac_installer_background.png \
+--volicon assets/launcher.icns --no-internet-enable \
+--background assets/mac_installer_background.png \
 --window-pos 200 120 --window-size 800 400 --icon-size 100 \
 --icon "STFC Community Mod.app" 200 190 \
---app-drop-link 600 185 stfc-community-mod-installer.dmg build/macosx/$ARCH/$CONFIG/
+--app-drop-link 600 185 --applescript-sleep-duration 1 \
+stfc-community-mod-installer.dmg "$DMG_SOURCE/"

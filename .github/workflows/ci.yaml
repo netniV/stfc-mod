@@ -527,7 +527,7 @@ jobs:
           tar -cf - \
             -C "build/macosx/arm64/release/STFC Community Mod.app/Contents" \
             libstfc-community-mod.dylib \
-            | zstd -10 -T0 \
+            | zstd -15 -T0 \
               -o stfc-community-mod-macos-universal/stfc-community-mod-macos-universal.tar.zst
 
           shasum -a 256 \
@@ -540,19 +540,30 @@ jobs:
         run: |
           set -euo pipefail
 
-          create-dmg \
-            --filesystem APFS \
-            --format ULFO \
-            --volname "STFC Community Mod Installer" \
-            --volicon assets/launcher.icns \
-            --background assets/mac_installer_background.png \
-            --window-pos 200 120 \
-            --window-size 800 400 \
-            --icon-size 100 \
-            --icon "STFC Community Mod.app" 200 190 \
-            --app-drop-link 600 185 \
+          APP="build/macosx/arm64/release/STFC Community Mod.app"
+          DMG_SOURCE="build/macosx/arm64/release/dmg-source"
+
+          mkdir -p "$DMG_SOURCE"
+          mv "$APP" "$DMG_SOURCE/"
+
+          create_dmg_options=(
+            --filesystem APFS
+            --format ULFO
+            --volname "STFC Community Mod Installer"
+            --volicon assets/launcher.icns
+            --no-internet-enable
+            --background assets/mac_installer_background.png
+            --window-pos 200 120
+            --window-size 800 400
+            --icon-size 100
+            --icon "STFC Community Mod.app" 200 190
+            --app-drop-link 600 185
+            --applescript-sleep-duration 1
+          )
+
+          create-dmg "${create_dmg_options[@]}" \
             stfc-community-mod-installer.dmg \
-            build/macosx/arm64/release/
+            "$DMG_SOURCE/"
 
       - name: Upload installer
         uses: actions/upload-artifact@v7

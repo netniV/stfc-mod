@@ -99,7 +99,7 @@ jobs:
 
           (
             cd stfc-community-mod
-            zip -q -r ../stfc-community-mod.zip .
+            zip -9 -q -r ../stfc-community-mod.zip .
           )
 
           cp \
@@ -119,7 +119,7 @@ jobs:
           tar -cf - \
             -C stfc-community-mod \
             version.dll \
-            | zstd -10 -T0 \
+            | zstd -15 -T0 \
               -o stfc-community-mod-windows-x64/stfc-community-mod-windows-x64.tar.zst
 
           sha256sum \
