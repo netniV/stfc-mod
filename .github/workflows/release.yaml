@@ -8,75 +8,128 @@ on:
 jobs:
   create-release:
     runs-on: ubuntu-latest
+    name: Create Release
+
     permissions:
       contents: write
-    name: Create Release
+      actions: read
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      # ✅ Step 1 — Check if Build succeeded for this same commit
+      # Step 1 — Find a successful Build workflow for this exact commit
       - name: Check latest Build success
         id: check_build
         run: |
           echo "Checking for successful Build workflow for commit ${{ github.sha }}..."
+
           response=$(gh api \
             -H "Accept: application/vnd.github+json" \
-            /repos/${{ github.repository }}/actions/runs \
-            --jq '.workflow_runs[] | select(.name=="Build" and .head_sha=="${{ github.sha }}" and .conclusion=="success") | .id' | head -n 1)
-          
+            "/repos/${{ github.repository }}/actions/runs?head_sha=${{ github.sha }}&status=success&per_page=100" \
+            --jq '.workflow_runs[] | select(.name == "Build") | .id' \
+            | head -n 1)
+
           if [ -z "$response" ]; then
             echo "❌ No successful Build workflow found for this commit."
             exit 1
           fi
 
           echo "✅ Found successful Build run ID: $response"
-          echo "build_run_id=$response" >> $GITHUB_OUTPUT
+          echo "build_run_id=$response" >> "$GITHUB_OUTPUT"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # ✅ Step 2 — Download the Build artifacts
-      - name: Download artifact from Build workflow
-        uses: dawidd6/action-download-artifact@v18
+      # Step 2 — Download only the final Build artifacts
+
+      - name: Download Windows build
+        uses: actions/download-artifact@v8
         with:
-          run_id: ${{ steps.check_build.outputs.build_run_id }}
+          name: stfc-community-mod
+          path: stfc-community-mod
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.check_build.outputs.build_run_id }}
 
-      # ✅ Step 3 — Package up
+      - name: Download macOS universal archive
+        uses: actions/download-artifact@v8
+        with:
+          name: stfc-community-mod-macos-universal
+          path: stfc-community-mod-macos-universal
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.check_build.outputs.build_run_id }}
+
+      - name: Download macOS installer
+        uses: actions/download-artifact@v8
+        with:
+          name: stfc-community-mod-installer
+          path: stfc-community-mod-installer
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.check_build.outputs.build_run_id }}
+
+      # Step 3 — Validate downloaded release inputs
+      - name: Validate Build artifacts
+        run: |
+          test -f stfc-community-mod/version.dll
+
+          test -f \
+            stfc-community-mod-macos-universal/stfc-community-mod-macos-universal.tar.zst
+
+          test -f \
+            stfc-community-mod-macos-universal/stfc-community-mod-macos-universal.tar.zst.sha256
+
+          test -f \
+            stfc-community-mod-installer/stfc-community-mod-installer.dmg
+
+      # Step 4 — Package legacy ZIP
       - name: Package
         run: |
           (cd stfc-community-mod && zip -r - .) > stfc-community-mod.zip
 
+      # Step 5 — Package Windows mod archive
       - name: Package Windows mod archive
         run: |
           sudo apt-get update
           sudo apt-get install -y zstd
+
           mkdir -p stfc-community-mod-windows-x64
-          tar -cf - -C stfc-community-mod version.dll \
-            | zstd -19 -T0 -o stfc-community-mod-windows-x64/stfc-community-mod-windows-x64.tar.zst
-          sha256sum stfc-community-mod-windows-x64/stfc-community-mod-windows-x64.tar.zst \
+
+          tar -cf - \
+            -C stfc-community-mod \
+            version.dll \
+            | zstd -19 -T0 \
+              -o stfc-community-mod-windows-x64/stfc-community-mod-windows-x64.tar.zst
+
+          sha256sum \
+            stfc-community-mod-windows-x64/stfc-community-mod-windows-x64.tar.zst \
             | awk '{print $1}' \
             > stfc-community-mod-windows-x64/stfc-community-mod-windows-x64.tar.zst.sha256
 
-      # ✅ Step 4 — Detect prerelease (alpha/beta)
+      # Step 6 — Detect prerelease
       - name: Check Prerelease
         id: check-prerelease
+        shell: bash
         run: |
-          if echo "${{ github.ref_name }}" | grep -Pq "^v[\d]+.[\d]+.[\d]+(?:\.(alpha|beta)\.[\d]+)?$"; then
+          if [[ "${{ github.ref_name }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+\.(alpha|beta)\.[0-9]+$ ]]; then
             echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
           fi
 
-      # ✅ Step 5 — Create Release
+      # Step 7 — Create Release
       - name: Create Release
         id: create_release
         uses: ncipollo/release-action@v1
         with:
-          tag: ${{ github.ref }}
+          tag: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
           generateReleaseNotes: true
-          prerelease: ${{ steps.check-prerelease.outputs.prerelease == 'true' }}
+          prerelease: ${{ steps.check-prerelease.outputs.prerelease }}
 
-      # ✅ Step 6 — Upload assets
+      # Step 8 — Upload release assets
+
       - name: Upload Community Mod - Standard
         uses: shogo82148/actions-upload-release-asset@v1
         env:

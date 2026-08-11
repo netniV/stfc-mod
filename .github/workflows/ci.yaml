@@ -14,6 +14,7 @@ concurrency:
 jobs:
   build-win:
     runs-on: windows-2025-vs2026
+
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -23,7 +24,7 @@ jobs:
       - name: Setup
         uses: xmake-io/github-action-setup-xmake@v1
         with:
-          xmake-version: '3.0.9'
+          xmake-version: latest
           package-cache: true
           package-cache-key: ${{ hashFiles('**/xmake.lua', '!macos-*/xmake.lua') }}
 
@@ -55,7 +56,22 @@ jobs:
           if-no-files-found: error
 
   build-mac:
-    runs-on: macos-26
+    name: build-mac (${{ matrix.arch }})
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-26
+            artifact: macos-arm64-build
+
+          - arch: x86_64
+            runner: macos-26-intel
+            artifact: macos-x86_64-build
+
+    runs-on: ${{ matrix.runner }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -67,80 +83,184 @@ jobs:
         with:
           xmake-version: latest
           package-cache: true
-          package-cache-key: ${{ hashFiles('**/xmake.lua', '!win-*/xmake.lua') }}
+          package-cache-key: macos-${{ matrix.arch }}-${{ hashFiles('**/xmake.lua', '!win-*/xmake.lua') }}
 
-      - name: Configure (arm64)
-        id: configure_arm64
+      - name: Configure
+        id: configure
         timeout-minutes: 20
-        run: xmake f -p macosx -a "arm64" -m release -y --target_minver=13.5
+        run: >
+          xmake f
+          -p macosx
+          -a "${{ matrix.arch }}"
+          -m release
+          -y
+          --target_minver=13.5
 
-      - name: Upload configure diagnostics (arm64)
-        if: ${{ failure() && steps.configure_arm64.outcome == 'failure' }}
+      - name: Upload configure diagnostics
+        if: ${{ failure() && steps.configure.outcome == 'failure' }}
         uses: actions/upload-artifact@v7
         with:
-          name: xmake-configure-diagnostics-macos-arm64
+          name: xmake-configure-diagnostics-macos-${{ matrix.arch }}
           path: ~/.xmake/cache/packages/**/installdir.failed/logs/install.txt
           if-no-files-found: warn
           include-hidden-files: true
 
-      - name: Build (arm64)
-        run: xmake -y
-
-      - name: Configure (x86)
-        id: configure_x86_64
-        timeout-minutes: 20
-        run: xmake f -p macosx -a "x86_64" -m release -y --target_minver=13.5
-
-      - name: Upload configure diagnostics (x86_64)
-        if: ${{ failure() && steps.configure_x86_64.outcome == 'failure' }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: xmake-configure-diagnostics-macos-x86_64
-          path: ~/.xmake/cache/packages/**/installdir.failed/logs/install.txt
-          if-no-files-found: warn
-          include-hidden-files: true
-
-      - name: Build (x86)
+      - name: Build
         run: xmake -y
 
       - name: Rebuild launcher assets
+        if: ${{ matrix.arch == 'arm64' }}
         run: |
-          xmake f -p macosx -a "arm64" -m release -y --target_minver=13.5
           xmake -r -y macOSLauncher
+          test -f build/macosx/arm64/release/macOSLauncher.app/Contents/Resources/Assets.car
+
+      # Tar the build before artifact upload so Unix permissions,
+      # symlinks, and bundle metadata survive transfer to package-mac.
+      - name: Package intermediate build
+        run: |
+          tar -cf "macos-${{ matrix.arch }}-build.tar" \
+            -C "build/macosx/${{ matrix.arch }}" \
+            release
+
+      - name: Upload intermediate build
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.artifact }}
+          path: macos-${{ matrix.arch }}-build.tar
+          compression-level: 0
+          if-no-files-found: error
+
+  package-mac:
+    name: package-mac
+    needs: build-mac
+    runs-on: macos-26
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          submodules: "recursive"
+
+      - name: Download ARM64 build
+        uses: actions/download-artifact@v8
+        with:
+          name: macos-arm64-build
+          path: .artifacts/arm64
+
+      - name: Download x86_64 build
+        uses: actions/download-artifact@v8
+        with:
+          name: macos-x86_64-build
+          path: .artifacts/x86_64
+
+      - name: Restore architecture builds
+        run: |
+          mkdir -p build/macosx/arm64
+          mkdir -p build/macosx/x86_64
+
+          tar -xf .artifacts/arm64/macos-arm64-build.tar \
+            -C build/macosx/arm64
+
+          tar -xf .artifacts/x86_64/macos-x86_64-build.tar \
+            -C build/macosx/x86_64
+
+          test -f build/macosx/arm64/release/macOSLauncher
+          test -f build/macosx/x86_64/release/macOSLauncher
+          test -f build/macosx/arm64/release/stfc-community-mod-loader
+          test -f build/macosx/x86_64/release/stfc-community-mod-loader
+          test -f build/macosx/arm64/release/libstfc-community-mod.dylib
+          test -f build/macosx/x86_64/release/libstfc-community-mod.dylib
           test -f build/macosx/arm64/release/macOSLauncher.app/Contents/Resources/Assets.car
 
       - name: Create App Bundle
         run: |
-          lipo -create build/macosx/arm64/release/macOSLauncher build/macosx/x86_64/release/macOSLauncher -output build/macosx/arm64/release/macOSLauncher.app/Contents/MacOS/macOSLauncher
-          lipo -create build/macosx/arm64/release/stfc-community-mod-loader build/macosx/x86_64/release/stfc-community-mod-loader -output build/macosx/arm64/release/macOSLauncher.app/Contents/stfc-community-mod-loader
-          lipo -create build/macosx/arm64/release/libstfc-community-mod.dylib build/macosx/x86_64/release/libstfc-community-mod.dylib -output build/macosx/arm64/release/macOSLauncher.app/Contents/libstfc-community-mod.dylib
-          cp assets/launcher.icns build/macosx/arm64/release/macOSLauncher.app/Contents/Resources/
-          cp macos-launcher/src/Info.plist build/macosx/arm64/release/macOSLauncher.app/Contents/
-          mv build/macosx/arm64/release/macOSLauncher.app build/macosx/arm64/release/STFC\ Community\ Mod.app
-          test -f build/macosx/arm64/release/STFC\ Community\ Mod.app/Contents/Resources/Assets.car
+          lipo -create \
+            build/macosx/arm64/release/macOSLauncher \
+            build/macosx/x86_64/release/macOSLauncher \
+            -output build/macosx/arm64/release/macOSLauncher.app/Contents/MacOS/macOSLauncher
+
+          lipo -create \
+            build/macosx/arm64/release/stfc-community-mod-loader \
+            build/macosx/x86_64/release/stfc-community-mod-loader \
+            -output build/macosx/arm64/release/macOSLauncher.app/Contents/stfc-community-mod-loader
+
+          lipo -create \
+            build/macosx/arm64/release/libstfc-community-mod.dylib \
+            build/macosx/x86_64/release/libstfc-community-mod.dylib \
+            -output build/macosx/arm64/release/macOSLauncher.app/Contents/libstfc-community-mod.dylib
+
+          cp assets/launcher.icns \
+            build/macosx/arm64/release/macOSLauncher.app/Contents/Resources/
+
+          cp macos-launcher/src/Info.plist \
+            build/macosx/arm64/release/macOSLauncher.app/Contents/
+
+          mv \
+            build/macosx/arm64/release/macOSLauncher.app \
+            build/macosx/arm64/release/STFC\ Community\ Mod.app
+
+          test -f \
+            build/macosx/arm64/release/STFC\ Community\ Mod.app/Contents/Resources/Assets.car
+
+      - name: Verify universal binaries
+        run: |
+          lipo -archs \
+            build/macosx/arm64/release/STFC\ Community\ Mod.app/Contents/MacOS/macOSLauncher
+
+          lipo -archs \
+            build/macosx/arm64/release/STFC\ Community\ Mod.app/Contents/stfc-community-mod-loader
+
+          lipo -archs \
+            build/macosx/arm64/release/STFC\ Community\ Mod.app/Contents/libstfc-community-mod.dylib
+
+          test "$(lipo -archs build/macosx/arm64/release/STFC\ Community\ Mod.app/Contents/MacOS/macOSLauncher)" = "x86_64 arm64" \
+            -o "$(lipo -archs build/macosx/arm64/release/STFC\ Community\ Mod.app/Contents/MacOS/macOSLauncher)" = "arm64 x86_64"
 
       - name: Sign App Bundle
-        run: codesign --force --verify --verbose --deep --sign "-" build/macosx/arm64/release/STFC\ Community\ Mod.app
+        run: |
+          codesign \
+            --force \
+            --verify \
+            --verbose \
+            --deep \
+            --sign "-" \
+            build/macosx/arm64/release/STFC\ Community\ Mod.app
+
+      - name: Install packaging tools
+        run: brew install zstd create-dmg
 
       - name: Package macOS mod archive
         run: |
-          brew install zstd
           mkdir -p stfc-community-mod-macos-universal
+
           tar -cf - \
             -C build/macosx/arm64/release/STFC\ Community\ Mod.app/Contents \
             libstfc-community-mod.dylib \
-            | zstd -19 -T0 -o stfc-community-mod-macos-universal/stfc-community-mod-macos-universal.tar.zst
-          shasum -a 256 stfc-community-mod-macos-universal/stfc-community-mod-macos-universal.tar.zst \
+            | zstd -19 -T0 \
+              -o stfc-community-mod-macos-universal/stfc-community-mod-macos-universal.tar.zst
+
+          shasum -a 256 \
+            stfc-community-mod-macos-universal/stfc-community-mod-macos-universal.tar.zst \
             | awk '{print $1}' \
             > stfc-community-mod-macos-universal/stfc-community-mod-macos-universal.tar.zst.sha256
 
-      - name: Install disk image creation tool
-        run: brew install create-dmg
-
       - name: Create installer
-        run: create-dmg --filesystem APFS --format ULFO --volname "STFC Community Mod Installer" --volicon assets/launcher.icns --background assets/mac_installer_background.png --window-pos 200 120 --window-size 800 400 --icon-size 100 --icon "STFC Community Mod.app" 200 190 --app-drop-link 600 185 stfc-community-mod-installer.dmg build/macosx/arm64/release/
+        run: |
+          create-dmg \
+            --filesystem APFS \
+            --format ULFO \
+            --volname "STFC Community Mod Installer" \
+            --volicon assets/launcher.icns \
+            --background assets/mac_installer_background.png \
+            --window-pos 200 120 \
+            --window-size 800 400 \
+            --icon-size 100 \
+            --icon "STFC Community Mod.app" 200 190 \
+            --app-drop-link 600 185 \
+            stfc-community-mod-installer.dmg \
+            build/macosx/arm64/release/
 
-      - name: Upload
+      - name: Upload installer
         uses: actions/upload-artifact@v7
         with:
           name: stfc-community-mod-installer
