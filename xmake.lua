@@ -1,81 +1,17 @@
 set_project("stfc-community-mod")
 
-option("bg_image")
-    set_showmenu(true)
-    set_description("Path to a PNG to embed as the loading screen background (regenerates embedded_loading_image.h)")
-    set_default("")
-option_end()
-
-option("use_original_bg")
-    set_showmenu(true)
-    set_description("Keep the original in-game loading screen background (no custom BG replacement, logos still shown)")
-    set_default(false)
-option_end()
+includes("xmake/options.lua")
+includes("xmake/dependencies/common.lua")
 
 set_languages("c++23")
-
-set_runtimes("MT") -- Set the default build to multi-threaded static
-
-add_requires("eastl")
-add_requires("spdlog")
-add_requires("toml++")
-add_requires("nlohmann_json")
-add_requires("protobuf 35.1")
-
-add_requires("cpr", {system = false})
+set_runtimes("MT")
 
 if is_plat("windows") then
-    add_requireconfs("cpr.libcurl", {
-        override = true,
-        version = "8.21.0",
-        system = false,
-        configs = {
-            shared = false,
-            openssl = false,
-            openssl3 = false,
-            zlib = true
-        }
-    })
-elseif is_plat("macosx") then
-    add_requireconfs("cpr.libcurl", {
-        override = true,
-        version = "8.21.0",
-        system = false,
-        configs = {
-            shared = false,
-            openssl = false,
-            openssl3 = true,
-            apple_sectrust = true,
-            zlib = true
-        }
-    })
-
-    add_requireconfs("cpr.libcurl.openssl3", {
-        version = "3.6.3",
-        system = false,
-        configs = {
-            shared = false
-        }
-    })
-end
-
-add_requireconfs("cpr.libcurl.zlib", {
-    system = false,
-    configs = {
-        shared = false
-    }
-})
-
-if is_plat("windows") then
+    includes("xmake/dependencies/windows.lua")
     includes("win-proxy-dll")
-    add_links('rpcrt4')
-    add_links('runtimeobject')
-end
-
-if is_plat("macosx") then
-    add_requires("inifile-cpp")
-    add_requires("librsync")
-    add_requires("PLzmaSDK")
+    add_links("rpcrt4", "runtimeobject")
+elseif is_plat("macosx") then
+    includes("xmake/dependencies/macos.lua")
     includes("macos-dylib")
     includes("macos-loader")
     includes("macos-launcher")
@@ -85,18 +21,4 @@ add_rules("mode.debug")
 add_rules("mode.release")
 add_rules("mode.releasedbg")
 
-package("libil2cpp")
-on_fetch(function(package, opt)
-    return { includedirs = path.join(os.scriptdir(), "third_party/libil2cpp") }
-end)
-package_end()
-
-add_requires("spud v0.2.0-3")
-add_requires("libil2cpp")
-add_requires("simdutf", { system = false })
-
--- includes("launcher")
 includes("mods")
-
--- add_repositories("local-repo build")
-add_repositories("stfc-community-mod-repo xmake-packages")

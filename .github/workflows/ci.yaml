@@ -8,6 +8,7 @@ on:
     branches: ["main", "dev"]
 
 permissions:
+  actions: read
   contents: read
 
 concurrency:
@@ -16,7 +17,11 @@ concurrency:
 
 env:
   XMAKE_VERSION: "3.1.0"
-  XMAKE_CACHE_SCHEMA: "v2"
+  # Bump this when a dependency cache must be invalidated manually.
+  XMAKE_CACHE_SCHEMA: "v3"
+  # setup-xmake normally exports this when its integrated build cache is on.
+  # Keep XMake's compiler cache enabled while managing persistence ourselves.
+  XMAKE_ACTION_BUILD_CACHE: "true"
 
 jobs:
   build-win:
@@ -30,21 +35,55 @@ jobs:
           submodules: "recursive"
           show-progress: false
 
+      - name: Restore XMake
+        id: restore_xmake
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ runner.tool_cache }}/xmake
+          key: xmake-tool-${{ runner.os }}-${{ runner.arch }}-${{ env.XMAKE_VERSION }}-${{ env.XMAKE_CACHE_SCHEMA }}
+
       - name: Setup XMake
         uses: xmake-io/github-action-setup-xmake@v1
         with:
           xmake-version: ${{ env.XMAKE_VERSION }}
-          package-cache: true
-          package-cache-key: windows-x64-release-${{ env.XMAKE_CACHE_SCHEMA }}-${{ hashFiles('xmake-packages/**/xmake.lua') }}
 
-          # Compiler/object build cache.
-          build-cache: true
-          build-cache-key: windows-x64-release-${{ env.XMAKE_CACHE_SCHEMA }}
+      - name: Locate XMake caches
+        id: xmake_cache_paths
+        shell: pwsh
+        run: |
+          $packageDir = xmake l -c 'import("core.package.package"); print(package.installdir())'
+          $packageDir = $packageDir.Trim()
+
+          if (-not $packageDir) {
+            throw "XMake returned an empty package directory"
+          }
+
+          "package_dir=$packageDir" >> $env:GITHUB_OUTPUT
+          "utc_day=$((Get-Date).ToUniversalTime().ToString('yyyyMMdd'))" >> $env:GITHUB_OUTPUT
+
+      - name: Restore XMake packages
+        id: restore_packages
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ steps.xmake_cache_paths.outputs.package_dir }}
+          key: windows-x64-release-xmake-${{ env.XMAKE_VERSION }}-${{ env.XMAKE_CACHE_SCHEMA }}-${{ hashFiles('xmake/dependencies/common.lua', 'xmake/dependencies/windows.lua', 'xmake-requires.lock', 'xmake-packages/**') }}
+
+      - name: Restore XMake compiler cache
+        id: restore_build
+        uses: actions/cache/restore@v6
+        with:
+          path: build/.build_cache
+          key: windows-x64-release-${{ env.XMAKE_CACHE_SCHEMA }}-${{ steps.xmake_cache_paths.outputs.utc_day }}
+          restore-keys: |
+            windows-x64-release-${{ env.XMAKE_CACHE_SCHEMA }}-
 
       - name: Configure
         id: configure_windows
         timeout-minutes: 30
         run: xmake f -m release -y
+
+      - name: Verify dependency lock
+        run: git diff --exit-code -- xmake-requires.lock
 
       - name: Upload configure diagnostics
         if: ${{ failure() && steps.configure_windows.outcome == 'failure' }}
@@ -57,7 +96,7 @@ jobs:
           retention-days: 3
 
       - name: Build
-        run: xmake -y
+        run: xmake build -y stfc-community-mod
 
       - name: Package
         shell: pwsh
@@ -73,6 +112,27 @@ jobs:
           path: version.dll
           compression-level: 0
           if-no-files-found: error
+
+      - name: Save XMake packages
+        if: ${{ success() && !cancelled() && steps.restore_packages.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ steps.xmake_cache_paths.outputs.package_dir }}
+          key: ${{ steps.restore_packages.outputs.cache-primary-key }}
+
+      - name: Save XMake compiler cache
+        if: ${{ success() && !cancelled() && steps.restore_build.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v6
+        with:
+          path: build/.build_cache
+          key: ${{ steps.restore_build.outputs.cache-primary-key }}
+
+      - name: Save XMake
+        if: ${{ success() && !cancelled() && steps.restore_xmake.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ runner.tool_cache }}/xmake
+          key: ${{ steps.restore_xmake.outputs.cache-primary-key }}
 
   build-mac:
     name: build-mac (${{ matrix.arch }})
@@ -99,16 +159,45 @@ jobs:
           submodules: "recursive"
           show-progress: false
 
+      - name: Restore XMake
+        id: restore_xmake
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ runner.tool_cache }}/xmake
+          key: xmake-tool-${{ runner.os }}-${{ runner.arch }}-${{ env.XMAKE_VERSION }}-${{ env.XMAKE_CACHE_SCHEMA }}
+
       - name: Setup XMake
         uses: xmake-io/github-action-setup-xmake@v1
         with:
           xmake-version: ${{ env.XMAKE_VERSION }}
 
-          package-cache: true
-          package-cache-key: macos-${{ matrix.arch }}-release-${{ env.XMAKE_CACHE_SCHEMA }}-${{ hashFiles('xmake-packages/**/xmake.lua') }}
+      - name: Locate XMake caches
+        id: xmake_cache_paths
+        shell: bash
+        run: |
+          set -euo pipefail
 
-          build-cache: true
-          build-cache-key: macos-${{ matrix.arch }}-release-${{ env.XMAKE_CACHE_SCHEMA }}
+          PACKAGE_DIR="$(xmake l -c 'import("core.package.package"); print(package.installdir())')"
+          test -n "$PACKAGE_DIR"
+
+          echo "package_dir=$PACKAGE_DIR" >> "$GITHUB_OUTPUT"
+          echo "utc_day=$(date -u +%Y%m%d)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore XMake packages
+        id: restore_packages
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ steps.xmake_cache_paths.outputs.package_dir }}
+          key: macos-${{ matrix.arch }}-release-xmake-${{ env.XMAKE_VERSION }}-${{ env.XMAKE_CACHE_SCHEMA }}-${{ hashFiles('xmake/dependencies/common.lua', 'xmake/dependencies/macos.lua', 'xmake-requires.lock', 'xmake-packages/**') }}
+
+      - name: Restore XMake compiler cache
+        id: restore_build
+        uses: actions/cache/restore@v6
+        with:
+          path: build/.build_cache
+          key: macos-${{ matrix.arch }}-release-${{ env.XMAKE_CACHE_SCHEMA }}-${{ steps.xmake_cache_paths.outputs.utc_day }}
+          restore-keys: |
+            macos-${{ matrix.arch }}-release-${{ env.XMAKE_CACHE_SCHEMA }}-
 
       - name: Configure
         id: configure
@@ -120,6 +209,9 @@ jobs:
           -m release
           -y
           --target_minver=13.5
+
+      - name: Verify dependency lock
+        run: git diff --exit-code -- xmake-requires.lock
 
       - name: Upload configure diagnostics
         if: ${{ failure() && steps.configure.outcome == 'failure' }}
@@ -218,6 +310,27 @@ jobs:
           compression-level: 0
           retention-days: 1
           if-no-files-found: error
+
+      - name: Save XMake packages
+        if: ${{ success() && !cancelled() && steps.restore_packages.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ steps.xmake_cache_paths.outputs.package_dir }}
+          key: ${{ steps.restore_packages.outputs.cache-primary-key }}
+
+      - name: Save XMake compiler cache
+        if: ${{ success() && !cancelled() && steps.restore_build.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v6
+        with:
+          path: build/.build_cache
+          key: ${{ steps.restore_build.outputs.cache-primary-key }}
+
+      - name: Save XMake
+        if: ${{ success() && !cancelled() && steps.restore_xmake.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ runner.tool_cache }}/xmake
+          key: ${{ steps.restore_xmake.outputs.cache-primary-key }}
 
   package-mac:
     name: package-mac
