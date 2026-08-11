@@ -206,6 +206,10 @@ void InstallObjectTrackers()
 
   SPUD_STATIC_DETOUR(il2cpp_unity_liveness_finalize, calc_liveness_hook);
 
+#if defined(__APPLE__) && defined(SPUD_ARCH_ARM64)
+  spdlog::warn("Object tracker: macOS ARM64 SPUD indirect-branch fix active; liveness-finalize hook enabled");
+#endif
+
 #if _WIN32
   auto GC_register_finalizer_inner_matches =
       spud::find_in_module("40 56 57 41 57 48 83 EC ? 83 3D", "GameAssembly.dll");
