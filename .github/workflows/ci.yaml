@@ -43,7 +43,7 @@ jobs:
 
       - name: Configure
         id: configure_windows
-        timeout-minutes: 20
+        timeout-minutes: 30
         run: xmake f -m release -y
 
       - name: Upload configure diagnostics
@@ -112,7 +112,7 @@ jobs:
 
       - name: Configure
         id: configure
-        timeout-minutes: 20
+        timeout-minutes: 30
         run: >
           xmake f
           -p macosx
