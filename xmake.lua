@@ -20,9 +20,51 @@ add_requires("eastl")
 add_requires("spdlog")
 add_requires("toml++")
 add_requires("nlohmann_json")
-add_requires("cpr")
-add_requireconfs("cpr.libcurl", { configs = { zlib = true } })
 add_requires("protobuf 35.1")
+
+add_requires("cpr", {system = false})
+
+if is_plat("windows") then
+    add_requireconfs("cpr.libcurl", {
+        override = true,
+        version = "8.21.0",
+        system = false,
+        configs = {
+            shared = false,
+            openssl = false,
+            openssl3 = false,
+            zlib = true
+        }
+    })
+elseif is_plat("macosx") then
+    add_requireconfs("cpr.libcurl", {
+        override = true,
+        version = "8.21.0",
+        system = false,
+        configs = {
+            shared = false,
+            openssl = false,
+            openssl3 = true,
+            apple_sectrust = true,
+            zlib = true
+        }
+    })
+
+    add_requireconfs("cpr.libcurl.openssl3", {
+        version = "3.6.3",
+        system = false,
+        configs = {
+            shared = false
+        }
+    })
+end
+
+add_requireconfs("cpr.libcurl.zlib", {
+    system = false,
+    configs = {
+        shared = false
+    }
+})
 
 if is_plat("windows") then
     includes("win-proxy-dll")
