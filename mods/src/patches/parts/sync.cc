@@ -2292,7 +2292,15 @@ static void HandleEntityGroup(EntityGroup* entity_group)
 
 namespace hooks
 {
-static void* RtcParser_ParseFinalPayload(auto original, void* _this, void* centrifugoInfo,
+// IL2CPP value type: keep this parameter by value so following arguments retain their platform ABI positions.
+struct CentrifugoInfo {
+  Il2CppString* Channel;
+  int32_t       Offset;
+};
+
+static_assert(sizeof(CentrifugoInfo) == 16);
+
+static void* RtcParser_ParseFinalPayload(auto original, void* _this, CentrifugoInfo centrifugoInfo,
                                          RealtimeDataPayload* realtimeDataPayload, void* finalPayload)
 {
   if (realtimeDataPayload != nullptr && realtimeDataPayload->Target != nullptr
