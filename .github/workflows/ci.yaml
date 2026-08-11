@@ -7,9 +7,16 @@ on:
   pull_request:
     branches: ["main", "dev"]
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+env:
+  XMAKE_VERSION: "3.1.0"
+  XMAKE_CACHE_SCHEMA: "v1"
 
 jobs:
   build-win:
@@ -19,14 +26,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
+          fetch-depth: 1
           submodules: "recursive"
+          show-progress: false
 
-      - name: Setup
+      - name: Setup XMake
         uses: xmake-io/github-action-setup-xmake@v1
         with:
-          xmake-version: latest
+          xmake-version: ${{ env.XMAKE_VERSION }}
           package-cache: true
-          package-cache-key: ${{ hashFiles('**/xmake.lua', '!macos-*/xmake.lua') }}
+          package-cache-key: windows-x64-release-${{ env.XMAKE_CACHE_SCHEMA }}-${{ hashFiles('xmake-packages/**/xmake.lua') }}
+
+          # Compiler/object build cache.
+          build-cache: true
+          build-cache-key: windows-x64-release-${{ env.XMAKE_CACHE_SCHEMA }}
 
       - name: Configure
         id: configure_windows
@@ -41,18 +54,24 @@ jobs:
           path: ~/.xmake/cache/packages/**/installdir.failed/logs/install.txt
           if-no-files-found: warn
           include-hidden-files: true
+          retention-days: 3
 
       - name: Build
         run: xmake -y
 
       - name: Package
-        run: mv build/windows/x64/release/stfc-community-mod.dll version.dll
+        shell: pwsh
+        run: |
+          Move-Item `
+            "build/windows/x64/release/stfc-community-mod.dll" `
+            "version.dll"
 
       - name: Upload
         uses: actions/upload-artifact@v7
         with:
           name: stfc-community-mod
           path: version.dll
+          compression-level: 0
           if-no-files-found: error
 
   build-mac:
@@ -76,14 +95,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
+          fetch-depth: 1
           submodules: "recursive"
+          show-progress: false
 
-      - name: Setup
+      - name: Setup XMake
         uses: xmake-io/github-action-setup-xmake@v1
         with:
-          xmake-version: latest
+          xmake-version: ${{ env.XMAKE_VERSION }}
+
           package-cache: true
-          package-cache-key: macos-${{ matrix.arch }}-${{ hashFiles('**/xmake.lua', '!win-*/xmake.lua') }}
+          package-cache-key: macos-${{ matrix.arch }}-release-${{ env.XMAKE_CACHE_SCHEMA }}-${{ hashFiles('xmake-packages/**/xmake.lua') }}
+
+          build-cache: true
+          build-cache-key: macos-${{ matrix.arch }}-release-${{ env.XMAKE_CACHE_SCHEMA }}
 
       - name: Configure
         id: configure
@@ -104,23 +129,20 @@ jobs:
           path: ~/.xmake/cache/packages/**/installdir.failed/logs/install.txt
           if-no-files-found: warn
           include-hidden-files: true
+          retention-days: 3
 
       - name: Build
         run: xmake -y
 
-      # Only the ARM64 build supplies the base .app bundle.
-      # Preserve its generated Info.plist before transferring the build
-      # to the separate package-mac job.
       - name: Finalize launcher bundle
         if: ${{ matrix.arch == 'arm64' }}
         shell: bash
         run: |
           set -euo pipefail
 
-          xmake -r -y macOSLauncher
-
           APP="build/macosx/arm64/release/macOSLauncher.app"
 
+          test -f build/macosx/arm64/release/macOSLauncher
           test -f "$APP/Contents/Resources/Assets.car"
           test -f macos-launcher/src/Info.plist
 
@@ -129,16 +151,36 @@ jobs:
 
           test -f "$APP/Contents/Info.plist"
 
-      # Tar the build before artifact upload so executable permissions,
-      # symlinks, and bundle structure survive artifact transfer.
+      # Only transfer the files needed by package-mac instead of the
+      # complete XMake release directory.
       - name: Package intermediate build
         shell: bash
         run: |
           set -euo pipefail
 
-          tar -cf "macos-${{ matrix.arch }}-build.tar" \
-            -C "build/macosx/${{ matrix.arch }}" \
-            release
+          RELEASE="build/macosx/${{ matrix.arch }}/release"
+          ARCHIVE="macos-${{ matrix.arch }}-build.tar"
+
+          test -f "$RELEASE/macOSLauncher"
+          test -f "$RELEASE/stfc-community-mod-loader"
+          test -f "$RELEASE/libstfc-community-mod.dylib"
+
+          if [[ "${{ matrix.arch }}" == "arm64" ]]; then
+            test -d "$RELEASE/macOSLauncher.app"
+
+            tar -cf "$ARCHIVE" \
+              -C "$RELEASE" \
+              macOSLauncher \
+              stfc-community-mod-loader \
+              libstfc-community-mod.dylib \
+              macOSLauncher.app
+          else
+            tar -cf "$ARCHIVE" \
+              -C "$RELEASE" \
+              macOSLauncher \
+              stfc-community-mod-loader \
+              libstfc-community-mod.dylib
+          fi
 
       - name: Upload intermediate build
         uses: actions/upload-artifact@v7
@@ -146,6 +188,7 @@ jobs:
           name: ${{ matrix.artifact }}
           path: macos-${{ matrix.arch }}-build.tar
           compression-level: 0
+          retention-days: 1
           if-no-files-found: error
 
   package-mac:
@@ -157,7 +200,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          submodules: "recursive"
+          fetch-depth: 1
+          submodules: false
+          show-progress: false
 
       - name: Download ARM64 build
         uses: actions/download-artifact@v8
@@ -176,14 +221,14 @@ jobs:
         run: |
           set -euo pipefail
 
-          mkdir -p build/macosx/arm64
-          mkdir -p build/macosx/x86_64
+          mkdir -p build/macosx/arm64/release
+          mkdir -p build/macosx/x86_64/release
 
           tar -xf .artifacts/arm64/macos-arm64-build.tar \
-            -C build/macosx/arm64
+            -C build/macosx/arm64/release
 
           tar -xf .artifacts/x86_64/macos-x86_64-build.tar \
-            -C build/macosx/x86_64
+            -C build/macosx/x86_64/release
 
           test -f build/macosx/arm64/release/macOSLauncher
           test -f build/macosx/x86_64/release/macOSLauncher
@@ -279,7 +324,17 @@ jobs:
             "build/macosx/arm64/release/STFC Community Mod.app"
 
       - name: Install packaging tools
-        run: brew install zstd create-dmg
+        shell: bash
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+        run: |
+          set -euo pipefail
+
+          # zstd is currently preinstalled on the macOS 26 image.
+          # Keep the fallback so the workflow remains robust if the
+          # runner image changes later.
+          command -v zstd >/dev/null 2>&1 || brew install zstd
+          command -v create-dmg >/dev/null 2>&1 || brew install create-dmg
 
       - name: Package macOS mod archive
         shell: bash
@@ -291,7 +346,7 @@ jobs:
           tar -cf - \
             -C "build/macosx/arm64/release/STFC Community Mod.app/Contents" \
             libstfc-community-mod.dylib \
-            | zstd -19 -T0 \
+            | zstd -10 -T0 \
               -o stfc-community-mod-macos-universal/stfc-community-mod-macos-universal.tar.zst
 
           shasum -a 256 \
