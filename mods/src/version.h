@@ -5,6 +5,7 @@
 #define VERSION_MINOR               1
 #define VERSION_REVISION            5
 #define VERSION_PATCH               3
+#define VERSION_COMMIT_HASH         ""
 
 #define STRINGIFY_(s)               #s
 #define STRINGIFY(s)                STRINGIFY_(s)

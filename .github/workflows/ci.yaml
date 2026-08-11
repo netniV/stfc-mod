@@ -35,6 +35,9 @@ jobs:
           submodules: "recursive"
           show-progress: false
 
+      - name: Stamp commit hash
+        run: python scripts/stamp-version-hash.py "${{ github.sha }}"
+
       - name: Restore XMake
         id: restore_xmake
         uses: actions/cache/restore@v6
@@ -161,6 +164,9 @@ jobs:
           fetch-depth: 1
           submodules: "recursive"
           show-progress: false
+
+      - name: Stamp commit hash
+        run: python3 scripts/stamp-version-hash.py "${{ github.sha }}"
 
       - name: Restore XMake
         id: restore_xmake
