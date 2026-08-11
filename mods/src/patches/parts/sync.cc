@@ -2292,12 +2292,6 @@ static void HandleEntityGroup(EntityGroup* entity_group)
 
 namespace hooks
 {
-static void DataContainer_ParseEntitySlotsData(auto original, void* _this, EntityGroup* group)
-{
-  HandleEntityGroup(group);
-  return original(_this, group);
-}
-
 static void* RtcParser_ParseFinalPayload(auto original, void* _this, void* centrifugoInfo,
                                          RealtimeDataPayload* realtimeDataPayload, void* finalPayload)
 {
@@ -2374,18 +2368,6 @@ void InstallSyncPatches()
       ErrorMsg::MissingMethod("GameServerModelRegistry", "ProcessResultInternal");
     } else {
       SPUD_STATIC_DETOUR(ptr, hooks::GameServerModelRegistry_ProcessResultInternal);
-    }
-  }
-
-  if (auto slot_data_container =
-          il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Services", "SlotDataContainer");
-      !slot_data_container.isValidHelper()) {
-    ErrorMsg::MissingHelper("Services", "SlotDataContainer");
-  } else {
-    if (auto *const ptr = slot_data_container.GetMethod("ParseEntitySlotsData"); ptr == nullptr) {
-      ErrorMsg::MissingMethod("SlotDataContainer", "ParseEntitySlotsData");
-    } else {
-      SPUD_STATIC_DETOUR(ptr, hooks::DataContainer_ParseEntitySlotsData);
     }
   }
 
