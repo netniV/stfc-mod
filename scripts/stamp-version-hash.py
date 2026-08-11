@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 VERSION_HASH_PATTERN = re.compile(
-    r'^(#define VERSION_COMMIT_HASH\s+)"[^"]*"$',
+    r'^(#define VERSION_COMMIT_HASH[ \t]+)"[^"\r\n]*"(?=\r?$)',
     re.MULTILINE,
 )
 
