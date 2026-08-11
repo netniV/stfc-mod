@@ -91,7 +91,7 @@ jobs:
             git diff HEAD -- $lockFile
           } elseif ($diffExitCode -ne 0) {
             Write-Output "::warning file=${lockFile}::Git could not verify the dependency lock (exit code $diffExitCode)."
-          fi
+          }
 
           exit 0
 
