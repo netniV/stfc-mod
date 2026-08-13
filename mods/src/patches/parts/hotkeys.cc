@@ -325,6 +325,10 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
         config->AdjustUiScale(true);
       } else if (MapKey::IsPressed(GameFunction::UiScaleDown)) {
         config->AdjustUiScale(false);
+      } else if (MapKey::IsPressed(GameFunction::UiShipScaleUp)) {
+        config->AdjustUiShipScale(true);
+      } else if (MapKey::IsPressed(GameFunction::UiShipScaleDown)) {
+        config->AdjustUiShipScale(false);
       } else if (MapKey::IsPressed(GameFunction::UiViewerScaleUp)) {
         config->AdjustUiViewerScale(true);
       } else if (MapKey::IsPressed(GameFunction::UiViewerScaleDown)) {

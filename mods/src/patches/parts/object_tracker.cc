@@ -7,6 +7,7 @@
 #include "prime/CelestialObjectViewerWidget.h"
 #include "prime/EmbassyObjectViewer.h"
 #include "prime/FleetBarViewController.h"
+#include "prime/FleetMeshSelector.h"
 #include "prime/FullScreenChatViewController.h"
 #include "prime/HousingObjectViewerWidget.h"
 #include "prime/InventoryListViewController.h"
@@ -188,6 +189,7 @@ void InstallObjectTrackers()
 {
   TrackObject<PreScanTargetWidget>();
   TrackObject<FleetBarViewController>();
+  TrackObject<FleetMeshSelector>();
   TrackObject<AllianceStarbaseObjectViewerWidget>();
   TrackObject<AnimatedRewardsScreenViewController>();
   TrackObject<ArmadaObjectViewerWidget>();
