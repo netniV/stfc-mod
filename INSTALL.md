@@ -53,6 +53,19 @@ If you have any problems with a setting, check for that setting in the _.vars_ f
 that the parse value of that setting was correctly applied. You may also need to check the
 `community_patch.log` file to see if any errors were encountered while parsing the _.toml_ file.
 
+### Configuration example files
+
+Commented example configurations are maintained separately for each supported language, using the same flags as
+[ModConfig](https://modconfig.pages.dev):
+
+- <img src="docs/flags/gb.svg" alt="United Kingdom flag" width="24"> [English](example_community_patch_settings_en.toml)
+- <img src="docs/flags/de.svg" alt="German flag" width="24"> [German](example_community_patch_settings_de.toml)
+- <img src="docs/flags/fr.svg" alt="French flag" width="24"> [French](example_community_patch_settings_fr.toml)
+- <img src="docs/flags/nl.svg" alt="Netherlands flag" width="24"> [Dutch](example_community_patch_settings_nl.toml)
+
+Choose the example for your preferred language and save a copy in the appropriate settings folder as
+`community_patch_settings.toml`.
+
 ## Installation on Windows
 
 **NOTE:** The `Star Trek Fleet Command` game itself is located by default at:
@@ -74,10 +87,9 @@ Installation of the Community Mod is a manual process for Windows (or Wine).
    create `community_patch_settings.toml` and populate this with the default
    values.
 
-5. For first time users of the Community Mod, it recommended to utilise the
-   [sample configuration file](example_community_patch_settings.toml), which can
-   be saved to the game folder with the name `community_patch_settings.toml`. This
-   sample file contains additional comments that explain the available settings.
+5. For first-time users of the Community Mod, it is recommended to choose one of the
+   [localized configuration examples](#configuration-example-files) and save a copy to the game folder as
+   `community_patch_settings.toml`. These examples contain additional comments that explain the available settings.
 
 ## Installation on macOS - macOS 13.5 or later required
 
@@ -114,10 +126,9 @@ You should only need to access this folder if you need to view the `community_pa
    Note: By default, macOS hides the `~/Library` folder in Finder, so if it isn't visible,
    see the [Problems under macOS](#problems-under-macos) section below for tips on opening it.
 
-5. For first time users of the Community Mod, it recommended to use the
-   [sample configuration file](example_community_patch_settings.toml), which can
-   be saved to the settings folder with the name `community_patch_settings.toml`. This
-   sample file contains additional comments that explain the available settings.
+5. For first-time users of the Community Mod, it is recommended to choose one of the
+   [localized configuration examples](#configuration-example-files) and save a copy to the settings folder as
+   `community_patch_settings.toml`. These examples contain additional comments that explain the available settings.
 
 ## Installation on Wine/Linux
 
