@@ -243,6 +243,18 @@ void Config::AdjustUiViewerScale(bool scaleUp)
   }
 }
 
+void Config::AdjustUiShipScale(bool scaleUp)
+{
+  const auto old_scale    = this->ui_scale_ship;
+  const auto scale_factor = (scaleUp ? 1.0f : -1.0f) * this->ui_scale_adjust;
+  const auto new_scale    = this->ui_scale_ship + scale_factor;
+  this->ui_scale_ship     = std::clamp(new_scale, 0.1f, 20.0f);
+
+  spdlog::info("System ship models have been scaled {}, was {}, now {} (unclamped {})", (scaleUp ? "UP" : "DOWN"),
+               old_scale, this->ui_scale_ship, new_scale);
+  ApplyUiShipScaleToLoadedShips(old_scale, this->ui_scale_ship);
+}
+
 inline std::string mask_token(const std::string& token)
 {
   if (token.size() > 21) {
@@ -741,6 +753,8 @@ void Config::Load()
   this->ui_scale = get_config_or_default(config, parsed, "graphics", "ui_scale", DCG::ui_scale, write_config);
   this->ui_scale_adjust =
       get_config_or_default(config, parsed, "graphics", "ui_scale_adjust", DCG::ui_scale_adjust, write_config);
+  this->ui_scale_ship =
+      get_config_or_default(config, parsed, "graphics", "ui_scale_ship", DCG::ui_scale_ship, write_config);
   this->ui_scale_viewer =
       get_config_or_default(config, parsed, "graphics", "ui_scale_viewer", DCG::ui_scale_viewer, write_config);
   this->zoom        = get_config_or_default(config, parsed, "graphics", "zoom", DCG::zoom, write_config);
@@ -1060,6 +1074,9 @@ void Config::Load()
   parse_config_shortcut(config, parsed, "zoom_reset", GameFunction::ZoomReset, DCSH::zoom_reset);
   parse_config_shortcut(config, parsed, "ui_scaleup", GameFunction::UiScaleUp, DCSH::ui_scaleup);
   parse_config_shortcut(config, parsed, "ui_scaledown", GameFunction::UiScaleDown, DCSH::ui_scaledown);
+  parse_config_shortcut(config, parsed, "ui_scaleshipup", GameFunction::UiShipScaleUp, DCSH::ui_scaleshipup);
+  parse_config_shortcut(config, parsed, "ui_scaleshipdown", GameFunction::UiShipScaleDown,
+                        DCSH::ui_scaleshipdown);
   parse_config_shortcut(config, parsed, "ui_scaleviewerup", GameFunction::UiViewerScaleUp, DCSH::ui_scaleviewerup);
   parse_config_shortcut(config, parsed, "ui_scaleviewerdown", GameFunction::UiViewerScaleDown,
                         DCSH::ui_scaleviewerdown);

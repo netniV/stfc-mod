@@ -110,6 +110,9 @@ ui_scale = 0.6
 # This specifies the amount to adjust the scale by, 0.05 being default
 ui_scale_adjust = 0.05
 
+# This specifies the amount to scale the ship models in System View, 1.0 being default
+ui_scale_ship = 1.0
+
 # This specifies the amount to scale the UI Object Viewers by, 1.0 being default
 ui_scale_viewer = 1.2
 
@@ -491,6 +494,12 @@ ui_scaledown = "PGDOWN"
 
 # PGUP
 ui_scaleup = "PGUP"
+
+# CTRL-PGDOWN
+ui_scaleshipdown = "CTRL-PGDOWN"
+
+# CTRL-PGUP
+ui_scaleshipup = "CTRL-PGUP"
 
 # SHIFT-PGDOWN
 ui_scaleviewerdown = "SHIFT-PGDOWN"
