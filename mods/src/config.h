@@ -110,6 +110,12 @@ enum class MissionHudVisibility {
   Never,
 };
 
+enum class InstantWarpConfirmation {
+  None,
+  Warp,
+  Jump,
+};
+
 // Part of UI Scale
 void ApplyUiShipScaleToLoadedShips(float old_multiplier, float new_multiplier);
 
@@ -189,6 +195,7 @@ public:
   bool disable_first_popup;
   bool disable_toast_banners;
   bool auto_open_bulk_claim_flyout;
+  InstantWarpConfirmation auto_confirm_instant_warp;
 
   bool show_cargo_default;
   bool show_player_cargo;
@@ -223,6 +230,7 @@ public:
   bool installGameVersionHook;
   bool installObjectTracker;
   bool installGiftsBulkClaimHooks;
+  bool installInstantWarpConfirmationHooks;
 
   std::string config_settings_url;
   std::string config_assets_url_override;
