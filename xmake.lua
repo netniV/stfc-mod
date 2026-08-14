@@ -21,4 +21,5 @@ add_rules("mode.debug")
 add_rules("mode.release")
 add_rules("mode.releasedbg")
 
+includes("xmake/rules/protobuf_sccache.lua")
 includes("mods")
