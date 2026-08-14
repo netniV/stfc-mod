@@ -567,6 +567,9 @@ always_skip_reveal_sequence = true
 # Open the bulk gift claim flyout automatically
 auto_open_bulk_claim_flyout = false
 
+# Confirm Forbidden Tech level and tier upgrades automatically
+auto_confirm_ft_upgrade = false
+
 # Prevent "escape" from prompting to exit the game
 disable_escape_exit = true
 
