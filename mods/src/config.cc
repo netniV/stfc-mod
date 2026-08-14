@@ -372,6 +372,54 @@ MissionHudVisibility get_mission_hud_visibility(toml::table& config, toml::table
   return mode;
 }
 
+std::string_view to_string(InstantWarpConfirmation confirmation)
+{
+  switch (confirmation) {
+    case InstantWarpConfirmation::Warp:
+      return "warp";
+    case InstantWarpConfirmation::Jump:
+      return "jump";
+    case InstantWarpConfirmation::None:
+    default:
+      return "none";
+  }
+}
+
+InstantWarpConfirmation parse_auto_confirm_instant_warp(std::string_view value)
+{
+  const auto normalized = AsciiStrToUpper(StripAsciiWhitespace(value));
+
+  if (normalized == "WARP" || normalized == "LEFT") {
+    return InstantWarpConfirmation::Warp;
+  }
+  if (normalized == "JUMP" || normalized == "RIGHT") {
+    return InstantWarpConfirmation::Jump;
+  }
+  if (normalized == "NONE" || normalized.empty()) {
+    return InstantWarpConfirmation::None;
+  }
+
+  spdlog::warn("invalid config value ui.auto_confirm_instant_warp: '{}'; using none", value);
+  return InstantWarpConfirmation::None;
+}
+
+InstantWarpConfirmation get_auto_confirm_instant_warp(toml::table& config, toml::table& new_config,
+                                                       std::string_view default_value, bool write_log)
+{
+  const auto value = config["ui"]["auto_confirm_instant_warp"].value<std::string>().value_or(
+      std::string(default_value));
+  const auto confirmation = parse_auto_confirm_instant_warp(value);
+
+  new_config.emplace<toml::table>("ui", toml::table());
+  new_config["ui"].as_table()->insert_or_assign("auto_confirm_instant_warp", std::string(to_string(confirmation)));
+
+  if (write_log) {
+    spdlog::debug("config value ui.auto_confirm_instant_warp value: {}", to_string(confirmation));
+  }
+
+  return confirmation;
+}
+
 void read_sync_targets(toml::table& config, toml::table& new_config,
                        std::map<std::string, SyncTargetConfig>& sync_targets, const SyncConfig& defaults)
 {
@@ -819,6 +867,10 @@ void Config::Load()
       get_config_or_default(config, parsed, "ui", "disable_toast_banners", DCU::disable_toast_banners, write_config);
   this->auto_open_bulk_claim_flyout = get_config_or_default(config, parsed, "ui", "auto_open_bulk_claim_flyout",
                                                             DCU::auto_open_bulk_claim_flyout, write_config);
+  this->auto_confirm_instant_warp =
+      get_auto_confirm_instant_warp(config, parsed, DCU::auto_confirm_instant_warp, write_config);
+  this->installInstantWarpConfirmationHooks = true;
+  
   this->auto_confirm_ft_upgrade =
       get_config_or_default(config, parsed, "ui", "auto_confirm_ft_upgrade",
                             DCU::auto_confirm_ft_upgrade, write_config);
@@ -1113,6 +1165,8 @@ void Config::Load()
   parse_config_shortcut(config, parsed, "show_stationinterior", GameFunction::ShowStationInterior,
                         DCSH::show_stationinterior);
   parse_config_shortcut(config, parsed, "toggle_queue", GameFunction::ToggleQueue, DCSH::toggle_queue);
+  parse_config_shortcut(config, parsed, "toggle_instant_warp", GameFunction::ToggleAutoConfirmInstantWarp,
+                        DCSH::toggle_instant_warp);
 
   if (this->hotkeys_extended) {
     parse_config_shortcut(config, parsed, "show_alliance", GameFunction::ShowAlliance, DCSH::show_alliance);

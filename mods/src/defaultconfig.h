@@ -156,6 +156,7 @@ namespace Shortcuts
   constexpr const char* toggle_cargo_hostile  = "ALT-4";
   constexpr const char* toggle_cargo_player   = "ALT-2";
   constexpr const char* toggle_cargo_station  = "ALT-3";
+  constexpr const char* toggle_instant_warp   = "ALT-I";
   constexpr const char* toggle_preview_locate = "CTRL-R";
   constexpr const char* toggle_preview_recall = "CTRL-T";
   constexpr const char* ui_scaledown          = "PGDOWN";
@@ -224,6 +225,7 @@ namespace UI
   constexpr const char* hud_missions                = "auto";
   constexpr const char* hud_outposts                = "auto";
   constexpr const char* hud_q_trials                = "auto";
+  constexpr const char* auto_confirm_instant_warp   = "none";
   constexpr const char* notify_banner_types         = "";
   constexpr auto        extend_donation_max         = 80;
   constexpr bool        extend_donation_slider      = true;

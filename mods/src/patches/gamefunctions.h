@@ -79,6 +79,7 @@ enum GameFunction {
   DisableHotKeys,
   EnableHotKeys,
   ToggleQueue,
+  ToggleAutoConfirmInstantWarp,
   TogglePreviewLocate,
   TogglePreviewRecall,
   ToggleCargoDefault,
