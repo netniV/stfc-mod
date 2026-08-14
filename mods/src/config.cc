@@ -870,6 +870,10 @@ void Config::Load()
   this->auto_confirm_instant_warp =
       get_auto_confirm_instant_warp(config, parsed, DCU::auto_confirm_instant_warp, write_config);
   this->installInstantWarpConfirmationHooks = true;
+  
+  this->auto_confirm_ft_upgrade =
+      get_config_or_default(config, parsed, "ui", "auto_confirm_ft_upgrade",
+                            DCU::auto_confirm_ft_upgrade, write_config);
 
 #if _WIN32
   this->extend_donation_slider =

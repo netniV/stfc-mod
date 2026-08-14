@@ -573,6 +573,9 @@ auto_open_bulk_claim_flyout = false
 # Sofort-Warp-Aktion, die automatisch bestätigt wird: none, warp oder jump
 auto_confirm_instant_warp = "none"
 
+# Stufen- und Rangverbesserungen für Verbotene Technologie automatisch bestätigen
+auto_confirm_ft_upgrade = false
+
 # Verhindert, dass die Escape-Taste zum Beenden des Spiels auffordert
 disable_escape_exit = true
 

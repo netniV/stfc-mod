@@ -195,6 +195,8 @@ public:
   bool disable_first_popup;
   bool disable_toast_banners;
   bool auto_open_bulk_claim_flyout;
+  bool auto_confirm_ft_upgrade;
+
   InstantWarpConfirmation auto_confirm_instant_warp;
 
   bool show_cargo_default;

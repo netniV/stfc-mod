@@ -573,6 +573,9 @@ auto_open_bulk_claim_flyout = false
 # Instant-warp action to confirm automatically: none, warp, or jump
 auto_confirm_instant_warp = "none"
 
+# Confirm Forbidden Tech level and tier upgrades automatically
+auto_confirm_ft_upgrade = false
+
 # Prevent "escape" from prompting to exit the game
 disable_escape_exit = true
 

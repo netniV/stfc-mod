@@ -573,6 +573,9 @@ auto_open_bulk_claim_flyout = false
 # Instant-warpactie die automatisch wordt bevestigd: none, warp of jump
 auto_confirm_instant_warp = "none"
 
+# Level- en rangupgrades voor Verboden Technologie automatisch bevestigen
+auto_confirm_ft_upgrade = false
+
 # Zorgt ervoor dat het gebruiken van "escape" het spel niet sluit
 disable_escape_exit = true
 

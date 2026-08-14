@@ -573,6 +573,9 @@ auto_open_bulk_claim_flyout = false
 # Action de distorsion instantanée à confirmer automatiquement : none, warp ou jump
 auto_confirm_instant_warp = "none"
 
+# Confirmer automatiquement les améliorations de niveau et de rang de Technologie interdite
+auto_confirm_ft_upgrade = false
+
 # Empêcher "échap" de proposer de quitter le jeu
 disable_escape_exit = true
 
