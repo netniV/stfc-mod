@@ -819,6 +819,9 @@ void Config::Load()
       get_config_or_default(config, parsed, "ui", "disable_toast_banners", DCU::disable_toast_banners, write_config);
   this->auto_open_bulk_claim_flyout = get_config_or_default(config, parsed, "ui", "auto_open_bulk_claim_flyout",
                                                             DCU::auto_open_bulk_claim_flyout, write_config);
+  this->auto_confirm_ft_upgrade =
+      get_config_or_default(config, parsed, "ui", "auto_confirm_ft_upgrade",
+                            DCU::auto_confirm_ft_upgrade, write_config);
 
 #if _WIN32
   this->extend_donation_slider =
