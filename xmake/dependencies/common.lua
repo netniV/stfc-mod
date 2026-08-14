@@ -2,6 +2,10 @@
 -- developer machines and CI runners.
 set_policy("package.requires_lock", true)
 
+-- Cold CI configuration is dominated by CMake-backed dependency builds.
+-- Ninja gives those package builds a fast, parallel generator.
+set_policy("package.cmake_generator.ninja", true)
+
 add_repositories("stfc-community-mod-repo xmake-packages")
 
 package("libil2cpp")

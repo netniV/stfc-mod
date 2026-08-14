@@ -38,7 +38,14 @@ target("macOSLauncher")
     add_values("xcode.product_name", "STFC Community Mod")
     add_values("xcode.bundle_info_plist", "src/Info.plist")
 
-    add_scflags("-Xcc -fmodules", "-Xcc -fmodule-map-file=macos-launcher/src/module.modulemap", "-D SWIFT_PACKAGE", {force = true})
+    -- Keep imported Swift/Clang modules in a stable path that CI can persist.
+    local swift_module_cache = path.join(os.projectdir(), "build", ".swift-module-cache")
+    add_scflags(
+        "-module-cache-path", swift_module_cache,
+        "-Xcc -fmodules",
+        "-Xcc -fmodule-map-file=macos-launcher/src/module.modulemap",
+        "-D SWIFT_PACKAGE",
+        {force = true})
 
     -- Generate Info.plist from template during configuration
     on_config(function (target)
