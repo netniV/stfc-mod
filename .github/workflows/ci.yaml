@@ -117,7 +117,7 @@ jobs:
       - name: Configure
         id: configure_windows
         timeout-minutes: 30
-        run: xmake f -m release -y -v
+        run: xmake f -m release -y
 
       - name: Verify dependency lock
         shell: pwsh
@@ -152,16 +152,8 @@ jobs:
           include-hidden-files: true
           retention-days: 3
 
-      - name: Reset protobuf compiler cache stats
-        shell: pwsh
-        run: sccache --zero-stats
-
       - name: Build
         run: xmake build -y stfc-community-mod
-
-      - name: Report protobuf compiler cache
-        shell: pwsh
-        run: sccache --show-stats
 
       - name: Package
         shell: pwsh
@@ -285,7 +277,7 @@ jobs:
             xcodebuild -version
             xcrun swiftc --version
             xcrun --sdk macosx --show-sdk-version
-          } | tee "$RUNNER_TEMP/swift-toolchain.txt"
+          } > "$RUNNER_TEMP/swift-toolchain.txt"
 
           TOOLCHAIN_HASH="$(shasum -a 256 "$RUNNER_TEMP/swift-toolchain.txt" | awk '{print $1}')"
           test -n "$TOOLCHAIN_HASH"
@@ -340,7 +332,6 @@ jobs:
           -a "${{ matrix.arch }}"
           -m release
           -y
-          -v
           --target_minver="$MACOSX_DEPLOYMENT_TARGET"
 
       - name: Verify dependency lock
@@ -365,29 +356,8 @@ jobs:
           include-hidden-files: true
           retention-days: 3
 
-      - name: Reset protobuf compiler cache stats
-        shell: bash
-        run: sccache --zero-stats
-
       - name: Build
-        # -D keeps the existing XMake compiler-cache diagnostics too.
-        run: xmake -y -D
-
-      - name: Report protobuf compiler cache
-        shell: bash
-        run: sccache --show-stats
-
-      - name: Report Swift module cache
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          if [[ -d build/.swift-module-cache ]]; then
-            du -sh build/.swift-module-cache
-            echo "files=$(find build/.swift-module-cache -type f | wc -l | tr -d ' ')"
-          else
-            echo "::warning::Swift module cache directory was not created"
-          fi
+        run: xmake -y
 
       - name: Verify portable macOS linkage
         shell: bash
