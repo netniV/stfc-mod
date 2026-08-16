@@ -78,7 +78,12 @@ do
         )
     end)
 
-        -- C++ sources
+    -- C++ sources
+    -- Override only the cxx file rule on Windows CI. This leaves protobuf's
+    -- separate .proto rule and generated-object build path untouched.
+    if is_plat("windows") and os.getenv("STFC_MSVC_SCCACHE") == "1" then
+        add_rules("stfc.cxx.sccache", {override = true})
+    end
     add_files("src/**.cc")
     add_headerfiles("src/**.h")
     add_includedirs("src", { public = true })
