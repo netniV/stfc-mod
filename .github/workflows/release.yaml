@@ -3,146 +3,159 @@ name: Create Release
 on:
   push:
     tags:
-      - "v*" # triggers when a tag like v0.6.1 or v0.6.1.alpha.9 is pushed
+      - "v*" # v0.6.1 or v0.6.1.alpha.9
+
+permissions:
+  contents: write
+  actions: read
 
 jobs:
   create-release:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
     name: Create Release
+    runs-on: ubuntu-24.04
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      # ✅ Step 1 — Check if Build succeeded for this same commit
-      - name: Check latest Build success
+      # Find a successful Build workflow for this exact commit.
+      #
+      # Release intentionally reuses the artifacts from CI rather than
+      # rebuilding Windows/macOS from the tag.
+      - name: Find successful Build
         id: check_build
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
+
           echo "Checking for successful Build workflow for commit ${{ github.sha }}..."
-          response=$(gh api \
-            -H "Accept: application/vnd.github+json" \
-            /repos/${{ github.repository }}/actions/runs \
-            --jq '.workflow_runs[] | select(.name=="Build" and .head_sha=="${{ github.sha }}" and .conclusion=="success") | .id' | head -n 1)
-          
-          if [ -z "$response" ]; then
-            echo "❌ No successful Build workflow found for this commit."
+
+          build_run_id="$(
+            gh api \
+              -H "Accept: application/vnd.github+json" \
+              "/repos/${{ github.repository }}/actions/runs?head_sha=${{ github.sha }}&status=success&per_page=100" \
+              --jq '.workflow_runs[] | select(.name == "Build") | .id' \
+              | head -n 1
+          )"
+
+          if [[ -z "$build_run_id" ]]; then
+            echo "::error::No successful Build workflow found for commit ${{ github.sha }}."
             exit 1
           fi
 
-          echo "✅ Found successful Build run ID: $response"
-          echo "build_run_id=$response" >> $GITHUB_OUTPUT
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          echo "Found successful Build run ID: $build_run_id"
+          echo "build_run_id=$build_run_id" >> "$GITHUB_OUTPUT"
 
-      # ✅ Step 2 — Download the Build artifacts
-      - name: Download artifact from Build workflow
-        uses: dawidd6/action-download-artifact@v18
+      # Download only release-facing CI artifacts.
+      - name: Download Windows build
+        uses: actions/download-artifact@v8
         with:
-          run_id: ${{ steps.check_build.outputs.build_run_id }}
+          name: stfc-community-mod
+          path: stfc-community-mod
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.check_build.outputs.build_run_id }}
 
-      # ✅ Step 3 — Package up
-      - name: Package
+      - name: Download macOS universal archive
+        uses: actions/download-artifact@v8
+        with:
+          name: stfc-community-mod-macos-universal
+          path: stfc-community-mod-macos-universal
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.check_build.outputs.build_run_id }}
+
+      - name: Download macOS installer
+        uses: actions/download-artifact@v8
+        with:
+          name: stfc-community-mod-installer
+          path: stfc-community-mod-installer
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.check_build.outputs.build_run_id }}
+
+      - name: Validate Build artifacts
+        shell: bash
         run: |
-          (cd stfc-community-mod && zip -r - .) > stfc-community-mod.zip
+          set -euo pipefail
 
+          test -f stfc-community-mod/version.dll
+
+          test -f \
+            stfc-community-mod-macos-universal/stfc-community-mod-macos-universal.tar.zst
+
+          test -f \
+            stfc-community-mod-macos-universal/stfc-community-mod-macos-universal.tar.zst.sha256
+
+          test -f \
+            stfc-community-mod-installer/stfc-community-mod-installer.dmg
+
+      # Legacy Windows ZIP.
+      #
+      # Keep both historical names as release assets.
+      - name: Package legacy Windows ZIPs
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          (
+            cd stfc-community-mod
+            zip -9 -q -r ../stfc-community-mod.zip .
+          )
+
+          cp \
+            stfc-community-mod.zip \
+            "stfc-community-mod-${{ github.ref_name }}.zip"
+
+      # Native Windows archive used by newer installers/updaters.
       - name: Package Windows mod archive
+        shell: bash
         run: |
-          sudo apt-get update
-          sudo apt-get install -y zstd
+          set -euo pipefail
+
+          command -v zstd >/dev/null
+
           mkdir -p stfc-community-mod-windows-x64
-          tar -cf - -C stfc-community-mod version.dll \
-            | zstd -19 -T0 -o stfc-community-mod-windows-x64/stfc-community-mod-windows-x64.tar.zst
-          sha256sum stfc-community-mod-windows-x64/stfc-community-mod-windows-x64.tar.zst \
+
+          tar -cf - \
+            -C stfc-community-mod \
+            version.dll \
+            | zstd -15 -T0 \
+              -o stfc-community-mod-windows-x64/stfc-community-mod-windows-x64.tar.zst
+
+          sha256sum \
+            stfc-community-mod-windows-x64/stfc-community-mod-windows-x64.tar.zst \
             | awk '{print $1}' \
             > stfc-community-mod-windows-x64/stfc-community-mod-windows-x64.tar.zst.sha256
 
-      # ✅ Step 4 — Detect prerelease (alpha/beta)
       - name: Check Prerelease
         id: check-prerelease
+        shell: bash
         run: |
-          if echo "${{ github.ref_name }}" | grep -Pq "^v[\d]+.[\d]+.[\d]+(?:\.(alpha|beta)\.[\d]+)?$"; then
+          set -euo pipefail
+
+          if [[ "${{ github.ref_name }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+\.(alpha|beta)\.[0-9]+$ ]]; then
             echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
           fi
 
-      # ✅ Step 5 — Create Release
+      # Create the release and upload every release asset in one action.
       - name: Create Release
-        id: create_release
         uses: ncipollo/release-action@v1
         with:
-          tag: ${{ github.ref }}
+          tag: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
+
           generateReleaseNotes: true
-          prerelease: ${{ steps.check-prerelease.outputs.prerelease == 'true' }}
+          prerelease: ${{ steps.check-prerelease.outputs.prerelease }}
 
-      # ✅ Step 6 — Upload assets
-      - name: Upload Community Mod - Standard
-        uses: shogo82148/actions-upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./stfc-community-mod.zip
-          asset_name: stfc-community-mod.zip
-          asset_content_type: application/zip
+          artifactErrorsFailBuild: true
 
-      - name: Upload Community Mod - Versioned
-        uses: shogo82148/actions-upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./stfc-community-mod.zip
-          asset_name: stfc-community-mod-${{ github.ref_name }}.zip
-          asset_content_type: application/zip
-
-      - name: Upload Community Mod - Windows Archive
-        uses: shogo82148/actions-upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./stfc-community-mod-windows-x64/stfc-community-mod-windows-x64.tar.zst
-          asset_name: stfc-community-mod-windows-x64.tar.zst
-          asset_content_type: application/zstd
-
-      - name: Upload Community Mod - Windows Archive Checksum
-        uses: shogo82148/actions-upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./stfc-community-mod-windows-x64/stfc-community-mod-windows-x64.tar.zst.sha256
-          asset_name: stfc-community-mod-windows-x64.tar.zst.sha256
-          asset_content_type: text/plain
-
-      - name: Upload Community Mod - macOS Archive
-        uses: shogo82148/actions-upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./stfc-community-mod-macos-universal/stfc-community-mod-macos-universal.tar.zst
-          asset_name: stfc-community-mod-macos-universal.tar.zst
-          asset_content_type: application/zstd
-
-      - name: Upload Community Mod - macOS Archive Checksum
-        uses: shogo82148/actions-upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./stfc-community-mod-macos-universal/stfc-community-mod-macos-universal.tar.zst.sha256
-          asset_name: stfc-community-mod-macos-universal.tar.zst.sha256
-          asset_content_type: text/plain
-
-      - name: Upload Community Mod - Mac Installer
-        uses: shogo82148/actions-upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./stfc-community-mod-installer/stfc-community-mod-installer.dmg
-          asset_name: stfc-community-mod-installer.dmg
-          asset_content_type: application/x-apple-diskimage
+          artifacts: |
+            stfc-community-mod.zip
+            stfc-community-mod-${{ github.ref_name }}.zip
+            stfc-community-mod-windows-x64/stfc-community-mod-windows-x64.tar.zst
+            stfc-community-mod-windows-x64/stfc-community-mod-windows-x64.tar.zst.sha256
+            stfc-community-mod-macos-universal/stfc-community-mod-macos-universal.tar.zst
+            stfc-community-mod-macos-universal/stfc-community-mod-macos-universal.tar.zst.sha256
+            stfc-community-mod-installer/stfc-community-mod-installer.dmg

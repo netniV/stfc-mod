@@ -42,9 +42,7 @@ inline void StoreZoom(std::string label, float &zoom, NavigationZoom *_this)
   spdlog::info("Changing {} from {} to {}", label, old_zoom, zoom);
 }
 
-static float           s_expectedScale = 0;
-static void           *s_cachedFR      = nullptr;
-static NavigationZoom *s_navZoom       = nullptr;
+static float s_expectedScale = 0;
 
 static void ApplySystemZoomRange(NavigationZoom *_this, float radius)
 {
@@ -55,7 +53,6 @@ static void ApplySystemZoomRange(NavigationZoom *_this, float radius)
   auto ratio                     = (Config::Get().zoom / radius);
   _this->_farRatioSystemNormal   = 0.55f * ratio;
   _this->_farRatioSystemExtended = ratio;
-  s_navZoom                      = _this;
 }
 
 static void SetSceneCameraFarClip(NavigationZoom *_this)
@@ -244,19 +241,9 @@ void PlanetViewUtils_CameraZoomedEventHandler_Hook(auto original, PlanetViewUtil
 {
   original(_this, zoomDistance, normalizedZoom);
 
-  _this->GetFlatRenderable(); // probe: triggers get_FlatRenderable_Hook, which scales the FR; game often reads the
-                              // field directly so our detour needs this call-path
-
-  if (s_navZoom) {
-    auto *cam = s_navZoom->_sceneCamera;
-    if (cam) {
-      int cf = cam->clearFlags;
-      if (cf >= 0 && cf <= 4 && cf != 2) {
-        cam->farClipPlane    = Config::Get().zoom * 3.75f;
-        cam->clearFlags      = 2;
-        cam->backgroundColor = {0, 0, 0, 0};
-      }
-    }
+  if (_this != nullptr) {
+    _this->GetFlatRenderable(); // probe: triggers get_FlatRenderable_Hook, which scales the FR; game often reads the
+                                // field directly so our detour needs this call-path
   }
 }
 
@@ -285,10 +272,6 @@ void NavigationZoom_SetDepth_Hook(auto original, NavigationZoom *_this, NodeDept
 
     SetSceneCameraFarClip(_this);
     do_default_zoom = true;
-
-    if (s_cachedFR) {
-      ScaleFR(s_cachedFR);
-    }
   } else {
     original(_this, depth);
   }
@@ -301,7 +284,6 @@ void *PlanetViewUtils_get_FlatRenderable_Hook(auto original, PlanetViewUtils *_t
     return fr;
   }
 
-  s_cachedFR = fr;
   ScaleFR(fr);
   return fr;
 }

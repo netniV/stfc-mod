@@ -98,6 +98,10 @@ message TranslationsContainer {
   repeated TranslationSection sections = 1;
 }
 
+message DynamicTranslationsContainer {
+  repeated TranslationSection sections = 1;
+}
+
 message TranslationSection {
   string section = 1;
   int32 sectionHash = 2;
@@ -155,6 +159,10 @@ message OrderItem {
 
 message Bundles {
   repeated Bundle bundles_ = 1;
+}
+
+message TournamentBundlesResponse {
+  repeated Bundle bundles = 1;
 }
 
 message Cost {

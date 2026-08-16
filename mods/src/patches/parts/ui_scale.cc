@@ -4,6 +4,7 @@
 #include <il2cpp/il2cpp_helper.h>
 
 #include <prime/CanvasScaler.h>
+#include <prime/FleetMeshSelector.h>
 #include <prime/ScreenManager.h>
 #include <prime/Transform.h>
 
@@ -12,6 +13,72 @@
 
 #include <prime/Vector3.h>
 #include <str_utils.h>
+
+namespace
+{
+float ShipScaleMultiplier()
+{
+  const auto multiplier = Config::Get().ui_scale_ship;
+  return multiplier > 0.0f ? multiplier : 1.0f;
+}
+
+Transform* GetGameObjectTransform(void* game_object)
+{
+  if (game_object == nullptr) {
+    return nullptr;
+  }
+
+  static auto game_object_helper = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "GameObject");
+  if (!game_object_helper.isValidHelper()) {
+    return nullptr;
+  }
+
+  static auto transform_property = game_object_helper.GetProperty("transform");
+  if (!transform_property.isValidHelper()) {
+    return nullptr;
+  }
+
+  return reinterpret_cast<Transform*>(transform_property.GetRaw<Il2CppObject>(game_object));
+}
+} // namespace
+
+void ApplyUiShipScaleToLoadedShips(float old_multiplier, float new_multiplier)
+{
+  if (old_multiplier <= 0.0f || new_multiplier <= 0.0f) {
+    return;
+  }
+
+  const auto ratio = new_multiplier / old_multiplier;
+
+  for (auto* selector : ObjectFinder<FleetMeshSelector>::GetAll()) {
+    if (selector == nullptr) {
+      continue;
+    }
+
+    auto* transform = GetGameObjectTransform(selector->LoadedObject());
+    if (transform == nullptr) {
+      continue;
+    }
+
+    auto* local_scale = transform->localScale;
+    if (local_scale == nullptr) {
+      continue;
+    }
+
+    Vector3 adjusted_scale{local_scale->x * ratio, local_scale->y * ratio, local_scale->z * ratio};
+    transform->localScale = &adjusted_scale;
+  }
+}
+
+bool SystemViewShip_TryGetShipAssetBundleResource_Hook(auto original, void* _this, float* scale,
+                                                       void** asset_bundle_resource)
+{
+  const auto result = original(_this, scale, asset_bundle_resource);
+  if (result && scale != nullptr) {
+    *scale *= ShipScaleMultiplier();
+  }
+  return result;
+}
 
 void ScreenManager_UpdateCanvasRootScaleFactor_Hook(auto original, ScreenManager* _this)
 {
@@ -73,6 +140,17 @@ void CanvasController_Show(auto original, CanvasController* _this, int desiredEn
 
 void InstallUiScaleHooks()
 {
+  auto system_view_ship =
+      il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Navigation", "SystemViewShip");
+  if (!system_view_ship.isValidHelper()) {
+    ErrorMsg::MissingHelper("Navigation", "SystemViewShip");
+  } else if (auto try_get_ship_asset = system_view_ship.GetMethod("TryGetShipAssetBundleResource", 2);
+             try_get_ship_asset == nullptr) {
+    ErrorMsg::MissingMethod("SystemViewShip", "TryGetShipAssetBundleResource");
+  } else {
+    SPUD_STATIC_DETOUR(try_get_ship_asset, SystemViewShip_TryGetShipAssetBundleResource_Hook);
+  }
+
   auto screen_manager_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.UI", "ScreenManager");
   if (!screen_manager_helper.isValidHelper()) {
     ErrorMsg::MissingHelper("UI", "ScreenManager");

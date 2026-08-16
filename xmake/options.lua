@@ -1,0 +1,11 @@
+option("bg_image")
+    set_showmenu(true)
+    set_description("Path to a PNG to embed as the loading screen background (regenerates embedded_loading_image.h)")
+    set_default("")
+option_end()
+
+option("use_original_bg")
+    set_showmenu(true)
+    set_description("Keep the original in-game loading screen background (no custom BG replacement, logos still shown)")
+    set_default(false)
+option_end()
