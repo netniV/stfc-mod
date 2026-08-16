@@ -3,6 +3,7 @@
 #include "prime/AllianceStarbaseObjectViewerWidget.h"
 #include "prime/AnimatedRewardsScreenViewController.h"
 #include "prime/ArmadaObjectViewerWidget.h"
+#include "prime/ArtifactHallDetailsViewController.h"
 #include "prime/AssignShipsWidget.h"
 #include "prime/CelestialObjectViewerWidget.h"
 #include "prime/EmbassyObjectViewer.h"
@@ -193,6 +194,7 @@ void InstallObjectTrackers()
   TrackObject<AllianceStarbaseObjectViewerWidget>();
   TrackObject<AnimatedRewardsScreenViewController>();
   TrackObject<ArmadaObjectViewerWidget>();
+  TrackObject<ArtifactHallDetailsViewController>();
   TrackObject<AssignShipsWidget>();
   TrackObject<CelestialObjectViewerWidget>();
   TrackObject<EmbassyObjectViewer>();
