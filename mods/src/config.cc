@@ -762,8 +762,6 @@ void Config::Load()
   this->installMissionHudTweaksHooks = false;
   this->installChatPatches =
       get_config_or_default(config, parsed, "patches", "chatpatches", DCP::chatpatches, write_config);
-  this->installResolutionListFix =
-      get_config_or_default(config, parsed, "patches", "resolutionlistfix", DCP::resolutionlistfix, write_config);
   this->installSyncPatches =
       get_config_or_default(config, parsed, "patches", "syncpatches", DCP::syncpatches, write_config);
   this->installGameVersionHook =
@@ -826,8 +824,6 @@ void Config::Load()
       get_config_or_default(config, parsed, "graphics", "borderless_fullscreen", DCG::borderless_fullscreen, write_log);
   this->transition_time =
       get_config_or_default(config, parsed, "graphics", "transition_time", DCG::transition_time, write_config);
-  this->show_all_resolutions = get_config_or_default(config, parsed, "graphics", "show_all_resolutions",
-                                                     DCG::show_all_resolutions, write_config);
   this->default_system_zoom =
       get_config_or_default(config, parsed, "graphics", "default_system_zoom", DCG::default_system_zoom, write_config);
 

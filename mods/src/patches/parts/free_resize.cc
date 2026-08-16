@@ -98,20 +98,12 @@ struct Resolution {
   int m_RefreshRate;
 };
 
-struct ResolutionArray {
-  Il2CppObject obj;
-  void*        bounds;
-  size_t       maxlength;
-  Resolution   data[1];
-};
-
 void AspectRatioConstraintHandler_Update(auto original, void* _this)
 {
   static auto set_title       = true;
   static auto get_fullscreen  = il2cpp_resolve_icall_typed<bool()>("UnityEngine.Screen::get_fullScreen()");
   static auto get_height      = il2cpp_resolve_icall_typed<int()>("UnityEngine.Screen::get_height()");
   static auto get_width       = il2cpp_resolve_icall_typed<int()>("UnityEngine.Screen::get_width()");
-  static auto get_resolutions = il2cpp_resolve_icall_typed<ResolutionArray*()>("UnityEngine.Screen::get_resolutions()");
   static auto SetResolution   = il2cpp_resolve_icall_typed<void(int, int, int, int)>(
       "UnityEngine.Screen::SetResolution(System.Int32,System.Int32,UnityEngine.FullScreenMode,System.Int32)");
 
