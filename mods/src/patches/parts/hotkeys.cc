@@ -112,7 +112,7 @@ bool MoveArtifactCanvas(bool goLeft)
     }
 
     if (!controller->isActiveAndEnabled()) {
-      spdlog::trace"MoveArtifactCanvas({}) - Controller not active", (int)goLeft);
+      spdlog::trace("MoveArtifactCanvas({}) - Controller not active", (int)goLeft);
     }
 
     if (goLeft) {
