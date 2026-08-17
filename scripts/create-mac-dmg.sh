@@ -38,6 +38,7 @@ test -f "build/macosx/$ARCH/$CONFIG/STFC Community Mod.app/Contents/Resources/As
 codesign --force --verify --verbose --deep --sign "-" build/macosx/$ARCH/$CONFIG/STFC\ Community\ Mod.app
 
 DMG_SOURCE="build/macosx/$ARCH/$CONFIG/dmg-source"
+rm -rf "$DMG_SOURCE"
 mkdir "$DMG_SOURCE"
 mv "build/macosx/$ARCH/$CONFIG/STFC Community Mod.app" "$DMG_SOURCE/"
 
