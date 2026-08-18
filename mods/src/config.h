@@ -40,8 +40,8 @@ public:
   };
 
   std::string proxy;
-  bool verify_ssl = true;
 
+  bool verify_ssl = true;
   bool battlelogs = false;
   bool buffs      = false;
   bool buildings  = false;
@@ -110,6 +110,15 @@ enum class MissionHudVisibility {
   Never,
 };
 
+enum class InstantWarpConfirmation {
+  None,
+  Warp,
+  Jump,
+};
+
+// Part of UI Scale
+void ApplyUiShipScaleToLoadedShips(float old_multiplier, float new_multiplier);
+
 class Config final
 {
 public:
@@ -126,7 +135,9 @@ public:
   static void Save(const toml::table& config, std::string_view filename, bool apply_warning = true);
   void        Load();
   void        AdjustUiScale(bool scaleUp);
+  void        AdjustUiShipScale(bool scaleUp);
   void        AdjustUiViewerScale(bool scaleUp);
+
   [[nodiscard]] MissionHudVisibility MissionHudButtonVisibility(std::string_view button_name) const;
   [[nodiscard]] bool                 MissionHudTweaksEnabled() const;
 
@@ -138,13 +149,13 @@ public:
 
   float ui_scale;
   float ui_scale_adjust;
+  float ui_scale_ship;
   float ui_scale_viewer;
   float zoom;
   float fr_scale;
   bool  allow_cursor;
   bool  free_resize;
   bool  adjust_scale_res;
-  bool  show_all_resolutions;
 
   bool  use_out_of_dock_power;
   float system_pan_momentum;
@@ -183,6 +194,9 @@ public:
   bool disable_first_popup;
   bool disable_toast_banners;
   bool auto_open_bulk_claim_flyout;
+  bool auto_confirm_ft_upgrade;
+
+  InstantWarpConfirmation auto_confirm_instant_warp;
 
   bool show_cargo_default;
   bool show_player_cargo;
@@ -212,11 +226,11 @@ public:
   bool installMiscPatches;
   bool installMissionHudTweaksHooks;
   bool installChatPatches;
-  bool installResolutionListFix;
   bool installSyncPatches;
   bool installGameVersionHook;
   bool installObjectTracker;
   bool installGiftsBulkClaimHooks;
+  bool installInstantWarpConfirmationHooks;
 
   std::string config_settings_url;
   std::string config_assets_url_override;

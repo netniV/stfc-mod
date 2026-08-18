@@ -1504,7 +1504,7 @@ static void resources(std::unique_ptr<std::string>&& bytes)
     }
 
     if (!resource_array.empty()) {
-      bool first_sync = is_first_sync.exchange(false, std::memory_order_acq_rel);
+      const bool first_sync = is_first_sync.exchange(false, std::memory_order_acq_rel);
       workers::queue_data(SyncConfig::Type::Resources, resource_array, first_sync);
     }
   } else {
@@ -1563,14 +1563,14 @@ static void alliance_resources(std::unique_ptr<std::string>&& bytes)
 
           if (const auto& it = resource_states_alliance.find(id); it == resource_states_alliance.end() || it->second != amount) {
             resource_states_alliance[id] = amount;
-            resource_array.push_back({{"type", SyncConfig::Type::Resources}, {"rid", id}, {"amount", amount}});
+            resource_array.push_back({{"type", "alliance_" + SyncConfig::Type::Resources}, {"rid", id}, {"amount", amount}});
           }
         }
       }
     }
 
     if (!resource_array.empty()) {
-      bool first_sync = is_first_sync.exchange(false, std::memory_order_acq_rel);
+      const bool first_sync = is_first_sync.exchange(false, std::memory_order_acq_rel);
       workers::queue_data(SyncConfig::Type::Resources, resource_array, first_sync);
     }
   } else {
@@ -1594,7 +1594,7 @@ static void alliance_resources_delta(std::unique_ptr<std::string>&& bytes)
       for (const auto& resource : response.resources()) {
         if (const auto& it = resource_states_alliance.find(resource.id()); it == resource_states_alliance.end() || it->second != resource.amount()) {
           resource_states_alliance[resource.id()] = resource.amount();
-          resource_array.push_back({{"type", SyncConfig::Type::Resources}, {"rid", resource.id()}, {"amount", resource.amount()}});
+          resource_array.push_back({{"type", "alliance_" + SyncConfig::Type::Resources}, {"rid", resource.id()}, {"amount", resource.amount()}});
         }
       }
     }
@@ -1888,7 +1888,7 @@ namespace json
     }
 
     if (!resource_array.empty()) {
-      bool first_sync = is_first_sync.exchange(false, std::memory_order_acq_rel);
+      const bool first_sync = is_first_sync.exchange(false, std::memory_order_acq_rel);
       workers::queue_data(SyncConfig::Type::Resources, resource_array, first_sync);
     }
   }
@@ -1958,7 +1958,7 @@ namespace json
     }
 
     if (!ship_array.empty()) {
-      bool first_sync = is_first_sync.exchange(false, std::memory_order_acq_rel);
+      const bool first_sync = is_first_sync.exchange(false, std::memory_order_acq_rel);
       workers::queue_data(SyncConfig::Type::Ships, ship_array, first_sync);
     }
   }
@@ -2292,7 +2292,15 @@ static void HandleEntityGroup(EntityGroup* entity_group)
 
 namespace hooks
 {
-static void* RtcParser_ParseFinalPayload(auto original, void* _this, void* centrifugoInfo,
+// IL2CPP value type: keep this parameter by value so following arguments retain their platform ABI positions.
+struct CentrifugoInfo {
+  Il2CppString* Channel;
+  int32_t       Offset;
+};
+
+static_assert(sizeof(CentrifugoInfo) == 16);
+
+static void* RtcParser_ParseFinalPayload(auto original, void* _this, CentrifugoInfo centrifugoInfo,
                                          RealtimeDataPayload* realtimeDataPayload, void* finalPayload)
 {
   if (realtimeDataPayload != nullptr && realtimeDataPayload->Target != nullptr

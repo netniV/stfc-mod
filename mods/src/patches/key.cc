@@ -271,7 +271,7 @@ bool Key::HasShift()
 
 bool Key::HasAlt()
 {
-  return Key::Pressed(KeyCode::LeftAlt) || Key::Pressed(KeyCode::RightShift);
+  return Key::Pressed(KeyCode::LeftAlt) || Key::Pressed(KeyCode::RightAlt);
 }
 
 bool Key::HasCtrl()

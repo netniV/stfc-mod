@@ -121,7 +121,17 @@ static bool needs_relocate(uintptr_t decoder_offset, uintptr_t code_end,
         has_group(ARM64_GRP_CALL)) {
       if (detail.op_count == 0)
         return false;
-      result = detail.operands[detail.op_count - 1].imm;
+
+      // Indirect branches such as BR/BLR keep their destination in a
+      // register. They are position-independent and must be copied verbatim.
+      // Reading the operand union as an immediate makes the register id look
+      // like an address, incorrectly sends the instruction through the
+      // relative-branch relocator, and corrupts its opcode.
+      const auto &target_operand = detail.operands[detail.op_count - 1];
+      if (target_operand.type != AARCH64_OP_IMM) {
+        return false;
+      }
+      result = target_operand.imm;
     }
   }
 
@@ -315,6 +325,12 @@ static void write_relocation_data(
       auto target_end = target_start + target.size();
 
       const auto &detail = relo.instruction.detail->aarch64;
+      if (detail.op_count == 0 ||
+          detail.operands[detail.op_count - 1].type != AARCH64_OP_IMM) {
+        ++relocation_data_idx;
+        continue;
+      }
+
       const uintptr_t jump_target = detail.operands[detail.op_count - 1].imm;
       if (jump_target == 0) {
         continue;

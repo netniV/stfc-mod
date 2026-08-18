@@ -30,7 +30,6 @@ namespace Graphics
   constexpr auto        default_system_zoom         = 1750;
   constexpr bool        free_resize                 = true;
   constexpr auto        keyboard_zoom_speed         = 350;
-  constexpr bool        show_all_resolutions        = false;
   constexpr auto        system_pan_momentum_falloff = 0.8;
   constexpr auto        system_pan_momentum         = 0.4;
   constexpr auto        system_zoom_preset_1        = 50;
@@ -41,6 +40,7 @@ namespace Graphics
   constexpr auto        transition_time             = 0.01;
   constexpr auto        ui_scale                    = 0.6;
   constexpr auto        ui_scale_adjust             = 0.05;
+  constexpr auto        ui_scale_ship               = 1.0;
   constexpr auto        ui_scale_viewer             = 1.2;
   constexpr bool        use_presets_as_default      = true;
   constexpr auto        zoom                        = 5000;
@@ -68,7 +68,6 @@ namespace Patches
   constexpr bool transitionscreenhooks          = true;
   constexpr bool objecttracker              = true;
   constexpr bool panhooks                   = true;
-  constexpr bool resolutionlistfix          = false;
   constexpr bool syncpatches                = true;
   constexpr bool tempcrashfixes             = true;
   constexpr bool testpatches                = true;
@@ -155,10 +154,13 @@ namespace Shortcuts
   constexpr const char* toggle_cargo_hostile  = "ALT-4";
   constexpr const char* toggle_cargo_player   = "ALT-2";
   constexpr const char* toggle_cargo_station  = "ALT-3";
+  constexpr const char* toggle_instant_warp   = "ALT-I";
   constexpr const char* toggle_preview_locate = "CTRL-R";
   constexpr const char* toggle_preview_recall = "CTRL-T";
   constexpr const char* ui_scaledown          = "PGDOWN";
   constexpr const char* ui_scaleup            = "PGUP";
+  constexpr const char* ui_scaleshipdown      = "CTRL-PGDOWN";
+  constexpr const char* ui_scaleshipup        = "CTRL-PGUP";
   constexpr const char* ui_scaleviewerdown    = "SHIFT-PGDOWN";
   constexpr const char* ui_scaleviewerup      = "SHIFT-PGUP";
   constexpr const char* zoom_in               = "Q";
@@ -205,6 +207,7 @@ namespace UI
 {
   constexpr bool        always_skip_reveal_sequence = true;
   constexpr bool        auto_confirm_discovery      = true;
+  constexpr bool        auto_confirm_ft_upgrade     = false;
   constexpr bool        auto_open_bulk_claim_flyout = false;
   constexpr bool        disable_escape_exit         = true;
   constexpr bool        disable_first_popup         = false;
@@ -220,6 +223,7 @@ namespace UI
   constexpr const char* hud_missions                = "auto";
   constexpr const char* hud_outposts                = "auto";
   constexpr const char* hud_q_trials                = "auto";
+  constexpr const char* auto_confirm_instant_warp   = "none";
   constexpr const char* notify_banner_types         = "";
   constexpr auto        extend_donation_max         = 80;
   constexpr bool        extend_donation_slider      = true;

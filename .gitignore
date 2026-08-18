@@ -21,3 +21,5 @@ debug.log
 # Generated Info.plist files (generated from templates)
 **/Info.plist
 mods/.xmake
+Analyse-GameAssembly.ps1
+assets/LoadingScreens/*.psd
