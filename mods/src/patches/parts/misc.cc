@@ -249,7 +249,7 @@ void InstallTempCrashFixes()
   static auto actionqueue_manager =
       il2cpp_get_class_helper("Assembly-CSharp", "Prime.ActionQueue", "ActionQueueManager");
   if (!actionqueue_manager.isValidHelper()) {
-    ErrorMsg::MissingHelper("ActionQueue", "ActionQueueMaanger");
+    ErrorMsg::MissingHelper("ActionQueue", "ActionQueueManager");
   } else {
     auto addtoqueue_method = actionqueue_manager.GetMethod("AddActionToQueue");
     if (addtoqueue_method == nullptr) {

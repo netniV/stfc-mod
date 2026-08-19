@@ -16,7 +16,7 @@ public:
       SetScaleFactorMethod(this, v);
     } else if (SetScaleFactorWarn) {
       SetScaleFactorWarn = false;
-      ErrorMsg::MissingMethod("CanvasScalar", "SetScaleFactor");
+      ErrorMsg::MissingMethod("CanvasScaler", "SetScaleFactor");
     }
   }
 

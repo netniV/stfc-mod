@@ -34,7 +34,7 @@ public:
       return IsActiveMethod(this);
     } else if (IsActiveWarn) {
       IsActiveWarn = false;
-      ErrorMsg::MissingMethod("GenericRewardsSCreenViewController", "IsActive");
+      ErrorMsg::MissingMethod("GenericRewardsScreenViewController", "IsActive");
     }
   }
 };
