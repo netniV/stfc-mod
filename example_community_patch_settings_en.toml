@@ -760,12 +760,6 @@ verify_ssl = true
 #
 #  <[========================================================================================]>
 
-# The token that is used to provide authentication
-token = ""
-
-# The url of the server to send data to
-url = ""
-
 [sync.targets.nextspocksclub]
 
 #  <[========================================================================================]>
