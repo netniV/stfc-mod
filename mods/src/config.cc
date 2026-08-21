@@ -871,12 +871,10 @@ void Config::Load()
       get_config_or_default(config, parsed, "ui", "auto_confirm_ft_upgrade",
                             DCU::auto_confirm_ft_upgrade, write_config);
 
-#if _WIN32
   this->extend_donation_slider =
       get_config_or_default(config, parsed, "ui", "extend_donation_slider", DCU::extend_donation_slider, write_config);
   this->extend_donation_max =
       get_config_or_default(config, parsed, "ui", "extend_donation_max", DCU::extend_donation_max, write_config);
-#endif
 
   this->disable_galaxy_chat =
       get_config_or_default(config, parsed, "ui", "disable_galaxy_chat", DCU::disable_galaxy_chat, write_config);
