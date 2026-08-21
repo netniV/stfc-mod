@@ -34,7 +34,6 @@
 #include "patches/key.h"
 #include "patches/mapkey.h"
 #include "patches/parts/focus_search.h"
-#include "patches/parts/orphaned_tutorial_shortcut_gate.h"
 
 #include <EASTL/vector.h>
 
@@ -892,12 +891,6 @@ void InitializeActions_Hook(auto original, void* _this)
   }
 }
 
-void ShortcutsManager_LateUpdate_Hook(auto original, void* _this)
-{
-  RepairOrphanedTutorialShortcutGateIfNeeded(_this);
-  return original(_this);
-}
-
 bool CheckShowCargo(RewardsButtonWidget* widget)
 {
   if (!widget || !Config::Get().show_cargo_default) {
@@ -964,28 +957,16 @@ void ShowWithFleet_Hook(auto original, PreScanTargetWidget* _this, void* a1)
 
 void InstallHotkeyHooks()
 {
-  spdlog::info("[Hotkeys] startup config use_scopely_hotkeys={} hotkeys_enabled={} "
-               "repair_orphaned_tutorial_shortcut_gate={}",
-               Config::Get().use_scopely_hotkeys, Config::Get().hotkeys_enabled,
-               Config::Get().repair_orphaned_tutorial_shortcut_gate);
-
   auto shortcuts_manager_helper =
       il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.GameInput", "ShortcutsManager");
-  if (!shortcuts_manager_helper.get_cls()) {
+  if (!shortcuts_manager_helper.isValidHelper()) {
     ErrorMsg::MissingHelper("GameInput", "ShortcutsManager");
   } else {
-    auto initialize_actions = shortcuts_manager_helper.GetMethod("InitializeActions");
-    if (initialize_actions == nullptr) {
+    auto ptr_can_user_shortcuts = shortcuts_manager_helper.GetMethod("InitializeActions");
+    if (ptr_can_user_shortcuts == nullptr) {
       ErrorMsg::MissingMethod("ShortcutsManager", "InitializeActions");
     } else {
-      SPUD_STATIC_DETOUR(initialize_actions, InitializeActions_Hook);
-    }
-
-    auto late_update = shortcuts_manager_helper.GetMethod("LateUpdate");
-    if (late_update == nullptr) {
-      ErrorMsg::MissingMethod("ShortcutsManager", "LateUpdate");
-    } else {
-      SPUD_STATIC_DETOUR(late_update, ShortcutsManager_LateUpdate_Hook);
+      SPUD_STATIC_DETOUR(ptr_can_user_shortcuts, InitializeActions_Hook);
     }
   }
 

@@ -23,11 +23,6 @@ namespace Control
   constexpr auto select_timer        = 500;
 } // namespace Control
 
-namespace Input
-{
-  constexpr bool repair_orphaned_tutorial_shortcut_gate = false;
-} // namespace Input
-
 namespace Graphics
 {
   constexpr bool        borderless_fullscreen       = true;
