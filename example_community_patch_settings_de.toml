@@ -615,6 +615,13 @@ extend_donation_max = 80
 # Erweiterung des Spendenschiebereglers aktivieren
 extend_donation_slider = true
 
+# Subgroup: Truhenkäufe
+# ---------------------
+
+# Maximum für markierte Truhenkauf-Schieberegler unter Windows (0 deaktiviert; Werte über 160 werden begrenzt).
+# Höhere native Grenzwerte bleiben erhalten.
+extend_chest_purchase_max = 160
+
 # Subgroup: HUD
 # -------------
 

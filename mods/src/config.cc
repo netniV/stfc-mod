@@ -872,6 +872,8 @@ void Config::Load()
                             DCU::auto_confirm_ft_upgrade, write_config);
 
 #if _WIN32
+  this->extend_chest_purchase_max = get_config_or_default(config, parsed, "ui", "extend_chest_purchase_max",
+                                                          DCU::extend_chest_purchase_max, write_config);
   this->extend_donation_slider =
       get_config_or_default(config, parsed, "ui", "extend_donation_slider", DCU::extend_donation_slider, write_config);
   this->extend_donation_max =

@@ -225,6 +225,7 @@ namespace UI
   constexpr const char* hud_q_trials                = "auto";
   constexpr const char* auto_confirm_instant_warp   = "none";
   constexpr const char* notify_banner_types         = "";
+  constexpr auto        extend_chest_purchase_max   = 160;
   constexpr auto        extend_donation_max         = 80;
   constexpr bool        extend_donation_slider      = true;
   constexpr bool        show_armada_cargo           = true;

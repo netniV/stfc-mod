@@ -615,6 +615,13 @@ extend_donation_max = 80
 # Zet dit aan als je de schuifregelaar voor alliantie donaties wilt uitbreiden
 extend_donation_slider = true
 
+# Subgroup: Kistaankopen
+# ----------------------
+
+# Maximum voor gemarkeerde kistaankoop-schuifregelaars op Windows (0 schakelt uit; waarden boven 160 worden begrensd).
+# Hogere ingebouwde limieten blijven behouden.
+extend_chest_purchase_max = 160
+
 # Subgroup: HUD
 # -------------
 
