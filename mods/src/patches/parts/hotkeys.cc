@@ -87,7 +87,7 @@ bool MoveOfficerCanvas(bool goLeft)
   }
 
   bool acted = false;
-  for (auto selector : selectors) {
+  for (auto& selector : selectors) {
     if (!selector || !selector->isActiveAndEnabled()) {
       continue;
     }
@@ -105,7 +105,7 @@ bool MoveOfficerCanvas(bool goLeft)
 bool MoveArtifactCanvas(bool goLeft)
 {
   bool acted = false;
-  for (auto controller : ObjectFinder<ArtifactHallDetailsViewController>::GetAll()) {
+  for (auto& controller : ObjectFinder<ArtifactHallDetailsViewController>::GetAll()) {
     if (!controller) {
       spdlog::trace("MoveArtifactCanvas({}) - No controller", (int)goLeft);
       continue;
@@ -465,7 +465,7 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
         auto fleet_bar = ObjectFinder<FleetBarViewController>::Get();
         if (fleet_bar) {
           bool was_forced = force_space_action_next_frame;
-          ExecuteSpaceAction(fleet_bar);
+          ExecuteSpaceAction(fleet_bar.get());
           if (was_forced) {
             force_space_action_next_frame = false;
           }
@@ -529,7 +529,7 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
 // NOTE: If you change this loop functionality, also change DoHideViewersOfType template
 template <typename T> inline bool CanHideViewersOfType()
 {
-  for (auto widget : ObjectFinder<T>::GetAll()) {
+  for (auto& widget : ObjectFinder<T>::GetAll()) {
     const auto visible = widget && widget->_visibilityController != NULL
                          && (widget->_visibilityController->_state == VisibilityState::Visible
                              || widget->_visibilityController->_state == VisibilityState::Show);
@@ -555,7 +555,7 @@ template <typename T> inline bool DidHideViewersOfType()
 {
   const auto objects = ObjectFinder<T>::GetAll();
   auto       didHide = false;
-  for (auto widget : objects) {
+  for (const auto& widget : objects) {
     if (!widget) {
       continue;
     }
@@ -699,7 +699,7 @@ void ExecuteSpaceAction(FleetBarViewController* fleet_bar)
     fleet_controller->CancelButtonClicked();
   } else {
     auto all_pre_scan_widgets = ObjectFinder<PreScanTargetWidget>::GetAll();
-    for (auto pre_scan_widget : all_pre_scan_widgets) {
+    for (auto& pre_scan_widget : all_pre_scan_widgets) {
       auto visibility_controller = pre_scan_widget ? pre_scan_widget->_visibilityController : nullptr;
       if (visibility_controller
           && (visibility_controller->_state == VisibilityState::Visible

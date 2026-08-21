@@ -8,9 +8,8 @@
 #include <il2cpp-object-internals.h>
 #include <utils/Il2CppHashMap.h>
 
-#include <EASTL/span.h>
-#include <EASTL/unordered_map.h>
-#include <EASTL/vector.h>
+#include <utility>
+#include <vector>
 
 #if !_WIN32
 #include <syslog.h>
@@ -351,25 +350,104 @@ template <typename T> inline T* il2cpp_get_array_element(Il2CppArray* array, siz
   return (T*)n->vector[index];
 }
 
-extern eastl::unordered_map<Il2CppClass*, eastl::vector<uintptr_t>> tracked_objects;
+namespace object_tracker
+{
+class ObjectLeaseHandle
+{
+public:
+  ObjectLeaseHandle() = default;
+
+  explicit ObjectLeaseHandle(Il2CppGCHandle handle)
+      : handle_(handle)
+  {
+  }
+
+  ObjectLeaseHandle(const ObjectLeaseHandle&)            = delete;
+  ObjectLeaseHandle& operator=(const ObjectLeaseHandle&) = delete;
+
+  ObjectLeaseHandle(ObjectLeaseHandle&& other) noexcept
+      : handle_(std::exchange(other.handle_, nullptr))
+  {
+  }
+
+  ObjectLeaseHandle& operator=(ObjectLeaseHandle&& other) noexcept
+  {
+    if (this != &other) {
+      reset();
+      handle_ = std::exchange(other.handle_, nullptr);
+    }
+    return *this;
+  }
+
+  ~ObjectLeaseHandle()
+  { reset(); }
+
+  Il2CppObject* get() const
+  { return handle_ ? il2cpp_gchandle_get_target(handle_) : nullptr; }
+
+private:
+  void reset()
+  {
+    if (handle_) {
+      il2cpp_gchandle_free(handle_);
+      handle_ = nullptr;
+    }
+  }
+
+  Il2CppGCHandle handle_ = nullptr;
+};
+
+ObjectLeaseHandle              AcquireLatest(Il2CppClass* klass);
+std::vector<ObjectLeaseHandle> AcquireAll(Il2CppClass* klass);
+} // namespace object_tracker
+
+template <typename T> class TrackedObjectLease
+{
+public:
+  TrackedObjectLease() = default;
+
+  explicit TrackedObjectLease(object_tracker::ObjectLeaseHandle&& handle)
+      : handle_(std::move(handle))
+  {
+  }
+
+  TrackedObjectLease(const TrackedObjectLease&)                = delete;
+  TrackedObjectLease& operator=(const TrackedObjectLease&)     = delete;
+  TrackedObjectLease(TrackedObjectLease&&) noexcept            = default;
+  TrackedObjectLease& operator=(TrackedObjectLease&&) noexcept = default;
+
+  T* get() const
+  { return reinterpret_cast<T*>(handle_.get()); }
+
+  T* operator->() const
+  { return get(); }
+
+  T& operator*() const
+  { return *get(); }
+
+  explicit operator bool() const
+  { return get() != nullptr; }
+
+private:
+  object_tracker::ObjectLeaseHandle handle_;
+};
 
 template <typename T> class ObjectFinder
 {
 public:
-  static T* Get()
-  {
-    auto& objects = tracked_objects[T::get_class_helper().get_cls()];
-    if (objects.empty()) {
-      // TODO: assert?
-      return nullptr;
-    }
-    return reinterpret_cast<T*>(objects.back());
-  }
+  static TrackedObjectLease<T> Get()
+  { return TrackedObjectLease<T>{object_tracker::AcquireLatest(T::get_class_helper().get_cls())}; }
 
-  static eastl::span<T*> GetAll()
+  static std::vector<TrackedObjectLease<T>> GetAll()
   {
-    auto& objects = tracked_objects[T::get_class_helper().get_cls()];
-    return {reinterpret_cast<T**>(objects.data()), reinterpret_cast<T**>(objects.data()) + objects.size()};
+    auto handles = object_tracker::AcquireAll(T::get_class_helper().get_cls());
+
+    std::vector<TrackedObjectLease<T>> objects;
+    objects.reserve(handles.size());
+    for (auto& handle : handles) {
+      objects.emplace_back(std::move(handle));
+    }
+    return objects;
   }
 };
 

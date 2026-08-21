@@ -50,8 +50,8 @@ void ApplyUiShipScaleToLoadedShips(float old_multiplier, float new_multiplier)
 
   const auto ratio = new_multiplier / old_multiplier;
 
-  for (auto* selector : ObjectFinder<FleetMeshSelector>::GetAll()) {
-    if (selector == nullptr) {
+  for (auto& selector : ObjectFinder<FleetMeshSelector>::GetAll()) {
+    if (!selector) {
       continue;
     }
 

@@ -28,7 +28,7 @@ bool FocusSearchBox()
 
   // InventoryListViewController covers OfficerRosterViewController and other inventory subclasses
   auto inventoryControllers = ObjectFinder<InventoryListViewController>::GetAll();
-  for (auto controller : inventoryControllers) {
+  for (auto& controller : inventoryControllers) {
     if (!controller || !controller->_inputField) {
       continue;
     }
@@ -36,8 +36,9 @@ bool FocusSearchBox()
     auto canvas  = controller->canvasController;
     bool visible = canvas && canvas->Visible();
     bool active  = controller->isActiveAndEnabled && controller->_inputField->isActiveAndEnabled;
-    spdlog::debug("[FocusSearch] inventory controller={} section={} canvas={} visible={} active={}", (void*)controller,
-                 (int32_t)controller->_targetSection, (void*)canvas, visible, active);
+    spdlog::debug("[FocusSearch] inventory controller={} section={} canvas={} visible={} active={}",
+                  static_cast<void*>(controller.get()), (int32_t)controller->_targetSection, (void*)canvas, visible,
+                  active);
 
     if (visible && active) {
 #ifdef _MODDBG
@@ -50,7 +51,7 @@ bool FocusSearchBox()
 
   // OfficerAssignmentViewController (separate from inventory list)
   auto officerControllers = ObjectFinder<OfficerAssignmentViewController>::GetAll();
-  for (auto controller : officerControllers) {
+  for (auto& controller : officerControllers) {
     if (!controller || !controller->_inputField) {
       continue;
     }
@@ -58,8 +59,8 @@ bool FocusSearchBox()
     auto canvas  = controller->canvasController;
     bool visible = canvas && canvas->Visible();
     bool active  = controller->isActiveAndEnabled && controller->_inputField->isActiveAndEnabled;
-    spdlog::debug("[FocusSearch] officer assignment controller={} canvas={} visible={} active={}", (void*)controller,
-                 (void*)canvas, visible, active);
+    spdlog::debug("[FocusSearch] officer assignment controller={} canvas={} visible={} active={}",
+                  static_cast<void*>(controller.get()), (void*)canvas, visible, active);
 
     if (visible && active) {
 #ifdef _MODDBG
@@ -72,16 +73,16 @@ bool FocusSearchBox()
 
   // AssignShipsWidget (ship selection / assignment)
   auto assignShipWidgets = ObjectFinder<AssignShipsWidget>::GetAll();
-  for (auto widget : assignShipWidgets) {
+  for (auto& widget : assignShipWidgets) {
     if (!widget || !widget->_inputField) {
       continue;
     }
 
-    auto canvas  = GetCanvasControllerFromComponent(widget);
+    auto canvas  = GetCanvasControllerFromComponent(widget.get());
     bool visible = canvas && canvas->Visible();
     bool active  = widget->isActiveAndEnabled && widget->_inputField->isActiveAndEnabled;
-    spdlog::debug("[FocusSearch] assign ships widget={} canvas={} visible={} active={}", (void*)widget, (void*)canvas,
-                 visible, active);
+    spdlog::debug("[FocusSearch] assign ships widget={} canvas={} visible={} active={}",
+                  static_cast<void*>(widget.get()), (void*)canvas, visible, active);
 
     if (visible && active) {
 #ifdef _MODDBG
