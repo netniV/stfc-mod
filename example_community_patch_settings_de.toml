@@ -86,6 +86,10 @@ use_scopely_hotkeys = false
 # Experimentelle Funktionen aktivieren
 enable_experimental = false
 
+[input]
+# Repariert den verwaisten M94-Tutorialstatus, der Scopely-Hotkeys nach einem Neustart deaktivieren kann
+repair_orphaned_tutorial_shortcut_gate = false
+
 #  <[=========================================================================================================================================]>
 #
 #        ****                  **     *    *               *                   *              *      *

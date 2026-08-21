@@ -21,6 +21,7 @@
 namespace DCP  = DefaultConfig::Patches;
 namespace DCG  = DefaultConfig::Graphics;
 namespace DCC  = DefaultConfig::Control;
+namespace DCI  = DefaultConfig::Input;
 namespace DCU  = DefaultConfig::UI;
 namespace DCBS = DefaultConfig::Buffs;
 namespace DCS  = DefaultConfig::Sync;
@@ -789,6 +790,9 @@ void Config::Load()
       get_config_or_default(config, parsed, "control", "hotkeys_extended", DCC::hotkeys_extended, write_config);
   this->use_scopely_hotkeys =
       get_config_or_default(config, parsed, "control", "use_scopely_hotkeys", DCC::use_scopely_hotkeys, write_config);
+  this->repair_orphaned_tutorial_shortcut_gate = get_config_or_default(
+      config, parsed, "input", "repair_orphaned_tutorial_shortcut_gate",
+      DCI::repair_orphaned_tutorial_shortcut_gate, write_config);
   this->select_timer =
       get_config_or_default(config, parsed, "control", "select_timer", DCC::select_timer, write_config);
   this->enable_experimental =

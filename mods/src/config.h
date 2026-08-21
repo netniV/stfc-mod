@@ -168,6 +168,7 @@ public:
   bool  hotkeys_enabled;
   bool  hotkeys_extended;
   bool  use_scopely_hotkeys;
+  bool  repair_orphaned_tutorial_shortcut_gate;
   bool  use_presets_as_default;
   bool  enable_experimental;
   float default_system_zoom;
