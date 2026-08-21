@@ -39,6 +39,20 @@ void InventoryForPopup_set_MaxItemsToUse(auto original, InventoryForPopup* a1, i
   original(a1, a2);
 }
 
+// On macOS (M94+), the InventoryForPopup property methods are inlined by IL2CPP and never
+// called. The donation slider cap is enforced via the Unity Slider component's maxValue
+// property.
+// NOTE: This hooks ALL Unity sliders with max=50 or max=100, not just the donation slider.
+#if __APPLE__
+void UnitySlider_set_maxValue(auto original, void* a1, float a2)
+{
+  if ((a2 == 50.0f || a2 == 100.0f) && Config::Get().extend_donation_slider && Config::Get().extend_donation_max > 0) {
+    a2 = (float)Config::Get().extend_donation_max;
+  }
+  original(a1, a2);
+}
+#endif
+
 void BundleDataWidget_OnActionButtonPressedCallback(auto original, BundleDataWidget* _this)
 {
   if (_this->CurrentState & BundleDataWidget::ItemState::CooldownTimerOn) {
@@ -60,6 +74,20 @@ void InstallMiscPatches()
       ErrorMsg::MissingMethod("InventoryForPopup", "set_MaxItemsToUse");
     } else {
       SPUD_STATIC_DETOUR(ptr, InventoryForPopup_set_MaxItemsToUse);
+    }
+  }
+#endif
+
+#if __APPLE__
+  auto unity_slider = il2cpp_get_class_helper("UnityEngine.UI", "UnityEngine.UI", "Slider");
+  if (!unity_slider.isValidHelper()) {
+    ErrorMsg::MissingHelper("UnityEngine.UI", "Slider");
+  } else {
+    auto set_max_ptr = unity_slider.GetMethod("set_maxValue");
+    if (!set_max_ptr) {
+      ErrorMsg::MissingMethod("Slider", "set_maxValue");
+    } else {
+      SPUD_STATIC_DETOUR(set_max_ptr, UnitySlider_set_maxValue);
     }
   }
 #endif
