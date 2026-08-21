@@ -570,8 +570,24 @@ always_skip_reveal_sequence = true
 # Open the bulk gift claim flyout automatically
 auto_open_bulk_claim_flyout = false
 
-# Sofort-Warp-Aktion, die automatisch bestätigt wird: none, warp oder jump
+# Standardmäßige Instant-Warp-Aktion für alle Schiffe: none, warp oder jump.
+# Die Schiffsspezifischen Listen unten überschreiben dies für die jeweiligen Schiffe.
 auto_confirm_instant_warp = "none"
+
+# Schiffe, die immer per Instant Warp springen (überschreibt den Standard oben).
+# Durch Kommas getrennte Rumpfnamen (Groß-/Kleinschreibung egal), "*" für alle oder "" für keine.
+# Entspricht: auto_confirm_instant_warp = "jump" nur für diese Schiffe.
+# Beispiel: instant_warp_auto_jump = "USS Discovery, Korinar"
+instant_warp_auto_jump = ""
+
+# Schiffe, die immer regulär warpen (überschreibt den Standard oben).
+# Gleiche Syntax. Entspricht: auto_confirm_instant_warp = "warp" nur für diese Schiffe.
+# Beispiel: instant_warp_auto_warp = "Newton, USS Enterprise"
+instant_warp_auto_warp = ""
+
+# Schiffe, für die das Popup immer angezeigt wird (überschreibt alles andere).
+# Beispiel: instant_warp_always_ask = "Borg Cube, Gorn Eviscerator"
+instant_warp_always_ask = ""
 
 # Stufen- und Rangverbesserungen für Verbotene Technologie automatisch bestätigen
 auto_confirm_ft_upgrade = false
