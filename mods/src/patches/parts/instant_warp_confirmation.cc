@@ -7,6 +7,8 @@
 
 #include <spud/detour.h>
 
+#include <spdlog/spdlog.h>
+
 #include <algorithm>
 
 namespace
@@ -46,22 +48,27 @@ void CoursePromptPopupViewController_AboutToShow_Hook(auto original, CoursePromp
   };
 
   if (matches(cfg.instant_warp_always_ask, cfg.instant_warp_always_ask_all)) {
+    spdlog::debug("InstantWarpConfirmation: always_ask matched hull '{}', showing popup", hull_name);
     return;
   }
   if (matches(cfg.instant_warp_auto_jump, cfg.instant_warp_auto_jump_all)) {
+    spdlog::debug("InstantWarpConfirmation: auto_jump matched hull '{}', selecting instant warp", hull_name);
     on_instant_warp_button_click(widget);
     return;
   }
   if (matches(cfg.instant_warp_auto_warp, cfg.instant_warp_auto_warp_all)) {
+    spdlog::debug("InstantWarpConfirmation: auto_warp matched hull '{}', selecting regular warp", hull_name);
     initiate_regular_warp(widget);
     return;
   }
 
   switch (cfg.auto_confirm_instant_warp) {
     case InstantWarpConfirmation::Warp:
+      spdlog::debug("InstantWarpConfirmation: default matched hull '{}', selecting regular warp", hull_name);
       initiate_regular_warp(widget);
       break;
     case InstantWarpConfirmation::Jump:
+      spdlog::debug("InstantWarpConfirmation: default matched hull '{}', selecting instant warp", hull_name);
       on_instant_warp_button_click(widget);
       break;
     case InstantWarpConfirmation::None:

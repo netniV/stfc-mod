@@ -429,10 +429,9 @@ void parse_ship_filter(std::string_view value, std::vector<std::string>& names, 
     return;
   }
   for (const auto& token : StrSplit(std::string(value), ',')) {
-    auto stripped = StripLeadingAsciiWhitespace(token);
+    auto stripped = StripAsciiWhitespace(token);
     if (stripped.empty()) continue;
     auto normalized = AsciiStrToUpper(stripped);
-    normalized = StripSuffix(normalized, "_LIVE");
     names.emplace_back(normalized);
   }
 }
@@ -895,10 +894,9 @@ void Config::Load()
       get_config_or_default(config, parsed, "ui", "disable_toast_banners", DCU::disable_toast_banners, write_config);
   this->auto_open_bulk_claim_flyout = get_config_or_default(config, parsed, "ui", "auto_open_bulk_claim_flyout",
                                                             DCU::auto_open_bulk_claim_flyout, write_config);
-  this->installInstantWarpConfirmationHooks = true;
-
   this->auto_confirm_instant_warp =
       get_auto_confirm_instant_warp(config, parsed, DCU::auto_confirm_instant_warp, write_config);
+  this->installInstantWarpConfirmationHooks = true;
   read_instant_warp_filter(config, parsed, "instant_warp_auto_jump", this->instant_warp_auto_jump,
                            this->instant_warp_auto_jump_all, DCU::instant_warp_auto_jump, write_config);
   read_instant_warp_filter(config, parsed, "instant_warp_auto_warp", this->instant_warp_auto_warp,
