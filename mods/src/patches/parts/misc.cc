@@ -187,12 +187,11 @@ public:
 
 void InterstitialViewController_AboutToShow(auto original, InterstitialViewController* _this)
 {
-  if (Config::Get().disable_first_popup && _this != nullptr) {
+  if (Config::Get().disable_first_popup) {
     spdlog::debug("InterstitialViewController_AboutToShow: suppressing interstitial popup");
-    _this->CloseWhenReady();
-  } else {
-    original(_this);
+    return;
   }
+  original(_this);
 }
 
 void ShopSceneManager_ShowPlcOfferPopup(auto original, void* _this)
