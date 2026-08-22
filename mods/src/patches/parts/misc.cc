@@ -204,29 +204,6 @@ void ShopSceneManager_ShowPlcOfferPopup(auto original, void* _this)
   original(_this);
 }
 
-bool LoginStreakManager_TryShowStreakPopupForGameSessionStarted(auto original, void* _this)
-{
-  if (Config::Get().disable_first_popup) {
-    spdlog::debug("LoginStreakManager_TryShowStreakPopupForGameSessionStarted: suppressing login streak popup");
-    return false;
-  }
-  return original(_this);
-}
-
-void TutorialManager_ShowTutorialScreen(auto original, void* _this)
-{
-  if (!Config::Get().disable_tutorials) {
-    original(_this);
-  }
-}
-
-void TutorialManager_ShowTutorialScreen_2(auto original, void* _this, void* tutorialComponent, void* tutorialStep)
-{
-  if (!Config::Get().disable_tutorials) {
-    original(_this, tutorialComponent, tutorialStep);
-  }
-}
-
 void ActionQueueManager_AddActionToQueue(auto original, ActionQueueManager* _this, long fleet_id)
 {
   spdlog::warn("ActionQueueManager_AddActionToQueue({})", fleet_id);
@@ -250,7 +227,7 @@ void InstallTempCrashFixes()
     }
   }
 
-  auto shop_scene_manager = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Shop", "ShopSceneManager");
+  static auto shop_scene_manager = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Shop", "ShopSceneManager");
   if (!shop_scene_manager.isValidHelper()) {
     ErrorMsg::MissingHelper("Shop", "ShopSceneManager");
   } else {
@@ -259,6 +236,13 @@ void InstallTempCrashFixes()
       ErrorMsg::MissingMethod("ShopSceneManager", "ShouldShowRevealSequence");
     } else {
       SPUD_STATIC_DETOUR(reveal_show, ShouldShowRevealHook);
+    }
+
+    auto show_plc = shop_scene_manager.GetMethod("ShowPlcOfferPopup", 0);
+    if (!show_plc) {
+      ErrorMsg::MissingMethod("ShopSceneManager", "ShowPlcOfferPopup");
+    } else {
+      SPUD_STATIC_DETOUR(show_plc, ShopSceneManager_ShowPlcOfferPopup);
     }
   }
 
@@ -272,51 +256,6 @@ void InstallTempCrashFixes()
       ErrorMsg::MissingMethod("InterstitialViewController", "AboutToShow");
     } else {
       SPUD_STATIC_DETOUR(interstitial_show, InterstitialViewController_AboutToShow);
-    }
-  }
-
-  static auto shop_scene_manager_cls =
-      il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Shop", "ShopSceneManager");
-  if (!shop_scene_manager_cls.isValidHelper()) {
-    ErrorMsg::MissingHelper("Shop", "ShopSceneManager");
-  } else {
-    auto show_plc = shop_scene_manager_cls.GetMethod("ShowPlcOfferPopup", 0);
-    if (!show_plc) {
-      ErrorMsg::MissingMethod("ShopSceneManager", "ShowPlcOfferPopup");
-    } else {
-      SPUD_STATIC_DETOUR(show_plc, ShopSceneManager_ShowPlcOfferPopup);
-    }
-  }
-
-  static auto login_streak_manager =
-      il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.LoginStreak", "LoginStreakManager");
-  if (!login_streak_manager.isValidHelper()) {
-    ErrorMsg::MissingHelper("LoginStreak", "LoginStreakManager");
-  } else {
-    auto show_streak = login_streak_manager.GetMethod("TryShowStreakPopupForGameSessionStarted", 0);
-    if (!show_streak) {
-      ErrorMsg::MissingMethod("LoginStreakManager", "TryShowStreakPopupForGameSessionStarted");
-    } else {
-      SPUD_STATIC_DETOUR(show_streak, LoginStreakManager_TryShowStreakPopupForGameSessionStarted);
-    }
-  }
-
-  static auto tutorial_manager =
-      il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Tutorial", "TutorialManager");
-  if (!tutorial_manager.isValidHelper()) {
-    ErrorMsg::MissingHelper("Tutorial", "TutorialManager");
-  } else {
-    auto show_tutorial_screen = tutorial_manager.GetMethod("ShowTutorialScreen", 0);
-    if (!show_tutorial_screen) {
-      ErrorMsg::MissingMethod("TutorialManager", "ShowTutorialScreen");
-    } else {
-      SPUD_STATIC_DETOUR(show_tutorial_screen, TutorialManager_ShowTutorialScreen);
-    }
-    auto show_tutorial_screen_2 = tutorial_manager.GetMethod("ShowTutorialScreen", 2);
-    if (!show_tutorial_screen_2) {
-      ErrorMsg::MissingMethod("TutorialManager", "ShowTutorialScreen(2)");
-    } else {
-      SPUD_STATIC_DETOUR(show_tutorial_screen_2, TutorialManager_ShowTutorialScreen_2);
     }
   }
 
