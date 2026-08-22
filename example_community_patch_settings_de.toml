@@ -579,8 +579,11 @@ auto_confirm_ft_upgrade = false
 # Verhindert, dass die Escape-Taste zum Beenden des Spiels auffordert
 disable_escape_exit = true
 
-# ⚠️ EXPERIMENTELL: Verhindert das Erscheinen des ersten Werbe-Pop-ups
+# ⚠️ EXPERIMENTELL: Verhindert das Erscheinen von Werbe-/Interstitial-Pop-ups
 disable_first_popup = false
+
+# ⚠️ EXPERIMENTELL: Verhindert das Erscheinen von Tutorial-/Hinweis-Pop-ups
+disable_tutorials = false
 
 # ⚠️ EXPERIMENTELL: Verhindert die Funktion der standardmäßigen Bewegungstasten
 disable_move_keys = false

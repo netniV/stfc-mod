@@ -579,8 +579,11 @@ auto_confirm_ft_upgrade = false
 # Prevent "escape" from prompting to exit the game
 disable_escape_exit = true
 
-# ⚠️ EXPERIMENTAL: Prevent the first popup advert from appearing
+# ⚠️ EXPERIMENTAL: Prevent ad/interstitial popups from appearing
 disable_first_popup = false
+
+# ⚠️ EXPERIMENTAL: Prevent tutorial/hint popups from appearing
+disable_tutorials = false
 
 # ⚠️ EXPERIMENTAL: Prevent the standard move keys from working
 disable_move_keys = false

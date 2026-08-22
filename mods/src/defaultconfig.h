@@ -211,6 +211,7 @@ namespace UI
   constexpr bool        auto_open_bulk_claim_flyout = false;
   constexpr bool        disable_escape_exit         = true;
   constexpr bool        disable_first_popup         = false;
+  constexpr bool        disable_tutorials          = false;
   constexpr bool        disable_galaxy_chat         = false;
   constexpr bool        disable_move_keys           = false;
   constexpr bool        disable_preview_locate      = false;
