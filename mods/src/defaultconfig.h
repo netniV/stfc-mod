@@ -228,6 +228,7 @@ namespace UI
   constexpr const char* instant_warp_auto_warp     = "";
   constexpr const char* instant_warp_always_ask    = "";
   constexpr const char* notify_banner_types         = "";
+  constexpr auto        extend_chest_purchase_max   = 160;
   constexpr auto        extend_donation_max         = 80;
   constexpr bool        extend_donation_slider      = true;
   constexpr bool        show_armada_cargo           = true;
