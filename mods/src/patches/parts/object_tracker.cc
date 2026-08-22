@@ -70,14 +70,25 @@ void remove_from_tracking_recursive(Il2CppClass* klass, void* _this)
 #undef GET_CLASS
 }
 
+// Unity's Boehm GC fork passes a per-entry "finalize mark proc" as a 6th argument to
+// GC_register_finalizer_inner. GC_finalize calls it for every unreachable finalized object, and the
+// game's own registrations (via GC_register_finalizer_no_order) always pass GC_null_finalize_mark_proc,
+// a no-op. If the 6th argument is omitted, register/stack garbage ends up in the finalization entry and
+// GC_finalize eventually calls it (observed as a call to nullptr -> SIGSEGV during ReclaimUnusedMemory).
+void gc_finalize_mark_proc_noop(void*)
+{
+}
+
 void (*GC_register_finalizer_inner)(unsigned __int64 obj, void (*fn)(void*, void*), void* cd,
-                                    void (**ofn)(void*, void*), void** ocd) = nullptr;
+                                    void (**ofn)(void*, void*), void** ocd, void (*mark_proc)(void*)) = nullptr;
 
 void track_finalizer(void* _this, void*)
 {
   if (_this == nullptr) {
     return;
   }
+
+  std::scoped_lock lk{tracked_objects_mutex};
 
   auto object = (Il2CppObject*)_this;
   if (object->klass == nullptr) {
@@ -109,7 +120,8 @@ void* track_ctor(auto original, void* _this)
     typedef void (*FinalizerCallback)(void* object, void* client_data);
     FinalizerCallback oldCallback = nullptr;
     void*             oldData     = nullptr;
-    GC_register_finalizer_inner((intptr_t)_this, track_finalizer, nullptr, &oldCallback, &oldData);
+    GC_register_finalizer_inner((intptr_t)_this, track_finalizer, nullptr, &oldCallback, &oldData,
+                                gc_finalize_mark_proc_noop);
     assert(!oldCallback);
   }
   add_to_tracking_recursive(cls->klass, _this);
