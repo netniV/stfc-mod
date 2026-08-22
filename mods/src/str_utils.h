@@ -39,6 +39,14 @@ constexpr std::string_view StripAsciiWhitespace(const std::string_view str)
   return StripTrailingAsciiWhitespace(StripLeadingAsciiWhitespace(str));
 }
 
+constexpr std::string_view StripSuffix(std::string_view str, const std::string_view suffix)
+{
+  if (str.size() >= suffix.size() && str.substr(str.size() - suffix.size()) == suffix) {
+    return str.substr(0, str.size() - suffix.size());
+  }
+  return str;
+}
+
 constexpr std::string AsciiStrToUpper(const std::string_view s)
 {
   std::string str = s.data();

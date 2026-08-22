@@ -570,8 +570,24 @@ always_skip_reveal_sequence = true
 # Open the bulk gift claim flyout automatically
 auto_open_bulk_claim_flyout = false
 
-# Action de distorsion instantanée à confirmer automatiquement : none, warp ou jump
+# Action de distorsion instantanée par défaut pour tous les vaisseaux : none, warp ou jump.
+# Les listes spécifiques ci-dessous remplacent cette valeur pour les vaisseaux correspondants.
 auto_confirm_instant_warp = "none"
+
+# Vaisseaux qui effectuent toujours un saut instantané (remplace le défaut ci-dessus).
+# Noms de coques séparés par des virgules (casse insensible), "*" pour tous, ou "" pour aucun.
+# Équivaut à : auto_confirm_instant_warp = "jump" pour ces vaisseaux seulement.
+# Exemple : instant_warp_auto_jump = "USS Discovery, Korinar"
+instant_warp_auto_jump = ""
+
+# Vaisseaux qui effectuent toujours une distorsion normale (remplace le défaut ci-dessus).
+# Même syntaxe. Équivaut à : auto_confirm_instant_warp = "warp" pour ces vaisseaux seulement.
+# Exemple : instant_warp_auto_warp = "Newton, USS Enterprise"
+instant_warp_auto_warp = ""
+
+# Vaisseaux pour lesquels la popup est toujours affichée (ignore tout le reste).
+# Exemple : instant_warp_always_ask = "Borg Cube, Gorn Eviscerator"
+instant_warp_always_ask = ""
 
 # Confirmer automatiquement les améliorations de niveau et de rang de Technologie interdite
 auto_confirm_ft_upgrade = false
