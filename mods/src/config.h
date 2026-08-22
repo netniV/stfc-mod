@@ -199,6 +199,14 @@ public:
 
   InstantWarpConfirmation auto_confirm_instant_warp;
 
+  std::vector<std::string> instant_warp_auto_jump;
+  std::vector<std::string> instant_warp_auto_warp;
+  bool                     instant_warp_auto_jump_all = false;
+  bool                     instant_warp_auto_warp_all = false;
+
+  std::vector<std::string> instant_warp_always_ask;
+  bool                     instant_warp_always_ask_all = false;
+
   bool show_cargo_default;
   bool show_player_cargo;
   bool show_station_cargo;

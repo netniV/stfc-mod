@@ -1,10 +1,15 @@
 #include "config.h"
 #include "errormsg.h"
+#include "str_utils.h"
 
+#include <prime/CourseData.h>
 #include <prime/CoursePromptPopupWidget.h>
 
 #include <spud/detour.h>
+
 #include <spdlog/spdlog.h>
+
+#include <algorithm>
 
 namespace
 {
@@ -22,13 +27,48 @@ void CoursePromptPopupViewController_AboutToShow_Hook(auto original, CoursePromp
     return;
   }
 
-  switch (Config::Get().auto_confirm_instant_warp) {
+  const auto& cfg = Config::Get();
+
+  std::string hull_name;
+  if (const auto course = context->GetCourseData(); course != nullptr) {
+    if (const auto fleet = course->PlayerFleet; fleet != nullptr) {
+      if (const auto hull = fleet->Hull; hull != nullptr) {
+        if (const auto name = hull->Name; name != nullptr) {
+          hull_name = AsciiStrToUpper(to_string(name));
+          hull_name = StripSuffix(hull_name, "_LIVE");
+        }
+      }
+    }
+  }
+
+  const auto matches = [&hull_name](const std::vector<std::string>& names, bool all) -> bool {
+    if (all) return true;
+    if (hull_name.empty()) return false;
+    return std::ranges::any_of(names, [&](const auto& s) { return s == hull_name; });
+  };
+
+  if (matches(cfg.instant_warp_always_ask, cfg.instant_warp_always_ask_all)) {
+    spdlog::debug("InstantWarpConfirmation: always_ask matched hull '{}', showing popup", hull_name);
+    return;
+  }
+  if (matches(cfg.instant_warp_auto_jump, cfg.instant_warp_auto_jump_all)) {
+    spdlog::debug("InstantWarpConfirmation: auto_jump matched hull '{}', selecting instant warp", hull_name);
+    on_instant_warp_button_click(widget);
+    return;
+  }
+  if (matches(cfg.instant_warp_auto_warp, cfg.instant_warp_auto_warp_all)) {
+    spdlog::debug("InstantWarpConfirmation: auto_warp matched hull '{}', selecting regular warp", hull_name);
+    initiate_regular_warp(widget);
+    return;
+  }
+
+  switch (cfg.auto_confirm_instant_warp) {
     case InstantWarpConfirmation::Warp:
-      spdlog::debug("InstantWarpConfirmation: selecting regular warp during popup show");
+      spdlog::debug("InstantWarpConfirmation: default matched hull '{}', selecting regular warp", hull_name);
       initiate_regular_warp(widget);
       break;
     case InstantWarpConfirmation::Jump:
-      spdlog::debug("InstantWarpConfirmation: selecting instant warp during popup show");
+      spdlog::debug("InstantWarpConfirmation: default matched hull '{}', selecting instant warp", hull_name);
       on_instant_warp_button_click(widget);
       break;
     case InstantWarpConfirmation::None:

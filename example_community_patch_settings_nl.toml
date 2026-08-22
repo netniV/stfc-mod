@@ -570,8 +570,24 @@ always_skip_reveal_sequence = true
 # Open the bulk gift claim flyout automatically
 auto_open_bulk_claim_flyout = false
 
-# Instant-warpactie die automatisch wordt bevestigd: none, warp of jump
+# Standaard instant-warpactie voor alle schepen: none, warp of jump.
+# De scheepsspecifieke lijsten hieronder overschrijven dit voor de betreffende schepen.
 auto_confirm_instant_warp = "none"
+
+# Schepen die altijd instant springen (overschrijft de standaard hierboven).
+# Door komma's gescheiden rompnamen (hoofdlettergevoeligheid genegeerd), "*" voor alle, of "" voor geen.
+# Equivalent aan: auto_confirm_instant_warp = "jump" alleen voor deze schepen.
+# Voorbeeld: instant_warp_auto_jump = "USS Discovery, Korinar"
+instant_warp_auto_jump = ""
+
+# Schepen die altijd regulier warpen (overschrijft de standaard hierboven).
+# Zelfde syntax. Equivalent aan: auto_confirm_instant_warp = "warp" alleen voor deze schepen.
+# Voorbeeld: instant_warp_auto_warp = "Newton, USS Enterprise"
+instant_warp_auto_warp = ""
+
+# Schepen waarvoor de popup altijd wordt getoond (overschrijft alles anders).
+# Voorbeeld: instant_warp_always_ask = "Borg Cube, Gorn Eviscerator"
+instant_warp_always_ask = ""
 
 # Level- en rangupgrades voor Verboden Technologie automatisch bevestigen
 auto_confirm_ft_upgrade = false
