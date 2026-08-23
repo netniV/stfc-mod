@@ -6,9 +6,7 @@
 #include <prime/Hub.h>
 #include <prime/IList.h>
 #include <prime/InventoryForPopup.h>
-#if _WIN32
 #include <prime/InventoryUseRowWidget.h>
-#endif
 #include <prime/ShopSummaryDirector.h>
 
 #include <il2cpp/il2cpp_helper.h>
@@ -23,13 +21,12 @@
 #include <prime/ActionQueueManager.h>
 #include <prime/InterstitialViewController.h>
 
-#if _WIN32
 namespace
 {
 constexpr int64_t kMaximumChestPurchaseMax = 160;
 }
-#endif
 
+#if _WIN32
 void InventoryForPopup_set_MaxItemsToUse(auto original, InventoryForPopup* a1, int64_t a2)
 {
   if (!a1) {
@@ -48,8 +45,8 @@ void InventoryForPopup_set_MaxItemsToUse(auto original, InventoryForPopup* a1, i
 
   original(a1, a2);
 }
+#endif
 
-#if _WIN32
 // IsChestPurchase is populated too late for the existing MaxItemsToUse setter hook, so adjust the tagged context at
 // the row-render seam instead.
 void InventoryUseRowWidget_SetWidgetData(auto original, InventoryUseRowWidget* widget)
@@ -66,6 +63,15 @@ void InventoryUseRowWidget_SetWidgetData(auto original, InventoryUseRowWidget* w
   }
 
   original(widget);
+}
+
+#if __APPLE__
+void UnitySlider_set_maxValue(auto original, void* a1, float a2)
+{
+  if ((a2 == 50.0f || a2 == 100.0f) && Config::Get().extend_donation_slider && Config::Get().extend_donation_max > 0) {
+    a2 = (float)Config::Get().extend_donation_max;
+  }
+  original(a1, a2);
 }
 #endif
 
@@ -92,6 +98,7 @@ void InstallMiscPatches()
       SPUD_STATIC_DETOUR(ptr, InventoryForPopup_set_MaxItemsToUse);
     }
   }
+#endif
 
   if (Config::Get().extend_chest_purchase_max > 0) {
     auto row_widget = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Inventories", "InventoryUseRowWidget");
@@ -104,6 +111,19 @@ void InstallMiscPatches()
       } else {
         SPUD_STATIC_DETOUR(ptr, InventoryUseRowWidget_SetWidgetData);
       }
+    }
+  }
+
+#if __APPLE__
+  auto unity_slider = il2cpp_get_class_helper("UnityEngine.UI", "UnityEngine.UI", "Slider");
+  if (!unity_slider.isValidHelper()) {
+    ErrorMsg::MissingHelper("UnityEngine.UI", "Slider");
+  } else {
+    auto set_max_ptr = unity_slider.GetMethod("set_maxValue");
+    if (!set_max_ptr) {
+      ErrorMsg::MissingMethod("Slider", "set_maxValue");
+    } else {
+      SPUD_STATIC_DETOUR(set_max_ptr, UnitySlider_set_maxValue);
     }
   }
 #endif
