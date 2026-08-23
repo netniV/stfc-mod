@@ -249,17 +249,22 @@ public:
   }
 };
 
-bool isFirstInterstitial = true;
-
 void InterstitialViewController_AboutToShow(auto original, InterstitialViewController* _this)
 {
-  if (false /* TEMP: disable_first_popup effect disabled */ && Config::Get().disable_first_popup
-      && isFirstInterstitial && _this != nullptr) {
-    isFirstInterstitial = false;
+  original(_this);
+  if (Config::Get().disable_first_popup && _this != nullptr) {
+    spdlog::debug("InterstitialViewController_AboutToShow: suppressing interstitial popup");
     _this->CloseWhenReady();
-  } else {
-    original(_this);
   }
+}
+
+void ShopSceneManager_ShowPlcOfferPopup(auto original, void* _this)
+{
+  if (Config::Get().disable_first_popup) {
+    spdlog::debug("ShopSceneManager_ShowPlcOfferPopup: suppressing PLC offer popup");
+    return;
+  }
+  original(_this);
 }
 
 void ActionQueueManager_AddActionToQueue(auto original, ActionQueueManager* _this, long fleet_id)
@@ -285,7 +290,7 @@ void InstallTempCrashFixes()
     }
   }
 
-  auto shop_scene_manager = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Shop", "ShopSceneManager");
+  static auto shop_scene_manager = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Shop", "ShopSceneManager");
   if (!shop_scene_manager.isValidHelper()) {
     ErrorMsg::MissingHelper("Shop", "ShopSceneManager");
   } else {
@@ -294,6 +299,13 @@ void InstallTempCrashFixes()
       ErrorMsg::MissingMethod("ShopSceneManager", "ShouldShowRevealSequence");
     } else {
       SPUD_STATIC_DETOUR(reveal_show, ShouldShowRevealHook);
+    }
+
+    auto show_plc = shop_scene_manager.GetMethod("ShowPlcOfferPopup", 0);
+    if (!show_plc) {
+      ErrorMsg::MissingMethod("ShopSceneManager", "ShowPlcOfferPopup");
+    } else {
+      SPUD_STATIC_DETOUR(show_plc, ShopSceneManager_ShowPlcOfferPopup);
     }
   }
 
