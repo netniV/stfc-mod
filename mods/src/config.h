@@ -183,6 +183,7 @@ public:
   std::vector<int> disabled_banner_types;
   std::vector<int> notify_banner_types;
 
+  int  extend_chest_purchase_max;
   int  extend_donation_max;
   bool extend_donation_slider;
   bool disable_move_keys;

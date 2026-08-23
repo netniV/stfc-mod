@@ -6,6 +6,9 @@
 #include <prime/Hub.h>
 #include <prime/IList.h>
 #include <prime/InventoryForPopup.h>
+#if _WIN32
+#include <prime/InventoryUseRowWidget.h>
+#endif
 #include <prime/ShopSummaryDirector.h>
 
 #include <il2cpp/il2cpp_helper.h>
@@ -19,6 +22,13 @@
 #include <algorithm>
 #include <prime/ActionQueueManager.h>
 #include <prime/InterstitialViewController.h>
+
+#if _WIN32
+namespace
+{
+constexpr int64_t kMaximumChestPurchaseMax = 160;
+}
+#endif
 
 void InventoryForPopup_set_MaxItemsToUse(auto original, InventoryForPopup* a1, int64_t a2)
 {
@@ -38,6 +48,26 @@ void InventoryForPopup_set_MaxItemsToUse(auto original, InventoryForPopup* a1, i
 
   original(a1, a2);
 }
+
+#if _WIN32
+// IsChestPurchase is populated too late for the existing MaxItemsToUse setter hook, so adjust the tagged context at
+// the row-render seam instead.
+void InventoryUseRowWidget_SetWidgetData(auto original, InventoryUseRowWidget* widget)
+{
+  if (widget) {
+    if (auto* context = widget->Context; context && context->IsChestPurchase) {
+      const auto native_max    = context->MaxItemsToUse;
+      const auto requested_max = static_cast<int64_t>(Config::Get().extend_chest_purchase_max);
+      const auto bounded_max   = std::min(requested_max, kMaximumChestPurchaseMax);
+      if (native_max > 0 && bounded_max > native_max) {
+        context->MaxItemsToUse = bounded_max;
+      }
+    }
+  }
+
+  original(widget);
+}
+#endif
 
 // On macOS (M94+), the InventoryForPopup property methods are inlined by IL2CPP and never
 // called. The donation slider cap is enforced via the Unity Slider component's maxValue
@@ -74,6 +104,20 @@ void InstallMiscPatches()
       ErrorMsg::MissingMethod("InventoryForPopup", "set_MaxItemsToUse");
     } else {
       SPUD_STATIC_DETOUR(ptr, InventoryForPopup_set_MaxItemsToUse);
+    }
+  }
+
+  if (Config::Get().extend_chest_purchase_max > 0) {
+    auto row_widget = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Inventories", "InventoryUseRowWidget");
+    if (!row_widget.isValidHelper()) {
+      ErrorMsg::MissingHelper("Digit.Prime.Inventories", "InventoryUseRowWidget");
+    } else {
+      auto ptr = row_widget.GetMethod("SetWidgetData", 0);
+      if (!ptr) {
+        ErrorMsg::MissingMethod("InventoryUseRowWidget", "SetWidgetData");
+      } else {
+        SPUD_STATIC_DETOUR(ptr, InventoryUseRowWidget_SetWidgetData);
+      }
     }
   }
 #endif

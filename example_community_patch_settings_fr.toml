@@ -631,6 +631,14 @@ extend_donation_max = 80
 # Activer l'extension du curseur de don
 extend_donation_slider = true
 
+# Subgroup: Achats de coffres
+# ---------------------------
+
+# Maximum des curseurs d'achat de coffre marqués sous Windows
+# (0 désactive ; les valeurs supérieures à 160 sont limitées).
+# Les limites natives supérieures sont conservées.
+extend_chest_purchase_max = 160
+
 # Subgroup: HUD
 # -------------
 
