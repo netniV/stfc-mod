@@ -1,6 +1,10 @@
 #include "file.h"
 #include "windowtitle.h"
 
+#if __APPLE__
+#include <crt_externs.h>
+#endif
+
 #if _WIN32
 std::string ConvertWStringToString(const std::wstring& wstr)
 {
@@ -89,10 +93,15 @@ std::wstring File::Title()
 #if !_WIN32
 std::u8string File::MakePath(std::string_view filename, bool create_dir, bool old_path)
 {
-  const std::filesystem::path libraryPath =
-      fm::FolderManager::pathForDirectory(fm::NSLibraryDirectory, fm::NSUserDomainMask);
-  const auto packageName = old_path ? "com.tashcan.startrekpatch" : "com.stfcmod.startrekpatch";
-  const auto config_dir  = libraryPath / "Preferences" / packageName;
+  std::filesystem::path config_dir;
+  if (File::override) {
+    config_dir = configPath.parent_path();
+  } else {
+    const std::filesystem::path libraryPath =
+        fm::FolderManager::pathForDirectory(fm::NSLibraryDirectory, fm::NSUserDomainMask);
+    const auto packageName = old_path ? "com.tashcan.startrekpatch" : "com.stfcmod.startrekpatch";
+    config_dir             = libraryPath / "Preferences" / packageName;
+  }
 
   if (create_dir) {
     std::error_code ec;
@@ -163,11 +172,26 @@ void File::Init()
       // Clean up
       LocalFree(argv);
     }
+#elif __APPLE__
+    {
+      int    argc = *_NSGetArgc();
+      char** argv = *_NSGetArgv();
+      for (int i = 0; i < argc - 1; ++i) {
+        if (std::string_view(argv[i]) == "-debug") {
+          File::debug = true;
+        }
+        if (std::string_view(argv[i]) == "-trace") {
+          File::trace = true;
+        }
+        if (std::string_view(argv[i]) == "-ccm" && i + 1 < argc) {
+          configPath     = std::filesystem::path(argv[i + 1]);
+          File::override = true;
+          break;
+        }
+      }
+    }
 #endif
 
-    // Second check here is because on windows, it may still be
-    // unset at this point.  On the mac, we do not currently
-    // support multiple configuration files
     if (configPath.empty()) {
       File::override = false;
       configPath     = std::filesystem::path(cacheNameDefault);
