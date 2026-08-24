@@ -1,48 +1,48 @@
-#  +--------------------------------------------------------------+
-#  |                                                              |
-#  |     #***  #****  #****   #***         #   *             #    |
-#  |    #        #    #      #        #    #* **   #**       #    |
-#  |     #**     #    #***   #             # * *  #   *   #***    |
-#  |        #    #    #      #        #    #   *  #   *  #   *    |
-#  |    #***     #    #       #***         #   *   #**    #***    |
-#  |                                                              |
-#  +--------------------------------------------------------------+
-#   Erstellt am 2026-08-13T18:51:48.782Z
-#
+#  +--------------------------------------------------------------+ 
+#  |                                                              | 
+#  |     #***  #****  #****   #***         #   *             #    | 
+#  |    #        #    #      #        #    #* **   #**       #    | 
+#  |     #**     #    #***   #             # * *  #   *   #***    | 
+#  |        #    #    #      #        #    #   *  #   *  #   *    | 
+#  |    #***     #    #       #***         #   *   #**    #***    | 
+#  |                                                              | 
+#  +--------------------------------------------------------------+ 
+#   Erstellt am 2026-08-24T19:52:11.523Z
+#   
 #   Diese Konfigurationsdatei wurde von https://modconfig.pages.dev erstellt
 #   und wird ohne Gewähr bereitgestellt. Bei Problemen mit dem STFC Community Mod,
 #   der Konfiguration oder dem Konfigurationswerkzeug melden Sie diese bitte
 #   hier:
-#
+#   
 #       Discord : https://discord.gg/PrpHgs7Vjs
 #       GitHub  : https://github.com/netniV/stfc-mod
-#
-#   Die heutige Konfigurationsdatei wird Ihnen präsentiert vom Buchstaben J und der Zahl 1
-#
+#   
+#   Die heutige Konfigurationsdatei wird Ihnen präsentiert vom Buchstaben V und der Zahl 6
+#   
 
-#  <[=======================================]>
-#
-#       ****            **     **
-#       *   *  *   *   *      *      ****
-#       ****   *   *  ***    ***    **
-#       *   *  *  **   *      *       **
-#       ****    ****   *      *     ***
-#
-#  <[=======================================]>
+#  <[=======================================]> 
+#                                              
+#       ****            **     **              
+#       *   *  *   *   *      *      ****      
+#       ****   *   *  ***    ***    **         
+#       *   *  *  **   *      *       **       
+#       ****    ****   *      *     ***        
+#                                              
+#  <[=======================================]> 
 
 [buffs]
 # Zeigt für angedockte Schiffe immer die Kampfkraft außerhalb des Docks an. Standardwert: false
 use_out_of_dock_power = true
 
-#  <[===============================================================================================]>
-#
-#       *   *                  **     *                                 *       *
-#       *  *    ***   ***     *             ****  *   *  ***     ***   ***            ***   ***
-#       ***    *   *  *  *   ***      *    *   *  *   *  *   *      *   *       *    *   *  *  *
-#       *  *   *   *  *  *    *       *     ****  *  **  *       ****   *       *    *   *  *  *
-#       *   *   ***   *  *    *       *     ***    ****  *       ****   **      *     ***   *  *
-#
-#  <[===============================================================================================]>
+#  <[===============================================================================================]> 
+#                                                                                                      
+#       *   *                  **     *                                 *       *                      
+#       *  *    ***   ***     *             ****  *   *  ***     ***   ***            ***   ***        
+#       ***    *   *  *  *   ***      *    *   *  *   *  *   *      *   *       *    *   *  *  *       
+#       *  *   *   *  *  *    *       *     ****  *  **  *       ****   *       *    *   *  *  *       
+#       *   *   ***   *  *    *       *     ***    ****  *       ****   **      *     ***   *  *       
+#                                                                                                      
+#  <[===============================================================================================]> 
 
 [config]
 # Diesen Abschnitt ignorieren; nur für Entwickler
@@ -51,15 +51,15 @@ assets_url_override = ""
 # Diesen Abschnitt ignorieren; nur für Entwickler
 settings_url = ""
 
-#  <[===================================================================]>
-#
-#        ****   *
-#       *      ***     ***   *   *   ***   ***    *   *  ***     ****
-#        ***    *     * **   *   *  * **   *   *  *   *  *  *   *   *
-#           *   *     *      *  **  *      *      *  **  *  *    ****
-#       ****    **     ****   ****   ****  *       ****  *  *    ***
-#
-#  <[===================================================================]>
+#  <[===================================================================]> 
+#                                                                          
+#        ****   *                                                          
+#       *      ***     ***   *   *   ***   ***    *   *  ***     ****      
+#        ***    *     * **   *   *  * **   *   *  *   *  *  *   *   *      
+#           *   *     *      *  **  *      *      *  **  *  *    ****      
+#       ****    **     ****   ****   ****  *       ****  *  *    ***       
+#                                                                          
+#  <[===================================================================]> 
 
 [control]
 # Zeitfenster für Doppeltippen in ms, um die Schiffe 1–8 auszuwählen/zu orten. Niedriger = schneller, höher = langsamer. Standardwert: 500
@@ -86,15 +86,15 @@ use_scopely_hotkeys = false
 # Experimentelle Funktionen aktivieren
 enable_experimental = false
 
-#  <[=========================================================================================================================================]>
-#
-#        ****                  **     *    *               *                   *              *      *
-#       *      ***     ***    *            *  *    ***          ***     ****  ***     ***     *      *    *   *  ***     ****   ***   ***
-#       *  **  *   *      *  ***      *    ***    * **     *    *  *   **      *     * **     *      *    *   *  *  *   *   *  * **   *  *
-#       *   *  *       ****   *       *    *  *   *        *    *  *     **    *     *        *      *    *  **  *  *    ****  *      *  *
-#        ****  *       ****   *       *    *   *   ****    *    *  *   ***     **     ****    *      *     ****  *  *    ***    ****  *  *
-#
-#  <[=========================================================================================================================================]>
+#  <[=========================================================================================================================================]> 
+#                                                                                                                                                
+#        ****                  **     *    *               *                   *              *      *                                           
+#       *      ***     ***    *            *  *    ***          ***     ****  ***     ***     *      *    *   *  ***     ****   ***   ***        
+#       *  **  *   *      *  ***      *    ***    * **     *    *  *   **      *     * **     *      *    *   *  *  *   *   *  * **   *  *       
+#       *   *  *       ****   *       *    *  *   *        *    *  *     **    *     *        *      *    *  **  *  *    ****  *      *  *       
+#        ****  *       ****   *       *    *   *   ****    *    *  *   ***     **     ****    *      *     ****  *  *    ***    ****  *  *       
+#                                                                                                                                                
+#  <[=========================================================================================================================================]> 
 
 [graphics]
 
@@ -164,9 +164,6 @@ borderless_fullscreen = true
 # Freie Größenänderung erlauben; zum Deaktivieren auf false setzen
 free_resize = true
 
-# Auf true setzen, um zusätzliche Auflösungsoptionen zu aktivieren
-show_all_resolutions = false
-
 # Diese Zoom-Voreinstellung wird als Standard-Zoom festgelegt
 use_presets_as_default = true
 
@@ -194,15 +191,15 @@ system_zoom_preset_5 = 5000.0
 # Steuert die maximale Zoomentfernung in der Systemansicht. Standardwert: 2500. Höhere Werte vergrößern den Abstand der Beschriftungen
 zoom = 5000.0
 
-#  <[=====================================================]>
-#
-#       ****           *            *
-#       *   *   ***   ***     ***   *       ***    ****
-#       ****       *   *     *      ****   * **   **
-#       *       ****   *     *      *   *  *        **
-#       *       ****   **     ***   *   *   ****  ***
-#
-#  <[=====================================================]>
+#  <[=====================================================]> 
+#                                                            
+#       ****           *            *                        
+#       *   *   ***   ***     ***   *       ***    ****      
+#       ****       *   *     *      ****   * **   **         
+#       *       ****   *     *      *   *  *        **       
+#       *       ****   **     ***   *   *   ****  ***        
+#                                                            
+#  <[=====================================================]> 
 
 [patches]
 
@@ -223,7 +220,6 @@ miscpatches = true
 objecttracker = true
 officersorthooks = true
 panhooks = true
-resolutionlistfix = false
 syncpatches = true
 tempcrashfixes = true
 testpatches = true
@@ -232,20 +228,17 @@ transitionscreenhooks = true
 uiscalehooks = true
 zoomhooks = true
 
-#  <[=========================================================================================================================================]>
-#
-#       *****                 *                   *                    *        *                   *       *
-#         *     ***    ****  ***     ***   ***    *  *    ***   ** *   *             ***     ***   ***            ***   ***     ***   ***
-#         *        *  **      *     * **   *  *   ***    *   *  * * *  ****     *    *  *       *   *       *    *   *  *  *   * **   *  *
-#         *     ****    **    *     *      *  *   *  *   *   *  * * *  *   *    *    *  *    ****   *       *    *   *  *  *   *      *  *
-#         *     ****  ***     **     ****  *  *   *   *   ***   *   *  ****     *    *  *    ****   **      *     ***   *  *    ****  *  *
-#
-#  <[=========================================================================================================================================]>
+#  <[=========================================================================================================================================]> 
+#                                                                                                                                                
+#       *****                 *                   *                    *        *                   *       *                                    
+#         *     ***    ****  ***     ***   ***    *  *    ***   ** *   *             ***     ***   ***            ***   ***     ***   ***        
+#         *        *  **      *     * **   *  *   ***    *   *  * * *  ****     *    *  *       *   *       *    *   *  *  *   * **   *  *       
+#         *     ****    **    *     *      *  *   *  *   *   *  * * *  *   *    *    *  *    ****   *       *    *   *  *  *   *      *  *       
+#         *     ****  ***     **     ****  *  *   *   *   ***   *   *  ****     *    *  *    ****   **      *     ***   *  *    ****  *  *       
+#                                                                                                                                                
+#  <[=========================================================================================================================================]> 
 
 [shortcuts]
-
-# Wechselt die automatische Sofort-Warp-Bestätigung zwischen none, warp und jump
-toggle_instant_warp = "ALT-I"
 
 # Subgroup: Fracht und Orten
 # --------------------------
@@ -264,6 +257,9 @@ toggle_cargo_player = "ALT-2"
 
 # Legt fest, ob Stationsfracht standardmäßig angezeigt wird
 toggle_cargo_station = "ALT-3"
+
+# Wechselt die automatische Sofort-Warp-Bestätigung zwischen none, warp und jump
+toggle_instant_warp = "ALT-I"
 
 # Legt fest, ob Orten bei angezeigten Vorschauen erlaubt ist
 toggle_preview_locate = "CTRL-R"
@@ -351,6 +347,9 @@ log_warn = "CTRL-SHIFT-F10"
 
 # F10
 quit = "F10"
+
+# F9
+restart = "F9"
 
 # STRG-ALT-MINUS
 set_hotkeys_disabled = "CTRL-ALT-MINUS"
@@ -553,15 +552,15 @@ zoom_preset5 = "F5"
 # =
 zoom_reset = "="
 
-#  <[==================================================================================================================================]>
-#
-#       ****                         *                                 *                      **     *                  *
-#       *   *   ***   ***    *   *  ***    ****    ***   ***     ***   *       ***   ***     *       *            ***   *       ***
-#       ****   * **   *  *   *   *   *       *    * **   *   *  *   *  ****   * **   *   *  ***      *           *      ****   * **
-#       *   *  *      *  *   *  **   *      *     *      *      *   *  *   *  *      *       *       *           *      *   *  *
-#       ****    ****  *  *    ****   **    ****    ****  *       ***   ****    ****  *       *       *            ***   *   *   ****
-#
-#  <[==================================================================================================================================]>
+#  <[==================================================================================================================================]> 
+#                                                                                                                                         
+#       ****                         *                                 *                      **     *                  *                 
+#       *   *   ***   ***    *   *  ***    ****    ***   ***     ***   *       ***   ***     *       *            ***   *       ***       
+#       ****   * **   *  *   *   *   *       *    * **   *   *  *   *  ****   * **   *   *  ***      *           *      ****   * **       
+#       *   *  *      *  *   *  **   *      *     *      *      *   *  *   *  *      *       *       *           *      *   *  *          
+#       ****    ****  *  *    ****   **    ****    ****  *       ***   ****    ****  *       *       *            ***   *   *   ****      
+#                                                                                                                                         
+#  <[==================================================================================================================================]> 
 
 [ui]
 # Überspringt die Animation und öffnet die Boxen direkt
@@ -569,28 +568,6 @@ always_skip_reveal_sequence = true
 
 # Open the bulk gift claim flyout automatically
 auto_open_bulk_claim_flyout = false
-
-# Standardmäßige Instant-Warp-Aktion für alle Schiffe: none, warp oder jump.
-# Die Schiffsspezifischen Listen unten überschreiben dies für die jeweiligen Schiffe.
-auto_confirm_instant_warp = "none"
-
-# Schiffe, die immer per Instant Warp springen (überschreibt den Standard oben).
-# Durch Kommas getrennte Rumpfnamen (Groß-/Kleinschreibung egal), "*" für alle oder "" für keine.
-# Entspricht: auto_confirm_instant_warp = "jump" nur für diese Schiffe.
-# Beispiel: instant_warp_auto_jump = "USS Discovery, Korinar"
-instant_warp_auto_jump = ""
-
-# Schiffe, die immer regulär warpen (überschreibt den Standard oben).
-# Gleiche Syntax. Entspricht: auto_confirm_instant_warp = "warp" nur für diese Schiffe.
-# Beispiel: instant_warp_auto_warp = "Newton, USS Enterprise"
-instant_warp_auto_warp = ""
-
-# Schiffe, für die das Popup immer angezeigt wird (überschreibt alles andere).
-# Beispiel: instant_warp_always_ask = "Borg Cube, Gorn Eviscerator"
-instant_warp_always_ask = ""
-
-# Stufen- und Rangverbesserungen für Verbotene Technologie automatisch bestätigen
-auto_confirm_ft_upgrade = false
 
 # Verhindert, dass die Escape-Taste zum Beenden des Spiels auffordert
 disable_escape_exit = true
@@ -603,6 +580,24 @@ disable_move_keys = false
 
 # ⚠️ EXPERIMENTELL: Verhindert die Funktion der standardmäßigen Toast-Banner
 disable_toast_banners = false
+
+# Subgroup: Auto Confirm
+# ----------------------
+
+# Stufen- und Rangverbesserungen für Verbotene Technologie automatisch bestätigen
+auto_confirm_ft_upgrade = false
+
+# Sofort-Warp-Aktion, die automatisch bestätigt wird: none, warp oder jump
+auto_confirm_instant_warp = "none"
+
+# Comma-separated ship hull names for which the instant-warp popup is always shown, overriding all automatic actions
+instant_warp_always_ask = ""
+
+# Comma-separated ship hull names to always instant jump; use "*" for all ships or leave blank for none
+instant_warp_auto_jump = ""
+
+# Comma-separated ship hull names to always regular warp; use "*" for all ships or leave blank for none
+instant_warp_auto_warp = ""
 
 # Subgroup: Banner
 # ----------------
@@ -622,6 +617,12 @@ disable_galaxy_chat = false
 # Auf true setzen, um den Schleier-Chat aus dem Spiel zu entfernen
 disable_veil_chat = false
 
+# Subgroup: Chest Purchases
+# -------------------------
+
+# Maximum for tagged chest-purchase sliders on Windows; 0 disables the feature and native limits above this value are preserved
+extend_chest_purchase_max = 160
+
 # Subgroup: Spenden
 # -----------------
 
@@ -630,13 +631,6 @@ extend_donation_max = 80
 
 # Erweiterung des Spendenschiebereglers aktivieren
 extend_donation_slider = true
-
-# Subgroup: Truhenkäufe
-# ---------------------
-
-# Maximum für markierte Truhenkauf-Schieberegler unter Windows (0 deaktiviert; Werte über 160 werden begrenzt).
-# Höhere native Grenzwerte bleiben erhalten.
-extend_chest_purchase_max = 160
 
 # Subgroup: HUD
 # -------------
@@ -689,15 +683,15 @@ show_station_cargo = true
 # Diese Einstellung wird nicht verwendet
 auto_confirm_discovery = true
 
-#  <[===================================================================================================================================================================================]>
-#
-#        ****                       *                             *             *                                                             *       *
-#       *      *   *  ***     ***   *      ***     ***   ***            ****          ***   ***    *   *  ***     ****   ****   ***   ****   ***            ***   ***     ***   ***
-#        ***    ****  *  *   *      ****   *   *  *   *  *  *     *    **       *    * **   *   *  *   *  *  *   *   *  **     *   *  *   *   *       *    *   *  *  *   * **   *  *
-#           *      *  *  *   *      *   *  *      *   *  *  *     *      **     *    *      *      *  **  *  *    ****    **   *   *  ****    *       *    *   *  *  *   *      *  *
-#       ****    ***   *  *    ***   *   *  *       ***   *  *     *    ***      *     ****  *       ****  *  *    ***   ***     ***   *       **      *     ***   *  *    ****  *  *
-#
-#  <[===================================================================================================================================================================================]>
+#  <[===================================================================================================================================================================================]> 
+#                                                                                                                                                                                          
+#        ****                       *                             *             *                                                             *       *                                    
+#       *      *   *  ***     ***   *      ***     ***   ***            ****          ***   ***    *   *  ***     ****   ****   ***   ****   ***            ***   ***     ***   ***        
+#        ***    ****  *  *   *      ****   *   *  *   *  *  *     *    **       *    * **   *   *  *   *  *  *   *   *  **     *   *  *   *   *       *    *   *  *  *   * **   *  *       
+#           *      *  *  *   *      *   *  *      *   *  *  *     *      **     *    *      *      *  **  *  *    ****    **   *   *  ****    *       *    *   *  *  *   *      *  *       
+#       ****    ***   *  *    ***   *   *  *       ***   *  *     *    ***      *     ****  *       ****  *  *    ***   ***     ***   *       **      *     ***   *  *    ****  *  *       
+#                                                                                                                                                                                          
+#  <[===================================================================================================================================================================================]> 
 
 [sync]
 
@@ -773,38 +767,27 @@ resolver_cache_ttl = "300"
 # Sollen SSL-Zertifikate überprüft werden?
 verify_ssl = true
 
-#  <[===================================================================================================================================================================================]>
-#
-#        ****                       *                             *             *                                                             *       *
-#       *      *   *  ***     ***   *      ***     ***   ***            ****          ***   ***    *   *  ***     ****   ****   ***   ****   ***            ***   ***     ***   ***
-#        ***    ****  *  *   *      ****   *   *  *   *  *  *     *    **       *    * **   *   *  *   *  *  *   *   *  **     *   *  *   *   *       *    *   *  *  *   * **   *  *
-#           *      *  *  *   *      *   *  *      *   *  *  *     *      **     *    *      *      *  **  *  *    ****    **   *   *  ****    *       *    *   *  *  *   *      *  *
-#       ****    ***   *  *    ***   *   *  *       ***   *  *     *    ***      *     ****  *       ****  *  *    ***   ***     ***   *       **      *     ***   *  *    ****  *  *
-#
-#  <[===================================================================================================================================================================================]>
+#  <[===================================================================================================================================================================================]> 
+#                                                                                                                                                                                          
+#        ****                       *                             *             *                                                             *       *                                    
+#       *      *   *  ***     ***   *      ***     ***   ***            ****          ***   ***    *   *  ***     ****   ****   ***   ****   ***            ***   ***     ***   ***        
+#        ***    ****  *  *   *      ****   *   *  *   *  *  *     *    **       *    * **   *   *  *   *  *  *   *   *  **     *   *  *   *   *       *    *   *  *  *   * **   *  *       
+#           *      *  *  *   *      *   *  *      *   *  *  *     *      **     *    *      *      *  **  *  *    ****    **   *   *  ****    *       *    *   *  *  *   *      *  *       
+#       ****    ***   *  *    ***   *   *  *       ***   *  *     *    ***      *     ****  *       ****  *  *    ***   ***     ***   *       **      *     ***   *  *    ****  *  *       
+#                                                                                                                                                                                          
+#  <[===================================================================================================================================================================================]> 
 
 [sync.targets.nextspocksclub]
 
-# Token zur Authentifizierung
-token = ""
-
-# URL des Servers, an den Daten gesendet werden
-url = ""
-
-#  <[===================================================================================================================================================================================]>
-#
-#        ****                       *                             *             *                                                             *       *
-#       *      *   *  ***     ***   *      ***     ***   ***            ****          ***   ***    *   *  ***     ****   ****   ***   ****   ***            ***   ***     ***   ***
-#        ***    ****  *  *   *      ****   *   *  *   *  *  *     *    **       *    * **   *   *  *   *  *  *   *   *  **     *   *  *   *   *       *    *   *  *  *   * **   *  *
-#           *      *  *  *   *      *   *  *      *   *  *  *     *      **     *    *      *      *  **  *  *    ****    **   *   *  ****    *       *    *   *  *  *   *      *  *
-#       ****    ***   *  *    ***   *   *  *       ***   *  *     *    ***      *     ****  *       ****  *  *    ***   ***     ***   *       **      *     ***   *  *    ****  *  *
-#
-#  <[===================================================================================================================================================================================]>
+#  <[===================================================================================================================================================================================]> 
+#                                                                                                                                                                                          
+#        ****                       *                             *             *                                                             *       *                                    
+#       *      *   *  ***     ***   *      ***     ***   ***            ****          ***   ***    *   *  ***     ****   ****   ***   ****   ***            ***   ***     ***   ***        
+#        ***    ****  *  *   *      ****   *   *  *   *  *  *     *    **       *    * **   *   *  *   *  *  *   *   *  **     *   *  *   *   *       *    *   *  *  *   * **   *  *       
+#           *      *  *  *   *      *   *  *      *   *  *  *     *      **     *    *      *      *  **  *  *    ****    **   *   *  ****    *       *    *   *  *  *   *      *  *       
+#       ****    ***   *  *    ***   *   *  *       ***   *  *     *    ***      *     ****  *       ****  *  *    ***   ***     ***   *       **      *     ***   *  *    ****  *  *       
+#                                                                                                                                                                                          
+#  <[===================================================================================================================================================================================]> 
 
 [sync.targets.spocksclub]
 
-# Token zur Authentifizierung
-token = ""
-
-# URL des Servers, an den Daten gesendet werden
-url = ""
