@@ -100,6 +100,7 @@ namespace Shortcuts
   constexpr const char* log_debug             = "CTRL-SHIFT-F9";
   constexpr const char* log_info              = "CTRL-SHIFT-F8";
   constexpr const char* log_trace             = "CTRL-SHIFT-F7";
+  constexpr const char* restart               = "F9";
   constexpr const char* quit                  = "F10";
   constexpr const char* select_chatalliance   = "CTRL-2";
   constexpr const char* select_chatglobal     = "CTRL-1";

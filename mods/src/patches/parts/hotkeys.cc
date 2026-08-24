@@ -25,6 +25,7 @@
 #include "prime/FullScreenChatViewController.h"
 #include "prime/Hub.h"
 #include "prime/KeyCode.h"
+#include "prime/LanguageManager.h"
 #include "prime/NavigationInteractionUIViewController.h"
 #include "prime/NavigationSectionManager.h"
 #include "prime/PreScanTargetWidget.h"
@@ -160,9 +161,21 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
   const auto is_in_chat = Hub::IsInChat();
   const auto config     = &Config::Get();
 
+  if (MapKey::IsDown(GameFunction::Restart)) {
+    spdlog::info("Clearing localisation cache and restarting");
+    LanguageManager::ClearCache();
+    Hub::get_App()->Reload();
+    return;
+  }
+
 #ifdef _WIN32
   if (MapKey::IsDown(GameFunction::Quit)) {
     TerminateProcess(GetCurrentProcess(), 1);
+  }
+#elif defined(__APPLE__)
+  if (MapKey::IsDown(GameFunction::Quit)) {
+    Hub::get_App()->Quit();
+    return;
   }
 #endif
 

@@ -2,6 +2,7 @@
 
 #include <il2cpp/il2cpp_helper.h>
 
+#include "errormsg.h"
 #include "MonoSingleton.h"
 
 class LanguageManager : public MonoSingleton<LanguageManager>
@@ -13,6 +14,18 @@ public:
         get_class_helper().GetMethod<bool(LanguageManager *, Il2CppString *, Il2CppString *, Il2CppString **)>(
             "TryGetTranslation");
     return TryGetTranslation(this, category, key, translatedText);
+  }
+
+  static void ClearCache()
+  {
+    static auto clearCache = get_class_helper().GetMethod<void()>("ClearCache");
+    static auto warn       = true;
+    if (clearCache) {
+      clearCache();
+    } else if (warn) {
+      warn = false;
+      ErrorMsg::MissingMethod("LanguageManager", "ClearCache");
+    }
   }
 
 private:

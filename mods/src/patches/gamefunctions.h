@@ -93,6 +93,7 @@ enum GameFunction {
   LogLevelError,
   LogLevelWarn,
   LogLevelOff,
+  Restart,
   Quit,
   FocusSearch,
 
