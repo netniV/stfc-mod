@@ -19,6 +19,7 @@
 #include <string_view>
 
 namespace DCP  = DefaultConfig::Patches;
+namespace DCA  = DefaultConfig::Audio;
 namespace DCG  = DefaultConfig::Graphics;
 namespace DCC  = DefaultConfig::Control;
 namespace DCU  = DefaultConfig::UI;
@@ -892,6 +893,18 @@ void Config::Load()
       get_config_or_default(config, parsed, "ui", "disable_move_keys", DCU::disable_move_keys, write_config);
   this->disable_toast_banners =
       get_config_or_default(config, parsed, "ui", "disable_toast_banners", DCU::disable_toast_banners, write_config);
+  this->trace_audio_events =
+      get_config_or_default(config, parsed, "audio", "trace_events", DCA::trace_events, write_config);
+  auto disabled_audio_events = get_config_or_default<std::string>(
+      config, parsed, "audio", "disabled_events", DCA::disabled_events, write_config);
+  this->disabled_audio_events.clear();
+  for (const auto& event : StrSplit(disabled_audio_events, ',')) {
+    auto stripped = StripAsciiWhitespace(event);
+    if (!stripped.empty()) {
+      this->disabled_audio_events.emplace_back(stripped);
+    }
+  }
+  this->installAudioEventHooks = this->trace_audio_events || !this->disabled_audio_events.empty();
   this->auto_open_bulk_claim_flyout = get_config_or_default(config, parsed, "ui", "auto_open_bulk_claim_flyout",
                                                             DCU::auto_open_bulk_claim_flyout, write_config);
   this->auto_confirm_instant_warp =

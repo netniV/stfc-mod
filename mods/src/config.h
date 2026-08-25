@@ -194,6 +194,8 @@ public:
   bool disable_veil_chat;
   bool disable_first_popup;
   bool disable_toast_banners;
+  bool trace_audio_events;
+  std::vector<std::string> disabled_audio_events;
   bool auto_open_bulk_claim_flyout;
   bool auto_confirm_ft_upgrade;
 
@@ -240,6 +242,7 @@ public:
   bool installObjectTracker;
   bool installGiftsBulkClaimHooks;
   bool installInstantWarpConfirmationHooks;
+  bool installAudioEventHooks;
 
   std::string config_settings_url;
   std::string config_assets_url_override;

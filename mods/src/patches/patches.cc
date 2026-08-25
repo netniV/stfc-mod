@@ -44,6 +44,7 @@ void InstallCargoFormatHooks();
 void InstallOfficerSortHooks();
 void InstallInstantWarpConfirmationHooks();
 void InstallForbiddenTechConfirmationHooks();
+void InstallAudioEventHooks();
 
 __int64 il2cpp_init_hook(auto original, const char* domain_name)
 {
@@ -142,6 +143,7 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
       {"OfficerSortHooks",     {InstallOfficerSortHooks,      &cfg.installOfficerSortHooks}},
       {"InstantWarpConfirm",   {InstallInstantWarpConfirmationHooks, &cfg.installInstantWarpConfirmationHooks}},
       {"ForbiddenTechConfirm", {InstallForbiddenTechConfirmationHooks, &cfg.auto_confirm_ft_upgrade}},
+      {"AudioEvents",          {InstallAudioEventHooks,                 &cfg.installAudioEventHooks}},
   };
   printf("il2cpp_init_hook(%s)\n", domain_name);
 

@@ -7,6 +7,12 @@ namespace Buffs
   constexpr bool use_out_of_dock_power = true;
 } // namespace Buffs
 
+namespace Audio
+{
+  constexpr const char* disabled_events = "";
+  constexpr bool        trace_events    = false;
+} // namespace Audio
+
 namespace SystemConfig
 {
   constexpr const char* assets_url_override = "";
