@@ -579,8 +579,8 @@ auto_confirm_ft_upgrade = false
 # Empêcher "échap" de proposer de quitter le jeu
 disable_escape_exit = true
 
-# ⚠️ EXPÉRIMENTAL : Empêcher les publicités/interstitiels pop-up d'apparaître
-disable_first_popup = false
+# ⚠️ EXPÉRIMENTAL : Afficher uniquement la première publicité/interstitiel pop-up après le démarrage du jeu, puis supprimer les suivantes
+only_show_first_popup = false
 
 # ⚠️ EXPÉRIMENTAL : Empêcher les touches de déplacement standard de fonctionner
 disable_move_keys = false

@@ -191,7 +191,7 @@ public:
   bool disable_escape_exit;
   bool disable_galaxy_chat;
   bool disable_veil_chat;
-  bool disable_first_popup;
+  bool only_show_first_popup;
   bool disable_toast_banners;
   bool auto_open_bulk_claim_flyout;
   bool auto_confirm_ft_upgrade;

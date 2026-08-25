@@ -17,6 +17,7 @@
 #endif
 
 #include <algorithm>
+#include <atomic>
 #include <prime/ActionQueueManager.h>
 #include <prime/InterstitialViewController.h>
 
@@ -185,19 +186,31 @@ public:
   }
 };
 
+static std::atomic_bool g_first_popup_shown{false};
+
+bool ShouldSuppressAdditionalPopup()
+{
+  bool expected = false;
+  return !g_first_popup_shown.compare_exchange_strong(expected, true);
+}
+
 void InterstitialViewController_AboutToShow(auto original, InterstitialViewController* _this)
 {
   original(_this);
-  if (Config::Get().disable_first_popup && _this != nullptr) {
-    spdlog::debug("InterstitialViewController_AboutToShow: suppressing interstitial popup");
-    _this->CloseWhenReady();
+  if (Config::Get().only_show_first_popup && _this != nullptr) {
+    if (ShouldSuppressAdditionalPopup()) {
+      spdlog::debug("InterstitialViewController_AboutToShow: suppressing interstitial popup (already shown one)");
+      _this->CloseWhenReady();
+    } else {
+      spdlog::debug("InterstitialViewController_AboutToShow: allowing first popup of the session to show");
+    }
   }
 }
 
 void ShopSceneManager_ShowPlcOfferPopup(auto original, void* _this)
 {
-  if (Config::Get().disable_first_popup) {
-    spdlog::debug("ShopSceneManager_ShowPlcOfferPopup: suppressing PLC offer popup");
+  if (Config::Get().only_show_first_popup && ShouldSuppressAdditionalPopup()) {
+    spdlog::debug("ShopSceneManager_ShowPlcOfferPopup: suppressing PLC offer popup (already shown one)");
     return;
   }
   original(_this);
