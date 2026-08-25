@@ -3,8 +3,12 @@
 
 #include <il2cpp/il2cpp_helper.h>
 
+#include <prime/Hub.h>
 #include <prime/NavigationPan.h>
+#include <prime/OrbitFrameProvider.h>
 #include <prime/TKTouch.h>
+
+#include <patches/mapkey.h>
 
 #include <spud/detour.h>
 
@@ -42,8 +46,37 @@ bool NavigationPan_LateUpdate_Hook(auto original, NavigationPan *_this)
   return true;
 }
 
+void OrbitFrameProvider_UpdateInputData_Hook(auto original, OrbitFrameProvider *_this, Camera *primary_camera)
+{
+  original(_this, primary_camera);
+
+  auto section_manager = Hub::get_SectionManager();
+  if (!section_manager || section_manager->CurrentSection != SectionID::Starbase_Exterior || Key::IsInputFocused()) {
+    return;
+  }
+
+  static auto GetDeltaTime = il2cpp_resolve_icall_typed<float()>("UnityEngine.Time::get_deltaTime()");
+  constexpr float keyboard_rotation_speed = 45.0f;
+  const auto      frame_delta             = keyboard_rotation_speed * GetDeltaTime();
+
+  if (MapKey::IsPressed(GameFunction::MoveLeft)) {
+    _this->RotationAngleDelta() -= frame_delta;
+  }
+  if (MapKey::IsPressed(GameFunction::MoveRight)) {
+    _this->RotationAngleDelta() += frame_delta;
+  }
+}
+
 void InstallPanHooks()
 {
+  if (auto& orbit_helper = OrbitFrameProvider::get_class_helper(); !orbit_helper.isValidHelper()) {
+    ErrorMsg::MissingHelper("Digit.Client.CameraController", "OrbitFrameProvider");
+  } else if (const auto ptr = orbit_helper.GetMethod("UpdateInputData"); ptr == nullptr) {
+    ErrorMsg::MissingMethod("OrbitFrameProvider", "UpdateInputData");
+  } else {
+    SPUD_STATIC_DETOUR(ptr, OrbitFrameProvider_UpdateInputData_Hook);
+  }
+
   if (auto touchHelper = il2cpp_get_class_helper("TouchKit", "", "TKTouch"); !touchHelper.isValidHelper()) {
     ErrorMsg::MissingHelper("<global>", "TKTouch");
   } else {
