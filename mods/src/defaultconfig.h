@@ -85,6 +85,7 @@ namespace Patches
   constexpr bool focussearch                = true;
   constexpr bool cargoformathooks           = true;  // on by default: cargo number precision override
   constexpr bool officersorthooks           = true;  // restore Below Deck Ability sort option
+  constexpr bool pinnedshiphooks            = true;  // pin configured ships to front of fleet dock sort
 } // namespace Patches
 
 namespace Shortcuts
@@ -213,6 +214,7 @@ namespace Sync
 namespace UI
 {
   constexpr bool        always_skip_reveal_sequence = true;
+  constexpr bool        arrow_keys_to_select_ship   = true;
   constexpr bool        auto_confirm_discovery      = true;
   constexpr bool        auto_confirm_ft_upgrade     = false;
   constexpr bool        auto_open_bulk_claim_flyout = false;
@@ -224,6 +226,7 @@ namespace UI
   constexpr bool        disable_preview_recall      = false;
   constexpr bool        disable_toast_banners       = false;
   constexpr bool        disable_veil_chat           = false;
+  constexpr bool        double_click_to_assign_ship = false;
   constexpr const char* disabled_banner_types       = "";
   constexpr const char* hud_daily_goals             = "auto";
   constexpr const char* hud_field_training          = "auto";
@@ -234,6 +237,7 @@ namespace UI
   constexpr const char* instant_warp_auto_jump     = "";
   constexpr const char* instant_warp_auto_warp     = "";
   constexpr const char* instant_warp_always_ask    = "";
+  constexpr const char* pinned_ships                = "";
   constexpr const char* notify_banner_types         = "";
   constexpr auto        extend_chest_purchase_max   = 160;
   constexpr auto        extend_donation_max         = 80;

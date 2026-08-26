@@ -632,6 +632,23 @@ extend_donation_max = 80
 # Extend donation slider enable
 extend_donation_slider = true
 
+# Subgroup: Fleet Management
+# --------------------------
+
+# Ships to always show first in the fleet management dock. Pinned ships keep
+# the active sort's order among themselves; comma-separated ship names,
+# list order doesn't matter.
+# Example: pinned_ships = "USS Vengeance, GS-31, Discovery"
+pinned_ships = ""
+
+# Double-click a ship in the fleet management dock to assign it, instead of
+# selecting then clicking Assign
+double_click_to_assign_ship = false
+
+# Use the Left/Right arrow keys to select the previous/next ship in the
+# fleet management dock
+arrow_keys_to_select_ship = true
+
 # Subgroup: HUD
 # -------------
 

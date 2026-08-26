@@ -47,6 +47,14 @@ constexpr std::string_view StripSuffix(std::string_view str, const std::string_v
   return str;
 }
 
+constexpr std::string_view StripPrefix(std::string_view str, const std::string_view prefix)
+{
+  if (str.size() >= prefix.size() && str.substr(0, prefix.size()) == prefix) {
+    return str.substr(prefix.size());
+  }
+  return str;
+}
+
 constexpr std::string AsciiStrToUpper(const std::string_view s)
 {
   std::string str = s.data();
