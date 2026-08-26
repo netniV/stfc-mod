@@ -584,8 +584,9 @@ disable_toast_banners = false
 # Subgroup: Auto Confirm
 # ----------------------
 
-# Vaisseaux à toujours afficher en premier dans le dock de gestion de flotte, quel que soit le tri actif.
-# Noms de vaisseaux séparés par des virgules. L'ordre détermine la priorité d'épinglage.
+# Vaisseaux à toujours afficher en premier dans le dock de gestion de flotte. Les vaisseaux épinglés
+# conservent l'ordre du tri actif entre eux ; noms séparés par des virgules, l'ordre de la liste
+# n'a pas d'importance.
 # Exemple : pinned_ships = "USS Vengeance, GS-31, Discovery"
 pinned_ships = ""
 

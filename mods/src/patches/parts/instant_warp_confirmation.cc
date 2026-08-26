@@ -34,7 +34,8 @@ void CoursePromptPopupViewController_AboutToShow_Hook(auto original, CoursePromp
     fleet = course->PlayerFleet;
   }
 
-  const auto candidates = ShipNameMatch::CandidateWords(fleet);
+  std::string hull_name;
+  const auto  candidates = ShipNameMatch::CandidateWords(fleet, &hull_name);
 
   const auto matches = [&candidates](const std::vector<std::string>& names, bool all) -> bool {
     if (all) return true;

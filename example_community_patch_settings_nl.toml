@@ -584,8 +584,9 @@ disable_toast_banners = false
 # Subgroup: Auto Confirm
 # ----------------------
 
-# Schepen die altijd eerst worden getoond in het vlootbeheerdok, ongeacht de actieve sortering.
-# Door komma's gescheiden scheepsnamen. De volgorde bepaalt de vastzetprioriteit.
+# Schepen die altijd eerst worden getoond in het vlootbeheerdok. Vastgezette schepen behouden
+# onderling de volgorde van de actieve sortering; door komma's gescheiden scheepsnamen,
+# de volgorde in de lijst maakt niet uit.
 # Voorbeeld: pinned_ships = "USS Vengeance, GS-31, Discovery"
 pinned_ships = ""
 

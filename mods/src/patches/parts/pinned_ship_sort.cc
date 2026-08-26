@@ -17,10 +17,11 @@
 
 // Fleet management dock ship sort: hooks ShipManagementViewContext.Sort()
 // and stable-partitions cfg.pinned_ships to the front of SortedIdleShips,
-// keeping everyone else in their existing order. Only the concrete class is
-// hooked, not ISortedFleetsContext, so HailingFrequenciesInventoryContext is
-// unaffected. Matching is shared with the instant-warp filters (ship_name_match.h).
-// If multiple ships share a pinned name, only the highest-level unclaimed one is pinned.
+// keeping the active sort field's order within both the pinned group and
+// everyone else. Only the concrete class is hooked, not ISortedFleetsContext,
+// so HailingFrequenciesInventoryContext is unaffected. Matching is shared
+// with the instant-warp filters (ship_name_match.h). If multiple ships share
+// a pinned name, only the highest-level unclaimed one is pinned.
 
 namespace {
 
@@ -78,8 +79,8 @@ ShipEntry BuildShipEntry(void* item)
 }
 
 // Stable-partitions `list` (a List<FleetPlayerData>) so that ships matching
-// cfg.pinned_ships come first, ordered by their position in that config list,
-// while every other ship keeps its existing relative order.
+// cfg.pinned_ships come first, while both the pinned group and everyone else
+// keep their existing relative order (i.e. whatever sort field is active).
 void ReorderPinnedShips(void* list)
 {
   if (!list) return;
@@ -129,10 +130,11 @@ void ReorderPinnedShips(void* list)
     ships.push_back(std::move(entry));
   }
 
-  // rank[i] == pinned_words.size() means "not pinned"; anything less is the
-  // index into cfg.pinned_ships (i.e. pin priority) it was claimed for.
-  const int        unpinned_rank = static_cast<int>(pinned_words.size());
-  std::vector<int> ranks(count, unpinned_rank);
+  // Pinned ships get rank 0, everyone else rank 1; the stable_sort below then
+  // preserves each group's existing (actively-sorted) relative order.
+  constexpr int    kPinnedRank   = 0;
+  constexpr int    kUnpinnedRank = 1;
+  std::vector<int> ranks(count, kUnpinnedRank);
 
   bool any_pinned = false;
   for (size_t p = 0; p < pinned_words.size(); ++p) {
@@ -141,7 +143,7 @@ void ReorderPinnedShips(void* list)
     int     best_index = -1;
     int64_t best_level = -1;
     for (int32_t i = 0; i < count; ++i) {
-      if (ranks[i] != unpinned_rank) continue; // already claimed by an earlier pinned_ships entry
+      if (ranks[i] != kUnpinnedRank) continue; // already claimed by an earlier pinned_ships entry
       if (!ShipNameMatch::MatchesAny(ships[i].match_words, pinned_words[p])) continue;
       if (ships[i].level > best_level) {
         best_level = ships[i].level;
@@ -150,7 +152,7 @@ void ReorderPinnedShips(void* list)
     }
 
     if (best_index >= 0) {
-      ranks[best_index] = static_cast<int>(p);
+      ranks[best_index] = kPinnedRank;
       any_pinned        = true;
     } else {
       spdlog::warn("[PinnedShipSort] pinned_ships entry '{}' matched no idle ship (check the debug log above "

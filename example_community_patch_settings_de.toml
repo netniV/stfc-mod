@@ -584,8 +584,9 @@ disable_toast_banners = false
 # Subgroup: Auto Confirm
 # ----------------------
 
-# Schiffe, die im Flottenmanagement-Dock immer zuerst angezeigt werden, unabhängig von der aktiven Sortierung.
-# Durch Kommas getrennte Schiffsnamen. Die Reihenfolge bestimmt die Anheftungspriorität.
+# Schiffe, die im Flottenmanagement-Dock immer zuerst angezeigt werden. Angeheftete Schiffe behalten
+# untereinander die Reihenfolge der aktiven Sortierung; durch Kommas getrennte Schiffsnamen,
+# die Listenreihenfolge spielt keine Rolle.
 # Beispiel: pinned_ships = "USS Vengeance, GS-31, Discovery"
 pinned_ships = ""
 

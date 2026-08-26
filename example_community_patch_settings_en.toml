@@ -584,8 +584,8 @@ disable_toast_banners = false
 # Subgroup: Auto Confirm
 # ----------------------
 
-# Ships to always show first in the fleet management dock, regardless of the active sort.
-# Comma-separated ship names. Order determines pin priority.
+# Ships to always show first in the fleet management dock. Pinned ships keep the active sort's
+# order among themselves; comma-separated ship names, list order doesn't matter.
 # Example: pinned_ships = "USS Vengeance, GS-31, Discovery"
 pinned_ships = ""
 
