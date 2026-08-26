@@ -584,12 +584,6 @@ disable_toast_banners = false
 # Subgroup: Auto Confirm
 # ----------------------
 
-# Schepen die altijd eerst worden getoond in het vlootbeheerdok. Vastgezette schepen behouden
-# onderling de volgorde van de actieve sortering; door komma's gescheiden scheepsnamen,
-# de volgorde in de lijst maakt niet uit.
-# Voorbeeld: pinned_ships = "USS Vengeance, GS-31, Discovery"
-pinned_ships = ""
-
 # Level- en rangupgrades voor Verboden Technologie automatisch bevestigen
 auto_confirm_ft_upgrade = false
 
@@ -637,6 +631,19 @@ extend_donation_max = 80
 
 # Zet dit aan als je de schuifregelaar voor alliantie donaties wilt uitbreiden
 extend_donation_slider = true
+
+# Subgroup: Fleet Management
+# --------------------------
+
+# Schepen die altijd eerst worden getoond in het vlootbeheerdok. Vastgezette schepen behouden
+# onderling de volgorde van de actieve sortering; door komma's gescheiden scheepsnamen,
+# de volgorde in de lijst maakt niet uit.
+# Voorbeeld: pinned_ships = "USS Vengeance, GS-31, Discovery"
+pinned_ships = ""
+
+# Dubbelklik op een schip in het vlootbeheerdok om het toe te wijzen, in plaats van eerst te
+# selecteren en dan op Toewijzen te klikken
+double_click_to_assign_ship = false
 
 # Subgroup: HUD
 # -------------

@@ -584,12 +584,6 @@ disable_toast_banners = false
 # Subgroup: Auto Confirm
 # ----------------------
 
-# Schiffe, die im Flottenmanagement-Dock immer zuerst angezeigt werden. Angeheftete Schiffe behalten
-# untereinander die Reihenfolge der aktiven Sortierung; durch Kommas getrennte Schiffsnamen,
-# die Listenreihenfolge spielt keine Rolle.
-# Beispiel: pinned_ships = "USS Vengeance, GS-31, Discovery"
-pinned_ships = ""
-
 # Stufen- und Rangverbesserungen für Verbotene Technologie automatisch bestätigen
 auto_confirm_ft_upgrade = false
 
@@ -637,6 +631,19 @@ extend_donation_max = 80
 
 # Erweiterung des Spendenschiebereglers aktivieren
 extend_donation_slider = true
+
+# Subgroup: Fleet Management
+# --------------------------
+
+# Schiffe, die im Flottenmanagement-Dock immer zuerst angezeigt werden. Angeheftete Schiffe behalten
+# untereinander die Reihenfolge der aktiven Sortierung; durch Kommas getrennte Schiffsnamen,
+# die Listenreihenfolge spielt keine Rolle.
+# Beispiel: pinned_ships = "USS Vengeance, GS-31, Discovery"
+pinned_ships = ""
+
+# Ein Schiff im Flottenmanagement-Dock per Doppelklick zuweisen, statt es auszuwählen
+# und dann auf "Zuweisen" zu klicken
+double_click_to_assign_ship = false
 
 # Subgroup: HUD
 # -------------

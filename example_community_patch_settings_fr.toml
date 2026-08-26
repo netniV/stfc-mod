@@ -584,12 +584,6 @@ disable_toast_banners = false
 # Subgroup: Auto Confirm
 # ----------------------
 
-# Vaisseaux à toujours afficher en premier dans le dock de gestion de flotte. Les vaisseaux épinglés
-# conservent l'ordre du tri actif entre eux ; noms séparés par des virgules, l'ordre de la liste
-# n'a pas d'importance.
-# Exemple : pinned_ships = "USS Vengeance, GS-31, Discovery"
-pinned_ships = ""
-
 # Confirmer automatiquement les améliorations de niveau et de rang de Technologie interdite
 auto_confirm_ft_upgrade = false
 
@@ -637,6 +631,19 @@ extend_donation_max = 80
 
 # Activer l'extension du curseur de don
 extend_donation_slider = true
+
+# Subgroup: Fleet Management
+# --------------------------
+
+# Vaisseaux à toujours afficher en premier dans le dock de gestion de flotte. Les vaisseaux épinglés
+# conservent l'ordre du tri actif entre eux ; noms séparés par des virgules, l'ordre de la liste
+# n'a pas d'importance.
+# Exemple : pinned_ships = "USS Vengeance, GS-31, Discovery"
+pinned_ships = ""
+
+# Double-cliquer sur un vaisseau dans le dock de gestion de flotte pour l'assigner, au lieu de
+# le sélectionner puis de cliquer sur Assigner
+double_click_to_assign_ship = false
 
 # Subgroup: HUD
 # -------------

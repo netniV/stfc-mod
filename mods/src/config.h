@@ -211,6 +211,8 @@ public:
 
   std::vector<std::string> pinned_ships;
 
+  bool double_click_to_assign_ship;
+
   bool show_cargo_default;
   bool show_player_cargo;
   bool show_station_cargo;
