@@ -23,6 +23,3 @@ debug.log
 mods/.xmake
 Analyse-GameAssembly.ps1
 assets/LoadingScreens/*.psd
-
-
-/dump.cs
