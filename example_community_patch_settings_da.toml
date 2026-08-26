@@ -7,7 +7,7 @@
 #  |    #***     #    #       #***         #   *   #**    #***    | 
 #  |                                                              | 
 #  +--------------------------------------------------------------+ 
-#   Oprettet den 2026-08-24T19:52:11.565Z
+#   Oprettet den 2026-08-26T22:53:46.726Z
 #   
 #   Denne konfigurationsfil blev oprettet af https://modconfig.pages.dev
 #   og leveres, som den er. Hvis der er problemer med STFC Community Mod
@@ -17,8 +17,25 @@
 #       Discord : https://discord.gg/PrpHgs7Vjs
 #       GitHub  : https://github.com/netniV/stfc-mod
 #   
-#   Dagens konfigurationsfil præsenteres af bogstavet E og tallet 3
+#   Dagens konfigurationsfil præsenteres af bogstavet F og tallet 1
 #   
+
+#  <[=======================================]> 
+#                                              
+#         *               *    *               
+#        * *   *   *      *          ***       
+#       *****  *   *   ****    *    *   *      
+#       *   *  *  **  *   *    *    *   *      
+#       *   *   ****   ****    *     ***       
+#                                              
+#  <[=======================================]> 
+
+[audio]
+# Comma-separated audio event names to suppress; leave blank to allow all audio events
+disabled_events = ""
+
+# Write audio event names to the trace log for troubleshooting
+trace_events = false
 
 #  <[======================================================================================================]> 
 #                                                                                                             
@@ -220,6 +237,9 @@ miscpatches = true
 objecttracker = true
 officersorthooks = true
 panhooks = true
+
+# Fastgør konfigurerede skibe forrest i flådestyringsdokken
+pinnedshiphooks = true
 syncpatches = true
 tempcrashfixes = true
 testpatches = true
@@ -565,6 +585,7 @@ zoom_reset = "="
 [ui]
 # Spring animationen ved åbning af kasser over, og åbn blot kasserne
 always_skip_reveal_sequence = true
+auto_confirm_discovery = true
 
 # Open the bulk gift claim flyout automatically
 auto_open_bulk_claim_flyout = false
@@ -632,6 +653,18 @@ extend_donation_max = 80
 # Aktivér udvidet donationsskyder
 extend_donation_slider = true
 
+# Subgroup: Flådestyring
+# ----------------------
+
+# Brug venstre og højre piletast til at vælge det forrige eller næste skib i flådestyringsdokken
+arrow_keys_to_select_ship = true
+
+# Dobbeltklik på et skib i flådestyringsdokken for at tildele det i stedet for at vælge det og derefter klikke på Tildel
+double_click_to_assign_ship = false
+
+# Kommaseparerede skibsnavne, der altid vises først i flådestyringsdokken; fastgjorte skibe bevarer den aktive sorteringsrækkefølge
+pinned_ships = ""
+
 # Subgroup: HUD
 # -------------
 
@@ -676,12 +709,6 @@ show_player_cargo = true
 
 # Sæt til sand for altid at vise belønningerne for valgte skibe/stationer
 show_station_cargo = true
-
-# Subgroup: Unsupported
-# ---------------------
-
-# Denne indstilling bruges ikke
-auto_confirm_discovery = true
 
 #  <[========================================================================================================================================================================================================]> 
 #                                                                                                                                                                                                               

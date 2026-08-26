@@ -7,7 +7,7 @@
 #  |    #***     #    #       #***         #   *   #**    #***    | 
 #  |                                                              | 
 #  +--------------------------------------------------------------+ 
-#   Gegenereerd op 2026-08-24T19:52:11.532Z
+#   Gegenereerd op 2026-08-26T22:53:46.671Z
 #   
 #   Dit configuratiebestand is gegenereerd door https://modconfig.pages.dev
 #   en wordt geleverd zoals het is. Meld problemen met de STFC Community Mod,
@@ -17,8 +17,25 @@
 #       Discord : https://discord.gg/PrpHgs7Vjs
 #       GitHub  : https://github.com/netniV/stfc-mod
 #   
-#   Het configuratiebestand van vandaag wordt u aangeboden door de letter B en het getal 8
+#   Het configuratiebestand van vandaag wordt u aangeboden door de letter G en het getal 4
 #   
+
+#  <[=======================================]> 
+#                                              
+#         *               *    *               
+#        * *   *   *      *          ***       
+#       *****  *   *   ****    *    *   *      
+#       *   *  *  **  *   *    *    *   *      
+#       *   *   ****   ****    *     ***       
+#                                              
+#  <[=======================================]> 
+
+[audio]
+# Comma-separated audio event names to suppress; leave blank to allow all audio events
+disabled_events = ""
+
+# Write audio event names to the trace log for troubleshooting
+trace_events = false
 
 #  <[=======================================]> 
 #                                              
@@ -220,6 +237,9 @@ miscpatches = true
 objecttracker = true
 officersorthooks = true
 panhooks = true
+
+# Zet geconfigureerde schepen vooraan in het vlootbeheerdok
+pinnedshiphooks = true
 syncpatches = true
 tempcrashfixes = true
 testpatches = true
@@ -565,6 +585,7 @@ zoom_reset = "="
 [ui]
 # Slaat de onthullig animatie van een kist altijd over en opent gewoon de kist
 always_skip_reveal_sequence = true
+auto_confirm_discovery = true
 
 # Open the bulk gift claim flyout automatically
 auto_open_bulk_claim_flyout = false
@@ -632,22 +653,17 @@ extend_donation_max = 80
 # Zet dit aan als je de schuifregelaar voor alliantie donaties wilt uitbreiden
 extend_donation_slider = true
 
-# Subgroup: Fleet Management
-# --------------------------
+# Subgroup: Vlootbeheer
+# ---------------------
 
-# Schepen die altijd eerst worden getoond in het vlootbeheerdok. Vastgezette schepen behouden
-# onderling de volgorde van de actieve sortering; door komma's gescheiden scheepsnamen,
-# de volgorde in de lijst maakt niet uit.
-# Voorbeeld: pinned_ships = "USS Vengeance, GS-31, Discovery"
-pinned_ships = ""
+# Gebruik de linker- en rechterpijltjestoets om het vorige of volgende schip in het vlootbeheerdok te selecteren
+arrow_keys_to_select_ship = true
 
-# Dubbelklik op een schip in het vlootbeheerdok om het toe te wijzen, in plaats van eerst te
-# selecteren en dan op Toewijzen te klikken
+# Dubbelklik op een schip in het vlootbeheerdok om het toe te wijzen, in plaats van het te selecteren en daarna op Toewijzen te klikken
 double_click_to_assign_ship = false
 
-# Gebruik de pijltjestoetsen links/rechts om het vorige/volgende schip in het
-# vlootbeheerdok te selecteren
-arrow_keys_to_select_ship = true
+# Door komma's gescheiden scheepsnamen die altijd als eerste in het vlootbeheerdok worden getoond; vastgezette schepen behouden de actieve sorteervolgorde
+pinned_ships = ""
 
 # Subgroup: HUD
 # -------------
@@ -693,12 +709,6 @@ show_player_cargo = true
 
 # Zet dit aan als je altijd de vracht wilt zien van stations
 show_station_cargo = true
-
-# Subgroup: Unsupported
-# ---------------------
-
-# Deze instelling wordt niet gebruikt
-auto_confirm_discovery = true
 
 #  <[===========================================================================================================================]> 
 #                                                                                                                                  

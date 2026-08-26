@@ -7,7 +7,7 @@
 #  |    #***     #    #       #***         #   *   #**    #***    | 
 #  |                                                              | 
 #  +--------------------------------------------------------------+ 
-#   Generado el 2026-08-24T19:52:11.547Z
+#   Generado el 2026-08-26T22:53:46.701Z
 #   
 #   Este archivo de configuración fue generado por https://modconfig.pages.dev
 #   y se proporciona tal cual. Si hay algún problema con el Mod Comunitario de STFC
@@ -17,8 +17,25 @@
 #       Discord : https://discord.gg/PrpHgs7Vjs
 #       GitHub  : https://github.com/netniV/stfc-mod
 #   
-#   El archivo de configuración de hoy está patrocinado por la letra O y el número 6
+#   El archivo de configuración de hoy está patrocinado por la letra C y el número 4
 #   
+
+#  <[=======================================]> 
+#                                              
+#         *               *    *               
+#        * *   *   *      *          ***       
+#       *****  *   *   ****    *    *   *      
+#       *   *  *  **  *   *    *    *   *      
+#       *   *   ****   ****    *     ***       
+#                                              
+#  <[=======================================]> 
+
+[audio]
+# Comma-separated audio event names to suppress; leave blank to allow all audio events
+disabled_events = ""
+
+# Write audio event names to the trace log for troubleshooting
+trace_events = false
 
 #  <[=====================================================]> 
 #                                                            
@@ -220,6 +237,9 @@ miscpatches = true
 objecttracker = true
 officersorthooks = true
 panhooks = true
+
+# Fija las naves configuradas al principio del muelle de gestión de flota
+pinnedshiphooks = true
 syncpatches = true
 tempcrashfixes = true
 testpatches = true
@@ -565,6 +585,7 @@ zoom_reset = "="
 [ui]
 # Omite la animación de revelado de cajas y simplemente ábrelas
 always_skip_reveal_sequence = true
+auto_confirm_discovery = true
 
 # Open the bulk gift claim flyout automatically
 auto_open_bulk_claim_flyout = false
@@ -632,6 +653,18 @@ extend_donation_max = 80
 # Activa la ampliación del control de donación
 extend_donation_slider = true
 
+# Subgroup: Gestión de flota
+# --------------------------
+
+# Usa las flechas izquierda y derecha para seleccionar la nave anterior o siguiente en el muelle de gestión de flota
+arrow_keys_to_select_ship = true
+
+# Haz doble clic en una nave del muelle de gestión de flota para asignarla, en lugar de seleccionarla y pulsar Asignar
+double_click_to_assign_ship = false
+
+# Nombres de naves separados por comas que siempre se muestran primero en el muelle de gestión de flota; las naves fijadas conservan el orden activo
+pinned_ships = ""
+
 # Subgroup: HUD
 # -------------
 
@@ -676,12 +709,6 @@ show_player_cargo = true
 
 # Establece el valor en verdadero para mostrar siempre las recompensas de los barcos/estaciones seleccionados
 show_station_cargo = true
-
-# Subgroup: Unsupported
-# ---------------------
-
-# Este ajuste no se utiliza
-auto_confirm_discovery = true
 
 #  <[==========================================================================================================================================================================================]> 
 #                                                                                                                                                                                                 

@@ -7,7 +7,7 @@
 #  |    #***     #    #       #***         #   *   #**    #***    | 
 #  |                                                              | 
 #  +--------------------------------------------------------------+ 
-#   Erstellt am 2026-08-24T19:52:11.523Z
+#   Erstellt am 2026-08-26T22:53:46.661Z
 #   
 #   Diese Konfigurationsdatei wurde von https://modconfig.pages.dev erstellt
 #   und wird ohne Gewähr bereitgestellt. Bei Problemen mit dem STFC Community Mod,
@@ -17,8 +17,25 @@
 #       Discord : https://discord.gg/PrpHgs7Vjs
 #       GitHub  : https://github.com/netniV/stfc-mod
 #   
-#   Die heutige Konfigurationsdatei wird Ihnen präsentiert vom Buchstaben V und der Zahl 6
+#   Die heutige Konfigurationsdatei wird Ihnen präsentiert vom Buchstaben R und der Zahl 6
 #   
+
+#  <[=======================================]> 
+#                                              
+#         *               *    *               
+#        * *   *   *      *          ***       
+#       *****  *   *   ****    *    *   *      
+#       *   *  *  **  *   *    *    *   *      
+#       *   *   ****   ****    *     ***       
+#                                              
+#  <[=======================================]> 
+
+[audio]
+# Comma-separated audio event names to suppress; leave blank to allow all audio events
+disabled_events = ""
+
+# Write audio event names to the trace log for troubleshooting
+trace_events = false
 
 #  <[=======================================]> 
 #                                              
@@ -220,6 +237,9 @@ miscpatches = true
 objecttracker = true
 officersorthooks = true
 panhooks = true
+
+# Konfigurierte Schiffe im Flottenmanagement-Dock an den Anfang stellen
+pinnedshiphooks = true
 syncpatches = true
 tempcrashfixes = true
 testpatches = true
@@ -565,6 +585,7 @@ zoom_reset = "="
 [ui]
 # Überspringt die Animation und öffnet die Boxen direkt
 always_skip_reveal_sequence = true
+auto_confirm_discovery = true
 
 # Open the bulk gift claim flyout automatically
 auto_open_bulk_claim_flyout = false
@@ -632,22 +653,17 @@ extend_donation_max = 80
 # Erweiterung des Spendenschiebereglers aktivieren
 extend_donation_slider = true
 
-# Subgroup: Fleet Management
-# --------------------------
+# Subgroup: Flottenmanagement
+# ---------------------------
 
-# Schiffe, die im Flottenmanagement-Dock immer zuerst angezeigt werden. Angeheftete Schiffe behalten
-# untereinander die Reihenfolge der aktiven Sortierung; durch Kommas getrennte Schiffsnamen,
-# die Listenreihenfolge spielt keine Rolle.
-# Beispiel: pinned_ships = "USS Vengeance, GS-31, Discovery"
-pinned_ships = ""
+# Mit der linken und rechten Pfeiltaste das vorherige oder nächste Schiff im Flottenmanagement-Dock auswählen
+arrow_keys_to_select_ship = true
 
-# Ein Schiff im Flottenmanagement-Dock per Doppelklick zuweisen, statt es auszuwählen
-# und dann auf "Zuweisen" zu klicken
+# Ein Schiff im Flottenmanagement-Dock doppelklicken, um es direkt zuzuweisen, statt es auszuwählen und anschließend auf Zuweisen zu klicken
 double_click_to_assign_ship = false
 
-# Mit den Pfeiltasten links/rechts das vorherige/nächste Schiff im
-# Flottenmanagement-Dock auswählen
-arrow_keys_to_select_ship = true
+# Kommagetrennte Schiffsnamen, die im Flottenmanagement-Dock immer zuerst angezeigt werden; angeheftete Schiffe behalten die aktive Sortierreihenfolge bei
+pinned_ships = ""
 
 # Subgroup: HUD
 # -------------
@@ -693,12 +709,6 @@ show_player_cargo = true
 
 # Auf true setzen, um die Belohnungen für ausgewählte Schiffe/Stationen immer anzuzeigen
 show_station_cargo = true
-
-# Subgroup: Nicht unterstützt
-# ---------------------------
-
-# Diese Einstellung wird nicht verwendet
-auto_confirm_discovery = true
 
 #  <[===================================================================================================================================================================================]> 
 #                                                                                                                                                                                          
