@@ -645,6 +645,10 @@ pinned_ships = ""
 # le sélectionner puis de cliquer sur Assigner
 double_click_to_assign_ship = false
 
+# Utiliser les flèches gauche/droite pour sélectionner le vaisseau précédent/suivant
+# dans le dock de gestion de flotte
+arrow_keys_to_select_ship = true
+
 # Subgroup: HUD
 # -------------
 

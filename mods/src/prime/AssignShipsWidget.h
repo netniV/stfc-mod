@@ -4,12 +4,14 @@
 
 #include "ButtonAndContextWrapper.h"
 #include "InputFieldWidget.h"
+#include "SelectableList.h"
 
 struct AssignShipsWidget {
 public:
   __declspec(property(get = __get__inputField)) InputFieldWidget* _inputField;
   __declspec(property(get = __get_isActiveAndEnabled)) bool        isActiveAndEnabled;
   __declspec(property(get = __get__assignButton)) ButtonAndContextWrapper* _assignButton;
+  __declspec(property(get = __get__selectableList)) SelectableList* _selectableList;
 
 private:
   friend class ObjectFinder<AssignShipsWidget>;
@@ -37,5 +39,11 @@ public:
   {
     static auto field = get_class_helper().GetField("_assignButton").offset();
     return *(ButtonAndContextWrapper**)((uintptr_t)this + field);
+  }
+
+  SelectableList* __get__selectableList()
+  {
+    static auto field = get_class_helper().GetField("_selectableList").offset();
+    return *(SelectableList**)((uintptr_t)this + field);
   }
 };

@@ -930,6 +930,9 @@ void Config::Load()
   this->double_click_to_assign_ship = get_config_or_default(config, parsed, "ui", "double_click_to_assign_ship",
                                                              DCU::double_click_to_assign_ship, write_config);
 
+  this->arrow_keys_to_select_ship = get_config_or_default(config, parsed, "ui", "arrow_keys_to_select_ship",
+                                                           DCU::arrow_keys_to_select_ship, write_config);
+
   this->auto_confirm_ft_upgrade =
       get_config_or_default(config, parsed, "ui", "auto_confirm_ft_upgrade",
                             DCU::auto_confirm_ft_upgrade, write_config);

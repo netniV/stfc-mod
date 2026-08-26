@@ -645,6 +645,10 @@ pinned_ships = ""
 # selecting then clicking Assign
 double_click_to_assign_ship = false
 
+# Use the Left/Right arrow keys to select the previous/next ship in the
+# fleet management dock
+arrow_keys_to_select_ship = true
+
 # Subgroup: HUD
 # -------------
 

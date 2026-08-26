@@ -38,6 +38,7 @@ public:
   __declspec(property(get = __get_Hull)) HullSpec* Hull;
   __declspec(property(get = __get_Address)) void* Address;
   __declspec(property(get = __get_Level)) int64_t Level;
+  __declspec(property(get = __get_HasShip)) bool HasShip;
 
 private:
   static IL2CppClassHelper& get_class_helper()
@@ -82,5 +83,12 @@ public:
     static auto field = get_class_helper().GetProperty("Level");
     auto*      value  = field.Get<int64_t>(this);
     return value ? *value : 0;
+  }
+
+  bool __get_HasShip()
+  {
+    static auto field = get_class_helper().GetProperty("HasShip");
+    auto*      value  = field.Get<bool>(this);
+    return value ? *value : false;
   }
 };

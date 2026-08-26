@@ -645,6 +645,10 @@ pinned_ships = ""
 # selecteren en dan op Toewijzen te klikken
 double_click_to_assign_ship = false
 
+# Gebruik de pijltjestoetsen links/rechts om het vorige/volgende schip in het
+# vlootbeheerdok te selecteren
+arrow_keys_to_select_ship = true
+
 # Subgroup: HUD
 # -------------
 
