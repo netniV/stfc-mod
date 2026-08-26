@@ -584,6 +584,11 @@ disable_toast_banners = false
 # Subgroup: Auto Confirm
 # ----------------------
 
+# Ships to always show first in the fleet management dock, regardless of the active sort.
+# Comma-separated ship names. Order determines pin priority.
+# Example: pinned_ships = "USS Vengeance, GS-31, Discovery"
+pinned_ships = ""
+
 # Confirm Forbidden Tech level and tier upgrades automatically
 auto_confirm_ft_upgrade = false
 

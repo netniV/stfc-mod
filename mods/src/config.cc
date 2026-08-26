@@ -2,6 +2,7 @@
 #include "file.h"
 #include "patches/mapkey.h"
 #include "prime/KeyCode.h"
+#include "ship_name_match.h"
 #include "str_utils.h"
 #include "version.h"
 #include <prime/Toast.h>
@@ -432,8 +433,9 @@ void parse_ship_filter(std::string_view value, std::vector<std::string>& names, 
   for (const auto& token : StrSplit(std::string(value), ',')) {
     auto stripped = StripAsciiWhitespace(token);
     if (stripped.empty()) continue;
-    auto normalized = AsciiStrToUpper(stripped);
-    names.emplace_back(normalized);
+    if (auto normalized = ShipNameMatch::NormalizeKey(stripped); !normalized.empty()) {
+      names.emplace_back(std::move(normalized));
+    }
   }
 }
 
@@ -812,6 +814,8 @@ void Config::Load()
       get_config_or_default(config, parsed, "patches", "cargoformathooks", DCP::cargoformathooks, write_config);
   this->installOfficerSortHooks =
       get_config_or_default(config, parsed, "patches", "officersorthooks", DCP::officersorthooks, write_config);
+  this->installPinnedShipSortHooks =
+      get_config_or_default(config, parsed, "patches", "pinnedshiphooks", DCP::pinnedshiphooks, write_config);
   spdlog::debug("");
   this->queue_enabled =
       get_config_or_default(config, parsed, "control", "queue_enabled", DCC::queue_enabled, write_config);
@@ -916,6 +920,12 @@ void Config::Load()
                            this->instant_warp_auto_warp_all, DCU::instant_warp_auto_warp, write_config);
   read_instant_warp_filter(config, parsed, "instant_warp_always_ask", this->instant_warp_always_ask,
                            this->instant_warp_always_ask_all, DCU::instant_warp_always_ask, write_config);
+
+  {
+    bool unused_match_all = false;
+    read_instant_warp_filter(config, parsed, "pinned_ships", this->pinned_ships, unused_match_all,
+                             DCU::pinned_ships, write_config);
+  }
 
   this->auto_confirm_ft_upgrade =
       get_config_or_default(config, parsed, "ui", "auto_confirm_ft_upgrade",

@@ -1,6 +1,6 @@
 #include "config.h"
 #include "errormsg.h"
-#include "str_utils.h"
+#include "ship_name_match.h"
 
 #include <prime/CourseData.h>
 #include <prime/CoursePromptPopupWidget.h>
@@ -29,22 +29,19 @@ void CoursePromptPopupViewController_AboutToShow_Hook(auto original, CoursePromp
 
   const auto& cfg = Config::Get();
 
-  std::string hull_name;
+  FleetPlayerData* fleet = nullptr;
   if (const auto course = context->GetCourseData(); course != nullptr) {
-    if (const auto fleet = course->PlayerFleet; fleet != nullptr) {
-      if (const auto hull = fleet->Hull; hull != nullptr) {
-        if (const auto name = hull->Name; name != nullptr) {
-          hull_name = AsciiStrToUpper(to_string(name));
-          hull_name = StripSuffix(hull_name, "_LIVE");
-        }
-      }
-    }
+    fleet = course->PlayerFleet;
   }
 
-  const auto matches = [&hull_name](const std::vector<std::string>& names, bool all) -> bool {
+  const auto candidates = ShipNameMatch::CandidateWords(fleet);
+
+  const auto matches = [&candidates](const std::vector<std::string>& names, bool all) -> bool {
     if (all) return true;
-    if (hull_name.empty()) return false;
-    return std::ranges::any_of(names, [&](const auto& s) { return s == hull_name; });
+    if (candidates.empty()) return false;
+    return std::ranges::any_of(names, [&](const auto& configured) {
+      return ShipNameMatch::MatchesAny(candidates, ShipNameMatch::SplitWords(configured));
+    });
   };
 
   if (matches(cfg.instant_warp_always_ask, cfg.instant_warp_always_ask_all)) {

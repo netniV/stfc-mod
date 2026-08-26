@@ -584,6 +584,11 @@ disable_toast_banners = false
 # Subgroup: Auto Confirm
 # ----------------------
 
+# Schepen die altijd eerst worden getoond in het vlootbeheerdok, ongeacht de actieve sortering.
+# Door komma's gescheiden scheepsnamen. De volgorde bepaalt de vastzetprioriteit.
+# Voorbeeld: pinned_ships = "USS Vengeance, GS-31, Discovery"
+pinned_ships = ""
+
 # Level- en rangupgrades voor Verboden Technologie automatisch bevestigen
 auto_confirm_ft_upgrade = false
 

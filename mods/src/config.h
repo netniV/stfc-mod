@@ -209,6 +209,8 @@ public:
   std::vector<std::string> instant_warp_always_ask;
   bool                     instant_warp_always_ask_all = false;
 
+  std::vector<std::string> pinned_ships;
+
   bool show_cargo_default;
   bool show_player_cargo;
   bool show_station_cargo;
@@ -265,4 +267,7 @@ public:
 
   // Officer roster/assignment "Below Deck Ability" sort option restore
   bool installOfficerSortHooks;
+
+  // Fleet management dock ship sort: pin configured ships to the front
+  bool installPinnedShipSortHooks;
 };

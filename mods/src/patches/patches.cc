@@ -42,6 +42,7 @@ void InstallLoadingTipHooks();
 void InstallFocusSearchHooks();
 void InstallCargoFormatHooks();
 void InstallOfficerSortHooks();
+void InstallPinnedShipSortHooks();
 void InstallInstantWarpConfirmationHooks();
 void InstallForbiddenTechConfirmationHooks();
 void InstallAudioEventHooks();
@@ -141,6 +142,7 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
       {"FocusSearch",          {InstallFocusSearchHooks,      &cfg.installFocusSearchHooks}},
       {"CargoFormat",          {InstallCargoFormatHooks,      &cfg.installCargoFormatHooks}},
       {"OfficerSortHooks",     {InstallOfficerSortHooks,      &cfg.installOfficerSortHooks}},
+      {"PinnedShipSort",       {InstallPinnedShipSortHooks,   &cfg.installPinnedShipSortHooks}},
       {"InstantWarpConfirm",   {InstallInstantWarpConfirmationHooks, &cfg.installInstantWarpConfirmationHooks}},
       {"ForbiddenTechConfirm", {InstallForbiddenTechConfirmationHooks, &cfg.auto_confirm_ft_upgrade}},
       {"AudioEvents",          {InstallAudioEventHooks,                 &cfg.installAudioEventHooks}},

@@ -584,6 +584,11 @@ disable_toast_banners = false
 # Subgroup: Auto Confirm
 # ----------------------
 
+# Schiffe, die im Flottenmanagement-Dock immer zuerst angezeigt werden, unabhängig von der aktiven Sortierung.
+# Durch Kommas getrennte Schiffsnamen. Die Reihenfolge bestimmt die Anheftungspriorität.
+# Beispiel: pinned_ships = "USS Vengeance, GS-31, Discovery"
+pinned_ships = ""
+
 # Stufen- und Rangverbesserungen für Verbotene Technologie automatisch bestätigen
 auto_confirm_ft_upgrade = false
 
