@@ -82,6 +82,7 @@ namespace Patches
   constexpr bool zoomhooks                  = true;
   constexpr bool miscpatches                = true;
   constexpr bool giftsbulkclaimhooks        = true;
+  constexpr bool dailyfactionbulkclaimhooks = true;
   constexpr bool focussearch                = true;
   constexpr bool cargoformathooks           = true;  // on by default: cargo number precision override
   constexpr bool officersorthooks           = true;  // restore Below Deck Ability sort option
@@ -218,6 +219,8 @@ namespace UI
   constexpr bool        auto_confirm_discovery      = true;
   constexpr bool        auto_confirm_ft_upgrade     = false;
   constexpr bool        auto_open_bulk_claim_flyout = false;
+  constexpr const char* daily_bulk_claim_factions   = "";
+  constexpr bool        daily_bulk_claim_toggle_default_on = false;
   constexpr bool        disable_escape_exit         = true;
   constexpr bool        disable_first_popup         = false;
   constexpr bool        disable_galaxy_chat         = false;

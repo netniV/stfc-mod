@@ -231,6 +231,7 @@ focussearch = true
 freeresizehooks = true
 game_version = true
 giftsbulkclaimhooks = true
+dailyfactionbulkclaimhooks = true
 hotkeyhooks = true
 loadingscreenhooks = true
 miscpatches = true
@@ -619,6 +620,14 @@ instant_warp_auto_jump = ""
 
 # Comma-separated ship hull names to always regular warp; use "*" for all ships or leave blank for none
 instant_warp_auto_warp = ""
+
+# Kommagetrennte Fraktionen (federation, klingon, romulan), für die der Sammel-Einfordern-Schalter der täglichen
+# Ziele gilt; leer lassen, um das Standardverhalten des Spiels beizubehalten
+daily_bulk_claim_factions = ""
+
+# Das Spiel setzt den Schalter "Alle einfordern" der täglichen Ziele bei jedem Neustart auf aus zurück; auf true
+# setzen, um ihn beim ersten Anzeigen des Bildschirms pro Sitzung stattdessen wieder einzuschalten
+daily_bulk_claim_toggle_default_on = false
 
 # Subgroup: Banner
 # ----------------

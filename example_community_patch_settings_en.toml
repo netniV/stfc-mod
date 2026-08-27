@@ -231,6 +231,7 @@ focussearch = true
 freeresizehooks = true
 game_version = true
 giftsbulkclaimhooks = true
+dailyfactionbulkclaimhooks = true
 hotkeyhooks = true
 loadingscreenhooks = true
 miscpatches = true
@@ -619,6 +620,14 @@ instant_warp_auto_jump = ""
 
 # Comma-separated ship hull names to always regular warp; use "*" for all ships or leave blank for none
 instant_warp_auto_warp = ""
+
+# Comma-separated factions (federation, klingon, romulan) for which the Daily Goals bulk-claim toggle applies;
+# leave blank to leave the game's default behaviour untouched
+daily_bulk_claim_factions = ""
+
+# The game resets the Daily Goals "Claim All" toggle to off on every restart; set to true to force it back on
+# the first time the screen is shown each session instead
+daily_bulk_claim_toggle_default_on = false
 
 # Subgroup: Banners
 # -----------------

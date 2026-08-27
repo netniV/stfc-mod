@@ -231,6 +231,7 @@ focussearch = true
 freeresizehooks = true
 game_version = true
 giftsbulkclaimhooks = true
+dailyfactionbulkclaimhooks = true
 hotkeyhooks = true
 loadingscreenhooks = true
 miscpatches = true
@@ -619,6 +620,14 @@ instant_warp_auto_jump = ""
 
 # Comma-separated ship hull names to always regular warp; use "*" for all ships or leave blank for none
 instant_warp_auto_warp = ""
+
+# Kommagescheiden facties (federation, klingon, romulan) waarvoor de verzamel-claim-schakelaar van de dagelijkse
+# doelen geldt; laat leeg om het standaardgedrag van het spel ongewijzigd te laten
+daily_bulk_claim_factions = ""
+
+# Het spel zet de "Alles claimen"-schakelaar van de dagelijkse doelen bij elke herstart terug op uit; zet op true
+# om deze de eerste keer dat het scherm per sessie wordt getoond in plaats daarvan weer aan te zetten
+daily_bulk_claim_toggle_default_on = false
 
 # Subgroup: Banners
 # -----------------

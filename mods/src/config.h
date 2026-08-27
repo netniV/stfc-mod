@@ -199,6 +199,10 @@ public:
   bool auto_open_bulk_claim_flyout;
   bool auto_confirm_ft_upgrade;
 
+  std::vector<std::string> daily_bulk_claim_factions;
+
+  bool daily_bulk_claim_toggle_default_on;
+
   InstantWarpConfirmation auto_confirm_instant_warp;
 
   std::vector<std::string> instant_warp_auto_jump;
@@ -246,6 +250,7 @@ public:
   bool installGameVersionHook;
   bool installObjectTracker;
   bool installGiftsBulkClaimHooks;
+  bool installDailyFactionBulkClaimHooks;
   bool installInstantWarpConfirmationHooks;
   bool installAudioEventHooks;
 

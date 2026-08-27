@@ -1,9 +1,30 @@
 #pragma once
 
+#include "str_utils.h"
+
+#include <il2cpp/il2cpp_helper.h>
+
+#include <string>
+
 struct GameObject {
 public:
   __declspec(property(get = __get_activeInHierarchy)) bool activeInHierarchy;
   __declspec(property(get = __get_scene)) void* scene;
+
+  std::string Name()
+  {
+    static auto field = get_class_helper().GetParent("Object").GetProperty("name");
+    auto        str   = field.GetRaw<Il2CppString>(this);
+    return str != nullptr ? to_string(str) : std::string{};
+  }
+
+  void SetActive(bool active)
+  {
+    static auto method = get_class_helper().GetMethod<void(GameObject*, bool)>("SetActive");
+    if (method != nullptr) {
+      method(this, active);
+    }
+  }
 
   template <typename T> T* GetComponentFastPath2()
   {

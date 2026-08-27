@@ -12,6 +12,7 @@
 
 #include "defaultconfig.h"
 #include <algorithm>
+#include <array>
 #include <cstdio>
 #include <initializer_list>
 #include <iostream>
@@ -454,6 +455,45 @@ void read_instant_warp_filter(toml::table& config, toml::table& new_config, std:
   }
 }
 
+void parse_faction_filter(std::string_view value, std::vector<std::string>& factions)
+{
+  static constexpr std::array kKnownFactions{"federation", "klingon", "romulan"};
+
+  factions.clear();
+  for (const auto& token : StrSplit(std::string(value), ',')) {
+    const auto stripped = StripAsciiWhitespace(token);
+    if (stripped.empty()) continue;
+
+    auto lowered = AsciiStrToLower(stripped);
+
+    if (std::ranges::find(kKnownFactions, lowered) == kKnownFactions.end()) {
+      spdlog::warn("Unrecognised faction '{}' in daily_bulk_claim_factions; expected one of: federation, klingon, "
+                   "romulan. Ignoring.",
+                   stripped);
+      continue;
+    }
+
+    if (std::ranges::find(factions, lowered) == factions.end()) {
+      factions.emplace_back(std::move(lowered));
+    }
+  }
+}
+
+void read_daily_bulk_claim_factions(toml::table& config, toml::table& new_config, std::vector<std::string>& factions,
+                                    std::string_view default_value, bool write_log)
+{
+  const auto value =
+      config["ui"]["daily_bulk_claim_factions"].value<std::string>().value_or(std::string(default_value));
+  parse_faction_filter(value, factions);
+
+  new_config.emplace<toml::table>("ui", toml::table());
+  new_config["ui"].as_table()->insert_or_assign("daily_bulk_claim_factions", std::string(value));
+
+  if (write_log) {
+    spdlog::debug("config value ui.daily_bulk_claim_factions: {}", value);
+  }
+}
+
 void read_sync_targets(toml::table& config, toml::table& new_config,
                        std::map<std::string, SyncTargetConfig>& sync_targets, const SyncConfig& defaults)
 {
@@ -808,6 +848,8 @@ void Config::Load()
       get_config_or_default(config, parsed, "patches", "transitionscreenhooks", DCP::transitionscreenhooks, write_config);
   this->installGiftsBulkClaimHooks =
       get_config_or_default(config, parsed, "patches", "giftsbulkclaimhooks", DCP::giftsbulkclaimhooks, write_config);
+  this->installDailyFactionBulkClaimHooks = get_config_or_default(
+      config, parsed, "patches", "dailyfactionbulkclaimhooks", DCP::dailyfactionbulkclaimhooks, write_config);
   this->installFocusSearchHooks =
       get_config_or_default(config, parsed, "patches", "focussearch", DCP::focussearch, write_config);
   this->installCargoFormatHooks =
@@ -910,7 +952,13 @@ void Config::Load()
   }
   this->installAudioEventHooks = this->trace_audio_events || !this->disabled_audio_events.empty();
   this->auto_open_bulk_claim_flyout = get_config_or_default(config, parsed, "ui", "auto_open_bulk_claim_flyout",
-                                                            DCU::auto_open_bulk_claim_flyout, write_config);
+                                                             DCU::auto_open_bulk_claim_flyout, write_config);
+
+  read_daily_bulk_claim_factions(config, parsed, this->daily_bulk_claim_factions, DCU::daily_bulk_claim_factions,
+                                 write_config);
+  this->daily_bulk_claim_toggle_default_on =
+      get_config_or_default(config, parsed, "ui", "daily_bulk_claim_toggle_default_on",
+                            DCU::daily_bulk_claim_toggle_default_on, write_config);
   this->auto_confirm_instant_warp =
       get_auto_confirm_instant_warp(config, parsed, DCU::auto_confirm_instant_warp, write_config);
   this->installInstantWarpConfirmationHooks = true;
