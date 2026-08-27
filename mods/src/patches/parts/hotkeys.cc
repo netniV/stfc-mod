@@ -37,6 +37,7 @@
 
 #include "patches/key.h"
 #include "patches/mapkey.h"
+#include "patches/parts/daily_faction_bulk_claim.h"
 #include "patches/parts/focus_search.h"
 
 #include <EASTL/vector.h>
@@ -541,6 +542,8 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
         }
       }
     }
+
+    DailyFactionBulkClaimUpdate();
 
     if (MapKey::IsDown(GameFunction::ActionView)) {
       auto all_pre_scan_widgets = ObjectFinder<PreScanTargetWidget>::GetAll();

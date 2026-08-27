@@ -28,6 +28,7 @@ void InstallToastBannerHooks();
 void InstallPanHooks();
 void InstallHotkeyHooks();
 void InstallGiftsBulkClaimHooks();
+void InstallDailyFactionBulkClaimHooks();
 
 void InstallTestPatches();
 void InstallMiscPatches();
@@ -127,6 +128,8 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
       {"PanHooks", {InstallPanHooks, &cfg.installPanHooks}},
       {"HotkeyHooks", {InstallHotkeyHooks, &cfg.installHotkeyHooks}},
       {"GiftsBulkClaimHooks", {InstallGiftsBulkClaimHooks, &cfg.installGiftsBulkClaimHooks}},
+      {"DailyFactionBulkClaimHooks",
+       {InstallDailyFactionBulkClaimHooks, &cfg.installDailyFactionBulkClaimHooks}},
 #if _WIN32
       {"FreeResizeHooks", {InstallFreeResizeHooks, &cfg.installFreeResizeHooks}},
 #endif

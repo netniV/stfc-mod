@@ -231,6 +231,7 @@ focussearch = true
 freeresizehooks = true
 game_version = true
 giftsbulkclaimhooks = true
+dailyfactionbulkclaimhooks = true
 hotkeyhooks = true
 loadingscreenhooks = true
 miscpatches = true
@@ -619,6 +620,14 @@ instant_warp_auto_jump = ""
 
 # Comma-separated ship hull names to always regular warp; use "*" for all ships or leave blank for none
 instant_warp_auto_warp = ""
+
+# Factions séparées par des virgules (federation, klingon, romulan) auxquelles s'applique le bouton de réclamation
+# groupée des objectifs quotidiens ; laisser vide pour conserver le comportement par défaut du jeu
+daily_bulk_claim_factions = ""
+
+# Le jeu réinitialise le bouton « Tout réclamer » des objectifs quotidiens sur désactivé à chaque redémarrage ;
+# définir sur true pour le réactiver automatiquement la première fois que l'écran est affiché à chaque session
+daily_bulk_claim_toggle_default_on = false
 
 # Subgroup: Banners
 # -----------------
