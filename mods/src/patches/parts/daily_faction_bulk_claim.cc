@@ -413,20 +413,6 @@ void MissionViewController_AboutToShow(auto original, Il2CppObject* _this)
 
 void MissionViewController_AboutToHide(auto original, Il2CppObject* _this)
 {
-  auto* controller = (MissionViewController*)_this;
-  auto* toggle_tf  = GetTransformOf(controller->ClaimAllToggle());
-  auto* parent     = toggle_tf != nullptr ? toggle_tf->parent : nullptr;
-
-  if (parent != nullptr) {
-    for (const auto& entry : kFactionIconNames) {
-      if (auto* icon_transform = FindChildByName(parent, entry.game_object_name)) {
-        if (auto* go = icon_transform->gameObject) {
-          go->SetActive(true);
-        }
-      }
-    }
-  }
-
   if (g_active_mission_view_controller == _this) {
     g_active_mission_view_controller = nullptr;
   }
