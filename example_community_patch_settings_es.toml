@@ -7,7 +7,7 @@
 #  |    #***     #    #       #***         #   *   #**    #***    | 
 #  |                                                              | 
 #  +--------------------------------------------------------------+ 
-#   Generado el 2026-08-26T22:53:46.701Z
+#   Generado el 2026-08-27T22:28:37.107Z
 #   
 #   Este archivo de configuración fue generado por https://modconfig.pages.dev
 #   y se proporciona tal cual. Si hay algún problema con el Mod Comunitario de STFC
@@ -17,7 +17,7 @@
 #       Discord : https://discord.gg/PrpHgs7Vjs
 #       GitHub  : https://github.com/netniV/stfc-mod
 #   
-#   El archivo de configuración de hoy está patrocinado por la letra C y el número 4
+#   El archivo de configuración de hoy está patrocinado por la letra H y el número 8
 #   
 
 #  <[=======================================]> 
@@ -227,6 +227,9 @@ zoom = 5000.0
 bufffixhooks = true
 cargoformathooks = true
 chatpatches = true
+
+# Activa la reclamación masiva por facción para los objetivos diarios
+dailyfactionbulkclaimhooks = true
 focussearch = true
 freeresizehooks = true
 game_version = true
@@ -643,6 +646,15 @@ disable_veil_chat = false
 
 # Maximum for tagged chest-purchase sliders on Windows; 0 disables the feature and native limits above this value are preserved
 extend_chest_purchase_max = 160
+
+# Subgroup: Objetivos diarios
+# ---------------------------
+
+# Facciones separadas por comas (federation, klingon, romulan) a las que se aplica el selector de reclamación masiva de objetivos diarios; déjalo vacío para conservar el comportamiento predeterminado del juego
+daily_bulk_claim_factions = ""
+
+# Vuelve a activar el selector Reclamar todo de los objetivos diarios la primera vez que se muestra la pantalla en cada sesión
+daily_bulk_claim_toggle_default_on = false
 
 # Subgroup: Donations
 # -------------------

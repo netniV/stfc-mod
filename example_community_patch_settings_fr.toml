@@ -7,7 +7,7 @@
 #  |    #***     #    #       #***         #   *   #**    #***    | 
 #  |                                                              | 
 #  +--------------------------------------------------------------+ 
-#   Généré le 2026-08-26T22:53:46.681Z
+#   Généré le 2026-08-27T22:28:37.099Z
 #   
 #   Ce fichier de configuration a été généré par https://modconfig.pages.dev
 #   et est fourni tel quel. En cas de problème avec le STFC Community Mod,
@@ -17,7 +17,7 @@
 #       Discord : https://discord.gg/PrpHgs7Vjs
 #       GitHub  : https://github.com/netniV/stfc-mod
 #   
-#   Le fichier de configuration du jour vous est présenté par la lettre D et le nombre 7
+#   Le fichier de configuration du jour vous est présenté par la lettre F et le nombre 2
 #   
 
 #  <[=======================================]> 
@@ -227,11 +227,13 @@ zoom = 5000.0
 bufffixhooks = true
 cargoformathooks = true
 chatpatches = true
+
+# Active la réclamation groupée par faction pour les objectifs quotidiens
+dailyfactionbulkclaimhooks = true
 focussearch = true
 freeresizehooks = true
 game_version = true
 giftsbulkclaimhooks = true
-dailyfactionbulkclaimhooks = true
 hotkeyhooks = true
 loadingscreenhooks = true
 miscpatches = true
@@ -621,14 +623,6 @@ instant_warp_auto_jump = ""
 # Comma-separated ship hull names to always regular warp; use "*" for all ships or leave blank for none
 instant_warp_auto_warp = ""
 
-# Factions séparées par des virgules (federation, klingon, romulan) auxquelles s'applique le bouton de réclamation
-# groupée des objectifs quotidiens ; laisser vide pour conserver le comportement par défaut du jeu
-daily_bulk_claim_factions = ""
-
-# Le jeu réinitialise le bouton « Tout réclamer » des objectifs quotidiens sur désactivé à chaque redémarrage ;
-# définir sur true pour le réactiver automatiquement la première fois que l'écran est affiché à chaque session
-daily_bulk_claim_toggle_default_on = false
-
 # Subgroup: Banners
 # -----------------
 
@@ -652,6 +646,15 @@ disable_veil_chat = false
 
 # Maximum for tagged chest-purchase sliders on Windows; 0 disables the feature and native limits above this value are preserved
 extend_chest_purchase_max = 160
+
+# Subgroup: Objectifs quotidiens
+# ------------------------------
+
+# Factions séparées par des virgules (federation, klingon, romulan) auxquelles s'applique l'option de réclamation groupée des objectifs quotidiens ; laissez vide pour conserver le comportement par défaut du jeu
+daily_bulk_claim_factions = ""
+
+# Réactive l'option Tout réclamer des objectifs quotidiens lors du premier affichage de l'écran à chaque session
+daily_bulk_claim_toggle_default_on = false
 
 # Subgroup: Donations
 # -------------------
