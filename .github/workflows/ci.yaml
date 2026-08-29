@@ -34,7 +34,7 @@ jobs:
   build-win:
     runs-on: windows-2025-vs2026
     outputs:
-      expected_identity: ${{ steps.configure_windows.outputs.expected_identity }}
+      run_attempt: ${{ steps.build_identity.outputs.run_attempt }}
     permissions:
       actions: read
       contents: read
@@ -45,6 +45,12 @@ jobs:
       SCCACHE_CACHE_SIZE: "2G"
 
     steps:
+      - name: Capture build identity
+        id: build_identity
+        shell: pwsh
+        run: |
+          "run_attempt=${{ github.run_attempt }}" >> $env:GITHUB_OUTPUT
+
       - name: Checkout
         uses: actions/checkout@v7
         with:
@@ -136,7 +142,6 @@ jobs:
           $identity = "stfc-identity-v1;distribution=netniv.stfc-community-mod;source=$sourceState;" +
             "base=$commit;build=$buildInvocation;mode=release;channel=ci"
           "STFC_EXPECTED_IDENTITY=$identity" >> $env:GITHUB_ENV
-          "expected_identity=$identity" >> $env:GITHUB_OUTPUT
 
           $xmakeArgs = @(
             'f', '-m', 'release', '-y', '-v',
@@ -269,14 +274,27 @@ jobs:
       - name: Verify DLL provenance
         shell: pwsh
         env:
-          STFC_EXPECTED_IDENTITY: ${{ needs.build-win.outputs.expected_identity }}
+          STFC_SOURCE_COMMIT: ${{ github.sha }}
+          STFC_RUN_ID: ${{ github.run_id }}
+          STFC_BUILD_RUN_ATTEMPT: ${{ needs.build-win.outputs.run_attempt }}
         run: |
           $dll = (Resolve-Path -LiteralPath '.artifacts/windows/version.dll').Path
-          $expected = $env:STFC_EXPECTED_IDENTITY
-          if (-not $expected) {
-            throw "The producing build did not provide its expected DLL identity."
+          $commit = $env:STFC_SOURCE_COMMIT
+          $runId = $env:STFC_RUN_ID
+          $buildAttempt = $env:STFC_BUILD_RUN_ATTEMPT
+
+          if ($commit -notmatch '^[0-9a-f]{40}$') {
+            throw "Unable to resolve the workflow commit for DLL provenance."
+          }
+          if ($runId -notmatch '^[1-9][0-9]*$') {
+            throw "Unable to resolve the workflow run ID for DLL provenance."
+          }
+          if ($buildAttempt -notmatch '^[1-9][0-9]*$') {
+            throw "The producing build did not provide a valid run attempt."
           }
 
+          $expected = "stfc-identity-v1;distribution=netniv.stfc-community-mod;source=git:$commit;" +
+            "base=$commit;build=github:${runId}:${buildAttempt}:windows;mode=release;channel=ci"
           $comments = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($dll).Comments
           if (-not [string]::Equals($comments, $expected, [System.StringComparison]::Ordinal)) {
             throw "DLL provenance mismatch. Expected '$expected'; found '$comments'."
