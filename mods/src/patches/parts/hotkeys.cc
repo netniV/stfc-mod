@@ -590,16 +590,25 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
   }
 
   if (config->disable_escape_exit && Key::Pressed(KeyCode::Escape)) {
-    // A second unhandled Escape inside the configured window falls through to
-    // the game's original handler and opens its normal exit prompt.
-    static auto escape_clock = std::chrono::steady_clock::time_point{};
-    const auto  escape_now   = std::chrono::steady_clock::now();
-    const auto  escape_diff  = std::chrono::duration_cast<std::chrono::milliseconds>(escape_now - escape_clock);
-    escape_clock             = escape_now;
-
-    if (config->escape_exit_timer <= 0 || escape_diff > std::chrono::milliseconds(config->escape_exit_timer)) {
+    // Keep suppressing a held key. Only distinct key-down edges participate in
+    // the double-tap window.
+    if (config->escape_exit_timer <= 0 || !Key::Down(KeyCode::Escape)) {
       return;
     }
+
+    static auto previous_escape_down = std::chrono::steady_clock::time_point{};
+    const auto  escape_now           = std::chrono::steady_clock::now();
+    const auto  escape_diff =
+        std::chrono::duration_cast<std::chrono::milliseconds>(escape_now - previous_escape_down);
+
+    if (previous_escape_down == std::chrono::steady_clock::time_point{}
+        || escape_diff > std::chrono::milliseconds(config->escape_exit_timer)) {
+      previous_escape_down = escape_now;
+      return;
+    }
+
+    // Consume the completed pair so a rapid third press starts a new one.
+    previous_escape_down = {};
   }
 
   // config->Load();
