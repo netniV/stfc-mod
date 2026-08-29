@@ -8,14 +8,20 @@ For protected `main` and `dev` pushes in `netniV/stfc-mod`, the upstream Build w
 build-provenance attestation for the exact `version.dll` bytes after verifying the embedded marker. Pull requests,
 fork runs, unprotected refs, tags, and other repositories do not create authoritative attestations.
 
-After downloading and extracting an attested DLL, verify its byte integrity and expected upstream workflow identity
-with a current GitHub CLI:
+After downloading and extracting an attested DLL, verify its byte integrity, expected upstream workflow identity,
+protected source ref, and reviewed source commit with a current GitHub CLI. Replace `<expected-commit-sha>` with the
+40-character commit for the artifact:
 
 ```shell
 gh attestation verify version.dll \
   --repo netniV/stfc-mod \
-  --signer-workflow netniV/stfc-mod/.github/workflows/ci.yaml
+  --signer-workflow netniV/stfc-mod/.github/workflows/ci.yaml \
+  --source-ref refs/heads/main \
+  --source-digest <expected-commit-sha>
 ```
+
+For a reviewed `dev` artifact, use `--source-ref refs/heads/dev` instead. Do not omit the source ref or digest when
+making a trust decision.
 
 Successful verification establishes that the exact file digest is covered by an attestation issued for the named
 repository and signer workflow, including source commit provenance. It does not establish that the source,
