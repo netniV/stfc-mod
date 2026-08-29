@@ -46,7 +46,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6.1.0
+        uses: actions/checkout@v7
         with:
           fetch-depth: 1
           submodules: false
@@ -277,7 +277,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6.1.0
+        uses: actions/checkout@v7
         with:
           fetch-depth: 1
           submodules: "recursive"
@@ -570,7 +570,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6.1.0
+        uses: actions/checkout@v7
         with:
           fetch-depth: 1
           submodules: false

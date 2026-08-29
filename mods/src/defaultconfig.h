@@ -7,6 +7,12 @@ namespace Buffs
   constexpr bool use_out_of_dock_power = true;
 } // namespace Buffs
 
+namespace Audio
+{
+  constexpr const char* disabled_events = "";
+  constexpr bool        trace_events    = false;
+} // namespace Audio
+
 namespace SystemConfig
 {
   constexpr const char* assets_url_override = "";
@@ -76,9 +82,11 @@ namespace Patches
   constexpr bool zoomhooks                  = true;
   constexpr bool miscpatches                = true;
   constexpr bool giftsbulkclaimhooks        = true;
+  constexpr bool dailyfactionbulkclaimhooks = true;
   constexpr bool focussearch                = true;
   constexpr bool cargoformathooks           = true;  // on by default: cargo number precision override
   constexpr bool officersorthooks           = true;  // restore Below Deck Ability sort option
+  constexpr bool pinnedshiphooks            = true;  // pin configured ships to front of fleet dock sort
 } // namespace Patches
 
 namespace Shortcuts
@@ -100,6 +108,7 @@ namespace Shortcuts
   constexpr const char* log_debug             = "CTRL-SHIFT-F9";
   constexpr const char* log_info              = "CTRL-SHIFT-F8";
   constexpr const char* log_trace             = "CTRL-SHIFT-F7";
+  constexpr const char* restart               = "F9";
   constexpr const char* quit                  = "F10";
   constexpr const char* select_chatalliance   = "CTRL-2";
   constexpr const char* select_chatglobal     = "CTRL-1";
@@ -206,9 +215,12 @@ namespace Sync
 namespace UI
 {
   constexpr bool        always_skip_reveal_sequence = true;
+  constexpr bool        arrow_keys_to_select_ship   = true;
   constexpr bool        auto_confirm_discovery      = true;
   constexpr bool        auto_confirm_ft_upgrade     = false;
   constexpr bool        auto_open_bulk_claim_flyout = false;
+  constexpr const char* daily_bulk_claim_factions   = "";
+  constexpr bool        daily_bulk_claim_toggle_default_on = false;
   constexpr bool        disable_escape_exit         = true;
   constexpr bool        disable_first_popup         = false;
   constexpr bool        disable_galaxy_chat         = false;
@@ -217,6 +229,7 @@ namespace UI
   constexpr bool        disable_preview_recall      = false;
   constexpr bool        disable_toast_banners       = false;
   constexpr bool        disable_veil_chat           = false;
+  constexpr bool        double_click_to_assign_ship = false;
   constexpr const char* disabled_banner_types       = "";
   constexpr const char* hud_daily_goals             = "auto";
   constexpr const char* hud_field_training          = "auto";
@@ -224,7 +237,12 @@ namespace UI
   constexpr const char* hud_outposts                = "auto";
   constexpr const char* hud_q_trials                = "auto";
   constexpr const char* auto_confirm_instant_warp   = "none";
+  constexpr const char* instant_warp_auto_jump     = "";
+  constexpr const char* instant_warp_auto_warp     = "";
+  constexpr const char* instant_warp_always_ask    = "";
+  constexpr const char* pinned_ships                = "";
   constexpr const char* notify_banner_types         = "";
+  constexpr auto        extend_chest_purchase_max   = 160;
   constexpr auto        extend_donation_max         = 80;
   constexpr bool        extend_donation_slider      = true;
   constexpr bool        show_armada_cargo           = true;

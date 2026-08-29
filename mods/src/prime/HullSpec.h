@@ -16,6 +16,7 @@ struct HullSpec {
 public:
   __declspec(property(get = __get_Id)) long Id;
   __declspec(property(get = __get_Name)) Il2CppString* Name;
+  __declspec(property(get = __get_IdStr)) Il2CppString* IdStr;
   __declspec(property(get = __get_Type)) HullType Type;
 
 private:
@@ -36,6 +37,12 @@ public:
   Il2CppString* __get_Name()
   {
     static auto field = get_class_helper().GetField("name_").offset();
+    return *(Il2CppString**)((char*)this + field);
+  }
+
+  Il2CppString* __get_IdStr()
+  {
+    static auto field = get_class_helper().GetField("idStr_").offset();
     return *(Il2CppString**)((char*)this + field);
   }
 

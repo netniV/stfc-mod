@@ -20,7 +20,7 @@ public:
       CancelButtonMethod(this);
     } else if (CancelButtonWarn) {
       CancelButtonWarn = false;
-      ErrorMsg::MissingMethod("FLeetLocalViewController", "CancelButtonClicked");
+      ErrorMsg::MissingMethod("FleetLocalViewController", "CancelButtonClicked");
     }
   }
 

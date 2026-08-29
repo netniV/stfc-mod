@@ -52,7 +52,7 @@ public:
       AuxViewButtonPressedHandler(this);
     } else if (AuxViewButtonPressedWarn) {
       AuxViewButtonPressedWarn = false;
-      ErrorMsg::MissingMethod("BundleDataWidget", "AuxViewButtonPressedHandelr");
+      ErrorMsg::MissingMethod("BundleDataWidget", "AuxViewButtonPressedHandler");
     }
   }
 

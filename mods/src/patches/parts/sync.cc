@@ -700,6 +700,23 @@ namespace names
     }
   }
 
+  // Cracked stations have no fleet, so a base raid's defender isn't in deployed_fleets -- take the
+  // participant ids from the journal instead.
+  static inline void collect_journal_participants(const nlohmann::json&            journal,
+                                                  std::unordered_set<std::string>& user_ids)
+  {
+    for (const char* key : {"initiator_id", "target_id"}) {
+      if (!journal.contains(key) || journal[key].is_null()) {
+        continue;
+      }
+      const auto& id = journal[key].get<std::string>();
+      // NPC ids contain '_' (mar_61, npc_<id>_1); player ids don't -- skip, nothing to resolve.
+      if (!id.empty() && id.find('_') == std::string::npos) {
+        user_ids.insert(id);
+      }
+    }
+  }
+
   static inline void collect_alliance_ids(const nlohmann::json& names, std::unordered_set<int64_t>& alliance_ids)
   {
     for (const auto& [player_id, entry] : names.items()) {
@@ -964,6 +981,7 @@ static void ship_combat_log_data()
         std::unordered_set<std::string> user_ids;
         collect_user_ids_from_fleet(target_fleet_data, user_ids);
         collect_user_ids_from_fleet(initiator_fleet_data, user_ids);
+        collect_journal_participants(journal, user_ids);
 
         json profiles_request{{"user_ids", json::array()}};
         resolve_player_names(user_ids, names, profiles_request["user_ids"], now);

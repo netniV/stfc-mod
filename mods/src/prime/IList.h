@@ -14,6 +14,15 @@ public:
     return GetImpl(this, index);
   }
 
+  void RemoveAt(int32_t index)
+  {
+    static auto RemoveAtImpl =
+        get_class_helper().GetMethodSpecial2<void(IList*, int32_t)>((Il2CppObject*)(this), "RemoveAt");
+    if (RemoveAtImpl != nullptr) {
+      RemoveAtImpl(this, index);
+    }
+  }
+
 private:
   IL2CppClassHelper& get_class_helper()
   {

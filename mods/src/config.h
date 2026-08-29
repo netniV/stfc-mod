@@ -183,6 +183,7 @@ public:
   std::vector<int> disabled_banner_types;
   std::vector<int> notify_banner_types;
 
+  int  extend_chest_purchase_max;
   int  extend_donation_max;
   bool extend_donation_slider;
   bool disable_move_keys;
@@ -193,10 +194,29 @@ public:
   bool disable_veil_chat;
   bool disable_first_popup;
   bool disable_toast_banners;
+  bool trace_audio_events;
+  std::vector<std::string> disabled_audio_events;
   bool auto_open_bulk_claim_flyout;
   bool auto_confirm_ft_upgrade;
 
+  std::vector<std::string> daily_bulk_claim_factions;
+
+  bool daily_bulk_claim_toggle_default_on;
+
   InstantWarpConfirmation auto_confirm_instant_warp;
+
+  std::vector<std::string> instant_warp_auto_jump;
+  std::vector<std::string> instant_warp_auto_warp;
+  bool                     instant_warp_auto_jump_all = false;
+  bool                     instant_warp_auto_warp_all = false;
+
+  std::vector<std::string> instant_warp_always_ask;
+  bool                     instant_warp_always_ask_all = false;
+
+  std::vector<std::string> pinned_ships;
+
+  bool double_click_to_assign_ship;
+  bool arrow_keys_to_select_ship;
 
   bool show_cargo_default;
   bool show_player_cargo;
@@ -230,7 +250,9 @@ public:
   bool installGameVersionHook;
   bool installObjectTracker;
   bool installGiftsBulkClaimHooks;
+  bool installDailyFactionBulkClaimHooks;
   bool installInstantWarpConfirmationHooks;
+  bool installAudioEventHooks;
 
   std::string config_settings_url;
   std::string config_assets_url_override;
@@ -253,4 +275,7 @@ public:
 
   // Officer roster/assignment "Below Deck Ability" sort option restore
   bool installOfficerSortHooks;
+
+  // Fleet management dock ship sort: pin configured ships to the front
+  bool installPinnedShipSortHooks;
 };

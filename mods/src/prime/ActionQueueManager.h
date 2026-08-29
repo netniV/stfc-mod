@@ -49,7 +49,7 @@ public:
       return IsFleetInQueueMethod(this, playerData);
     } else if (IsFleetInQueueWarn) {
       IsFleetInQueueWarn = false;
-      ErrorMsg::MissingMethod("ActionQueueManager", "IFleetInQueue");
+      ErrorMsg::MissingMethod("ActionQueueManager", "IsFleetInQueue");
     }
 
     return false;

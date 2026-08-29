@@ -6,6 +6,7 @@
 #include <prime/Hub.h>
 #include <prime/IList.h>
 #include <prime/InventoryForPopup.h>
+#include <prime/InventoryUseRowWidget.h>
 #include <prime/ShopSummaryDirector.h>
 
 #include <il2cpp/il2cpp_helper.h>
@@ -20,6 +21,12 @@
 #include <prime/ActionQueueManager.h>
 #include <prime/InterstitialViewController.h>
 
+namespace
+{
+constexpr int64_t kMaximumChestPurchaseMax = 160;
+}
+
+#if _WIN32
 void InventoryForPopup_set_MaxItemsToUse(auto original, InventoryForPopup* a1, int64_t a2)
 {
   if (!a1) {
@@ -38,6 +45,35 @@ void InventoryForPopup_set_MaxItemsToUse(auto original, InventoryForPopup* a1, i
 
   original(a1, a2);
 }
+#endif
+
+// IsChestPurchase is populated too late for the existing MaxItemsToUse setter hook, so adjust the tagged context at
+// the row-render seam instead.
+void InventoryUseRowWidget_SetWidgetData(auto original, InventoryUseRowWidget* widget)
+{
+  if (widget) {
+    if (auto* context = widget->Context; context && context->IsChestPurchase) {
+      const auto native_max    = context->MaxItemsToUse;
+      const auto requested_max = static_cast<int64_t>(Config::Get().extend_chest_purchase_max);
+      const auto bounded_max   = std::min(requested_max, kMaximumChestPurchaseMax);
+      if (native_max > 0 && bounded_max > native_max) {
+        context->MaxItemsToUse = bounded_max;
+      }
+    }
+  }
+
+  original(widget);
+}
+
+#if __APPLE__
+void UnitySlider_set_maxValue(auto original, void* a1, float a2)
+{
+  if ((a2 == 50.0f || a2 == 100.0f) && Config::Get().extend_donation_slider && Config::Get().extend_donation_max > 0) {
+    a2 = (float)Config::Get().extend_donation_max;
+  }
+  original(a1, a2);
+}
+#endif
 
 void BundleDataWidget_OnActionButtonPressedCallback(auto original, BundleDataWidget* _this)
 {
@@ -60,6 +96,34 @@ void InstallMiscPatches()
       ErrorMsg::MissingMethod("InventoryForPopup", "set_MaxItemsToUse");
     } else {
       SPUD_STATIC_DETOUR(ptr, InventoryForPopup_set_MaxItemsToUse);
+    }
+  }
+#endif
+
+  if (Config::Get().extend_chest_purchase_max > 0) {
+    auto row_widget = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Inventories", "InventoryUseRowWidget");
+    if (!row_widget.isValidHelper()) {
+      ErrorMsg::MissingHelper("Digit.Prime.Inventories", "InventoryUseRowWidget");
+    } else {
+      auto ptr = row_widget.GetMethod("SetWidgetData", 0);
+      if (!ptr) {
+        ErrorMsg::MissingMethod("InventoryUseRowWidget", "SetWidgetData");
+      } else {
+        SPUD_STATIC_DETOUR(ptr, InventoryUseRowWidget_SetWidgetData);
+      }
+    }
+  }
+
+#if __APPLE__
+  auto unity_slider = il2cpp_get_class_helper("UnityEngine.UI", "UnityEngine.UI", "Slider");
+  if (!unity_slider.isValidHelper()) {
+    ErrorMsg::MissingHelper("UnityEngine.UI", "Slider");
+  } else {
+    auto set_max_ptr = unity_slider.GetMethod("set_maxValue");
+    if (!set_max_ptr) {
+      ErrorMsg::MissingMethod("Slider", "set_maxValue");
+    } else {
+      SPUD_STATIC_DETOUR(set_max_ptr, UnitySlider_set_maxValue);
     }
   }
 #endif
@@ -249,7 +313,7 @@ void InstallTempCrashFixes()
   static auto actionqueue_manager =
       il2cpp_get_class_helper("Assembly-CSharp", "Prime.ActionQueue", "ActionQueueManager");
   if (!actionqueue_manager.isValidHelper()) {
-    ErrorMsg::MissingHelper("ActionQueue", "ActionQueueMaanger");
+    ErrorMsg::MissingHelper("ActionQueue", "ActionQueueManager");
   } else {
     auto addtoqueue_method = actionqueue_manager.GetMethod("AddActionToQueue");
     if (addtoqueue_method == nullptr) {

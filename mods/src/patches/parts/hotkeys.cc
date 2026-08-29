@@ -15,7 +15,9 @@
 #include "prime/ActionQueueManager.h"
 #include "prime/AnimatedRewardsScreenViewController.h"
 #include "prime/ArtifactHallDetailsViewController.h"
+#include "prime/AssignShipsWidget.h"
 #include "prime/BookmarksManager.h"
+#include "prime/CanvasController.h"
 #include "prime/ChatManager.h"
 #include "prime/DeploymentManager.h"
 #include "prime/ElementSelectorViewController.h"
@@ -25,14 +27,17 @@
 #include "prime/FullScreenChatViewController.h"
 #include "prime/Hub.h"
 #include "prime/KeyCode.h"
+#include "prime/LanguageManager.h"
 #include "prime/NavigationInteractionUIViewController.h"
 #include "prime/NavigationSectionManager.h"
 #include "prime/PreScanTargetWidget.h"
 #include "prime/ScanEngageButtonsWidget.h"
 #include "prime/ScreenManager.h"
+#include "prime/SelectableList.h"
 
 #include "patches/key.h"
 #include "patches/mapkey.h"
+#include "patches/parts/daily_faction_bulk_claim.h"
 #include "patches/parts/focus_search.h"
 
 #include <EASTL/vector.h>
@@ -113,6 +118,7 @@ bool MoveArtifactCanvas(bool goLeft)
 
     if (!controller->isActiveAndEnabled()) {
       spdlog::trace("MoveArtifactCanvas({}) - Controller not active", (int)goLeft);
+      continue;
     }
 
     if (goLeft) {
@@ -123,6 +129,58 @@ bool MoveArtifactCanvas(bool goLeft)
       controller->PressRightArrow();
     }
     acted = true;
+  }
+
+  return acted;
+}
+
+bool IsRealShipIndex(SelectableList* list, int32_t index)
+{
+  auto* item = list->DataItem(index);
+  if (!item) return false;
+  return reinterpret_cast<FleetPlayerData*>(item)->HasShip;
+}
+
+bool MoveShipSelectionInDock(bool goLeft)
+{
+  if (!Config::Get().arrow_keys_to_select_ship) {
+    return false;
+  }
+
+  bool acted = false;
+  for (auto widget : ObjectFinder<AssignShipsWidget>::GetAll()) {
+    if (!widget) continue;
+
+    auto canvas = GetCanvasControllerFromComponent(widget);
+    if (!canvas || !canvas->Visible() || !widget->isActiveAndEnabled) {
+      spdlog::trace("MoveShipSelectionInDock({}) - widget={} not visible/active", (int)goLeft, (void*)widget);
+      continue;
+    }
+
+    auto* list = widget->_selectableList;
+    if (!list) {
+      spdlog::trace("MoveShipSelectionInDock({}) - widget={} has no _selectableList", (int)goLeft, (void*)widget);
+      continue;
+    }
+
+    const auto count = list->Count;
+    if (count <= 0) {
+      spdlog::trace("MoveShipSelectionInDock({}) - list={} count={}", (int)goLeft, (void*)list, count);
+      continue;
+    }
+
+    const auto step = goLeft ? -1 : 1;
+    auto       newIndex = list->SelectedIndex + step;
+    while (newIndex >= 0 && newIndex < count && !IsRealShipIndex(list, newIndex)) {
+      newIndex += step;
+    }
+    if (newIndex < 0 || newIndex >= count) {
+      spdlog::trace("MoveShipSelectionInDock({}) - no further real ship in that direction", (int)goLeft);
+      continue;
+    }
+
+    spdlog::debug("MoveShipSelectionInDock({}) - selecting index {} of {}", (int)goLeft, newIndex, count);
+    acted = list->RequestSelect(newIndex) || acted;
   }
 
   return acted;
@@ -160,9 +218,21 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
   const auto is_in_chat = Hub::IsInChat();
   const auto config     = &Config::Get();
 
+  if (MapKey::IsDown(GameFunction::Restart)) {
+    spdlog::info("Clearing localisation cache and restarting");
+    LanguageManager::ClearCache();
+    Hub::get_App()->Reload();
+    return;
+  }
+
 #ifdef _WIN32
   if (MapKey::IsDown(GameFunction::Quit)) {
     TerminateProcess(GetCurrentProcess(), 1);
+  }
+#elif defined(__APPLE__)
+  if (MapKey::IsDown(GameFunction::Quit)) {
+    Hub::get_App()->Quit();
+    return;
   }
 #endif
 
@@ -287,14 +357,14 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
       }
 
       if (MapKey::IsDown(GameFunction::MoveLeft)) {
-        auto const result = MoveArtifactCanvas(true) || MoveOfficerCanvas(true);
+        auto const result = MoveShipSelectionInDock(true) || MoveArtifactCanvas(true) || MoveOfficerCanvas(true);
         if (result) {
           return;
         }
       }
 
       if (MapKey::IsDown(GameFunction::MoveRight)) {
-        auto const result = MoveArtifactCanvas(false) || MoveOfficerCanvas(false);
+        auto const result = MoveShipSelectionInDock(false) || MoveArtifactCanvas(false) || MoveOfficerCanvas(false);
         if (result) {
           return;
         }
@@ -472,6 +542,8 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
         }
       }
     }
+
+    DailyFactionBulkClaimUpdate();
 
     if (MapKey::IsDown(GameFunction::ActionView)) {
       auto all_pre_scan_widgets = ObjectFinder<PreScanTargetWidget>::GetAll();

@@ -39,10 +39,33 @@ constexpr std::string_view StripAsciiWhitespace(const std::string_view str)
   return StripTrailingAsciiWhitespace(StripLeadingAsciiWhitespace(str));
 }
 
+constexpr std::string_view StripSuffix(std::string_view str, const std::string_view suffix)
+{
+  if (str.size() >= suffix.size() && str.substr(str.size() - suffix.size()) == suffix) {
+    return str.substr(0, str.size() - suffix.size());
+  }
+  return str;
+}
+
+constexpr std::string_view StripPrefix(std::string_view str, const std::string_view prefix)
+{
+  if (str.size() >= prefix.size() && str.substr(0, prefix.size()) == prefix) {
+    return str.substr(prefix.size());
+  }
+  return str;
+}
+
 constexpr std::string AsciiStrToUpper(const std::string_view s)
 {
   std::string str = s.data();
   std::ranges::transform(str, str.begin(), ::toupper);
+  return str;
+}
+
+constexpr std::string AsciiStrToLower(const std::string_view s)
+{
+  std::string str = s.data();
+  std::ranges::transform(str, str.begin(), ::tolower);
   return str;
 }
 

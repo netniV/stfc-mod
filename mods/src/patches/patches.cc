@@ -28,6 +28,7 @@ void InstallToastBannerHooks();
 void InstallPanHooks();
 void InstallHotkeyHooks();
 void InstallGiftsBulkClaimHooks();
+void InstallDailyFactionBulkClaimHooks();
 
 void InstallTestPatches();
 void InstallMiscPatches();
@@ -42,8 +43,11 @@ void InstallLoadingTipHooks();
 void InstallFocusSearchHooks();
 void InstallCargoFormatHooks();
 void InstallOfficerSortHooks();
+void InstallPinnedShipSortHooks();
+void InstallDoubleClickAssignShipHooks();
 void InstallInstantWarpConfirmationHooks();
 void InstallForbiddenTechConfirmationHooks();
+void InstallAudioEventHooks();
 
 __int64 il2cpp_init_hook(auto original, const char* domain_name)
 {
@@ -124,6 +128,8 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
       {"PanHooks", {InstallPanHooks, &cfg.installPanHooks}},
       {"HotkeyHooks", {InstallHotkeyHooks, &cfg.installHotkeyHooks}},
       {"GiftsBulkClaimHooks", {InstallGiftsBulkClaimHooks, &cfg.installGiftsBulkClaimHooks}},
+      {"DailyFactionBulkClaimHooks",
+       {InstallDailyFactionBulkClaimHooks, &cfg.installDailyFactionBulkClaimHooks}},
 #if _WIN32
       {"FreeResizeHooks", {InstallFreeResizeHooks, &cfg.installFreeResizeHooks}},
 #endif
@@ -140,8 +146,11 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
       {"FocusSearch",          {InstallFocusSearchHooks,      &cfg.installFocusSearchHooks}},
       {"CargoFormat",          {InstallCargoFormatHooks,      &cfg.installCargoFormatHooks}},
       {"OfficerSortHooks",     {InstallOfficerSortHooks,      &cfg.installOfficerSortHooks}},
+      {"PinnedShipSort",       {InstallPinnedShipSortHooks,   &cfg.installPinnedShipSortHooks}},
+      {"DoubleClickAssignShip", {InstallDoubleClickAssignShipHooks, &cfg.double_click_to_assign_ship}},
       {"InstantWarpConfirm",   {InstallInstantWarpConfirmationHooks, &cfg.installInstantWarpConfirmationHooks}},
       {"ForbiddenTechConfirm", {InstallForbiddenTechConfirmationHooks, &cfg.auto_confirm_ft_upgrade}},
+      {"AudioEvents",          {InstallAudioEventHooks,                 &cfg.installAudioEventHooks}},
   };
   printf("il2cpp_init_hook(%s)\n", domain_name);
 

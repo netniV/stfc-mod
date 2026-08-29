@@ -2,6 +2,7 @@
 #include "file.h"
 #include "patches/mapkey.h"
 #include "prime/KeyCode.h"
+#include "ship_name_match.h"
 #include "str_utils.h"
 #include "version.h"
 #include <prime/Toast.h>
@@ -11,6 +12,7 @@
 
 #include "defaultconfig.h"
 #include <algorithm>
+#include <array>
 #include <cstdio>
 #include <initializer_list>
 #include <iostream>
@@ -19,6 +21,7 @@
 #include <string_view>
 
 namespace DCP  = DefaultConfig::Patches;
+namespace DCA  = DefaultConfig::Audio;
 namespace DCG  = DefaultConfig::Graphics;
 namespace DCC  = DefaultConfig::Control;
 namespace DCU  = DefaultConfig::UI;
@@ -420,6 +423,77 @@ InstantWarpConfirmation get_auto_confirm_instant_warp(toml::table& config, toml:
   return confirmation;
 }
 
+void parse_ship_filter(std::string_view value, std::vector<std::string>& names, bool& match_all)
+{
+  names.clear();
+  match_all = false;
+  if (AsciiStrToUpper(StripAsciiWhitespace(value)) == "*") {
+    match_all = true;
+    return;
+  }
+  for (const auto& token : StrSplit(std::string(value), ',')) {
+    auto stripped = StripAsciiWhitespace(token);
+    if (stripped.empty()) continue;
+    if (auto normalized = ShipNameMatch::NormalizeKey(stripped); !normalized.empty()) {
+      names.emplace_back(std::move(normalized));
+    }
+  }
+}
+
+void read_instant_warp_filter(toml::table& config, toml::table& new_config, std::string_view key,
+                              std::vector<std::string>& names, bool& match_all,
+                              std::string_view default_value, bool write_log)
+{
+  const auto value = config["ui"][key].value<std::string>().value_or(std::string(default_value));
+  parse_ship_filter(value, names, match_all);
+
+  new_config.emplace<toml::table>("ui", toml::table());
+  new_config["ui"].as_table()->insert_or_assign(std::string(key), std::string(value));
+
+  if (write_log) {
+    spdlog::debug("config value ui.{}: {}", key, value);
+  }
+}
+
+void parse_faction_filter(std::string_view value, std::vector<std::string>& factions)
+{
+  static constexpr std::array kKnownFactions{"federation", "klingon", "romulan"};
+
+  factions.clear();
+  for (const auto& token : StrSplit(std::string(value), ',')) {
+    const auto stripped = StripAsciiWhitespace(token);
+    if (stripped.empty()) continue;
+
+    auto lowered = AsciiStrToLower(stripped);
+
+    if (std::ranges::find(kKnownFactions, lowered) == kKnownFactions.end()) {
+      spdlog::warn("Unrecognised faction '{}' in daily_bulk_claim_factions; expected one of: federation, klingon, "
+                   "romulan. Ignoring.",
+                   stripped);
+      continue;
+    }
+
+    if (std::ranges::find(factions, lowered) == factions.end()) {
+      factions.emplace_back(std::move(lowered));
+    }
+  }
+}
+
+void read_daily_bulk_claim_factions(toml::table& config, toml::table& new_config, std::vector<std::string>& factions,
+                                    std::string_view default_value, bool write_log)
+{
+  const auto value =
+      config["ui"]["daily_bulk_claim_factions"].value<std::string>().value_or(std::string(default_value));
+  parse_faction_filter(value, factions);
+
+  new_config.emplace<toml::table>("ui", toml::table());
+  new_config["ui"].as_table()->insert_or_assign("daily_bulk_claim_factions", std::string(value));
+
+  if (write_log) {
+    spdlog::debug("config value ui.daily_bulk_claim_factions: {}", value);
+  }
+}
+
 void read_sync_targets(toml::table& config, toml::table& new_config,
                        std::map<std::string, SyncTargetConfig>& sync_targets, const SyncConfig& defaults)
 {
@@ -774,12 +848,16 @@ void Config::Load()
       get_config_or_default(config, parsed, "patches", "transitionscreenhooks", DCP::transitionscreenhooks, write_config);
   this->installGiftsBulkClaimHooks =
       get_config_or_default(config, parsed, "patches", "giftsbulkclaimhooks", DCP::giftsbulkclaimhooks, write_config);
+  this->installDailyFactionBulkClaimHooks = get_config_or_default(
+      config, parsed, "patches", "dailyfactionbulkclaimhooks", DCP::dailyfactionbulkclaimhooks, write_config);
   this->installFocusSearchHooks =
       get_config_or_default(config, parsed, "patches", "focussearch", DCP::focussearch, write_config);
   this->installCargoFormatHooks =
       get_config_or_default(config, parsed, "patches", "cargoformathooks", DCP::cargoformathooks, write_config);
   this->installOfficerSortHooks =
       get_config_or_default(config, parsed, "patches", "officersorthooks", DCP::officersorthooks, write_config);
+  this->installPinnedShipSortHooks =
+      get_config_or_default(config, parsed, "patches", "pinnedshiphooks", DCP::pinnedshiphooks, write_config);
   spdlog::debug("");
   this->queue_enabled =
       get_config_or_default(config, parsed, "control", "queue_enabled", DCC::queue_enabled, write_config);
@@ -861,22 +939,58 @@ void Config::Load()
       get_config_or_default(config, parsed, "ui", "disable_move_keys", DCU::disable_move_keys, write_config);
   this->disable_toast_banners =
       get_config_or_default(config, parsed, "ui", "disable_toast_banners", DCU::disable_toast_banners, write_config);
+  this->trace_audio_events =
+      get_config_or_default(config, parsed, "audio", "trace_events", DCA::trace_events, write_config);
+  auto disabled_audio_events = get_config_or_default<std::string>(
+      config, parsed, "audio", "disabled_events", DCA::disabled_events, write_config);
+  this->disabled_audio_events.clear();
+  for (const auto& event : StrSplit(disabled_audio_events, ',')) {
+    auto stripped = StripAsciiWhitespace(event);
+    if (!stripped.empty()) {
+      this->disabled_audio_events.emplace_back(stripped);
+    }
+  }
+  this->installAudioEventHooks = this->trace_audio_events || !this->disabled_audio_events.empty();
   this->auto_open_bulk_claim_flyout = get_config_or_default(config, parsed, "ui", "auto_open_bulk_claim_flyout",
-                                                            DCU::auto_open_bulk_claim_flyout, write_config);
+                                                             DCU::auto_open_bulk_claim_flyout, write_config);
+
+  read_daily_bulk_claim_factions(config, parsed, this->daily_bulk_claim_factions, DCU::daily_bulk_claim_factions,
+                                 write_config);
+  this->daily_bulk_claim_toggle_default_on =
+      get_config_or_default(config, parsed, "ui", "daily_bulk_claim_toggle_default_on",
+                            DCU::daily_bulk_claim_toggle_default_on, write_config);
   this->auto_confirm_instant_warp =
       get_auto_confirm_instant_warp(config, parsed, DCU::auto_confirm_instant_warp, write_config);
   this->installInstantWarpConfirmationHooks = true;
-  
+  read_instant_warp_filter(config, parsed, "instant_warp_auto_jump", this->instant_warp_auto_jump,
+                           this->instant_warp_auto_jump_all, DCU::instant_warp_auto_jump, write_config);
+  read_instant_warp_filter(config, parsed, "instant_warp_auto_warp", this->instant_warp_auto_warp,
+                           this->instant_warp_auto_warp_all, DCU::instant_warp_auto_warp, write_config);
+  read_instant_warp_filter(config, parsed, "instant_warp_always_ask", this->instant_warp_always_ask,
+                           this->instant_warp_always_ask_all, DCU::instant_warp_always_ask, write_config);
+
+  {
+    bool unused_match_all = false;
+    read_instant_warp_filter(config, parsed, "pinned_ships", this->pinned_ships, unused_match_all,
+                             DCU::pinned_ships, write_config);
+  }
+
+  this->double_click_to_assign_ship = get_config_or_default(config, parsed, "ui", "double_click_to_assign_ship",
+                                                             DCU::double_click_to_assign_ship, write_config);
+
+  this->arrow_keys_to_select_ship = get_config_or_default(config, parsed, "ui", "arrow_keys_to_select_ship",
+                                                           DCU::arrow_keys_to_select_ship, write_config);
+
   this->auto_confirm_ft_upgrade =
       get_config_or_default(config, parsed, "ui", "auto_confirm_ft_upgrade",
                             DCU::auto_confirm_ft_upgrade, write_config);
 
-#if _WIN32
+  this->extend_chest_purchase_max = get_config_or_default(config, parsed, "ui", "extend_chest_purchase_max",
+                                                          DCU::extend_chest_purchase_max, write_config);
   this->extend_donation_slider =
       get_config_or_default(config, parsed, "ui", "extend_donation_slider", DCU::extend_donation_slider, write_config);
   this->extend_donation_max =
       get_config_or_default(config, parsed, "ui", "extend_donation_max", DCU::extend_donation_max, write_config);
-#endif
 
   this->disable_galaxy_chat =
       get_config_or_default(config, parsed, "ui", "disable_galaxy_chat", DCU::disable_galaxy_chat, write_config);
@@ -1138,6 +1252,8 @@ void Config::Load()
   parse_config_shortcut(config, parsed, "log_warn", GameFunction::LogLevelWarn, DCSH::log_warn);
   parse_config_shortcut(config, parsed, "log_error", GameFunction::LogLevelError, DCSH::log_error);
   parse_config_shortcut(config, parsed, "log_off", GameFunction::LogLevelOff, DCSH::log_off);
+  parse_config_shortcut(config, parsed, "restart", GameFunction::Restart,
+                        DCSH::restart);
 
   parse_config_shortcut(config, parsed, "show_awayteam", GameFunction::ShowAwayTeam, DCSH::show_awayteam);
   parse_config_shortcut(config, parsed, "show_gifts", GameFunction::ShowGifts, DCSH::show_gifts);

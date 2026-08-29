@@ -37,6 +37,7 @@ This project is maintained solely at my own cost of time, energy and money. Any 
 - Disable galaxy chat
 - Enable/Disable hotkeys (community mod or scopely)
 - Enable extended donation slider (alliance)
+- Extend tagged chest-purchase sliders up to 160 on Windows
 - Show alternative cargo screens for:
   - default
   - player

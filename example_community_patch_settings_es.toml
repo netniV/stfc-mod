@@ -1,0 +1,832 @@
+#  +--------------------------------------------------------------+ 
+#  |                                                              | 
+#  |     #***  #****  #****   #***         #   *             #    | 
+#  |    #        #    #      #        #    #* **   #**       #    | 
+#  |     #**     #    #***   #             # * *  #   *   #***    | 
+#  |        #    #    #      #        #    #   *  #   *  #   *    | 
+#  |    #***     #    #       #***         #   *   #**    #***    | 
+#  |                                                              | 
+#  +--------------------------------------------------------------+ 
+#   Generado el 2026-08-27T22:28:37.107Z
+#   
+#   Este archivo de configuración fue generado por https://modconfig.pages.dev
+#   y se proporciona tal cual. Si hay algún problema con el Mod Comunitario de STFC
+#   la configuración o la herramienta web de configuración, considera informar
+#   de ello en:
+#   
+#       Discord : https://discord.gg/PrpHgs7Vjs
+#       GitHub  : https://github.com/netniV/stfc-mod
+#   
+#   El archivo de configuración de hoy está patrocinado por la letra H y el número 8
+#   
+
+#  <[=======================================]> 
+#                                              
+#         *               *    *               
+#        * *   *   *      *          ***       
+#       *****  *   *   ****    *    *   *      
+#       *   *  *  **  *   *    *    *   *      
+#       *   *   ****   ****    *     ***       
+#                                              
+#  <[=======================================]> 
+
+[audio]
+# Comma-separated audio event names to suppress; leave blank to allow all audio events
+disabled_events = ""
+
+# Write audio event names to the trace log for troubleshooting
+trace_events = false
+
+#  <[=====================================================]> 
+#                                                            
+#       *   *            *                                   
+#       ** **   ***           ***   ***     ***    ****      
+#       * * *  * **      *   *   *  *   *      *  **         
+#       *   *  *         *   *   *  *       ****    **       
+#       *   *   ****   **     ***   *       ****  ***        
+#                                                            
+#  <[=====================================================]> 
+
+[buffs]
+# Muestra siempre la potencia fuera del dique de los barcos cuando están atracados. El valor predeterminado es falso
+use_out_of_dock_power = true
+
+#  <[===============================================================================================]> 
+#                                                                                                      
+#        ****                  **     *                                         *                      
+#       *       ***   ***     *             ****  *   *  ***     ***    ***                 ***        
+#       *      *   *  *  *   ***      *    *   *  *   *  *   *      *  *        *           *  *       
+#       *      *   *  *  *    *       *     ****  *  **  *       ****  *        *           *  *       
+#        ****   ***   *  *    *       *     ***    ****  *       ****   ***     *           *  *       
+#                                                                                                      
+#  <[===============================================================================================]> 
+
+[config]
+# Ignora esta sección; es solo para desarrolladores
+assets_url_override = ""
+
+# Ignora esta sección; es solo para desarrolladores
+settings_url = ""
+
+#  <[====================================================================================================================]> 
+#                                                                                                                           
+#       ****                          *               *                                      *                     *        
+#       *   *   ***   ***     ***     *               *   ***           ***    ***   ***    ***    ***     ***     *        
+#       ****       *  *  *   * **     *            ****  * **          *      *   *  *  *    *     *   *  *   *    *        
+#       *       ****  *  *   *        *           *   *  *             *      *   *  *  *    *     *      *   *    *        
+#       *       ****  *  *    ****    *            ****   ****          ***    ***   *  *    **    *       ***     *        
+#                                                                                                                           
+#  <[====================================================================================================================]> 
+
+[control]
+# Intervalo de doble pulsación en ms para seleccionar/localizar los barcos 1-8. Menor = más rápido, mayor = más lento. Predeterminado: 500
+select_timer = 500
+
+# Subgroup: Hotkeys
+# -----------------
+
+# Si no quieres usar atajos, establece este valor en falso (desactiva tanto los atajos del mod como los de Scopely)
+hotkeys_enabled = true
+
+# Si prefieres desactivar los atajos ampliados, establece este valor en falso
+hotkeys_extended = true
+
+# Si tienes el artefacto Kir'Shara, ¿debe activarse la cola de forma predeterminada?
+queue_enabled = true
+
+# Si prefieres usar los atajos de Scopely, establece este valor en verdadero
+use_scopely_hotkeys = false
+
+# Subgroup: Options
+# -----------------
+
+# Activar funciones experimentales
+enable_experimental = false
+
+#  <[====================================================================================================================]> 
+#                                                                                                                           
+#         *       *                  *                                                 **     *                             
+#        * *          *   *   ****  ***     ***    ****          ****  ***            *             ***    ***    ****      
+#       *****     *   *   *  **      *     * **   **            *   *  *   *         ***      *    *      *   *  **         
+#       *   *     *   *  **    **    *     *        **           ****  *              *       *    *      *   *    **       
+#       *   *   **     ****  ***     **     ****  ***            ***   *              *       *     ***    ***   ***        
+#                                                                                                                           
+#  <[====================================================================================================================]> 
+
+[graphics]
+
+# Subgroup: Display
+# -----------------
+
+# Frame-rate scaling factor
+fr_scale = 2.0
+
+# Tiempo entre transiciones; aumenta el valor para ralentizarlas
+transition_time = 0.01
+
+# Especifica cuánto se escala la interfaz; el valor predeterminado es 1,0
+ui_scale = 0.6
+
+# Especifica cuánto se ajusta la escala; el valor predeterminado es 0,05
+ui_scale_adjust = 0.05
+
+# Especifica la escala de los modelos de barcos en la vista del sistema; el valor predeterminado es 1,0
+ui_scale_ship = 1.0
+
+# Especifica la escala de los visores de objetos de la interfaz; el valor predeterminado es 1,0
+ui_scale_viewer = 1.2
+
+# Subgroup: Keyboard
+# ------------------
+
+# Controla la velocidad de zoom al usar Q/E en la vista del sistema; el valor predeterminado es 350
+keyboard_zoom_speed = 350.0
+
+# Controla la velocidad de inercia del desplazamiento del sistema. El valor predeterminado es 0,4
+system_pan_momentum = 0.4
+
+# Controla la rapidez con la que disminuye la inercia al soltar el ratón. Menor = parada más rápida. El valor predeterminado es 0,8
+system_pan_momentum_falloff = 0.8
+
+# Subgroup: Loader
+# ----------------
+
+# Establece el valor en verdadero para usar loader_image en la pantalla de carga
+loader_enabled = true
+
+# Ruta de la imagen personalizada de la pantalla de carga (déjala en blanco para usar la imagen integrada)
+loader_image = ""
+
+# Multiplier applied to the logo size on the loading screen
+loader_logo_scale = 1.0
+
+# Show the custom tip on the loading screen
+loader_tip_enabled = true
+
+# Establece el valor en verdadero para usar la imagen de carga en la pantalla de transición
+loader_transition = true
+
+# Use a black background instead of the custom image during transitions
+loader_transition_black = false
+
+# Subgroup: Options
+# -----------------
+
+# ¿Permitir que se sustituya el cursor del sistema? (Activado de forma predeterminada)
+allow_cursor = true
+
+# Permite el modo de pantalla completa sin bordes; establece el valor en falso para desactivarlo
+borderless_fullscreen = true
+
+# Permite cambiar el tamaño libremente; establece el valor en falso para desactivarlo
+free_resize = true
+
+# Después de usar un preajuste de zoom, este se establecerá como zoom predeterminado
+use_presets_as_default = true
+
+# Subgroup: Zoom
+# --------------
+
+# Establece 0,0 para desactivar el zoom personalizado; de lo contrario, entra al sistema con el zoom indicado
+default_system_zoom = 1750.0
+
+# Preajuste de zoom F1 para la vista del sistema
+system_zoom_preset_1 = 50.0
+
+# Preajuste de zoom F2 para la vista del sistema
+system_zoom_preset_2 = 500.0
+
+# Preajuste de zoom F3 para la vista del sistema
+system_zoom_preset_3 = 1250.0
+
+# Preajuste de zoom F4 para la vista del sistema
+system_zoom_preset_4 = 2750.0
+
+# Preajuste de zoom F5 para la vista del sistema
+system_zoom_preset_5 = 5000.0
+
+# Controla la distancia máxima de zoom en la vista del sistema. El valor predeterminado es 2500. Los valores más altos aumentan la distancia de las etiquetas
+zoom = 5000.0
+
+#  <[=====================================================]> 
+#                                                            
+#       ****                        *                        
+#       *   *   ***   ***     ***   *       ***    ****      
+#       ****       *  *   *  *      ****   * **   **         
+#       *       ****  *      *      *   *  *        **       
+#       *       ****  *       ***   *   *   ****  ***        
+#                                                            
+#  <[=====================================================]> 
+
+[patches]
+
+# Subgroup: Leave Well Alone
+# --------------------------
+
+# Activa las correcciones de mejoras
+bufffixhooks = true
+cargoformathooks = true
+chatpatches = true
+
+# Activa la reclamación masiva por facción para los objetivos diarios
+dailyfactionbulkclaimhooks = true
+focussearch = true
+freeresizehooks = true
+game_version = true
+giftsbulkclaimhooks = true
+hotkeyhooks = true
+loadingscreenhooks = true
+miscpatches = true
+objecttracker = true
+officersorthooks = true
+panhooks = true
+
+# Fija las naves configuradas al principio del muelle de gestión de flota
+pinnedshiphooks = true
+syncpatches = true
+tempcrashfixes = true
+testpatches = true
+toastbannerhooks = true
+transitionscreenhooks = true
+uiscalehooks = true
+zoomhooks = true
+
+#  <[===========================================================================================================================]> 
+#                                                                                                                                  
+#         *     *               *                            *                 *                     *               *             
+#        * *   ***     ***           ***    ****             *   ***          ***     ***    ***     *     ***       *   ***       
+#       *****   *         *     *   *   *  **             ****  * **           *     * **   *        *        *   ****  *   *      
+#       *   *   *      ****     *   *   *    **          *   *  *              *     *      *        *     ****  *   *  *   *      
+#       *   *   **     ****   **     ***   ***            ****   ****          **     ****   ***     *     ****   ****   ***       
+#                                                                                                                                  
+#  <[===========================================================================================================================]> 
+
+[shortcuts]
+
+# Subgroup: Cargo & Locate
+# ------------------------
+
+# Indica si se muestra la carga de armada de forma predeterminada
+toggle_cargo_armada = "ALT-5"
+
+# Indica si se muestra la carga de forma predeterminada
+toggle_cargo_default = "ALT-1"
+
+# Indica si se muestra la carga hostil de forma predeterminada
+toggle_cargo_hostile = "ALT-4"
+
+# Indica si se muestra la carga del jugador de forma predeterminada
+toggle_cargo_player = "ALT-2"
+
+# Indica si se muestra la carga de la estación de forma predeterminada
+toggle_cargo_station = "ALT-3"
+
+# Alterna la confirmación automática de curvatura instantánea entre ninguna, curvatura y salto
+toggle_instant_warp = "ALT-I"
+
+# Indica si se permite localizar cuando se muestran vistas previas
+toggle_preview_locate = "CTRL-R"
+
+# Indica si se permite retirar cuando se muestran vistas previas
+toggle_preview_recall = "CTRL-T"
+
+# Subgroup: Chat Tabs & Selection
+# -------------------------------
+
+# CTRL-2
+select_chatalliance = "CTRL-2"
+
+# CTRL-1
+select_chatglobal = "CTRL-1"
+
+# CTRL-3
+select_chatprivate = "CTRL-3"
+
+# CTRL-ESPACIO
+select_current = "CTRL-SPACE"
+
+# Consulta select_timer
+select_ship1 = "1"
+
+# Consulta select_timer
+select_ship2 = "2"
+
+# Consulta select_timer
+select_ship3 = "3"
+
+# Consulta select_timer
+select_ship4 = "4"
+
+# Consulta select_timer
+select_ship5 = "5"
+
+# Consulta select_timer
+select_ship6 = "6"
+
+# Consulta select_timer
+select_ship7 = "7"
+
+# Consulta select_timer
+select_ship8 = "8"
+
+# Subgroup: Experimental
+# ----------------------
+
+# ⚠️ EXPERIMENTAL: Se desplaza hacia abajo por la pantalla
+move_down = "S"
+
+# ⚠️ EXPERIMENTAL: Se desplaza hacia la izquierda por la pantalla
+move_left = "LEFT"
+
+# ⚠️ EXPERIMENTAL: Se desplaza hacia la derecha por la pantalla
+move_right = "RIGHT"
+
+# ⚠️ EXPERIMENTAL: Se desplaza hacia arriba por la pantalla
+move_up = "W"
+
+# ⚠️ EXPERIMENTAL: Muestra la pantalla de marcador->búsqueda
+show_lookup = "L"
+
+# Subgroup: Hotkeys Master Switch & Logs
+# --------------------------------------
+
+# CTRL-MAYUSCULA-F
+log_debug = "CTRL-SHIFT-F9"
+
+# CTRL-MAYUSCULA-F11
+log_error = "CTRL-SHIFT-F11"
+
+# CTRL-MAYUSCULA-F8
+log_info = "CTRL-SHIFT-F8"
+
+# CTRL-MAYUSCULA-F12
+log_off = "CTRL-SHIFT-F12"
+
+# CTRL-MAYUSCULA-F7
+log_trace = "CTRL-SHIFT-F7"
+
+# CTRL-MAYUSCULA-F10
+log_warn = "CTRL-SHIFT-F10"
+
+# F10
+quit = "F10"
+
+# F9
+restart = "F9"
+
+# CTRL-ALT-MENOS
+set_hotkeys_disabled = "CTRL-ALT-MINUS"
+
+# CTRL-ALT-=
+set_hotkeys_enabled = "CTRL-ALT-="
+
+# Subgroup: Queue & Primary
+# -------------------------
+
+# ESPACIO o Ratón1
+action_primary = "SPACE|MOUSE1"
+
+# Requiere Kir'Shara
+action_queue = "SPACE|MOUSE1"
+
+# No cancela el ataque principal
+action_queue_clear = "CTRL-C"
+
+# TAB o Ratón4
+action_secondary = "TAB|MOUSE4"
+
+# V o Ratón2
+action_view = "V|MOUSE2"
+
+# Requiere el artefacto Kir'Shara
+toggle_queue = "CTRL-Q"
+
+# Subgroup: Recall & Repair
+# -------------------------
+
+# R o Ratón3
+action_recall = "R|MOUSE3"
+
+# ESPACIO o Ratón1
+action_recall_cancel = "SPACE|MOUSE1"
+
+# R o Ratón3
+action_repair = "R|MOUSE3"
+
+# Subgroup: Screens
+# -----------------
+
+# Focus the current screen's search field
+focus_search = "CTRL-F"
+
+# Mostrar alianza
+show_alliance = "ALT-'"
+
+# Mostrar armada de la alianza
+show_alliance_armada = "CTRL-'"
+
+# Mostrar ayuda de la alianza
+show_alliance_help = "SHIFT-'"
+
+# Mostrar artefactos
+show_artifacts = "SHIFT-I"
+
+# Mostrar equipo visitante
+show_awayteam = "T"
+
+# Mostrar marcadores
+show_bookmarks = "B"
+
+# Mostrar chat a pantalla completa
+show_chat = "C"
+
+# Mostrar chat a la izquierda
+show_chatside1 = "ALT-C"
+
+# Mostrar chat a la derecha
+show_chatside2 = "`"
+
+# Ir al comandante de flota
+show_commander = "O"
+
+# Ir a misiones diarias
+show_daily = "Z"
+
+# Ir a eventos
+show_events = "SHIFT-E"
+
+# Ir a Exocomp
+show_exocomp = "X"
+
+# Ir a facciones
+show_factions = "F"
+
+# Ir a la galaxia
+show_galaxy = "G"
+
+# Ir a regalos
+show_gifts = "/"
+
+# Ir al inventario
+show_inventory = "I"
+
+# Ir a misiones
+show_missions = "M"
+
+# Ir a oficiales
+show_officers = "SHIFT-O"
+
+# Ir a las pruebas de Q
+show_qtrials = "SHIFT-Q"
+
+# Ir a la refinería
+show_refinery = "SHIFT-F"
+
+# Ir a investigación
+show_research = "U"
+
+# Ir al desguace
+show_scrapyard = "Y"
+
+# Ir a ajustes
+show_settings = "SHIFT-S"
+
+# Ir a administrar barcos
+show_ships = "N"
+
+# Exterior de la estación
+show_stationexterior = "SHIFT-G"
+
+# Interior de la estación
+show_stationinterior = "SHIFT-H"
+
+# Ir al sistema
+show_system = "H"
+
+# Subgroup: UI Scale
+# ------------------
+
+# AV PAG
+ui_scaledown = "PGDOWN"
+
+# CTRL-AVPAG
+ui_scaleshipdown = "CTRL-PGDOWN"
+
+# CTRL-REPAG
+ui_scaleshipup = "CTRL-PGUP"
+
+# RE PAG
+ui_scaleup = "PGUP"
+
+# MAYUSCULA-REPAG
+ui_scaleviewerdown = "SHIFT-PGDOWN"
+
+# MAYUSCULA-AVPAG
+ui_scaleviewerup = "SHIFT-PGUP"
+
+# Subgroup: Zoom & Presets
+# ------------------------
+
+# CTRL-=
+set_zoom_default = "CTRL-="
+
+# MAYUSCULA-F1
+set_zoom_preset1 = "SHIFT-F1"
+
+# MAYUSCULA-F2
+set_zoom_preset2 = "SHIFT-F2"
+
+# MAYUSCULA-F3
+set_zoom_preset3 = "SHIFT-F3"
+
+# MAYUSCULA-F4
+set_zoom_preset4 = "SHIFT-F4"
+
+# MAYUSCULA-F5
+set_zoom_preset5 = "SHIFT-F5"
+
+# Q
+zoom_in = "Q"
+
+# MENOS
+zoom_max = "MINUS"
+
+# RETROCESO
+zoom_min = "BACKSPACE"
+
+# E
+zoom_out = "E"
+
+# F1
+zoom_preset1 = "F1"
+
+# F2
+zoom_preset2 = "F2"
+
+# F3
+zoom_preset3 = "F3"
+
+# F4
+zoom_preset4 = "F4"
+
+# F5
+zoom_preset5 = "F5"
+
+# =
+zoom_reset = "="
+
+#  <[============================================================]> 
+#                                                                   
+#       *****          *                     **                     
+#         *    ***    ***     ***   ***     *      ***   ****       
+#         *    *  *    *     * **   *   *  ***        *    *        
+#         *    *  *    *     *      *       *      ****   *         
+#       *****  *  *    **     ****  *       *      ****  ****       
+#                                                                   
+#  <[============================================================]> 
+
+[ui]
+# Omite la animación de revelado de cajas y simplemente ábrelas
+always_skip_reveal_sequence = true
+auto_confirm_discovery = true
+
+# Open the bulk gift claim flyout automatically
+auto_open_bulk_claim_flyout = false
+
+# Impide que "Escape" pregunte si deseas salir del juego
+disable_escape_exit = true
+
+# ⚠️ EXPERIMENTAL: Impide que aparezca el primer anuncio emergente
+disable_first_popup = false
+
+# ⚠️ EXPERIMENTAL: Impide que funcionen las teclas de movimiento estándar
+disable_move_keys = false
+
+# ⚠️ EXPERIMENTAL: Impide que funcionen los avisos emergentes estándar
+disable_toast_banners = false
+
+# Subgroup: Auto Confirm
+# ----------------------
+
+# Confirma automáticamente las mejoras de nivel y categoría de tecnología prohibida
+auto_confirm_ft_upgrade = false
+
+# Acción de curvatura instantánea que se confirmará automáticamente: ninguna, curvatura o salto
+auto_confirm_instant_warp = "none"
+
+# Comma-separated ship hull names for which the instant-warp popup is always shown, overriding all automatic actions
+instant_warp_always_ask = ""
+
+# Comma-separated ship hull names to always instant jump; use "*" for all ships or leave blank for none
+instant_warp_auto_jump = ""
+
+# Comma-separated ship hull names to always regular warp; use "*" for all ships or leave blank for none
+instant_warp_auto_warp = ""
+
+# Subgroup: Banners
+# -----------------
+
+# Especifica los tipos de banner que no quieres ver (separados por comas)
+disabled_banner_types = ""
+
+# Specifies banner types that should trigger notifications (comma separated)
+notify_banner_types = ""
+
+# Subgroup: Chat
+# --------------
+
+# Cambia a verdadero para eliminar el chat de galaxia del juego
+disable_galaxy_chat = false
+
+# Cambia a verdadero para eliminar el chat del Velo del juego
+disable_veil_chat = false
+
+# Subgroup: Chest Purchases
+# -------------------------
+
+# Maximum for tagged chest-purchase sliders on Windows; 0 disables the feature and native limits above this value are preserved
+extend_chest_purchase_max = 160
+
+# Subgroup: Objetivos diarios
+# ---------------------------
+
+# Facciones separadas por comas (federation, klingon, romulan) a las que se aplica el selector de reclamación masiva de objetivos diarios; déjalo vacío para conservar el comportamiento predeterminado del juego
+daily_bulk_claim_factions = ""
+
+# Vuelve a activar el selector Reclamar todo de los objetivos diarios la primera vez que se muestra la pantalla en cada sesión
+daily_bulk_claim_toggle_default_on = false
+
+# Subgroup: Donations
+# -------------------
+
+# Amplía el control de donación al valor máximo del siguiente nivel de alianza
+extend_donation_max = 80
+
+# Activa la ampliación del control de donación
+extend_donation_slider = true
+
+# Subgroup: Gestión de flota
+# --------------------------
+
+# Usa las flechas izquierda y derecha para seleccionar la nave anterior o siguiente en el muelle de gestión de flota
+arrow_keys_to_select_ship = true
+
+# Haz doble clic en una nave del muelle de gestión de flota para asignarla, en lugar de seleccionarla y pulsar Asignar
+double_click_to_assign_ship = false
+
+# Nombres de naves separados por comas que siempre se muestran primero en el muelle de gestión de flota; las naves fijadas conservan el orden activo
+pinned_ships = ""
+
+# Subgroup: HUD
+# -------------
+
+# HUD visibility mode: auto, show, or hide
+hud_daily_goals = "auto"
+
+# HUD visibility mode: auto, show, or hide
+hud_field_training = "auto"
+
+# HUD visibility mode: auto, show, or hide
+hud_missions = "auto"
+
+# HUD visibility mode: auto, show, or hide
+hud_outposts = "auto"
+
+# HUD visibility mode: auto, show, or hide
+hud_q_trials = "auto"
+
+# Subgroup: Previews
+# ------------------
+
+# Decimal places used for abbreviated cargo values
+cargo_significant_decimals = 2
+
+# Impide localizar cuando se muestran vistas previas de barcos o nodos
+disable_preview_locate = false
+
+# Impide retirar cuando se muestran vistas previas de barcos o nodos
+disable_preview_recall = false
+
+# Establece el valor en verdadero para mostrar siempre las recompensas de los barcos/estaciones seleccionados
+show_armada_cargo = true
+
+# Establece el valor en verdadero para mostrar siempre las recompensas de los barcos/estaciones seleccionados
+show_cargo_default = true
+
+# Establece el valor en verdadero para mostrar siempre las recompensas de los barcos/estaciones seleccionados
+show_hostile_cargo = true
+
+# Establece el valor en verdadero para mostrar siempre las recompensas de los barcos/estaciones seleccionados
+show_player_cargo = true
+
+# Establece el valor en verdadero para mostrar siempre las recompensas de los barcos/estaciones seleccionados
+show_station_cargo = true
+
+#  <[==========================================================================================================================================================================================]> 
+#                                                                                                                                                                                                 
+#        ***                   *                                           *                         *                                         *                           *                      
+#       *   *  ****    ***           ***   ***     ***    ****             *   ***           ****         ***     ***   ***     ***   ***           ****    ***    ***                 ***        
+#       *   *  *   *  *        *    *   *  *  *   * **   **             ****  * **          **       *    *  *   *      *   *  *   *  *  *     *      *        *  *        *           *  *       
+#       *   *  ****   *        *    *   *  *  *   *        **          *   *  *               **     *    *  *   *      *      *   *  *  *     *     *      ****  *        *           *  *       
+#        ***   *       ***     *     ***   *  *    ****  ***            ****   ****         ***      *    *  *    ***   *       ***   *  *     *    ****    ****   ***     *           *  *       
+#                                                                                                                                                                                                 
+#  <[==========================================================================================================================================================================================]> 
+
+[sync]
+
+# Subgroup: Data
+# --------------
+
+# ¿Quieres sincronizar los registros de batalla?
+battlelogs = true
+
+# ¿Quieres sincronizar los datos de mejoras?
+buffs = true
+
+# ¿Quieres sincronizar los datos de edificios?
+buildings = true
+
+# ¿Quieres sincronizar los datos del inventario?
+inventory = true
+
+# ¿Quieres sincronizar los datos de trabajos?
+jobs = true
+
+# ¿Quieres sincronizar los datos de misiones?
+missions = true
+
+# ¿Quieres sincronizar los datos de los oficiales que posees?
+officer = true
+
+# ¿Quieres sincronizar los datos de investigación?
+research = true
+
+# ¿Quieres sincronizar los datos de recursos?
+resources = true
+
+# ¿Quieres sincronizar los datos de los barcos que posees?
+ships = true
+
+# ¿Quieres sincronizar los datos de ranuras?
+slots = true
+
+# ¿Quieres sincronizar los datos de tecnología prohibida que posees?
+tech = true
+
+# ¿Quieres sincronizar los datos de rasgos?
+traits = true
+
+# Subgroup: Diagnostics
+# ---------------------
+
+# ¿Quieres activar la depuración de sincronización? (Requiere el registro de sincronización)
+debug = false
+
+# ¿Quieres activar el registro de sincronización?
+logging = false
+
+# Subgroup: Host
+# --------------
+
+# La URL del servidor a través del cual se canalizará la conexión
+proxy = ""
+
+# El token que se usa para proporcionar autenticación
+token = ""
+
+# La URL del servidor al que se enviarán los datos
+url = ""
+
+# Subgroup: Network
+# -----------------
+
+# Cuánto tiempo se conservan los elementos en caché (ms)
+resolver_cache_ttl = "300"
+
+# ¿Deben comprobarse los certificados SSL?
+verify_ssl = true
+
+#  <[==========================================================================================================================================================================================]> 
+#                                                                                                                                                                                                 
+#        ***                   *                                           *                         *                                         *                           *                      
+#       *   *  ****    ***           ***   ***     ***    ****             *   ***           ****         ***     ***   ***     ***   ***           ****    ***    ***                 ***        
+#       *   *  *   *  *        *    *   *  *  *   * **   **             ****  * **          **       *    *  *   *      *   *  *   *  *  *     *      *        *  *        *           *  *       
+#       *   *  ****   *        *    *   *  *  *   *        **          *   *  *               **     *    *  *   *      *      *   *  *  *     *     *      ****  *        *           *  *       
+#        ***   *       ***     *     ***   *  *    ****  ***            ****   ****         ***      *    *  *    ***   *       ***   *  *     *    ****    ****   ***     *           *  *       
+#                                                                                                                                                                                                 
+#  <[==========================================================================================================================================================================================]> 
+
+[sync.targets.nextspocksclub]
+
+#  <[==========================================================================================================================================================================================]> 
+#                                                                                                                                                                                                 
+#        ***                   *                                           *                         *                                         *                           *                      
+#       *   *  ****    ***           ***   ***     ***    ****             *   ***           ****         ***     ***   ***     ***   ***           ****    ***    ***                 ***        
+#       *   *  *   *  *        *    *   *  *  *   * **   **             ****  * **          **       *    *  *   *      *   *  *   *  *  *     *      *        *  *        *           *  *       
+#       *   *  ****   *        *    *   *  *  *   *        **          *   *  *               **     *    *  *   *      *      *   *  *  *     *     *      ****  *        *           *  *       
+#        ***   *       ***     *     ***   *  *    ****  ***            ****   ****         ***      *    *  *    ***   *       ***   *  *     *    ****    ****   ***     *           *  *       
+#                                                                                                                                                                                                 
+#  <[==========================================================================================================================================================================================]> 
+
+[sync.targets.spocksclub]
+

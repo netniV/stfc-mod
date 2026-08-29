@@ -200,7 +200,7 @@ void InstallTestPatches()
 
     auto is_queue_unlocked = queue_manager.GetMethod("IsQueueUnlocked");
     if (is_queue_unlocked == nullptr) {
-      ErrorMsg::MissingStaticMethod("GameObject", "IsQueueUnlocked");
+      ErrorMsg::MissingStaticMethod("ActionQueueManager", "IsQueueUnlocked");
     } else {
       SPUD_STATIC_DETOUR(is_queue_unlocked, IsQueueEnabled);
     }
