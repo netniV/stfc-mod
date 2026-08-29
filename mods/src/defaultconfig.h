@@ -222,6 +222,9 @@ namespace UI
   constexpr const char* daily_bulk_claim_factions   = "";
   constexpr bool        daily_bulk_claim_toggle_default_on = false;
   constexpr bool        disable_escape_exit         = true;
+  // Maximum gap between Escape presses that opens the exit prompt.
+  // 0 disables double-tap and preserves the existing blocked behavior.
+  constexpr auto        escape_exit_timer           = 0;
   constexpr bool        disable_first_popup         = false;
   constexpr bool        disable_galaxy_chat         = false;
   constexpr bool        disable_move_keys           = false;

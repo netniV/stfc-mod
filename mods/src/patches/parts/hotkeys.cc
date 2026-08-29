@@ -590,7 +590,16 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
   }
 
   if (config->disable_escape_exit && Key::Pressed(KeyCode::Escape)) {
-    return;
+    // A second unhandled Escape inside the configured window falls through to
+    // the game's original handler and opens its normal exit prompt.
+    static auto escape_clock = std::chrono::steady_clock::time_point{};
+    const auto  escape_now   = std::chrono::steady_clock::now();
+    const auto  escape_diff  = std::chrono::duration_cast<std::chrono::milliseconds>(escape_now - escape_clock);
+    escape_clock             = escape_now;
+
+    if (config->escape_exit_timer <= 0 || escape_diff > std::chrono::milliseconds(config->escape_exit_timer)) {
+      return;
+    }
   }
 
   // config->Load();

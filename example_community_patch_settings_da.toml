@@ -596,6 +596,10 @@ auto_open_bulk_claim_flyout = false
 # Forhindr "Escape" i at spørge, om spillet skal afsluttes
 disable_escape_exit = true
 
+# Max gap in ms for double-tap Escape to show the exit prompt.
+# 0 = disabled; only applies when disable_escape_exit is true.
+escape_exit_timer = 0
+
 # ⚠️ EKSPERIMENTELT: Forhindr den første pop op-reklame i at blive vist
 disable_first_popup = false
 
@@ -829,4 +833,3 @@ verify_ssl = true
 #  <[========================================================================================================================================================================================================]> 
 
 [sync.targets.spocksclub]
-
