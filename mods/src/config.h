@@ -8,6 +8,8 @@
 
 #include <toml++/toml.h>
 
+#include "patches/notification_audio.h"
+
 #if _WIN32
 #include <Windows.h>
 #endif
@@ -196,6 +198,11 @@ public:
   bool disable_toast_banners;
   bool trace_audio_events;
   std::vector<std::string> disabled_audio_events;
+  NotificationSound alert_victory;
+  NotificationSound alert_defeat;
+  NotificationSound alert_armada_created;
+  NotificationSound alert_armada_battle_won;
+  NotificationSound alert_armada_battle_lost;
   bool auto_open_bulk_claim_flyout;
   bool auto_confirm_ft_upgrade;
 
