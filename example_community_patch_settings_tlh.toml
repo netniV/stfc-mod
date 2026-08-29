@@ -39,6 +39,7 @@ trace_events = false
 
 # Optional generated notification cues; "none" disables an alert.
 # Available sounds: default, info, success, warning, alarm, arrival, soft, ping, repair
+# Requires patches.toastbannerhooks = true.
 alert_victory = "none"
 alert_defeat = "none"
 alert_armada_created = "none"
@@ -837,4 +838,3 @@ verify_ssl = true
 #  <[======================================================================================================]> 
 
 [sync.targets.spocksclub]
-

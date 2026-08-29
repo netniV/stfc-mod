@@ -979,6 +979,13 @@ void Config::Load()
       get_notification_sound(config, parsed, "alert_armada_battle_won", DCA::alert_armada_battle_won, write_config);
   this->alert_armada_battle_lost =
       get_notification_sound(config, parsed, "alert_armada_battle_lost", DCA::alert_armada_battle_lost, write_config);
+  if (!this->installToastBannerHooks
+      && (this->alert_victory != NotificationSound::None || this->alert_defeat != NotificationSound::None
+          || this->alert_armada_created != NotificationSound::None
+          || this->alert_armada_battle_won != NotificationSound::None
+          || this->alert_armada_battle_lost != NotificationSound::None)) {
+    spdlog::warn("audio alerts require patches.toastbannerhooks = true");
+  }
   this->auto_open_bulk_claim_flyout = get_config_or_default(config, parsed, "ui", "auto_open_bulk_claim_flyout",
                                                              DCU::auto_open_bulk_claim_flyout, write_config);
 
