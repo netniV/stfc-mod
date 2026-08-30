@@ -82,6 +82,7 @@ int64_t                                                                   s_seed
 int                                                                       s_seed_candidate_count          = 0;
 int                                                                       s_mining_watch_count            = 0;
 int                                                                       s_follow_through_watch_count    = 0;
+int                                                                       s_manager_probe_slot            = 0;
 
 int64_t now_milliseconds();
 
@@ -99,6 +100,7 @@ void invalidate_seed_observation()
   s_seed_candidate_count          = 0;
   s_mining_watch_count            = 0;
   s_follow_through_watch_count    = 0;
+  s_manager_probe_slot            = 0;
 }
 
 void restart_seed_stabilization(int slot_index, uint64_t fleet_id, bool preserve_snapshots = false)
@@ -121,6 +123,7 @@ void restart_seed_stabilization(int slot_index, uint64_t fleet_id, bool preserve
   s_seed_first_observed_ms        = 0;
   s_seed_last_change_ms           = 0;
   s_seed_candidate_count          = 0;
+  s_manager_probe_slot            = 0;
   spdlog::debug(
       "[FleetWatch] fleet topology changed; restarting initial-state stabilization slot={} fleet={} preserve={}",
       slot_index, fleet_id, preserve_snapshots);
@@ -445,7 +448,8 @@ void observe_fleet(FleetPlayerData* fleet, int requested_slot, bool allow_notifi
   const auto current    = fleet->CurrentState;
   const bool same_fleet = previous.occupied && previous.fleet_id == fleet_id;
   if (!same_fleet && (!s_seed_pending || s_seed_has_observation)) {
-    restart_seed_stabilization(slot_index, fleet_id, widget_observation);
+    const bool preserve_snapshots = widget_observation && !s_seed_manager_backed;
+    restart_seed_stabilization(slot_index, fleet_id, preserve_snapshots);
   }
   allow_notifications                 = allow_notifications && !s_seed_pending;
   const bool resource_context_enabled = notification_enabled(FleetNotificationKind::StartedMining)
@@ -542,6 +546,33 @@ int occupied_snapshot_count()
       std::count_if(s_slots.begin(), s_slots.end(), [](const auto& slot) { return slot.occupied; }));
 }
 
+bool manager_baseline_matches(int& changed_slot, uint64_t& changed_fleet)
+{
+  auto* manager = FleetsManager::Instance();
+  if (!manager) {
+    changed_slot  = -1;
+    changed_fleet = 0;
+    return false;
+  }
+
+  for (int offset = 0; offset < kFleetSlotCount; ++offset) {
+    const int index = (s_manager_probe_slot + offset) % kFleetSlotCount;
+    if (!s_slots[index].occupied) {
+      continue;
+    }
+
+    auto* fleet          = manager->GetFleetPlayerData(index);
+    changed_slot         = index;
+    changed_fleet        = fleet ? fleet->Id : 0;
+    s_manager_probe_slot = (index + 1) % kFleetSlotCount;
+    return fleet && fleet->Id == s_slots[index].fleet_id;
+  }
+
+  changed_slot  = -1;
+  changed_fleet = 0;
+  return false;
+}
+
 void begin_seed_observation(int observed_count, bool manager_backed, int64_t now_ms, std::string_view source)
 {
   s_seed_has_observation          = true;
@@ -568,7 +599,7 @@ ScanResult scan_fleets(bool allow_notifications, bool sample_opc, std::string_vi
   ScanResult result;
   auto*      manager = FleetsManager::Instance();
   if (!manager) {
-    if (allow_notifications && !s_seed_pending) {
+    if (allow_notifications && !s_seed_pending && s_seed_manager_backed) {
       restart_seed_stabilization(-1, 0);
     }
     return result;
@@ -590,7 +621,7 @@ ScanResult scan_fleets(bool allow_notifications, bool sample_opc, std::string_vi
     }
   }
 
-  if (s_seed_pending && result.observed_count == 0) {
+  if (result.observed_count == 0 && (s_seed_pending || !s_seed_manager_backed)) {
     result.topology_changed    = false;
     result.first_changed_slot  = -1;
     result.first_changed_fleet = 0;
@@ -625,6 +656,9 @@ ScanResult scan_fleets(bool allow_notifications, bool sample_opc, std::string_vi
     }
 
     observe_fleet(fleet, index, allow_notifications, sample_opc, source);
+  }
+  if (result.observed_count > 0) {
+    s_seed_manager_backed = true;
   }
   return result;
 }
@@ -664,6 +698,7 @@ void fleet_watch_init()
   s_seed_candidate_count          = 0;
   s_mining_watch_count            = 0;
   s_follow_through_watch_count    = 0;
+  s_manager_probe_slot            = 0;
 }
 
 void fleet_watch_observe_widget(FleetPlayerData* fleet)
@@ -721,6 +756,14 @@ void fleet_watch_tick()
 {
   if (!fleet_watch_uses_state_observation()) {
     return;
+  }
+  if (!s_seed_pending && s_seed_manager_backed) {
+    int      changed_slot  = -1;
+    uint64_t changed_fleet = 0;
+    if (!manager_baseline_matches(changed_slot, changed_fleet)) {
+      restart_seed_stabilization(changed_slot, changed_fleet);
+      return;
+    }
   }
   if (!s_seed_pending && s_follow_through_watch_count == 0 && s_mining_watch_count == 0) {
     return;
