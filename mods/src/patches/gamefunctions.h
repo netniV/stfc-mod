@@ -46,7 +46,6 @@ enum GameFunction {
   ShowChatSide1,
   ShowChatSide2,
   ShowEvents,
-  ShowEventsNative,
   ShowSettings,
   ZoomPreset1,
   ZoomPreset2,

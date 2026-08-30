@@ -10,16 +10,15 @@
 inline bool IsScreenNavigationShortcutPressed()
 {
   static constexpr std::array screen_navigation_actions{
-      GameFunction::ShowAlliance,     GameFunction::ShowAllianceArmada,  GameFunction::ShowAllianceHelp,
-      GameFunction::ShowArtifacts,    GameFunction::ShowAwayTeam,        GameFunction::ShowBookmarks,
-      GameFunction::ShowCommander,    GameFunction::ShowDaily,           GameFunction::ShowEvents,
-      GameFunction::ShowEventsNative, GameFunction::ShowExoComp,         GameFunction::ShowFactions,
-      GameFunction::ShowGalaxy,       GameFunction::ShowGalaxyNative,    GameFunction::ShowGifts,
-      GameFunction::ShowInventory,    GameFunction::ShowLookup,          GameFunction::ShowMissions,
-      GameFunction::ShowOfficers,     GameFunction::ShowQTrials,         GameFunction::ShowRefinery,
-      GameFunction::ShowResearch,     GameFunction::ShowScrapYard,       GameFunction::ShowSettings,
-      GameFunction::ShowShips,        GameFunction::ShowStationInterior, GameFunction::ShoWStationExterior,
-      GameFunction::ShowSystem,
+      GameFunction::ShowAlliance,        GameFunction::ShowAllianceArmada,  GameFunction::ShowAllianceHelp,
+      GameFunction::ShowArtifacts,       GameFunction::ShowAwayTeam,        GameFunction::ShowBookmarks,
+      GameFunction::ShowCommander,       GameFunction::ShowDaily,           GameFunction::ShowEvents,
+      GameFunction::ShowExoComp,         GameFunction::ShowFactions,        GameFunction::ShowGalaxy,
+      GameFunction::ShowGalaxyNative,    GameFunction::ShowGifts,           GameFunction::ShowInventory,
+      GameFunction::ShowLookup,          GameFunction::ShowMissions,        GameFunction::ShowOfficers,
+      GameFunction::ShowQTrials,         GameFunction::ShowRefinery,        GameFunction::ShowResearch,
+      GameFunction::ShowScrapYard,       GameFunction::ShowSettings,        GameFunction::ShowShips,
+      GameFunction::ShowStationInterior, GameFunction::ShoWStationExterior, GameFunction::ShowSystem,
   };
 
   for (const auto action : screen_navigation_actions) {

@@ -147,51 +147,54 @@ void NavigationZoom_Update_Hook(auto original, NavigationZoom *_this)
 
   EnsureSystemZoomRange(_this);
 
+  const auto mod_camera_shortcuts_enabled = config->hotkeys_enabled && !config->use_scopely_hotkeys;
   const auto navigation_owns_chord =
-      config->hotkeys_enabled && !config->use_scopely_hotkeys && !Hub::IsInChat()
-      && IsScreenNavigationShortcutPressed();
+      mod_camera_shortcuts_enabled && !Hub::IsInChat() && IsScreenNavigationShortcutPressed();
+  const auto camera_shortcuts_enabled = mod_camera_shortcuts_enabled && !navigation_owns_chord;
 
-  if (!Key::IsInputFocused() && !navigation_owns_chord) {
-    if (MapKey::IsDown(GameFunction::SetZoomPreset1)) {
-      return StoreZoom("System Preset 1", config->system_zoom_preset_1, _this);
-    } else if (MapKey::IsDown(GameFunction::SetZoomPreset2)) {
-      return StoreZoom("System Preset 2", config->system_zoom_preset_2, _this);
-    } else if (MapKey::IsDown(GameFunction::SetZoomPreset3)) {
-      return StoreZoom("System Preset 3", config->system_zoom_preset_3, _this);
-    } else if (MapKey::IsDown(GameFunction::SetZoomPreset4)) {
-      return StoreZoom("System Preset 4", config->system_zoom_preset_4, _this);
-    } else if (MapKey::IsDown(GameFunction::SetZoomPreset5)) {
-      return StoreZoom("System Preset 5", config->system_zoom_preset_5, _this);
-    } else if (MapKey::IsDown(GameFunction::SetZoomDefault)) {
-      return StoreZoom("System Default", config->default_system_zoom, _this);
-    }
+  if (!Key::IsInputFocused()) {
+    if (camera_shortcuts_enabled) {
+      if (MapKey::IsDown(GameFunction::SetZoomPreset1)) {
+        return StoreZoom("System Preset 1", config->system_zoom_preset_1, _this);
+      } else if (MapKey::IsDown(GameFunction::SetZoomPreset2)) {
+        return StoreZoom("System Preset 2", config->system_zoom_preset_2, _this);
+      } else if (MapKey::IsDown(GameFunction::SetZoomPreset3)) {
+        return StoreZoom("System Preset 3", config->system_zoom_preset_3, _this);
+      } else if (MapKey::IsDown(GameFunction::SetZoomPreset4)) {
+        return StoreZoom("System Preset 4", config->system_zoom_preset_4, _this);
+      } else if (MapKey::IsDown(GameFunction::SetZoomPreset5)) {
+        return StoreZoom("System Preset 5", config->system_zoom_preset_5, _this);
+      } else if (MapKey::IsDown(GameFunction::SetZoomDefault)) {
+        return StoreZoom("System Default", config->default_system_zoom, _this);
+      }
 
-    do_absolute_zoom = true;
-    if (MapKey::IsDown(GameFunction::ZoomPreset1)) {
-      zoomDelta     = config->system_zoom_preset_1;
-      do_store_zoom = true;
-    } else if (MapKey::IsDown(GameFunction::ZoomPreset2)) {
-      zoomDelta     = config->system_zoom_preset_2;
-      do_store_zoom = true;
-    } else if (MapKey::IsDown(GameFunction::ZoomPreset3)) {
-      zoomDelta     = config->system_zoom_preset_3;
-      do_store_zoom = true;
-    } else if (MapKey::IsDown(GameFunction::ZoomPreset4)) {
-      zoomDelta     = config->system_zoom_preset_4;
-      do_store_zoom = true;
-    } else if (MapKey::IsDown(GameFunction::ZoomPreset5)) {
-      zoomDelta     = config->system_zoom_preset_5;
-      do_store_zoom = true;
-    }
+      do_absolute_zoom = true;
+      if (MapKey::IsDown(GameFunction::ZoomPreset1)) {
+        zoomDelta     = config->system_zoom_preset_1;
+        do_store_zoom = true;
+      } else if (MapKey::IsDown(GameFunction::ZoomPreset2)) {
+        zoomDelta     = config->system_zoom_preset_2;
+        do_store_zoom = true;
+      } else if (MapKey::IsDown(GameFunction::ZoomPreset3)) {
+        zoomDelta     = config->system_zoom_preset_3;
+        do_store_zoom = true;
+      } else if (MapKey::IsDown(GameFunction::ZoomPreset4)) {
+        zoomDelta     = config->system_zoom_preset_4;
+        do_store_zoom = true;
+      } else if (MapKey::IsDown(GameFunction::ZoomPreset5)) {
+        zoomDelta     = config->system_zoom_preset_5;
+        do_store_zoom = true;
+      }
 
-    if (config->hotkeys_extended) {
-      if (MapKey::IsDown(GameFunction::ZoomReset)) {
-        do_absolute_zoom = false;
-        do_default_zoom  = true;
-      } else if (MapKey::IsDown(GameFunction::ZoomMin)) {
-        zoomDelta = config->zoom;
-      } else if (MapKey::IsDown(GameFunction::ZoomMax)) {
-        zoomDelta = 100;
+      if (config->hotkeys_extended) {
+        if (MapKey::IsDown(GameFunction::ZoomReset)) {
+          do_absolute_zoom = false;
+          do_default_zoom  = true;
+        } else if (MapKey::IsDown(GameFunction::ZoomMin)) {
+          zoomDelta = config->zoom;
+        } else if (MapKey::IsDown(GameFunction::ZoomMax)) {
+          zoomDelta = 100;
+        }
       }
     }
 
@@ -205,7 +208,7 @@ void NavigationZoom_Update_Hook(auto original, NavigationZoom *_this)
       zoomDelta        = config->keyboard_zoom_speed * dt;
     }
 
-    if (MapKey::IsPressed(GameFunction::ZoomIn) || do_absolute_zoom) {
+    if ((camera_shortcuts_enabled && MapKey::IsPressed(GameFunction::ZoomIn)) || do_absolute_zoom) {
       vec3 mousePos;
       GetMousePosition(&mousePos);
       _this->_zoomLocation = vec2{.x = mousePos.x, .y = mousePos.y};
@@ -219,7 +222,7 @@ void NavigationZoom_Update_Hook(auto original, NavigationZoom *_this)
       auto worldPos      = GetMouseWorldPos(_this->_sceneCamera, &mousePos);
       _this->_worldPoint = worldPos;
       _this->ZoomCameraAtWorldPoint();
-    } else if (MapKey::IsPressed(GameFunction::ZoomOut) && !Key::IsInputFocused()) {
+    } else if (camera_shortcuts_enabled && MapKey::IsPressed(GameFunction::ZoomOut)) {
       vec3 mousePos;
       GetMousePosition(&mousePos);
       _this->_zoomLocation  = vec2{.x = mousePos.x, .y = mousePos.y};

@@ -141,11 +141,10 @@ namespace Shortcuts
   constexpr const char* show_commander        = "O";
   constexpr const char* show_daily            = "Z";
   constexpr const char* show_events           = "SHIFT-E";
-  constexpr const char* show_events_native    = "F5";
   constexpr const char* show_exocomp          = "X";
   constexpr const char* show_factions         = "F";
   constexpr const char* show_galaxy           = "G";
-  constexpr const char* show_galaxy_native    = "E";
+  constexpr const char* show_galaxy_native    = "CTRL-G";
   constexpr const char* show_gifts            = "/";
   constexpr const char* show_inventory        = "I";
   constexpr const char* show_lookup           = "L";

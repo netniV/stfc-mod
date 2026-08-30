@@ -55,7 +55,6 @@ static int  show_info_pending      = 0;
 
 static void*             shortcuts_manager_instance = nullptr;
 static const MethodInfo* on_galaxy_action           = nullptr;
-static const MethodInfo* on_events_action           = nullptr;
 
 struct InputActionCallbackContext {
   void*   state;
@@ -459,9 +458,6 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
         return GotoSection(SectionID::FleetCommander_Management);
       } else if (MapKey::IsDown(GameFunction::ShowAwayTeam)) {
         return GotoSection(SectionID::Missions_AwayTeamsList);
-      } else if (MapKey::IsDown(GameFunction::ShowEventsNative)) {
-        InvokeNativeShortcut(on_events_action, "Events");
-        return;
       } else if (MapKey::IsDown(GameFunction::ShowEvents)) {
         return GotoSection(SectionID::Tournament_Group_Selection);
       } else if (MapKey::IsDown(GameFunction::ShowExoComp)) {
@@ -1077,11 +1073,6 @@ void InstallHotkeyHooks()
     on_galaxy_action = shortcuts_manager_helper.GetMethodInfo("OnGalaxyAction", 1);
     if (on_galaxy_action == nullptr) {
       ErrorMsg::MissingMethod("ShortcutsManager", "OnGalaxyAction");
-    }
-
-    on_events_action = shortcuts_manager_helper.GetMethodInfo("OnEventsAction", 1);
-    if (on_events_action == nullptr) {
-      ErrorMsg::MissingMethod("ShortcutsManager", "OnEventsAction");
     }
 
     auto ptr_can_user_shortcuts = shortcuts_manager_helper.GetMethod("InitializeActions");

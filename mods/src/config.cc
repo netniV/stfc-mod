@@ -1263,8 +1263,6 @@ void Config::Load()
   parse_config_shortcut(config, parsed, "show_commander", GameFunction::ShowCommander, DCSH::show_commander);
   parse_config_shortcut(config, parsed, "show_daily", GameFunction::ShowDaily, DCSH::show_daily);
   parse_config_shortcut(config, parsed, "show_events", GameFunction::ShowEvents, DCSH::show_events);
-  parse_config_shortcut(config, parsed, "show_events_native", GameFunction::ShowEventsNative,
-                        DCSH::show_events_native);
   parse_config_shortcut(config, parsed, "show_exocomp", GameFunction::ShowExoComp, DCSH::show_exocomp);
   parse_config_shortcut(config, parsed, "show_factions", GameFunction::ShowFactions, DCSH::show_factions);
   parse_config_shortcut(config, parsed, "show_inventory", GameFunction::ShowInventory, DCSH::show_inventory);
