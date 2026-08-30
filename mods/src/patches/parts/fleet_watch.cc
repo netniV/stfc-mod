@@ -26,8 +26,8 @@ FleetPlayerData* fleet_widget_context(void* self)
 
 void FleetStateWidget_SetWidgetData_Hook(auto original, void* self)
 {
-  fleet_watch_observe_widget(fleet_widget_context(self));
   original(self);
+  fleet_watch_observe_widget(fleet_widget_context(self));
 }
 
 void ToastFleetObserver_HandleMiningDepleted_Hook(auto original, void* self, int64_t fleet_id)
