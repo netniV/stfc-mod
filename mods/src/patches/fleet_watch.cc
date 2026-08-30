@@ -85,6 +85,22 @@ int                                                                       s_foll
 
 int64_t now_milliseconds();
 
+void invalidate_seed_observation()
+{
+  s_slots                         = {};
+  s_last_emitted_ms               = {};
+  s_seed_has_observation          = false;
+  s_seed_manager_backed           = false;
+  s_seed_ready_candidate          = false;
+  s_seed_candidate_forced         = false;
+  s_seed_candidate_manager_backed = false;
+  s_seed_first_observed_ms        = 0;
+  s_seed_last_change_ms           = 0;
+  s_seed_candidate_count          = 0;
+  s_mining_watch_count            = 0;
+  s_follow_through_watch_count    = 0;
+}
+
 void restart_seed_stabilization(int slot_index, uint64_t fleet_id, bool preserve_snapshots = false)
 {
   const auto now_ms = now_milliseconds();
@@ -552,6 +568,9 @@ ScanResult scan_fleets(bool allow_notifications, bool sample_opc, std::string_vi
   ScanResult result;
   auto*      manager = FleetsManager::Instance();
   if (!manager) {
+    if (allow_notifications && !s_seed_pending) {
+      restart_seed_stabilization(-1, 0);
+    }
     return result;
   }
   std::array<FleetPlayerData*, kFleetSlotCount> fleets{};
@@ -740,27 +759,11 @@ void fleet_watch_tick()
         const int  observed_count =
             manager_backed ? seed.observed_count : (widget_backed ? occupied_snapshot_count() : 0);
         if (observed_count == 0) {
-          s_seed_ready_candidate          = false;
-          s_seed_candidate_forced         = false;
-          s_seed_candidate_manager_backed = false;
-          s_seed_candidate_count          = 0;
-          if (s_seed_has_observation && !s_seed_manager_backed) {
-            s_seed_has_observation   = false;
-            s_seed_first_observed_ms = 0;
-            s_seed_last_change_ms    = 0;
-          }
+          invalidate_seed_observation();
           if (seed_lifetime >= kSeedLifetimeMs) {
             s_seed_pending                = false;
-            s_seed_has_observation        = false;
-            s_seed_manager_backed         = false;
-            s_slots                       = {};
-            s_last_emitted_ms             = {};
             s_last_follow_through_scan_ms = 0;
             s_last_mining_scan_ms         = 0;
-            s_seed_first_observed_ms      = 0;
-            s_seed_last_change_ms         = 0;
-            s_mining_watch_count          = 0;
-            s_follow_through_watch_count  = 0;
             spdlog::warn("[FleetWatch] initial seed stopped after {}ms without an available fleet baseline",
                          kSeedLifetimeMs);
           }
@@ -855,10 +858,7 @@ void fleet_watch_after_update()
       return;
     }
   } else if (s_seed_candidate_manager_backed) {
-    s_seed_ready_candidate          = false;
-    s_seed_candidate_forced         = false;
-    s_seed_candidate_manager_backed = false;
-    s_seed_candidate_count          = 0;
+    invalidate_seed_observation();
     return;
   } else {
     if (observed_count == 0) {
