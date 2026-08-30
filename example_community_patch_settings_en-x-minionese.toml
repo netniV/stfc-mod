@@ -47,7 +47,7 @@ alert_armada_battle_won = "none"
 alert_armada_battle_lost = "none"
 
 # Optional Windows and macOS Fleet Watch cues; "none" disables an individual alert.
-# A cue plays only when its matching [ui].notify_fleet_events entry is enabled.
+# A non-"none" cue enables observation for that event; [ui].notify_fleet_events is not required for audio.
 alert_fleet_arrived_in_system = "none"
 alert_fleet_arrived_at_destination = "none"
 alert_fleet_started_mining = "none"
@@ -668,8 +668,8 @@ disabled_banner_types = ""
 # Specifies banner types that should trigger notifications (comma separated)
 notify_banner_types = ""
 
-# Fleet Watch events to observe (comma separated).
-# Windows sends system notifications; Windows and macOS can play matching [audio] cues.
+# Fleet Watch events that send Windows system notifications (comma separated).
+# Matching [audio] cues are configured independently on Windows and macOS.
 # Options: ArrivedInSystem, ArrivedAtDestination, StartedMining, NodeDepleted,
 # Docked, RepairComplete, MinerOPC, All
 notify_fleet_events = ""
