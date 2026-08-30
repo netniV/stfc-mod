@@ -65,7 +65,6 @@ std::array<std::array<int64_t, kFleetNotificationCount>, kFleetSlotCount> s_last
 std::array<FleetNotificationStamp, kFleetSlotCount>                       s_node_depleted_stamps{};
 FleetNotificationMask                                                     s_enabled_notifications       = 0;
 bool                                                                      s_state_observation_enabled   = false;
-bool                                                                      s_opc_entry_follow_enabled    = false;
 bool                                                                      s_seed_pending                = false;
 int64_t                                                                   s_last_follow_through_scan_ms = 0;
 int64_t                                                                   s_last_mining_scan_ms         = 0;
@@ -98,31 +97,54 @@ bool allow_notification(int slot_index, FleetNotificationKind kind)
   return true;
 }
 
-bool any_notification_enabled(FleetNotificationMask mask)
-{ return (s_enabled_notifications & mask) != 0; }
-
-bool state_requires_enabled_follow_through(FleetState state)
+constexpr bool state_requires_follow_through(FleetNotificationMask enabled, FleetState state)
 {
-  constexpr auto arrival_events             = fleet_notification_bit(FleetNotificationKind::ArrivedInSystem)
-                                              | fleet_notification_bit(FleetNotificationKind::ArrivedAtDestination);
-  constexpr auto movement_completion_events = arrival_events
-                                              | fleet_notification_bit(FleetNotificationKind::StartedMining)
-                                              | fleet_notification_bit(FleetNotificationKind::Docked);
+  constexpr auto arrival_events       = fleet_notification_bit(FleetNotificationKind::ArrivedInSystem)
+                                        | fleet_notification_bit(FleetNotificationKind::ArrivedAtDestination);
+  constexpr auto post_warp_events     = arrival_events | fleet_notification_bit(FleetNotificationKind::StartedMining)
+                                        | fleet_notification_bit(FleetNotificationKind::Docked)
+                                        | fleet_notification_bit(FleetNotificationKind::MinerOpc);
+  constexpr auto post_impulse_events  = fleet_notification_bit(FleetNotificationKind::ArrivedAtDestination)
+                                        | fleet_notification_bit(FleetNotificationKind::StartedMining)
+                                        | fleet_notification_bit(FleetNotificationKind::Docked)
+                                        | fleet_notification_bit(FleetNotificationKind::MinerOpc);
+  constexpr auto post_activity_events = fleet_notification_bit(FleetNotificationKind::StartedMining)
+                                        | fleet_notification_bit(FleetNotificationKind::Docked)
+                                        | fleet_notification_bit(FleetNotificationKind::MinerOpc);
 
   switch (state) {
     case FleetState::WarpCharging:
     case FleetState::Warping:
+      return (enabled & post_warp_events) != 0;
     case FleetState::Impulsing:
-      return any_notification_enabled(movement_completion_events) || s_opc_entry_follow_enabled;
+      return (enabled & post_impulse_events) != 0;
     case FleetState::Battling:
     case FleetState::Capturing:
-      return notification_enabled(FleetNotificationKind::Docked);
+      return (enabled & post_activity_events) != 0;
     case FleetState::Repairing:
-      return notification_enabled(FleetNotificationKind::RepairComplete);
+      return (enabled & fleet_notification_bit(FleetNotificationKind::RepairComplete)) != 0;
     default:
       return false;
   }
 }
+
+bool state_requires_enabled_follow_through(FleetState state)
+{ return state_requires_follow_through(s_enabled_notifications, state); }
+
+static_assert(state_requires_follow_through(fleet_notification_bit(FleetNotificationKind::ArrivedInSystem),
+                                            FleetState::Warping));
+static_assert(!state_requires_follow_through(fleet_notification_bit(FleetNotificationKind::ArrivedInSystem),
+                                             FleetState::Impulsing));
+static_assert(state_requires_follow_through(fleet_notification_bit(FleetNotificationKind::ArrivedAtDestination),
+                                            FleetState::Impulsing));
+static_assert(state_requires_follow_through(fleet_notification_bit(FleetNotificationKind::StartedMining),
+                                            FleetState::Battling));
+static_assert(state_requires_follow_through(fleet_notification_bit(FleetNotificationKind::MinerOpc),
+                                            FleetState::Battling));
+static_assert(!state_requires_follow_through(fleet_notification_bit(FleetNotificationKind::ArrivedInSystem),
+                                             FleetState::Battling));
+static_assert(state_requires_follow_through(fleet_notification_bit(FleetNotificationKind::RepairComplete),
+                                            FleetState::Repairing));
 
 constexpr bool state_is_destination(FleetState state)
 {
@@ -377,7 +399,12 @@ void observe_fleet(FleetPlayerData* fleet, int requested_slot, bool allow_notifi
   bool       opc               = same_fleet && previous.state == FleetState::Mining ? previous.opc : false;
   if (miner_opc_enabled && current == FleetState::Mining
       && (sample_opc || !same_fleet || previous.state != FleetState::Mining)) {
-    opc = read_opc(fleet, opc_known);
+    bool       sampled_known = false;
+    const bool sampled_opc   = read_opc(fleet, sampled_known);
+    if (sampled_known) {
+      opc_known = true;
+      opc       = sampled_opc;
+    }
   } else if (current != FleetState::Mining) {
     opc_known = false;
     opc       = false;
@@ -493,7 +520,6 @@ void fleet_watch_init()
   constexpr auto state_events   = follow_through_events | fleet_notification_bit(FleetNotificationKind::MinerOpc);
   s_enabled_notifications       = Config::Get().notify_fleet_events;
   s_state_observation_enabled   = (s_enabled_notifications & state_events) != 0;
-  s_opc_entry_follow_enabled    = notification_enabled(FleetNotificationKind::MinerOpc);
   s_slots                       = {};
   s_last_emitted_ms             = {};
   s_node_depleted_stamps        = {};
