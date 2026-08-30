@@ -100,17 +100,6 @@ void TryAutoOpenDrawer(ShopListScrollerViewController* controller)
   drawer->OpenViaButtonCallback();
 }
 
-void DrawerWidget_OnDidBindContext(auto original, DrawerWidget* self)
-{
-  original(self);
-
-  if (g_active_scroller != nullptr && g_active_scroller->SelectionDrawer() == self) {
-    // A new native selection-drawer binding represents a new in-place tab landing.
-    g_opened_for_landing = false;
-    TryAutoOpenDrawer(g_active_scroller);
-  }
-}
-
 void ShopListScrollerViewController_AboutToShow(auto original, ShopListScrollerViewController* self)
 {
   g_active_scroller    = self;
@@ -142,28 +131,30 @@ void ShopListScrollerViewController_UpdateDrawer(auto original, ShopListScroller
 
 void InstallGiftsBulkClaimHooks()
 {
+  bool can_install = true;
+
   auto drawer_context = DrawerContext::ClassHelper();
   if (!drawer_context.isValidHelper()) {
     ErrorMsg::MissingHelper("Prime.SharedFeatures.Scripts.UI.Widgets", "DrawerContext");
+    can_install = false;
   } else if (!drawer_context.GetField("Enabled").isValidHelper()) {
     ErrorMsg::MissingMethod("DrawerContext", "Enabled");
+    can_install = false;
   }
 
   auto drawer_widget = DrawerWidget::ClassHelper();
   if (!drawer_widget.isValidHelper()) {
     ErrorMsg::MissingHelper("Prime.SharedFeatures.Scripts.UI.Widgets", "DrawerWidget");
+    can_install = false;
   } else {
     auto widget_base = drawer_widget.GetParent("Widget`1");
     if (!widget_base.isValidHelper() || !widget_base.GetProperty("Context").isValidHelper()) {
       ErrorMsg::MissingMethod("DrawerWidget", "Widget<DrawerContext>.Context");
+      can_install = false;
     }
     if (drawer_widget.GetMethod("OnOpenButtonClicked") == nullptr) {
       ErrorMsg::MissingMethod("DrawerWidget", "OnOpenButtonClicked");
-    }
-    if (auto ptr = drawer_widget.GetMethod("OnDidBindContext"); ptr == nullptr) {
-      ErrorMsg::MissingMethod("DrawerWidget", "OnDidBindContext");
-    } else {
-      SPUD_STATIC_DETOUR(ptr, DrawerWidget_OnDidBindContext);
+      can_install = false;
     }
   }
 
@@ -175,23 +166,32 @@ void InstallGiftsBulkClaimHooks()
 
   if (!shop_list_scroller.GetField("_selectionDrawerWidget").isValidHelper()) {
     ErrorMsg::MissingMethod("ShopListScrollerViewController", "_selectionDrawerWidget");
+    can_install = false;
   }
 
-  if (auto ptr = shop_list_scroller.GetMethod("AboutToShow"); ptr == nullptr) {
+  auto about_to_show = shop_list_scroller.GetMethod("AboutToShow");
+  if (about_to_show == nullptr) {
     ErrorMsg::MissingMethod("ShopListScrollerViewController", "AboutToShow");
-  } else {
-    SPUD_STATIC_DETOUR(ptr, ShopListScrollerViewController_AboutToShow);
+    can_install = false;
   }
 
-  if (auto ptr = shop_list_scroller.GetMethod("AboutToHide"); ptr == nullptr) {
+  auto about_to_hide = shop_list_scroller.GetMethod("AboutToHide");
+  if (about_to_hide == nullptr) {
     ErrorMsg::MissingMethod("ShopListScrollerViewController", "AboutToHide");
-  } else {
-    SPUD_STATIC_DETOUR(ptr, ShopListScrollerViewController_AboutToHide);
+    can_install = false;
   }
 
-  if (auto ptr = shop_list_scroller.GetMethod("UpdateDrawer"); ptr == nullptr) {
+  auto update_drawer = shop_list_scroller.GetMethod("UpdateDrawer");
+  if (update_drawer == nullptr) {
     ErrorMsg::MissingMethod("ShopListScrollerViewController", "UpdateDrawer");
-  } else {
-    SPUD_STATIC_DETOUR(ptr, ShopListScrollerViewController_UpdateDrawer);
+    can_install = false;
   }
+
+  if (!can_install) {
+    return;
+  }
+
+  SPUD_STATIC_DETOUR(about_to_show, ShopListScrollerViewController_AboutToShow);
+  SPUD_STATIC_DETOUR(about_to_hide, ShopListScrollerViewController_AboutToHide);
+  SPUD_STATIC_DETOUR(update_drawer, ShopListScrollerViewController_UpdateDrawer);
 }
