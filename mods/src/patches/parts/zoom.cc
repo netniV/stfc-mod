@@ -2,9 +2,11 @@
 #include "errormsg.h"
 
 #include <patches/mapkey.h>
+#include <patches/parts/hotkey_ownership.h>
 
 #include <il2cpp/il2cpp_helper.h>
 
+#include <prime/Hub.h>
 #include <prime/NavigationPan.h>
 #include <prime/NavigationZoom.h>
 #include <prime/PlanetViewUtils.h>
@@ -145,7 +147,11 @@ void NavigationZoom_Update_Hook(auto original, NavigationZoom *_this)
 
   EnsureSystemZoomRange(_this);
 
-  if (!Key::IsInputFocused()) {
+  const auto navigation_owns_chord =
+      config->hotkeys_enabled && !config->use_scopely_hotkeys && !Hub::IsInChat()
+      && IsScreenNavigationShortcutPressed();
+
+  if (!Key::IsInputFocused() && !navigation_owns_chord) {
     if (MapKey::IsDown(GameFunction::SetZoomPreset1)) {
       return StoreZoom("System Preset 1", config->system_zoom_preset_1, _this);
     } else if (MapKey::IsDown(GameFunction::SetZoomPreset2)) {

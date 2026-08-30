@@ -42,6 +42,7 @@
 
 #include <EASTL/vector.h>
 
+#include <cstdint>
 #include <iostream>
 #include <span>
 
@@ -51,6 +52,38 @@
 
 static bool reset_focus_next_frame = false;
 static int  show_info_pending      = 0;
+
+static void*             shortcuts_manager_instance = nullptr;
+static const MethodInfo* on_galaxy_action           = nullptr;
+static const MethodInfo* on_events_action           = nullptr;
+
+struct InputActionCallbackContext {
+  void*   state;
+  int32_t action_index;
+};
+
+static_assert(sizeof(InputActionCallbackContext) == 16);
+
+bool InvokeNativeShortcut(const MethodInfo* method, const char* action_name)
+{
+  if (!shortcuts_manager_instance || !method) {
+    spdlog::warn("[Hotkeys] native {} shortcut is unavailable", action_name);
+    return false;
+  }
+
+  // These callbacks do not inspect CallbackContext, but runtime_invoke still requires storage for the value-type
+  // argument. Using the managed invoker also avoids platform-specific by-value ABI assumptions.
+  InputActionCallbackContext context{};
+  void*                      args[]{&context};
+  Il2CppException*           exception = nullptr;
+  il2cpp_runtime_invoke(method, shortcuts_manager_instance, args, &exception);
+  if (exception) {
+    spdlog::warn("[Hotkeys] native {} shortcut raised exception={}", action_name, static_cast<void*>(exception));
+    return false;
+  }
+
+  return true;
+}
 
 bool force_space_action_next_frame = false;
 
@@ -399,6 +432,9 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
         return GotoSection(SectionID::Shop_MainFactions);
       } else if (MapKey::IsDown(GameFunction::ShoWStationExterior)) {
         return GotoSection(SectionID::Starbase_Exterior);
+      } else if (MapKey::IsDown(GameFunction::ShowGalaxyNative)) {
+        InvokeNativeShortcut(on_galaxy_action, "Galaxy");
+        return;
       } else if (MapKey::IsDown(GameFunction::ShowGalaxy)) {
         return ChangeNavigationSection(SectionID::Navigation_Galaxy);
       } else if (MapKey::IsDown(GameFunction::ShowStationInterior)) {
@@ -423,6 +459,9 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
         return GotoSection(SectionID::FleetCommander_Management);
       } else if (MapKey::IsDown(GameFunction::ShowAwayTeam)) {
         return GotoSection(SectionID::Missions_AwayTeamsList);
+      } else if (MapKey::IsDown(GameFunction::ShowEventsNative)) {
+        InvokeNativeShortcut(on_events_action, "Events");
+        return;
       } else if (MapKey::IsDown(GameFunction::ShowEvents)) {
         return GotoSection(SectionID::Tournament_Group_Selection);
       } else if (MapKey::IsDown(GameFunction::ShowExoComp)) {
@@ -958,6 +997,7 @@ void ChatMessageListLocalViewController_AboutToShow_Hook(ChatMessageListLocalVie
 
 void InitializeActions_Hook(auto original, void* _this)
 {
+  shortcuts_manager_instance = _this;
   if (Config::Get().use_scopely_hotkeys) {
     return original(_this);
   }
@@ -1034,6 +1074,16 @@ void InstallHotkeyHooks()
   if (!shortcuts_manager_helper.isValidHelper()) {
     ErrorMsg::MissingHelper("GameInput", "ShortcutsManager");
   } else {
+    on_galaxy_action = shortcuts_manager_helper.GetMethodInfo("OnGalaxyAction", 1);
+    if (on_galaxy_action == nullptr) {
+      ErrorMsg::MissingMethod("ShortcutsManager", "OnGalaxyAction");
+    }
+
+    on_events_action = shortcuts_manager_helper.GetMethodInfo("OnEventsAction", 1);
+    if (on_events_action == nullptr) {
+      ErrorMsg::MissingMethod("ShortcutsManager", "OnEventsAction");
+    }
+
     auto ptr_can_user_shortcuts = shortcuts_manager_helper.GetMethod("InitializeActions");
     if (ptr_can_user_shortcuts == nullptr) {
       ErrorMsg::MissingMethod("ShortcutsManager", "InitializeActions");
