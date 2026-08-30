@@ -35,6 +35,7 @@ constexpr int64_t kSeedFastPeriodMs          = 30'000;
 constexpr int64_t kSeedLifetimeMs            = 120'000;
 constexpr int64_t kSeedStabilizationMs       = 5'000;
 constexpr int64_t kSeedMaxStabilizationMs    = 30'000;
+constexpr int64_t kManagerProbeIntervalMs    = 250;
 constexpr int64_t kDuplicateSuppressionMs    = 2'000;
 
 constexpr std::size_t kFleetNotificationCount = static_cast<std::size_t>(FleetNotificationKind::Count);
@@ -79,6 +80,7 @@ int64_t                                                                   s_last
 int64_t                                                                   s_seed_started_ms               = 0;
 int64_t                                                                   s_seed_first_observed_ms        = 0;
 int64_t                                                                   s_seed_last_change_ms           = 0;
+int64_t                                                                   s_last_manager_probe_ms         = 0;
 int                                                                       s_seed_candidate_count          = 0;
 int                                                                       s_mining_watch_count            = 0;
 int                                                                       s_follow_through_watch_count    = 0;
@@ -97,6 +99,7 @@ void invalidate_seed_observation()
   s_seed_candidate_manager_backed = false;
   s_seed_first_observed_ms        = 0;
   s_seed_last_change_ms           = 0;
+  s_last_manager_probe_ms         = 0;
   s_seed_candidate_count          = 0;
   s_mining_watch_count            = 0;
   s_follow_through_watch_count    = 0;
@@ -122,6 +125,7 @@ void restart_seed_stabilization(int slot_index, uint64_t fleet_id, bool preserve
   s_seed_started_ms               = now_ms;
   s_seed_first_observed_ms        = 0;
   s_seed_last_change_ms           = 0;
+  s_last_manager_probe_ms         = 0;
   s_seed_candidate_count          = 0;
   s_manager_probe_slot            = 0;
   spdlog::debug(
@@ -573,6 +577,14 @@ bool manager_baseline_matches(int& changed_slot, uint64_t& changed_fleet)
   return false;
 }
 
+bool manager_slot_matches(int slot_index, uint64_t fleet_id)
+{
+  auto* manager = FleetsManager::Instance();
+  auto* fleet =
+      manager && slot_index >= 0 && slot_index < kFleetSlotCount ? manager->GetFleetPlayerData(slot_index) : nullptr;
+  return fleet && fleet->Id == fleet_id;
+}
+
 void begin_seed_observation(int observed_count, bool manager_backed, int64_t now_ms, std::string_view source)
 {
   s_seed_has_observation          = true;
@@ -705,6 +717,7 @@ void fleet_watch_init()
   s_seed_started_ms               = 0;
   s_seed_first_observed_ms        = 0;
   s_seed_last_change_ms           = 0;
+  s_last_manager_probe_ms         = 0;
   s_seed_candidate_count          = 0;
   s_mining_watch_count            = 0;
   s_follow_through_watch_count    = 0;
@@ -717,6 +730,10 @@ void fleet_watch_observe_widget(FleetPlayerData* fleet)
     return;
   }
 
+  const auto slot_index = resolve_slot(fleet, -1);
+  if (!s_seed_pending && s_seed_manager_backed && slot_index >= 0 && !manager_slot_matches(slot_index, fleet->Id)) {
+    restart_seed_stabilization(slot_index, fleet->Id);
+  }
   observe_fleet(fleet, -1, !s_seed_pending, false, "fleet-state-widget");
 }
 
@@ -768,11 +785,15 @@ void fleet_watch_tick()
     return;
   }
   if (!s_seed_pending && s_seed_manager_backed) {
-    int      changed_slot  = -1;
-    uint64_t changed_fleet = 0;
-    if (!manager_baseline_matches(changed_slot, changed_fleet)) {
-      restart_seed_stabilization(changed_slot, changed_fleet);
-      return;
+    const auto now_ms = now_milliseconds();
+    if (s_last_manager_probe_ms == 0 || now_ms - s_last_manager_probe_ms >= kManagerProbeIntervalMs) {
+      s_last_manager_probe_ms = now_ms;
+      int      changed_slot   = -1;
+      uint64_t changed_fleet  = 0;
+      if (!manager_baseline_matches(changed_slot, changed_fleet)) {
+        restart_seed_stabilization(changed_slot, changed_fleet);
+        return;
+      }
     }
   }
   if (!s_seed_pending && s_follow_through_watch_count == 0 && s_mining_watch_count == 0) {
