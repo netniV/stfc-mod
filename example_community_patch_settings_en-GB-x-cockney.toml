@@ -121,6 +121,16 @@ enable_experimental = false
 # Frame-rate scaling factor
 fr_scale = 2.0
 
+# Fleet label detail in system view:
+#   "native"    - use Scopely's Near/Middle/Far behaviour
+#   "expanded"  - always show long fleet labels
+#   "compact"   - always show compact fleet labels
+#   "threshold" - switch from expanded to compact at fleet_label_zoom_threshold
+fleet_label_detail = "native"
+
+# Normalized zoom crossover used by "threshold" (0.0 = always compact, 1.0 = always expanded)
+fleet_label_zoom_threshold = 0.5
+
 # Amount of time to spend between transitions, increase to slow transitions down
 transition_time = 0.01
 
@@ -829,4 +839,3 @@ verify_ssl = true
 #  <[========================================================================================]> 
 
 [sync.targets.spocksclub]
-

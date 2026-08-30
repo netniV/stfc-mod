@@ -13,6 +13,7 @@
 #include "defaultconfig.h"
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstdio>
 #include <initializer_list>
 #include <iostream>
@@ -421,6 +422,77 @@ InstantWarpConfirmation get_auto_confirm_instant_warp(toml::table& config, toml:
   }
 
   return confirmation;
+}
+
+std::string_view to_string(FleetLabelDetail detail)
+{
+  switch (detail) {
+    case FleetLabelDetail::Expanded:
+      return "expanded";
+    case FleetLabelDetail::Compact:
+      return "compact";
+    case FleetLabelDetail::Threshold:
+      return "threshold";
+    case FleetLabelDetail::Native:
+    default:
+      return "native";
+  }
+}
+
+FleetLabelDetail parse_fleet_label_detail(std::string_view value)
+{
+  const auto normalized = AsciiStrToUpper(StripAsciiWhitespace(value));
+
+  if (normalized == "EXPANDED" || normalized == "ALWAYS") {
+    return FleetLabelDetail::Expanded;
+  }
+  if (normalized == "COMPACT" || normalized == "NEVER") {
+    return FleetLabelDetail::Compact;
+  }
+  if (normalized == "THRESHOLD" || normalized == "CUSTOM") {
+    return FleetLabelDetail::Threshold;
+  }
+  if (normalized == "NATIVE" || normalized == "AUTO" || normalized == "NONE" || normalized == "OFF"
+      || normalized.empty()) {
+    return FleetLabelDetail::Native;
+  }
+
+  spdlog::warn("invalid config value graphics.fleet_label_detail: '{}'; using native", value);
+  return FleetLabelDetail::Native;
+}
+
+FleetLabelDetail get_fleet_label_detail(toml::table& config, toml::table& new_config, std::string_view default_value,
+                                        bool write_log)
+{
+  const auto value = config["graphics"]["fleet_label_detail"].value<std::string>().value_or(std::string(default_value));
+  const auto detail = parse_fleet_label_detail(value);
+
+  new_config.emplace<toml::table>("graphics", toml::table());
+  new_config["graphics"].as_table()->insert_or_assign("fleet_label_detail", std::string(to_string(detail)));
+
+  if (write_log) {
+    spdlog::debug("config value graphics.fleet_label_detail value: {}", to_string(detail));
+  }
+
+  return detail;
+}
+
+float get_fleet_label_zoom_threshold(toml::table& config, toml::table& new_config, float default_value, bool write_log)
+{
+  auto threshold = config["graphics"]["fleet_label_zoom_threshold"].value<float>().value_or(default_value);
+  if (!std::isfinite(threshold) || threshold < 0.0f || threshold > 1.0f) {
+    spdlog::warn("invalid config value graphics.fleet_label_zoom_threshold: {}; using {}", threshold, default_value);
+    threshold = default_value;
+  }
+
+  new_config.emplace<toml::table>("graphics", toml::table());
+  new_config["graphics"].as_table()->insert_or_assign("fleet_label_zoom_threshold", threshold);
+
+  if (write_log) {
+    spdlog::debug("config value graphics.fleet_label_zoom_threshold value: {}", threshold);
+  }
+
+  return threshold;
 }
 
 void parse_ship_filter(std::string_view value, std::vector<std::string>& names, bool& match_all)
@@ -881,8 +953,11 @@ void Config::Load()
       get_config_or_default(config, parsed, "graphics", "ui_scale_ship", DCG::ui_scale_ship, write_config);
   this->ui_scale_viewer =
       get_config_or_default(config, parsed, "graphics", "ui_scale_viewer", DCG::ui_scale_viewer, write_config);
-  this->zoom        = get_config_or_default(config, parsed, "graphics", "zoom", DCG::zoom, write_config);
-  this->fr_scale    = get_config_or_default(config, parsed, "graphics", "fr_scale", DCG::fr_scale, write_config);
+  this->zoom               = get_config_or_default(config, parsed, "graphics", "zoom", DCG::zoom, write_config);
+  this->fr_scale           = get_config_or_default(config, parsed, "graphics", "fr_scale", DCG::fr_scale, write_config);
+  this->fleet_label_detail = get_fleet_label_detail(config, parsed, DCG::fleet_label_detail, write_config);
+  this->fleet_label_zoom_threshold =
+      get_fleet_label_zoom_threshold(config, parsed, DCG::fleet_label_zoom_threshold, write_config);
   this->free_resize = get_config_or_default(config, parsed, "graphics", "free_resize", DCG::free_resize, write_config);
   this->allow_cursor =
       get_config_or_default(config, parsed, "graphics", "allow_cursor", DCG::allow_cursor, write_config);

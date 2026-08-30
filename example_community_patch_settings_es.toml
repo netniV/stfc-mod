@@ -121,6 +121,16 @@ enable_experimental = false
 # Frame-rate scaling factor
 fr_scale = 2.0
 
+# Nivel de detalle de las etiquetas de flota en la vista del sistema:
+#   "native"    - usar el comportamiento Near/Middle/Far de Scopely
+#   "expanded"  - mostrar siempre las etiquetas largas
+#   "compact"   - mostrar siempre las etiquetas compactas
+#   "threshold" - cambiar de expandido a compacto en fleet_label_zoom_threshold
+fleet_label_detail = "native"
+
+# Umbral de zoom normalizado para "threshold" (0.0 = siempre compacto, 1.0 = siempre expandido)
+fleet_label_zoom_threshold = 0.5
+
 # Tiempo entre transiciones; aumenta el valor para ralentizarlas
 transition_time = 0.01
 
@@ -829,4 +839,3 @@ verify_ssl = true
 #  <[==========================================================================================================================================================================================]> 
 
 [sync.targets.spocksclub]
-

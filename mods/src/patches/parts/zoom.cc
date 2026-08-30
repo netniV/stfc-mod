@@ -5,6 +5,8 @@
 
 #include <il2cpp/il2cpp_helper.h>
 
+#include <prime/NavigationFleetWidget.h>
+#include <prime/NavigationLOD.h>
 #include <prime/NavigationPan.h>
 #include <prime/NavigationZoom.h>
 #include <prime/PlanetViewUtils.h>
@@ -12,6 +14,112 @@
 
 #include <spdlog/spdlog.h>
 #include <spud/detour.h>
+
+#include <cstdint>
+#include <unordered_set>
+
+namespace
+{
+std::unordered_set<NavigationLOD *> fleet_label_lods;
+bool                                fleet_label_hooks_installed = false;
+uintptr_t                           active_system_zoom_id       = 0;
+bool                                system_zoom_state_valid     = false;
+ZoomLevels                          system_zoom_level           = ZoomLevels::None;
+float                               system_normalized_zoom      = 0.0f;
+bool                                threshold_state_valid       = false;
+bool                                threshold_state_expanded    = false;
+
+ZoomLevels ExpandedFleetLabelZoomLevel(ZoomLevels native_level)
+{ return native_level == ZoomLevels::Near ? ZoomLevels::Near : ZoomLevels::Middle; }
+
+bool FleetLabelsExpandedAt(float normalized_zoom)
+{
+  const auto threshold = Config::Get().fleet_label_zoom_threshold;
+  if (threshold <= 0.0f) {
+    return false;
+  }
+  if (threshold >= 1.0f) {
+    return true;
+  }
+  return normalized_zoom <= threshold;
+}
+
+ZoomLevels FleetLabelZoomLevel(ZoomLevels native_level)
+{
+  const auto detail = Config::Get().fleet_label_detail;
+  switch (detail) {
+    case FleetLabelDetail::Expanded:
+      return ExpandedFleetLabelZoomLevel(native_level);
+    case FleetLabelDetail::Compact:
+      return ZoomLevels::Far;
+    case FleetLabelDetail::Threshold:
+      if (!system_zoom_state_valid) {
+        return native_level;
+      }
+      return FleetLabelsExpandedAt(system_normalized_zoom) ? ExpandedFleetLabelZoomLevel(native_level)
+                                                           : ZoomLevels::Far;
+    case FleetLabelDetail::Native:
+    default:
+      return native_level;
+  }
+}
+
+void ApplyFleetLabelDetail(NavigationLOD *lod, ZoomLevels native_level)
+{
+  if (!lod) {
+    return;
+  }
+
+  const auto detail = Config::Get().fleet_label_detail;
+  if (detail == FleetLabelDetail::Native || (detail == FleetLabelDetail::Threshold && !system_zoom_state_valid)) {
+    return;
+  }
+
+  lod->OnZoomChanged(FleetLabelZoomLevel(native_level));
+}
+
+void ResetFleetLabelSystemState()
+{
+  active_system_zoom_id   = 0;
+  system_zoom_state_valid = false;
+  system_zoom_level       = ZoomLevels::None;
+  system_normalized_zoom  = 0.0f;
+  threshold_state_valid   = false;
+}
+
+void BeginFleetLabelSystemState(NavigationZoom *zoom)
+{
+  const auto zoom_id = reinterpret_cast<uintptr_t>(zoom);
+  if (active_system_zoom_id != zoom_id) {
+    ResetFleetLabelSystemState();
+    active_system_zoom_id = zoom_id;
+  }
+}
+
+void UpdateFleetLabelThreshold()
+{
+  if (!system_zoom_state_valid || Config::Get().fleet_label_detail != FleetLabelDetail::Threshold) {
+    threshold_state_valid = false;
+    return;
+  }
+
+  const auto expanded = FleetLabelsExpandedAt(system_normalized_zoom);
+  if (threshold_state_valid && expanded == threshold_state_expanded) {
+    return;
+  }
+
+  threshold_state_valid    = true;
+  threshold_state_expanded = expanded;
+  for (auto *lod : fleet_label_lods) {
+    ApplyFleetLabelDetail(lod, system_zoom_level);
+  }
+
+#ifdef _MODDBG
+  spdlog::info("Fleet label detail threshold: {} at normalized zoom {:.4f} (configured {:.4f})",
+               expanded ? "expanded" : "compact", system_normalized_zoom, Config::Get().fleet_label_zoom_threshold);
+#endif
+}
+} // namespace
 
 vec3 GetMouseWorldPos(void *cam, vec3 *pos)
 {
@@ -106,7 +214,7 @@ static void ScaleFR(void *fr)
     return;
   }
 
-  static auto comp_helper   = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "Component");
+  static auto comp_helper = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "Component");
   if (!comp_helper.isValidHelper()) {
     return;
   }
@@ -136,6 +244,15 @@ void NavigationZoom_Update_Hook(auto original, NavigationZoom *_this)
   static auto GetMousePosition =
       il2cpp_resolve_icall_typed<void(vec3 *)>("UnityEngine.Input::get_mousePosition_Injected(UnityEngine.Vector3&)");
   static auto GetDeltaTime = il2cpp_resolve_icall_typed<float()>("UnityEngine.Time::get_deltaTime()");
+
+  if (fleet_label_hooks_installed) {
+    const auto zoom_id = reinterpret_cast<uintptr_t>(_this);
+    if (_this->_depth == NodeDepth::SolarSystem) {
+      BeginFleetLabelSystemState(_this);
+    } else if (active_system_zoom_id == zoom_id) {
+      ResetFleetLabelSystemState();
+    }
+  }
 
   const auto dt               = GetDeltaTime();
   auto       zoomDelta        = 0.0f;
@@ -234,6 +351,46 @@ void NavigationZoom_Update_Hook(auto original, NavigationZoom *_this)
   original(_this);
 
   EnsureSystemZoomRange(_this);
+  if (fleet_label_hooks_installed && _this->_depth == NodeDepth::SolarSystem) {
+    BeginFleetLabelSystemState(_this);
+    system_zoom_level       = _this->_zoomLevel;
+    system_normalized_zoom  = _this->NormalizedZoom;
+    system_zoom_state_valid = true;
+    if (config->fleet_label_detail == FleetLabelDetail::Threshold) {
+      UpdateFleetLabelThreshold();
+    }
+  }
+}
+
+void NavigationLOD_OnZoomChanged_Hook(auto original, NavigationLOD *_this, ZoomLevels level)
+{
+  const auto effective_level = fleet_label_lods.contains(_this) ? FleetLabelZoomLevel(level) : level;
+  original(_this, effective_level);
+}
+
+void NavigationFleetWidget_OnEnable_Hook(auto original, NavigationFleetWidget *_this)
+{
+  original(_this);
+  if (!_this) {
+    return;
+  }
+
+  auto *lod = _this->_lod;
+  if (lod) {
+    fleet_label_lods.insert(lod);
+    if (Config::Get().fleet_label_detail == FleetLabelDetail::Threshold && !system_zoom_state_valid) {
+      threshold_state_valid = false;
+    }
+    ApplyFleetLabelDetail(lod, system_zoom_level);
+  }
+}
+
+void NavigationFleetWidget_OnDisable_Hook(auto original, NavigationFleetWidget *_this)
+{
+  if (_this) {
+    fleet_label_lods.erase(_this->_lod);
+  }
+  original(_this);
 }
 
 void PlanetViewUtils_CameraZoomedEventHandler_Hook(auto original, PlanetViewUtils *_this, float zoomDistance,
@@ -249,6 +406,14 @@ void PlanetViewUtils_CameraZoomedEventHandler_Hook(auto original, PlanetViewUtil
 
 void NavigationZoom_SetViewParameters_Hook(auto original, NavigationZoom *_this, float radius, NodeDepth depth)
 {
+  if (fleet_label_hooks_installed && depth != NodeDepth::SolarSystem) {
+    if (active_system_zoom_id == reinterpret_cast<uintptr_t>(_this)) {
+      ResetFleetLabelSystemState();
+    }
+  } else if (fleet_label_hooks_installed) {
+    BeginFleetLabelSystemState(_this);
+  }
+
   if (depth == NodeDepth::SolarSystem) {
     ApplySystemZoomRange(_this, radius);
     SetSceneCameraFarClip(_this);
@@ -264,6 +429,14 @@ void NavigationZoom_SetViewParameters_Hook(auto original, NavigationZoom *_this,
 
 void NavigationZoom_SetDepth_Hook(auto original, NavigationZoom *_this, NodeDepth depth)
 {
+  if (fleet_label_hooks_installed && depth != NodeDepth::SolarSystem) {
+    if (active_system_zoom_id == reinterpret_cast<uintptr_t>(_this)) {
+      ResetFleetLabelSystemState();
+    }
+  } else if (fleet_label_hooks_installed) {
+    BeginFleetLabelSystemState(_this);
+  }
+
   if (depth == NodeDepth::SolarSystem) {
     ApplySystemZoomRange(_this, _this->_viewRadius);
     SetSceneCameraFarClip(_this);
@@ -290,6 +463,73 @@ void *PlanetViewUtils_get_FlatRenderable_Hook(auto original, PlanetViewUtils *_t
 
 void InstallZoomHooks()
 {
+  auto  navigation_zoom_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Navigation", "NavigationZoom");
+  auto  ptr_update = navigation_zoom_helper.isValidHelper() ? navigation_zoom_helper.GetMethod("Update") : nullptr;
+  auto *navigation_zoom_class    = navigation_zoom_helper.get_cls();
+  auto *zoom_level_field         = navigation_zoom_class != nullptr
+                                       ? il2cpp_class_get_field_from_name(navigation_zoom_class, "_zoomLevel")
+                                       : nullptr;
+  auto *normalized_zoom_property = navigation_zoom_class != nullptr
+                                       ? il2cpp_class_get_property_from_name(navigation_zoom_class, "NormalizedZoom")
+                                       : nullptr;
+  if (Config::Get().fleet_label_detail != FleetLabelDetail::Native) {
+    auto lod_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Navigation", "NavigationLOD");
+    auto fleet_widget_helper =
+        il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Navigation", "NavigationFleetWidget");
+    auto  ptr_on_zoom_changed = lod_helper.isValidHelper() ? lod_helper.GetMethod("OnZoomChanged") : nullptr;
+    auto  ptr_on_enable  = fleet_widget_helper.isValidHelper() ? fleet_widget_helper.GetMethod("OnEnable") : nullptr;
+    auto  ptr_on_disable = fleet_widget_helper.isValidHelper() ? fleet_widget_helper.GetMethod("OnDisable") : nullptr;
+    auto *fleet_widget_class = fleet_widget_helper.get_cls();
+    auto *lod_field =
+        fleet_widget_class != nullptr ? il2cpp_class_get_field_from_name(fleet_widget_class, "_lod") : nullptr;
+
+    if (!lod_helper.isValidHelper()) {
+      ErrorMsg::MissingHelper("Navigation", "NavigationLOD");
+    } else if (ptr_on_zoom_changed == nullptr) {
+      ErrorMsg::MissingMethod("NavigationLOD", "OnZoomChanged");
+    }
+    if (!fleet_widget_helper.isValidHelper()) {
+      ErrorMsg::MissingHelper("Navigation", "NavigationFleetWidget");
+    } else {
+      if (ptr_on_enable == nullptr) {
+        ErrorMsg::MissingMethod("NavigationFleetWidget", "OnEnable");
+      }
+      if (ptr_on_disable == nullptr) {
+        ErrorMsg::MissingMethod("NavigationFleetWidget", "OnDisable");
+      }
+      if (lod_field == nullptr) {
+        ErrorMsg::MissingMethod("NavigationFleetWidget", "_lod");
+      }
+    }
+    if (!navigation_zoom_helper.isValidHelper()) {
+      ErrorMsg::MissingHelper("Navigation", "NavigationZoom");
+    } else {
+      if (ptr_update == nullptr) {
+        ErrorMsg::MissingMethod("NavigationZoom", "Update");
+      }
+      if (zoom_level_field == nullptr) {
+        ErrorMsg::MissingMethod("NavigationZoom", "_zoomLevel");
+      }
+      if (normalized_zoom_property == nullptr) {
+        ErrorMsg::MissingMethod("NavigationZoom", "NormalizedZoom");
+      }
+    }
+
+    const auto fleet_label_dependencies_valid = lod_helper.isValidHelper() && ptr_on_zoom_changed != nullptr
+                                                && fleet_widget_helper.isValidHelper() && ptr_on_enable != nullptr
+                                                && ptr_on_disable != nullptr && lod_field != nullptr
+                                                && navigation_zoom_helper.isValidHelper() && ptr_update != nullptr
+                                                && zoom_level_field != nullptr && normalized_zoom_property != nullptr;
+    if (fleet_label_dependencies_valid) {
+      fleet_label_hooks_installed = true;
+      SPUD_STATIC_DETOUR(ptr_on_zoom_changed, NavigationLOD_OnZoomChanged_Hook);
+      SPUD_STATIC_DETOUR(ptr_on_enable, NavigationFleetWidget_OnEnable_Hook);
+      SPUD_STATIC_DETOUR(ptr_on_disable, NavigationFleetWidget_OnDisable_Hook);
+    } else {
+      spdlog::error("Fleet label detail hooks were not installed; using native fleet labels");
+    }
+  }
+
   {
     auto pv_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Navigation", "PlanetViewUtils");
     if (pv_helper.isValidHelper()) {
@@ -311,11 +551,9 @@ void InstallZoomHooks()
     }
   }
 
-  auto screen_manager_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Navigation", "NavigationZoom");
-  if (!screen_manager_helper.isValidHelper()) {
+  if (!navigation_zoom_helper.isValidHelper()) {
     ErrorMsg::MissingHelper("Navigation", "NavigationZoom");
   } else {
-    auto ptr_update = screen_manager_helper.GetMethod("Update");
     if (ptr_update == nullptr) {
       ErrorMsg::MissingMethod("NavigationZoom", "Update");
     } else {
@@ -323,7 +561,7 @@ void InstallZoomHooks()
     }
 
 #if _WIN32
-    auto ptr_set_depth = screen_manager_helper.GetMethod("SetDepth");
+    auto ptr_set_depth = navigation_zoom_helper.GetMethod("SetDepth");
     if (ptr_set_depth == nullptr) {
       ErrorMsg::MissingMethod("NavigationZoom", "SetDepth");
     } else {
@@ -331,7 +569,7 @@ void InstallZoomHooks()
     }
 #endif
 
-    auto ptr_set_view_parameters = screen_manager_helper.GetMethod("SetViewParameters");
+    auto ptr_set_view_parameters = navigation_zoom_helper.GetMethod("SetViewParameters");
     if (ptr_set_view_parameters == nullptr) {
       ErrorMsg::MissingMethod("NavigationZoom", "SetViewParameters");
     } else {
