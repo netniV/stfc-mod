@@ -54,7 +54,8 @@
 static bool reset_focus_next_frame = false;
 static int  show_info_pending      = 0;
 
-static const MethodInfo* on_galaxy_action           = nullptr;
+static const MethodInfo* on_events_action = nullptr;
+static const MethodInfo* on_galaxy_action = nullptr;
 
 struct InputActionCallbackContext {
   void*   state;
@@ -432,7 +433,7 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
         return GotoSection(SectionID::Shop_MainFactions);
       } else if (MapKey::IsDown(GameFunction::ShoWStationExterior)) {
         return GotoSection(SectionID::Starbase_Exterior);
-      } else if (MapKey::IsDown(GameFunction::ShowGalaxyNative)) {
+      } else if (MapKey::IsDown(GameFunction::NativeShortcutGalaxy)) {
         InvokeNativeShortcut(on_galaxy_action, "Galaxy");
         return;
       } else if (MapKey::IsDown(GameFunction::ShowGalaxy)) {
@@ -459,6 +460,9 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
         return GotoSection(SectionID::FleetCommander_Management);
       } else if (MapKey::IsDown(GameFunction::ShowAwayTeam)) {
         return GotoSection(SectionID::Missions_AwayTeamsList);
+      } else if (MapKey::IsDown(GameFunction::NativeShortcutEvents)) {
+        InvokeNativeShortcut(on_events_action, "Events");
+        return;
       } else if (MapKey::IsDown(GameFunction::ShowEvents)) {
         return GotoSection(SectionID::Tournament_Group_Selection);
       } else if (MapKey::IsDown(GameFunction::ShowExoComp)) {
@@ -1070,6 +1074,11 @@ void InstallHotkeyHooks()
   if (!shortcuts_manager_helper.isValidHelper()) {
     ErrorMsg::MissingHelper("GameInput", "ShortcutsManager");
   } else {
+    on_events_action = shortcuts_manager_helper.GetMethodInfo("OnEventsAction", 1);
+    if (on_events_action == nullptr) {
+      ErrorMsg::MissingMethod("ShortcutsManager", "OnEventsAction");
+    }
+
     on_galaxy_action = shortcuts_manager_helper.GetMethodInfo("OnGalaxyAction", 1);
     if (on_galaxy_action == nullptr) {
       ErrorMsg::MissingMethod("ShortcutsManager", "OnGalaxyAction");

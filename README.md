@@ -114,6 +114,7 @@ action items such as:
 |  Ctrl-G | Galaxy (native)  |
 |       H | System           |
 | Shift-E | Events           |
+|  Ctrl-E | Events (native)  |
 | Shift-G | Exterior View    |
 | Shift-H | Interior View    |
 |       B | Bookmarks        |
