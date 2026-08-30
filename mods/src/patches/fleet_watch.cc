@@ -147,6 +147,16 @@ int64_t now_milliseconds()
 bool notification_enabled(FleetNotificationKind kind)
 { return (s_enabled_notifications & fleet_notification_bit(kind)) != 0; }
 
+constexpr FleetNotificationMask fleet_events_to_observe(FleetNotificationMask system_notifications,
+                                                        FleetNotificationMask audible_notifications,
+                                                        bool                  system_notifications_supported)
+{ return audible_notifications | (system_notifications_supported ? system_notifications : 0); }
+
+constexpr auto kArrivalNotification = fleet_notification_bit(FleetNotificationKind::ArrivedInSystem);
+static_assert(fleet_events_to_observe(0, kArrivalNotification, false) == kArrivalNotification);
+static_assert(fleet_events_to_observe(kArrivalNotification, 0, true) == kArrivalNotification);
+static_assert(fleet_events_to_observe(kArrivalNotification, 0, false) == 0);
+
 bool allow_notification(int slot_index, FleetNotificationKind kind)
 {
   if (slot_index < 0 || slot_index >= kFleetSlotCount) {
@@ -345,7 +355,9 @@ FleetPlayerData* fleet_for_snapshot(int slot_index, uint64_t fleet_id)
 
 void emit_notification(FleetNotificationKind kind, std::string_view title, std::string body)
 {
-  notification_emit(title, body);
+  if ((Config::Get().notify_fleet_events & fleet_notification_bit(kind)) != 0) {
+    notification_emit(title, body);
+  }
 
   const auto index = fleet_notification_index(kind);
   const auto sound = Config::Get().fleet_notification_sounds[index];
@@ -353,8 +365,8 @@ void emit_notification(FleetNotificationKind kind, std::string_view title, std::
     return;
   }
 
-  spdlog::debug("[FleetWatch] audio event={} sound={}", kFleetNotificationCatalog[index].config_name,
-                notification_sound_name(sound));
+  spdlog::info("[FleetWatch] audio event={} sound={}", kFleetNotificationCatalog[index].config_name,
+               notification_sound_name(sound));
   notification_audio_play(sound);
 }
 
@@ -707,22 +719,25 @@ bool fleet_watch_uses_node_depleted_hook()
 
 void fleet_watch_init()
 {
-  constexpr auto follow_through_events = fleet_notification_bit(FleetNotificationKind::ArrivedInSystem)
-                                         | fleet_notification_bit(FleetNotificationKind::ArrivedAtDestination)
-                                         | fleet_notification_bit(FleetNotificationKind::StartedMining)
-                                         | fleet_notification_bit(FleetNotificationKind::Docked)
-                                         | fleet_notification_bit(FleetNotificationKind::RepairComplete);
-  constexpr auto state_events     = follow_through_events | fleet_notification_bit(FleetNotificationKind::MinerOpc);
-  s_enabled_notifications         = Config::Get().notify_fleet_events;
-#if defined(__APPLE__)
+  constexpr auto        follow_through_events = fleet_notification_bit(FleetNotificationKind::ArrivedInSystem)
+                                                | fleet_notification_bit(FleetNotificationKind::ArrivedAtDestination)
+                                                | fleet_notification_bit(FleetNotificationKind::StartedMining)
+                                                | fleet_notification_bit(FleetNotificationKind::Docked)
+                                                | fleet_notification_bit(FleetNotificationKind::RepairComplete);
+  constexpr auto        state_events = follow_through_events | fleet_notification_bit(FleetNotificationKind::MinerOpc);
   FleetNotificationMask audible_notifications = 0;
   for (const auto& entry : kFleetNotificationCatalog) {
     if (Config::Get().fleet_notification_sounds[fleet_notification_index(entry.kind)] != NotificationSound::None) {
       audible_notifications |= fleet_notification_bit(entry.kind);
     }
   }
-  s_enabled_notifications &= audible_notifications;
+#if _WIN32
+  constexpr bool system_notifications_supported = true;
+#else
+  constexpr bool system_notifications_supported = false;
 #endif
+  s_enabled_notifications =
+      fleet_events_to_observe(Config::Get().notify_fleet_events, audible_notifications, system_notifications_supported);
   s_state_observation_enabled     = (s_enabled_notifications & state_events) != 0;
   s_slots                         = {};
   s_last_emitted_ms               = {};

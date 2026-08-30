@@ -227,7 +227,7 @@ void notification_audio_play(NotificationSound sound)
     spdlog::warn("[NotifyAudio] Failed to play '{}' cue", notification_sound_name(sound));
     return;
   }
-  spdlog::debug("[NotifyAudio] Played '{}' cue", notification_sound_name(sound));
+  spdlog::info("[NotifyAudio] Played '{}' cue", notification_sound_name(sound));
 }
 
 #if _WIN32
