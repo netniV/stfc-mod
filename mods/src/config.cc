@@ -825,6 +825,8 @@ void Config::Load()
   this->installPanHooks = get_config_or_default(config, parsed, "patches", "panhooks", DCP::panhooks, write_config);
   this->installHotkeyHooks =
       get_config_or_default(config, parsed, "patches", "hotkeyhooks", DCP::hotkeyhooks, write_config);
+  this->installFleetWatchHooks =
+      get_config_or_default(config, parsed, "patches", "fleetwatchhooks", DCP::fleetwatchhooks, write_config);
   this->installFreeResizeHooks =
       get_config_or_default(config, parsed, "patches", "freeresizehooks", DCP::freeresizehooks, write_config);
   this->installTempCrashFixes =
@@ -1184,6 +1186,45 @@ void Config::Load()
 
   spdlog::debug("Final notify banner types: {}", notifyString);
   parsed["ui"].as_table()->insert_or_assign("notify_banner_types", notifyString);
+
+  auto notify_fleet_events_str = get_config_or_default<std::string>(config, parsed, "ui", "notify_fleet_events",
+                                                                    DCU::notify_fleet_events, write_log);
+  this->notify_fleet_events = 0;
+  for (const auto& event : StrSplit(notify_fleet_events_str, ',')) {
+    const std::string trimmed{StripAsciiWhitespace(event)};
+    if (trimmed.empty()) {
+      continue;
+    }
+    const auto normalized = AsciiStrToUpper(trimmed);
+    if (normalized == "ALL") {
+      this->notify_fleet_events = kAllFleetNotifications;
+      break;
+    }
+    bool matched = false;
+    for (const auto& entry : kFleetNotificationCatalog) {
+      if (normalized == AsciiStrToUpper(entry.config_name)) {
+        this->notify_fleet_events |= fleet_notification_bit(entry.kind);
+        matched = true;
+        break;
+      }
+    }
+    if (!matched) {
+      spdlog::warn("Unknown fleet notification event '{}'; ignoring it", trimmed);
+    }
+  }
+
+  std::string fleet_events_string;
+  for (const auto& entry : kFleetNotificationCatalog) {
+    if ((this->notify_fleet_events & fleet_notification_bit(entry.kind)) == 0) {
+      continue;
+    }
+    if (!fleet_events_string.empty()) {
+      fleet_events_string.append(", ");
+    }
+    fleet_events_string.append(entry.config_name);
+  }
+  spdlog::debug("Final fleet notification events: {}", fleet_events_string);
+  parsed["ui"].as_table()->insert_or_assign("notify_fleet_events", fleet_events_string);
 
   spdlog::debug("");
 

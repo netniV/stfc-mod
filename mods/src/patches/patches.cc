@@ -27,6 +27,7 @@ void InstallFreeResizeHooks();
 void InstallToastBannerHooks();
 void InstallPanHooks();
 void InstallHotkeyHooks();
+void InstallFleetWatchHooks();
 void InstallGiftsBulkClaimHooks();
 void InstallDailyFactionBulkClaimHooks();
 
@@ -127,6 +128,7 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
       {"ToastBannerHooks", {InstallToastBannerHooks, &cfg.installToastBannerHooks}},
       {"PanHooks", {InstallPanHooks, &cfg.installPanHooks}},
       {"HotkeyHooks", {InstallHotkeyHooks, &cfg.installHotkeyHooks}},
+      {"FleetWatchHooks", {InstallFleetWatchHooks, &cfg.installFleetWatchHooks}},
       {"GiftsBulkClaimHooks", {InstallGiftsBulkClaimHooks, &cfg.installGiftsBulkClaimHooks}},
       {"DailyFactionBulkClaimHooks",
        {InstallDailyFactionBulkClaimHooks, &cfg.installDailyFactionBulkClaimHooks}},

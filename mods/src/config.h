@@ -1,5 +1,7 @@
 #pragma once
 
+#include "patches/fleet_notification_types.h"
+
 #include <array>
 #include <map>
 #include <string>
@@ -182,6 +184,7 @@ public:
   bool             borderless_fullscreen;
   std::vector<int> disabled_banner_types;
   std::vector<int> notify_banner_types;
+  FleetNotificationMask notify_fleet_events = 0;
 
   int  extend_chest_purchase_max;
   int  extend_donation_max;
@@ -240,6 +243,7 @@ public:
   bool installToastBannerHooks;
   bool installPanHooks;
   bool installHotkeyHooks;
+  bool installFleetWatchHooks;
   bool installFreeResizeHooks;
   bool installTempCrashFixes;
   bool installTestPatches;
