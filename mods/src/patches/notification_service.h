@@ -5,7 +5,7 @@
 struct Toast;
 
 // Initialize the notification service (resolve IL2CPP methods, init platform).
-// Call once during InstallToastBannerHooks().
+// Idempotent; call from each feature installer that emits notifications.
 void notification_init();
 
 // Deliver a notification created by a mod feature rather than a Scopely toast.

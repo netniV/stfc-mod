@@ -331,8 +331,21 @@ T get_config_or_default(toml::table& config, toml::table& new_config, std::strin
 NotificationSound get_notification_sound(toml::table& config, toml::table& new_config, std::string_view item,
                                          std::string_view default_value, bool write_log)
 {
-  const auto value = get_config_or_default<std::string>(config, new_config, "audio", item,
-                                                         std::string(default_value), false);
+  new_config.emplace<toml::table>("audio", toml::table());
+
+  std::string value{default_value};
+  const auto  configured = config["audio"][item];
+  if (configured) {
+    if (const auto string_value = configured.value<std::string>()) {
+      value = *string_value;
+    } else if (const auto bool_value = configured.value<bool>(); bool_value.has_value() && !*bool_value) {
+      value = "none";
+    } else {
+      spdlog::warn("invalid config value audio.{}; expected a sound name or false; disabling this alert", item);
+      value = "none";
+    }
+  }
+
   auto sound = notification_sound_from_name(StripAsciiWhitespace(value));
   if (!sound.has_value()) {
     spdlog::warn("invalid config value audio.{}: '{}'; disabling this alert", item, value);
