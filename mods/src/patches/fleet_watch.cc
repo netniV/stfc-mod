@@ -67,11 +67,12 @@ std::array<FleetNotificationStamp, kFleetSlotCount>                       s_node
 FleetNotificationMask                                                     s_enabled_notifications       = 0;
 bool                                                                      s_state_observation_enabled   = false;
 bool                                                                      s_seed_pending                = false;
+bool                                                                      s_seed_has_observation        = false;
 int64_t                                                                   s_last_follow_through_scan_ms = 0;
 int64_t                                                                   s_last_mining_scan_ms         = 0;
 int64_t                                                                   s_last_seed_attempt_ms        = 0;
 int64_t                                                                   s_seed_started_ms             = 0;
-int64_t                                                                   s_seed_first_observed_ms      = 0;
+int64_t                                                                   s_seed_last_change_ms         = 0;
 int                                                                       s_mining_watch_count          = 0;
 int                                                                       s_follow_through_watch_count  = 0;
 
@@ -415,6 +416,8 @@ void observe_fleet(FleetPlayerData* fleet, int requested_slot, bool allow_notifi
   const bool previously_watched =
       miner_opc_enabled && previous.occupied && previous.state == FleetState::Mining && !previous.opc;
   const bool previously_following = previous.occupied && previous.follow_through_started_ms != 0;
+  const bool seed_state_changed   = !same_fleet || previous.state != current || previous.resource_id != resource_id
+                                    || previous.opc_known != opc_known || previous.opc != opc;
   if (!same_fleet) {
     s_last_emitted_ms[slot_index] = {};
   }
@@ -470,10 +473,14 @@ void observe_fleet(FleetPlayerData* fleet, int requested_slot, bool allow_notifi
   if (previously_following != currently_following) {
     s_follow_through_watch_count += currently_following ? 1 : -1;
   }
+  if (s_seed_pending && s_seed_has_observation && seed_state_changed) {
+    s_seed_last_change_ms = now_milliseconds();
+  }
 }
 
 struct ScanResult {
-  int observed_count = 0;
+  int  observed_count    = 0;
+  bool manager_available = false;
 };
 
 ScanResult scan_fleets(bool allow_notifications, bool sample_opc, std::string_view source)
@@ -483,10 +490,14 @@ ScanResult scan_fleets(bool allow_notifications, bool sample_opc, std::string_vi
   if (!manager) {
     return result;
   }
+  result.manager_available = true;
 
   for (int index = 0; index < kFleetSlotCount; ++index) {
     auto* fleet = manager->GetFleetPlayerData(index);
     if (!fleet) {
+      if (s_seed_pending && s_seed_has_observation && s_slots[index].occupied) {
+        s_seed_last_change_ms = now_milliseconds();
+      }
       if (notification_enabled(FleetNotificationKind::MinerOpc) && s_slots[index].occupied
           && s_slots[index].state == FleetState::Mining && !s_slots[index].opc) {
         --s_mining_watch_count;
@@ -526,11 +537,12 @@ void fleet_watch_init()
   s_last_emitted_ms             = {};
   s_node_depleted_stamps        = {};
   s_seed_pending                = fleet_watch_uses_state_observation();
+  s_seed_has_observation        = false;
   s_last_follow_through_scan_ms = 0;
   s_last_mining_scan_ms         = 0;
   s_last_seed_attempt_ms        = 0;
   s_seed_started_ms             = 0;
-  s_seed_first_observed_ms      = 0;
+  s_seed_last_change_ms         = 0;
   s_mining_watch_count          = 0;
   s_follow_through_watch_count  = 0;
 }
@@ -601,21 +613,33 @@ void fleet_watch_tick()
       s_seed_started_ms = now_ms;
     }
     const auto seed_lifetime = now_ms - s_seed_started_ms;
-    if (seed_lifetime >= kSeedLifetimeMs) {
-      s_seed_pending = false;
-      spdlog::warn("[FleetWatch] initial seed stopped after {}ms without observing a fleet", kSeedLifetimeMs);
+    if (seed_lifetime >= kSeedLifetimeMs && !s_seed_has_observation) {
+      s_seed_pending                = false;
+      s_slots                       = {};
+      s_last_emitted_ms             = {};
+      s_last_follow_through_scan_ms = 0;
+      s_last_mining_scan_ms         = 0;
+      s_mining_watch_count          = 0;
+      s_follow_through_watch_count  = 0;
+      spdlog::warn("[FleetWatch] initial seed stopped after {}ms without a stable fleet baseline", kSeedLifetimeMs);
     } else {
-      const auto seed_interval = seed_lifetime < kSeedFastPeriodMs ? kSeedFastIntervalMs : kSeedBackoffIntervalMs;
+      const auto seed_interval =
+          s_seed_has_observation || seed_lifetime < kSeedFastPeriodMs ? kSeedFastIntervalMs : kSeedBackoffIntervalMs;
       if (s_last_seed_attempt_ms == 0 || now_ms - s_last_seed_attempt_ms >= seed_interval) {
         s_last_seed_attempt_ms = now_ms;
         const auto seed        = scan_fleets(false, true, "initial-seed");
-        if (seed.observed_count > 0) {
-          if (s_seed_first_observed_ms == 0) {
-            s_seed_first_observed_ms = now_ms;
-            spdlog::debug("[FleetWatch] observed {} fleet slots; stabilizing initial state", seed.observed_count);
-          } else if (now_ms - s_seed_first_observed_ms >= kSeedStabilizationMs) {
+        if (!seed.manager_available || seed.observed_count == 0) {
+          s_seed_has_observation = false;
+          s_seed_last_change_ms  = 0;
+        } else {
+          if (!s_seed_has_observation) {
+            s_seed_has_observation = true;
+            s_seed_last_change_ms  = now_ms;
+            spdlog::debug("[FleetWatch] observed {} fleet slots; waiting for stable initial state",
+                          seed.observed_count);
+          } else if (now_ms - s_seed_last_change_ms >= kSeedStabilizationMs) {
             s_seed_pending = false;
-            spdlog::debug("[FleetWatch] seeded {} fleet slots after {}ms stabilization", seed.observed_count,
+            spdlog::debug("[FleetWatch] seeded {} stable fleet slots after {}ms quiet window", seed.observed_count,
                           kSeedStabilizationMs);
             if (s_follow_through_watch_count > 0) {
               s_last_follow_through_scan_ms = now_ms;
