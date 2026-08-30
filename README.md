@@ -72,7 +72,7 @@ been applied. Valid values for any short can be found in [KEYMAPPING.md](KEYMAPP
 |            Q | Zoom In                          |
 |            E | Zoom Out                         |
 |        MINUS | Zoom (min)                       |
-|       EQUALS | Zoom (default)                   |
+|            = | Zoom (default)                   |
 |    BACKSPACE | Zoom (max)                       |
 |            C | Open/Focus Chat - Full Screen    |
 |        Alt-C | Open/Focus Chat - Side of Screen |
