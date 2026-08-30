@@ -140,6 +140,16 @@ enable_experimental = false
 # Frame-rate scaling factor
 fr_scale = 2.0
 
+# Detailniveau van vlootlabels in de systeemweergave:
+#   "native"    - gebruik Scopely's Near/Middle/Far-gedrag
+#   "expanded"  - toon altijd lange vlootlabels
+#   "compact"   - toon altijd compacte vlootlabels
+#   "threshold" - schakel bij fleet_label_zoom_threshold van uitgebreid naar compact
+fleet_label_detail = "native"
+
+# Genormaliseerde zoomgrens voor "threshold" (0.0 = altijd compact, 1.0 = altijd uitgebreid)
+fleet_label_zoom_threshold = 0.5
+
 # Bepaald de tijd tussen transities, hoe hoger het getal des te trager de transitie
 transition_time = 0.01
 

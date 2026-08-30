@@ -43,6 +43,8 @@ namespace Graphics
 {
   constexpr bool        borderless_fullscreen       = true;
   constexpr bool        allow_cursor                = true;
+  constexpr const char* fleet_label_detail          = "native";
+  constexpr auto        fleet_label_zoom_threshold  = 0.5;
   constexpr auto        default_system_zoom         = 1750;
   constexpr bool        free_resize                 = true;
   constexpr auto        keyboard_zoom_speed         = 350;

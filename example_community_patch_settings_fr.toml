@@ -140,6 +140,16 @@ enable_experimental = false
 # Frame-rate scaling factor
 fr_scale = 2.0
 
+# Niveau de détail des étiquettes de flotte dans la vue système :
+#   "native"    - utiliser le comportement Near/Middle/Far de Scopely
+#   "expanded"  - toujours afficher les étiquettes longues
+#   "compact"   - toujours afficher les étiquettes compactes
+#   "threshold" - passer du format étendu au format compact à fleet_label_zoom_threshold
+fleet_label_detail = "native"
+
+# Seuil de zoom normalisé pour "threshold" (0.0 = toujours compact, 1.0 = toujours étendu)
+fleet_label_zoom_threshold = 0.5
+
 # Temps entre les transitions, augmenter pour ralentir les transitions
 transition_time = 0.01
 

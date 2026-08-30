@@ -120,6 +120,13 @@ enum class InstantWarpConfirmation {
   Jump,
 };
 
+enum class FleetLabelDetail {
+  Native,
+  Expanded,
+  Compact,
+  Threshold,
+};
+
 // Part of UI Scale
 void ApplyUiShipScaleToLoadedShips(float old_multiplier, float new_multiplier);
 
@@ -157,6 +164,8 @@ public:
   float ui_scale_viewer;
   float zoom;
   float fr_scale;
+  FleetLabelDetail fleet_label_detail;
+  float fleet_label_zoom_threshold;
   bool  allow_cursor;
   bool  free_resize;
   bool  adjust_scale_res;
