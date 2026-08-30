@@ -39,6 +39,7 @@ constexpr int64_t kManagerProbeIntervalMs    = 250;
 constexpr int64_t kDuplicateSuppressionMs    = 2'000;
 
 constexpr std::size_t kFleetNotificationCount = static_cast<std::size_t>(FleetNotificationKind::Count);
+constexpr uint16_t    kAllFleetSlotsMask      = (1U << kFleetSlotCount) - 1;
 
 struct FleetSnapshot {
   uint64_t   fleet_id                  = 0;
@@ -85,6 +86,7 @@ int                                                                       s_seed
 int                                                                       s_mining_watch_count            = 0;
 int                                                                       s_follow_through_watch_count    = 0;
 int                                                                       s_manager_probe_slot            = 0;
+uint16_t                                                                  s_widget_opc_sample_mask        = 0;
 
 int64_t now_milliseconds();
 
@@ -104,6 +106,7 @@ void invalidate_seed_observation()
   s_mining_watch_count            = 0;
   s_follow_through_watch_count    = 0;
   s_manager_probe_slot            = 0;
+  s_widget_opc_sample_mask        = 0;
 }
 
 void restart_seed_stabilization(int slot_index, uint64_t fleet_id, bool preserve_snapshots = false)
@@ -128,6 +131,7 @@ void restart_seed_stabilization(int slot_index, uint64_t fleet_id, bool preserve
   s_last_manager_probe_ms         = 0;
   s_seed_candidate_count          = 0;
   s_manager_probe_slot            = 0;
+  s_widget_opc_sample_mask        = 0;
   spdlog::debug(
       "[FleetWatch] fleet topology changed; restarting initial-state stabilization slot={} fleet={} preserve={}",
       slot_index, fleet_id, preserve_snapshots);
@@ -559,22 +563,13 @@ bool manager_baseline_matches(int& changed_slot, uint64_t& changed_fleet)
     return false;
   }
 
-  for (int offset = 0; offset < kFleetSlotCount; ++offset) {
-    const int index = (s_manager_probe_slot + offset) % kFleetSlotCount;
-    if (!s_slots[index].occupied) {
-      continue;
-    }
-
-    auto* fleet          = manager->GetFleetPlayerData(index);
-    changed_slot         = index;
-    changed_fleet        = fleet ? fleet->Id : 0;
-    s_manager_probe_slot = (index + 1) % kFleetSlotCount;
-    return fleet && fleet->Id == s_slots[index].fleet_id;
-  }
-
-  changed_slot  = -1;
-  changed_fleet = 0;
-  return false;
+  const int index         = s_manager_probe_slot;
+  auto*     fleet         = manager->GetFleetPlayerData(index);
+  changed_slot            = index;
+  changed_fleet           = fleet ? fleet->Id : 0;
+  s_manager_probe_slot    = (index + 1) % kFleetSlotCount;
+  const bool now_occupied = fleet != nullptr;
+  return s_slots[index].occupied == now_occupied && (!now_occupied || s_slots[index].fleet_id == changed_fleet);
 }
 
 bool manager_slot_matches(int slot_index, uint64_t fleet_id)
@@ -680,7 +675,8 @@ ScanResult scan_fleets(bool allow_notifications, bool sample_opc, std::string_vi
     observe_fleet(fleet, index, allow_notifications, sample_opc, source);
   }
   if (result.observed_count > 0) {
-    s_seed_manager_backed = true;
+    s_seed_manager_backed    = true;
+    s_widget_opc_sample_mask = 0;
   }
   return result;
 }
@@ -722,6 +718,7 @@ void fleet_watch_init()
   s_mining_watch_count            = 0;
   s_follow_through_watch_count    = 0;
   s_manager_probe_slot            = 0;
+  s_widget_opc_sample_mask        = 0;
 }
 
 void fleet_watch_observe_widget(FleetPlayerData* fleet)
@@ -734,7 +731,11 @@ void fleet_watch_observe_widget(FleetPlayerData* fleet)
   if (!s_seed_pending && s_seed_manager_backed && slot_index >= 0 && !manager_slot_matches(slot_index, fleet->Id)) {
     restart_seed_stabilization(slot_index, fleet->Id);
   }
-  observe_fleet(fleet, -1, !s_seed_pending, false, "fleet-state-widget");
+  const bool sample_opc = slot_index >= 0 && (s_widget_opc_sample_mask & (1U << slot_index)) != 0;
+  observe_fleet(fleet, -1, !s_seed_pending, sample_opc, "fleet-state-widget");
+  if (sample_opc) {
+    s_widget_opc_sample_mask &= ~(1U << slot_index);
+  }
 }
 
 void fleet_watch_observe_node_depleted(int64_t fleet_id)
@@ -892,7 +893,7 @@ void fleet_watch_tick()
   }
 
   const bool had_follow_through = s_follow_through_watch_count > 0;
-  scan_fleets(true, mining_due, follow_through_due ? "follow-through" : "mining-watch");
+  const auto scan               = scan_fleets(true, mining_due, follow_through_due ? "follow-through" : "mining-watch");
   if (follow_through_due) {
     s_last_follow_through_scan_ms = now_ms;
     if (had_follow_through && s_follow_through_watch_count == 0) {
@@ -900,6 +901,9 @@ void fleet_watch_tick()
     }
   }
   if (mining_due) {
+    if (scan.observed_count == 0 && !s_seed_manager_backed) {
+      s_widget_opc_sample_mask = kAllFleetSlotsMask;
+    }
     s_last_mining_scan_ms = now_ms;
   }
 }
