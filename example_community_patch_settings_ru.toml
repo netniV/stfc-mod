@@ -46,6 +46,16 @@ alert_armada_created = "none"
 alert_armada_battle_won = "none"
 alert_armada_battle_lost = "none"
 
+# Optional Fleet Watch cues; "none" disables an individual alert.
+# A cue plays only when its matching [ui].notify_fleet_events entry is enabled.
+alert_fleet_arrived_in_system = "none"
+alert_fleet_arrived_at_destination = "none"
+alert_fleet_started_mining = "none"
+alert_fleet_node_depleted = "none"
+alert_fleet_docked = "none"
+alert_fleet_repair_complete = "none"
+alert_fleet_miner_opc = "none"
+
 #  <[============================================================]> 
 #                                                                   
 #                                                                   

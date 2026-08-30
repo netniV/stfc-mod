@@ -188,7 +188,8 @@ const char* notification_sound_name(NotificationSound sound)
 std::optional<NotificationSound> notification_sound_from_name(std::string_view name)
 {
   const auto normalized = normalize_sound_name(name);
-  if (normalized == "none" || normalized == "off" || normalized == "silent")
+  if (normalized == "none" || normalized == "false" || normalized == "off" || normalized == "disabled"
+      || normalized == "silent" || normalized == "0")
     return NotificationSound::None;
   if (normalized == "default")
     return NotificationSound::Default;
@@ -224,7 +225,9 @@ void notification_audio_play(NotificationSound sound)
   const auto& buffer = s_sound_buffers[index];
   if (!notification_audio_platform_play(buffer.data(), buffer.size())) {
     spdlog::warn("[NotifyAudio] Failed to play '{}' cue", notification_sound_name(sound));
+    return;
   }
+  spdlog::debug("[NotifyAudio] Played '{}' cue", notification_sound_name(sound));
 }
 
 #if _WIN32

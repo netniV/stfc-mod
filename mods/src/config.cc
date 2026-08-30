@@ -335,8 +335,8 @@ NotificationSound get_notification_sound(toml::table& config, toml::table& new_c
                                                          std::string(default_value), false);
   auto sound = notification_sound_from_name(StripAsciiWhitespace(value));
   if (!sound.has_value()) {
-    spdlog::warn("invalid config value audio.{}: '{}'; using {}", item, value, default_value);
-    sound = notification_sound_from_name(default_value);
+    spdlog::warn("invalid config value audio.{}: '{}'; disabling this alert", item, value);
+    sound = NotificationSound::None;
   }
 
   const auto result = sound.value_or(NotificationSound::None);
@@ -981,6 +981,12 @@ void Config::Load()
       get_notification_sound(config, parsed, "alert_armada_battle_won", DCA::alert_armada_battle_won, write_config);
   this->alert_armada_battle_lost =
       get_notification_sound(config, parsed, "alert_armada_battle_lost", DCA::alert_armada_battle_lost, write_config);
+  static_assert(DCA::alert_fleet_events.size() == kFleetNotificationCatalog.size());
+  for (const auto& entry : kFleetNotificationCatalog) {
+    const auto index = fleet_notification_index(entry.kind);
+    this->fleet_notification_sounds[index] =
+        get_notification_sound(config, parsed, entry.audio_config_name, DCA::alert_fleet_events[index], write_config);
+  }
   if (!this->installToastBannerHooks
       && (this->alert_victory != NotificationSound::None || this->alert_defeat != NotificationSound::None
           || this->alert_armada_created != NotificationSound::None

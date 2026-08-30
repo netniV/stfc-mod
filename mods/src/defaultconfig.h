@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+
 namespace DefaultConfig
 {
 namespace Buffs
@@ -9,13 +11,16 @@ namespace Buffs
 
 namespace Audio
 {
-  constexpr const char* disabled_events = "";
-  constexpr bool        trace_events    = false;
-  constexpr const char* alert_victory = "none";
-  constexpr const char* alert_defeat = "none";
-  constexpr const char* alert_armada_created = "none";
-  constexpr const char* alert_armada_battle_won = "none";
+  constexpr const char* disabled_events          = "";
+  constexpr bool        trace_events             = false;
+  constexpr const char* alert_victory            = "none";
+  constexpr const char* alert_defeat             = "none";
+  constexpr const char* alert_armada_created     = "none";
+  constexpr const char* alert_armada_battle_won  = "none";
   constexpr const char* alert_armada_battle_lost = "none";
+  constexpr std::array<const char*, 7> alert_fleet_events{
+      "none", "none", "none", "none", "none", "none", "none",
+  };
 } // namespace Audio
 
 namespace SystemConfig

@@ -3,6 +3,7 @@
 #include "config.h"
 #include "errormsg.h"
 #include "patches/fleet_notification_types.h"
+#include "patches/notification_audio.h"
 #include "patches/notification_service.h"
 #include "str_utils.h"
 
@@ -342,27 +343,42 @@ FleetPlayerData* fleet_for_snapshot(int slot_index, uint64_t fleet_id)
   return fleet && fleet->Id == fleet_id ? fleet : nullptr;
 }
 
+void emit_notification(FleetNotificationKind kind, std::string_view title, std::string body)
+{
+  notification_emit(title, body);
+
+  const auto index = fleet_notification_index(kind);
+  const auto sound = Config::Get().fleet_notification_sounds[index];
+  if (sound == NotificationSound::None) {
+    return;
+  }
+
+  spdlog::debug("[FleetWatch] audio event={} sound={}", kFleetNotificationCatalog[index].config_name,
+                notification_sound_name(sound));
+  notification_audio_play(sound);
+}
+
 void emit_transition(FleetNotificationKind kind, FleetPlayerData* fleet, int64_t resource_id)
 {
   const auto subject = notification_subject(fleet);
   switch (kind) {
     case FleetNotificationKind::ArrivedInSystem:
-      notification_emit("Fleet Arrived", "Your " + subject + " has arrived in-system");
+      emit_notification(kind, "Fleet Arrived", "Your " + subject + " has arrived in-system");
       break;
     case FleetNotificationKind::ArrivedAtDestination:
-      notification_emit("Fleet Arrived", "Your " + subject + " has reached its destination");
+      emit_notification(kind, "Fleet Arrived", "Your " + subject + " has reached its destination");
       break;
     case FleetNotificationKind::StartedMining: {
       const auto resource = resource_name(resource_id);
       const auto detail   = resource.empty() ? std::string{} : " " + resource;
-      notification_emit("Fleet Mining", "Your " + subject + " started mining" + detail);
+      emit_notification(kind, "Fleet Mining", "Your " + subject + " started mining" + detail);
       break;
     }
     case FleetNotificationKind::Docked:
-      notification_emit("Fleet Docked", "Your " + subject + " docked");
+      emit_notification(kind, "Fleet Docked", "Your " + subject + " docked");
       break;
     case FleetNotificationKind::RepairComplete:
-      notification_emit("Repair Complete", "Your " + subject + " finished repairs");
+      emit_notification(kind, "Repair Complete", "Your " + subject + " finished repairs");
       break;
     default:
       break;
@@ -513,7 +529,8 @@ void observe_fleet(FleetPlayerData* fleet, int requested_slot, bool allow_notifi
     } else {
       const auto subject = notification_subject(fleet);
       spdlog::debug("[FleetWatch] source={} event=MinerOPC slot={} fleet={}", source, slot_index, fleet_id);
-      notification_emit("Miner Is OPC", "Your " + subject + " is now over protected cargo." + cargo_text(fleet));
+      emit_notification(FleetNotificationKind::MinerOpc, "Miner Is OPC",
+                        "Your " + subject + " is now over protected cargo." + cargo_text(fleet));
     }
   }
 
@@ -764,7 +781,8 @@ void fleet_watch_observe_node_depleted(int64_t fleet_id)
     const auto subject  = notification_subject(fleet);
     const auto resource = resource_name(snapshot.resource_id);
     const auto detail   = resource.empty() ? std::string{" its node"} : " its " + resource + " node";
-    notification_emit("Node Depleted", subject + " depleted" + detail + "." + cargo_text(fleet));
+    emit_notification(FleetNotificationKind::NodeDepleted, "Node Depleted",
+                      subject + " depleted" + detail + "." + cargo_text(fleet));
     return;
   }
 
@@ -777,11 +795,12 @@ void fleet_watch_observe_node_depleted(int64_t fleet_id)
     auto*      mining_data = fleet->MiningData;
     const auto resource    = resource_name(mining_data ? mining_data->ResourceId : 0);
     const auto detail      = resource.empty() ? std::string{" its node"} : " its " + resource + " node";
-    notification_emit("Node Depleted", notification_subject(fleet) + " depleted" + detail + "." + cargo_text(fleet));
+    emit_notification(FleetNotificationKind::NodeDepleted, "Node Depleted",
+                      notification_subject(fleet) + " depleted" + detail + "." + cargo_text(fleet));
     return;
   }
 
-  notification_emit("Node Depleted", "A mining fleet depleted its node.");
+  emit_notification(FleetNotificationKind::NodeDepleted, "Node Depleted", "A mining fleet depleted its node.");
 }
 
 void fleet_watch_tick()

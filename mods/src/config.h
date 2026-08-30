@@ -187,6 +187,7 @@ public:
   std::vector<int> disabled_banner_types;
   std::vector<int> notify_banner_types;
   FleetNotificationMask notify_fleet_events = 0;
+  std::array<NotificationSound, static_cast<std::size_t>(FleetNotificationKind::Count)> fleet_notification_sounds{};
 
   int  extend_chest_purchase_max;
   int  extend_donation_max;
