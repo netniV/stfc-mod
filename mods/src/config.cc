@@ -328,6 +328,25 @@ T get_config_or_default(toml::table& config, toml::table& new_config, std::strin
   return (T)final_value;
 }
 
+NotificationSound get_notification_sound(toml::table& config, toml::table& new_config, std::string_view item,
+                                         std::string_view default_value, bool write_log)
+{
+  const auto value = get_config_or_default<std::string>(config, new_config, "audio", item,
+                                                         std::string(default_value), false);
+  auto sound = notification_sound_from_name(StripAsciiWhitespace(value));
+  if (!sound.has_value()) {
+    spdlog::warn("invalid config value audio.{}: '{}'; using {}", item, value, default_value);
+    sound = notification_sound_from_name(default_value);
+  }
+
+  const auto result = sound.value_or(NotificationSound::None);
+  new_config["audio"].as_table()->insert_or_assign(item, notification_sound_name(result));
+  if (write_log) {
+    spdlog::debug("config value audio.{} value: {}", item, notification_sound_name(result));
+  }
+  return result;
+}
+
 std::string_view to_string(MissionHudVisibility visibility)
 {
   switch (visibility) {
@@ -953,6 +972,22 @@ void Config::Load()
     }
   }
   this->installAudioEventHooks = this->trace_audio_events || !this->disabled_audio_events.empty();
+  this->alert_victory =
+      get_notification_sound(config, parsed, "alert_victory", DCA::alert_victory, write_config);
+  this->alert_defeat = get_notification_sound(config, parsed, "alert_defeat", DCA::alert_defeat, write_config);
+  this->alert_armada_created =
+      get_notification_sound(config, parsed, "alert_armada_created", DCA::alert_armada_created, write_config);
+  this->alert_armada_battle_won =
+      get_notification_sound(config, parsed, "alert_armada_battle_won", DCA::alert_armada_battle_won, write_config);
+  this->alert_armada_battle_lost =
+      get_notification_sound(config, parsed, "alert_armada_battle_lost", DCA::alert_armada_battle_lost, write_config);
+  if (!this->installToastBannerHooks
+      && (this->alert_victory != NotificationSound::None || this->alert_defeat != NotificationSound::None
+          || this->alert_armada_created != NotificationSound::None
+          || this->alert_armada_battle_won != NotificationSound::None
+          || this->alert_armada_battle_lost != NotificationSound::None)) {
+    spdlog::warn("audio alerts require patches.toastbannerhooks = true");
+  }
   this->auto_open_bulk_claim_flyout = get_config_or_default(config, parsed, "ui", "auto_open_bulk_claim_flyout",
                                                              DCU::auto_open_bulk_claim_flyout, write_config);
 
