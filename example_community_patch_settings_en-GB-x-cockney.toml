@@ -658,7 +658,8 @@ disabled_banner_types = ""
 # Specifies banner types that should trigger notifications (comma separated)
 notify_banner_types = ""
 
-# Windows system notifications to send for fleet events (comma separated).
+# Fleet Watch events to observe (comma separated).
+# Windows sends system notifications; Windows and macOS can play matching [audio] cues.
 # Options: ArrivedInSystem, ArrivedAtDestination, StartedMining, NodeDepleted,
 # Docked, RepairComplete, MinerOPC, All
 notify_fleet_events = ""
