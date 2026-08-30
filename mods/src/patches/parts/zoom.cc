@@ -2,7 +2,6 @@
 #include "errormsg.h"
 
 #include <patches/mapkey.h>
-#include <patches/parts/hotkey_ownership.h>
 
 #include <il2cpp/il2cpp_helper.h>
 
@@ -146,9 +145,7 @@ void NavigationZoom_Update_Hook(auto original, NavigationZoom *_this)
 
   EnsureSystemZoomRange(_this);
 
-  const auto mod_camera_shortcuts_enabled = config->hotkeys_enabled && !config->use_scopely_hotkeys;
-  const auto navigation_owns_chord = mod_camera_shortcuts_enabled && IsScreenNavigationShortcutPressed();
-  const auto camera_shortcuts_enabled = mod_camera_shortcuts_enabled && !navigation_owns_chord;
+  const auto camera_shortcuts_enabled = config->hotkeys_enabled && !config->use_scopely_hotkeys;
 
   if (!Key::IsInputFocused()) {
     if (camera_shortcuts_enabled) {
