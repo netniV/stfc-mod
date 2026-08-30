@@ -6,6 +6,7 @@ struct FleetPlayerData;
 
 void fleet_watch_init();
 void fleet_watch_tick();
+void fleet_watch_after_update();
 void fleet_watch_observe_widget(FleetPlayerData* fleet);
 void fleet_watch_observe_node_depleted(int64_t fleet_id);
 

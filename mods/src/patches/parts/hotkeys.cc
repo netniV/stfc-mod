@@ -226,7 +226,9 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
 {
   fleet_watch_tick();
   if (!Config::Get().installHotkeyHooks) {
-    return original(_this);
+    original(_this);
+    fleet_watch_after_update();
+    return;
   }
 
   // This function is called every frame to update the screen manager.
@@ -247,10 +249,13 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
   }
 
   if (Config::Get().use_scopely_hotkeys && Config::Get().hotkeys_enabled) {
-    return original(_this);
+    original(_this);
+    fleet_watch_after_update();
+    return;
   }
 
   if (!Config::Get().hotkeys_enabled) {
+    fleet_watch_after_update();
     return;
   }
 
@@ -642,7 +647,8 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
 
   // config->Load();
 
-  return original(_this);
+  original(_this);
+  fleet_watch_after_update();
 }
 
 // NOTE: If you change this loop functionality, also change DoHideViewersOfType template
