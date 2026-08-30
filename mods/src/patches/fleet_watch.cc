@@ -628,12 +628,22 @@ ScanResult scan_fleets(bool allow_notifications, bool sample_opc, std::string_vi
     return result;
   }
 
-  const bool topology_requires_restart =
-      result.topology_changed
-      && ((s_seed_pending && s_seed_has_observation) || (!s_seed_pending && allow_notifications));
-  if (topology_requires_restart) {
+  const bool observed_baseline         = s_seed_has_observation || !s_seed_pending;
+  const bool topology_requires_restart = result.topology_changed && observed_baseline;
+  const bool source_requires_restart   = !s_seed_manager_backed && observed_baseline;
+  if (topology_requires_restart || source_requires_restart) {
+    if (result.first_changed_slot < 0) {
+      for (int index = 0; index < kFleetSlotCount; ++index) {
+        if (fleets[index]) {
+          result.first_changed_slot  = index;
+          result.first_changed_fleet = fleets[index]->Id;
+          break;
+        }
+      }
+    }
     restart_seed_stabilization(result.first_changed_slot, result.first_changed_fleet);
-    allow_notifications = false;
+    result.topology_changed = true;
+    allow_notifications     = false;
   }
 
   for (int index = 0; index < kFleetSlotCount; ++index) {
@@ -881,7 +891,8 @@ void fleet_watch_after_update()
   if (!s_seed_has_observation) {
     const auto observed_count = occupied_snapshot_count();
     if (observed_count > 0) {
-      begin_seed_observation(observed_count, false, now_milliseconds(), "fleet-state-widget");
+      begin_seed_observation(observed_count, s_seed_manager_backed, now_milliseconds(),
+                             s_seed_manager_backed ? "fleet-manager" : "fleet-state-widget");
     }
     return;
   }
