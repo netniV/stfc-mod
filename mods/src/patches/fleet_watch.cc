@@ -650,12 +650,6 @@ void fleet_watch_observe_widget(FleetPlayerData* fleet)
   }
 
   observe_fleet(fleet, -1, !s_seed_pending, false, "fleet-state-widget");
-  if (s_seed_pending && !s_seed_has_observation) {
-    const auto observed_count = occupied_snapshot_count();
-    if (observed_count > 0) {
-      begin_seed_observation(observed_count, false, now_milliseconds(), "fleet-state-widget");
-    }
-  }
 }
 
 void fleet_watch_observe_node_depleted(int64_t fleet_id)
@@ -831,7 +825,17 @@ void fleet_watch_tick()
 
 void fleet_watch_after_update()
 {
-  if (!s_seed_pending || (!s_seed_ready_candidate && !s_seed_candidate_forced)) {
+  if (!s_seed_pending) {
+    return;
+  }
+  if (!s_seed_has_observation) {
+    const auto observed_count = occupied_snapshot_count();
+    if (observed_count > 0) {
+      begin_seed_observation(observed_count, false, now_milliseconds(), "fleet-state-widget");
+    }
+    return;
+  }
+  if (!s_seed_ready_candidate && !s_seed_candidate_forced) {
     return;
   }
 
