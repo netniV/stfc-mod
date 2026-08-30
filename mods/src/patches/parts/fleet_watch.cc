@@ -40,7 +40,7 @@ void ToastFleetObserver_HandleMiningDepleted_Hook(auto original, void* self, int
 
 void InstallFleetWatchHooks()
 {
-#if !_WIN32
+#if !defined(_WIN32) && !defined(__APPLE__)
   return;
 #endif
 

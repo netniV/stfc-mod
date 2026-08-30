@@ -714,6 +714,15 @@ void fleet_watch_init()
                                          | fleet_notification_bit(FleetNotificationKind::RepairComplete);
   constexpr auto state_events     = follow_through_events | fleet_notification_bit(FleetNotificationKind::MinerOpc);
   s_enabled_notifications         = Config::Get().notify_fleet_events;
+#if defined(__APPLE__)
+  FleetNotificationMask audible_notifications = 0;
+  for (const auto& entry : kFleetNotificationCatalog) {
+    if (Config::Get().fleet_notification_sounds[fleet_notification_index(entry.kind)] != NotificationSound::None) {
+      audible_notifications |= fleet_notification_bit(entry.kind);
+    }
+  }
+  s_enabled_notifications &= audible_notifications;
+#endif
   s_state_observation_enabled     = (s_enabled_notifications & state_events) != 0;
   s_slots                         = {};
   s_last_emitted_ms               = {};
