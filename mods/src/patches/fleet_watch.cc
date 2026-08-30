@@ -65,39 +65,46 @@ struct FleetTransitionRule {
 std::array<FleetSnapshot, kFleetSlotCount>                                s_slots{};
 std::array<std::array<int64_t, kFleetNotificationCount>, kFleetSlotCount> s_last_emitted_ms{};
 std::array<FleetNotificationStamp, kFleetSlotCount>                       s_node_depleted_stamps{};
-FleetNotificationMask                                                     s_enabled_notifications       = 0;
-bool                                                                      s_state_observation_enabled   = false;
-bool                                                                      s_seed_pending                = false;
-bool                                                                      s_seed_has_observation        = false;
-bool                                                                      s_seed_ready_candidate        = false;
-bool                                                                      s_seed_candidate_forced       = false;
-bool                                                                      s_seed_restart_disabled       = false;
-int64_t                                                                   s_last_follow_through_scan_ms = 0;
-int64_t                                                                   s_last_mining_scan_ms         = 0;
-int64_t                                                                   s_last_seed_attempt_ms        = 0;
-int64_t                                                                   s_seed_started_ms             = 0;
-int64_t                                                                   s_seed_first_observed_ms      = 0;
-int64_t                                                                   s_seed_last_change_ms         = 0;
-int                                                                       s_seed_candidate_count        = 0;
-int                                                                       s_mining_watch_count          = 0;
-int                                                                       s_follow_through_watch_count  = 0;
+FleetNotificationMask                                                     s_enabled_notifications         = 0;
+bool                                                                      s_state_observation_enabled     = false;
+bool                                                                      s_seed_pending                  = false;
+bool                                                                      s_seed_has_observation          = false;
+bool                                                                      s_seed_manager_backed           = false;
+bool                                                                      s_seed_ready_candidate          = false;
+bool                                                                      s_seed_candidate_forced         = false;
+bool                                                                      s_seed_candidate_manager_backed = false;
+int64_t                                                                   s_last_follow_through_scan_ms   = 0;
+int64_t                                                                   s_last_mining_scan_ms           = 0;
+int64_t                                                                   s_last_seed_attempt_ms          = 0;
+int64_t                                                                   s_seed_started_ms               = 0;
+int64_t                                                                   s_seed_first_observed_ms        = 0;
+int64_t                                                                   s_seed_last_change_ms           = 0;
+int                                                                       s_seed_candidate_count          = 0;
+int                                                                       s_mining_watch_count            = 0;
+int                                                                       s_follow_through_watch_count    = 0;
 
 int64_t now_milliseconds();
 
 void restart_seed_stabilization(int slot_index, uint64_t fleet_id)
 {
-  const auto now_ms        = now_milliseconds();
-  s_seed_pending           = true;
-  s_seed_has_observation   = false;
-  s_seed_ready_candidate   = false;
-  s_seed_candidate_forced  = false;
-  s_last_seed_attempt_ms   = 0;
-  s_seed_started_ms        = now_ms;
-  s_seed_first_observed_ms = 0;
-  s_seed_last_change_ms    = 0;
-  s_seed_candidate_count   = 0;
-  spdlog::debug("[FleetWatch] new fleet observed; restarting initial-state stabilization slot={} fleet={}", slot_index,
-                fleet_id);
+  const auto now_ms               = now_milliseconds();
+  s_slots                         = {};
+  s_last_emitted_ms               = {};
+  s_seed_pending                  = true;
+  s_seed_has_observation          = false;
+  s_seed_manager_backed           = false;
+  s_seed_ready_candidate          = false;
+  s_seed_candidate_forced         = false;
+  s_seed_candidate_manager_backed = false;
+  s_last_seed_attempt_ms          = 0;
+  s_seed_started_ms               = now_ms;
+  s_seed_first_observed_ms        = 0;
+  s_seed_last_change_ms           = 0;
+  s_seed_candidate_count          = 0;
+  s_mining_watch_count            = 0;
+  s_follow_through_watch_count    = 0;
+  spdlog::debug("[FleetWatch] fleet topology changed; restarting initial-state stabilization slot={} fleet={}",
+                slot_index, fleet_id);
 }
 
 int64_t now_milliseconds()
@@ -417,7 +424,7 @@ void observe_fleet(FleetPlayerData* fleet, int requested_slot, bool allow_notifi
   const auto fleet_id   = fleet->Id;
   const auto current    = fleet->CurrentState;
   const bool same_fleet = previous.occupied && previous.fleet_id == fleet_id;
-  if (!same_fleet && !s_seed_pending && !s_seed_restart_disabled) {
+  if (!same_fleet && (!s_seed_pending || s_seed_has_observation)) {
     restart_seed_stabilization(slot_index, fleet_id);
   }
   allow_notifications                 = allow_notifications && !s_seed_pending;
@@ -509,9 +516,31 @@ void observe_fleet(FleetPlayerData* fleet, int requested_slot, bool allow_notifi
   }
 }
 
+int occupied_snapshot_count()
+{
+  return static_cast<int>(
+      std::count_if(s_slots.begin(), s_slots.end(), [](const auto& slot) { return slot.occupied; }));
+}
+
+void begin_seed_observation(int observed_count, bool manager_backed, int64_t now_ms, std::string_view source)
+{
+  s_seed_has_observation          = true;
+  s_seed_manager_backed           = manager_backed;
+  s_seed_ready_candidate          = false;
+  s_seed_candidate_forced         = false;
+  s_seed_candidate_manager_backed = false;
+  s_seed_first_observed_ms        = now_ms;
+  s_seed_last_change_ms           = now_ms;
+  s_seed_candidate_count          = 0;
+  spdlog::debug("[FleetWatch] observed {} fleet slots via {}; waiting for stable initial state", observed_count,
+                source);
+}
+
 struct ScanResult {
-  int  observed_count    = 0;
-  bool manager_available = false;
+  int      observed_count      = 0;
+  int      first_changed_slot  = -1;
+  uint64_t first_changed_fleet = 0;
+  bool     topology_changed    = false;
 };
 
 ScanResult scan_fleets(bool allow_notifications, bool sample_opc, std::string_view source)
@@ -521,27 +550,36 @@ ScanResult scan_fleets(bool allow_notifications, bool sample_opc, std::string_vi
   if (!manager) {
     return result;
   }
-  result.manager_available = true;
-  s_seed_restart_disabled  = false;
-
   std::array<FleetPlayerData*, kFleetSlotCount> fleets{};
   for (int index = 0; index < kFleetSlotCount; ++index) {
     fleets[index] = manager->GetFleetPlayerData(index);
+    if (fleets[index]) {
+      ++result.observed_count;
+    }
+    const bool now_occupied = fleets[index] != nullptr;
+    const auto fleet_id     = now_occupied ? fleets[index]->Id : 0;
+    const bool changed =
+        s_slots[index].occupied != now_occupied || (now_occupied && s_slots[index].fleet_id != fleet_id);
+    if (changed && !result.topology_changed) {
+      result.topology_changed    = true;
+      result.first_changed_slot  = index;
+      result.first_changed_fleet = fleet_id;
+    }
   }
 
-  if (allow_notifications && !s_seed_pending) {
-    for (int index = 0; index < kFleetSlotCount; ++index) {
-      auto* fleet = fleets[index];
-      if (!fleet) {
-        continue;
-      }
-      const auto fleet_id = fleet->Id;
-      if (!s_slots[index].occupied || s_slots[index].fleet_id != fleet_id) {
-        restart_seed_stabilization(index, fleet_id);
-        allow_notifications = false;
-        break;
-      }
-    }
+  if (s_seed_pending && result.observed_count == 0) {
+    result.topology_changed    = false;
+    result.first_changed_slot  = -1;
+    result.first_changed_fleet = 0;
+    return result;
+  }
+
+  const bool topology_requires_restart =
+      result.topology_changed
+      && ((s_seed_pending && s_seed_has_observation) || (!s_seed_pending && allow_notifications));
+  if (topology_requires_restart) {
+    restart_seed_stabilization(result.first_changed_slot, result.first_changed_fleet);
+    allow_notifications = false;
   }
 
   for (int index = 0; index < kFleetSlotCount; ++index) {
@@ -564,7 +602,6 @@ ScanResult scan_fleets(bool allow_notifications, bool sample_opc, std::string_vi
     }
 
     observe_fleet(fleet, index, allow_notifications, sample_opc, source);
-    ++result.observed_count;
   }
   return result;
 }
@@ -583,26 +620,27 @@ void fleet_watch_init()
                                          | fleet_notification_bit(FleetNotificationKind::StartedMining)
                                          | fleet_notification_bit(FleetNotificationKind::Docked)
                                          | fleet_notification_bit(FleetNotificationKind::RepairComplete);
-  constexpr auto state_events   = follow_through_events | fleet_notification_bit(FleetNotificationKind::MinerOpc);
-  s_enabled_notifications       = Config::Get().notify_fleet_events;
-  s_state_observation_enabled   = (s_enabled_notifications & state_events) != 0;
-  s_slots                       = {};
-  s_last_emitted_ms             = {};
-  s_node_depleted_stamps        = {};
-  s_seed_pending                = fleet_watch_uses_state_observation();
-  s_seed_has_observation        = false;
-  s_seed_ready_candidate        = false;
-  s_seed_candidate_forced       = false;
-  s_seed_restart_disabled       = false;
-  s_last_follow_through_scan_ms = 0;
-  s_last_mining_scan_ms         = 0;
-  s_last_seed_attempt_ms        = 0;
-  s_seed_started_ms             = 0;
-  s_seed_first_observed_ms      = 0;
-  s_seed_last_change_ms         = 0;
-  s_seed_candidate_count        = 0;
-  s_mining_watch_count          = 0;
-  s_follow_through_watch_count  = 0;
+  constexpr auto state_events     = follow_through_events | fleet_notification_bit(FleetNotificationKind::MinerOpc);
+  s_enabled_notifications         = Config::Get().notify_fleet_events;
+  s_state_observation_enabled     = (s_enabled_notifications & state_events) != 0;
+  s_slots                         = {};
+  s_last_emitted_ms               = {};
+  s_node_depleted_stamps          = {};
+  s_seed_pending                  = fleet_watch_uses_state_observation();
+  s_seed_has_observation          = false;
+  s_seed_manager_backed           = false;
+  s_seed_ready_candidate          = false;
+  s_seed_candidate_forced         = false;
+  s_seed_candidate_manager_backed = false;
+  s_last_follow_through_scan_ms   = 0;
+  s_last_mining_scan_ms           = 0;
+  s_last_seed_attempt_ms          = 0;
+  s_seed_started_ms               = 0;
+  s_seed_first_observed_ms        = 0;
+  s_seed_last_change_ms           = 0;
+  s_seed_candidate_count          = 0;
+  s_mining_watch_count            = 0;
+  s_follow_through_watch_count    = 0;
 }
 
 void fleet_watch_observe_widget(FleetPlayerData* fleet)
@@ -612,6 +650,12 @@ void fleet_watch_observe_widget(FleetPlayerData* fleet)
   }
 
   observe_fleet(fleet, -1, !s_seed_pending, false, "fleet-state-widget");
+  if (s_seed_pending && !s_seed_has_observation) {
+    const auto observed_count = occupied_snapshot_count();
+    if (observed_count > 0) {
+      begin_seed_observation(observed_count, false, now_milliseconds(), "fleet-state-widget");
+    }
+  }
 }
 
 void fleet_watch_observe_node_depleted(int64_t fleet_id)
@@ -672,43 +716,68 @@ void fleet_watch_tick()
     }
     const auto seed_lifetime = now_ms - s_seed_started_ms;
     if (seed_lifetime >= kSeedLifetimeMs && !s_seed_has_observation) {
-      s_seed_pending                = false;
-      s_seed_ready_candidate        = false;
-      s_seed_restart_disabled       = true;
-      s_slots                       = {};
-      s_last_emitted_ms             = {};
-      s_last_follow_through_scan_ms = 0;
-      s_last_mining_scan_ms         = 0;
-      s_mining_watch_count          = 0;
-      s_follow_through_watch_count  = 0;
+      s_seed_pending                  = false;
+      s_seed_manager_backed           = false;
+      s_seed_ready_candidate          = false;
+      s_seed_candidate_forced         = false;
+      s_seed_candidate_manager_backed = false;
+      s_slots                         = {};
+      s_last_emitted_ms               = {};
+      s_last_follow_through_scan_ms   = 0;
+      s_last_mining_scan_ms           = 0;
+      s_seed_first_observed_ms        = 0;
+      s_seed_last_change_ms           = 0;
+      s_seed_candidate_count          = 0;
+      s_mining_watch_count            = 0;
+      s_follow_through_watch_count    = 0;
       spdlog::warn("[FleetWatch] initial seed stopped after {}ms without a stable fleet baseline", kSeedLifetimeMs);
     } else {
       const auto seed_interval =
           s_seed_has_observation || seed_lifetime < kSeedFastPeriodMs ? kSeedFastIntervalMs : kSeedBackoffIntervalMs;
       if (s_last_seed_attempt_ms == 0 || now_ms - s_last_seed_attempt_ms >= seed_interval) {
-        s_last_seed_attempt_ms = now_ms;
-        const auto seed        = scan_fleets(false, true, "initial-seed");
-        if (!seed.manager_available || seed.observed_count == 0) {
-          s_seed_has_observation   = false;
-          s_seed_ready_candidate   = false;
-          s_seed_candidate_forced  = false;
-          s_seed_first_observed_ms = 0;
-          s_seed_last_change_ms    = 0;
-          s_seed_candidate_count   = 0;
+        s_last_seed_attempt_ms    = now_ms;
+        const auto seed           = scan_fleets(false, true, "initial-seed");
+        const bool manager_backed = seed.observed_count > 0;
+        const bool widget_backed  = !s_seed_has_observation || !s_seed_manager_backed;
+        const int  observed_count =
+            manager_backed ? seed.observed_count : (widget_backed ? occupied_snapshot_count() : 0);
+        if (observed_count == 0) {
+          s_seed_ready_candidate          = false;
+          s_seed_candidate_forced         = false;
+          s_seed_candidate_manager_backed = false;
+          s_seed_candidate_count          = 0;
+          if (s_seed_has_observation && !s_seed_manager_backed) {
+            s_seed_has_observation   = false;
+            s_seed_first_observed_ms = 0;
+            s_seed_last_change_ms    = 0;
+          }
+          if (seed_lifetime >= kSeedLifetimeMs) {
+            s_seed_pending                = false;
+            s_seed_has_observation        = false;
+            s_seed_manager_backed         = false;
+            s_slots                       = {};
+            s_last_emitted_ms             = {};
+            s_last_follow_through_scan_ms = 0;
+            s_last_mining_scan_ms         = 0;
+            s_seed_first_observed_ms      = 0;
+            s_seed_last_change_ms         = 0;
+            s_mining_watch_count          = 0;
+            s_follow_through_watch_count  = 0;
+            spdlog::warn("[FleetWatch] initial seed stopped after {}ms without an available fleet baseline",
+                         kSeedLifetimeMs);
+          }
         } else {
-          if (!s_seed_has_observation) {
-            s_seed_has_observation   = true;
-            s_seed_first_observed_ms = now_ms;
-            s_seed_last_change_ms    = now_ms;
-            spdlog::debug("[FleetWatch] observed {} fleet slots; waiting for stable initial state",
-                          seed.observed_count);
+          if (!s_seed_has_observation || s_seed_manager_backed != manager_backed) {
+            begin_seed_observation(observed_count, manager_backed, now_ms,
+                                   manager_backed ? "fleet-manager" : "fleet-state-widget");
           } else {
             const bool quiet  = now_ms - s_seed_last_change_ms >= kSeedStabilizationMs;
             const bool forced = now_ms - s_seed_first_observed_ms >= kSeedMaxStabilizationMs;
             if (quiet || forced) {
-              s_seed_ready_candidate  = true;
-              s_seed_candidate_forced = forced && !quiet;
-              s_seed_candidate_count  = seed.observed_count;
+              s_seed_ready_candidate          = true;
+              s_seed_candidate_forced         = forced && !quiet;
+              s_seed_candidate_manager_backed = manager_backed;
+              s_seed_candidate_count          = observed_count;
             }
           }
         }
@@ -762,29 +831,48 @@ void fleet_watch_tick()
 
 void fleet_watch_after_update()
 {
-  if (!s_seed_pending || !s_seed_ready_candidate) {
+  if (!s_seed_pending || (!s_seed_ready_candidate && !s_seed_candidate_forced)) {
     return;
   }
 
-  const bool forced = s_seed_candidate_forced;
-  const auto seed   = scan_fleets(false, true, "seed-finalize");
-  if (!seed.manager_available || seed.observed_count == 0) {
-    s_seed_has_observation   = false;
-    s_seed_ready_candidate   = false;
-    s_seed_candidate_forced  = false;
-    s_seed_first_observed_ms = 0;
-    s_seed_last_change_ms    = 0;
-    s_seed_candidate_count   = 0;
+  const bool forced         = s_seed_candidate_forced;
+  int        observed_count = occupied_snapshot_count();
+  const auto seed           = scan_fleets(false, true, "seed-finalize");
+  if (seed.topology_changed) {
     return;
   }
-  if (!forced && !s_seed_ready_candidate) {
+  if (seed.observed_count > 0) {
+    observed_count = seed.observed_count;
+    if (!forced && !s_seed_ready_candidate) {
+      return;
+    }
+  } else if (s_seed_candidate_manager_backed) {
+    s_seed_ready_candidate          = false;
+    s_seed_candidate_forced         = false;
+    s_seed_candidate_manager_backed = false;
+    s_seed_candidate_count          = 0;
     return;
+  } else {
+    if (observed_count == 0) {
+      s_seed_has_observation          = false;
+      s_seed_ready_candidate          = false;
+      s_seed_candidate_forced         = false;
+      s_seed_candidate_manager_backed = false;
+      s_seed_first_observed_ms        = 0;
+      s_seed_last_change_ms           = 0;
+      s_seed_candidate_count          = 0;
+      return;
+    }
+    if (!forced && !s_seed_ready_candidate) {
+      return;
+    }
   }
 
   const auto now_ms             = now_milliseconds();
   s_seed_pending                = false;
   s_seed_ready_candidate        = false;
-  s_seed_candidate_count        = seed.observed_count;
+  s_seed_candidate_forced       = false;
+  s_seed_candidate_count        = observed_count;
   s_last_follow_through_scan_ms = s_follow_through_watch_count > 0 ? now_ms : 0;
   s_last_mining_scan_ms         = s_mining_watch_count > 0 ? now_ms : 0;
   if (forced) {
