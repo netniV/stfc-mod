@@ -47,6 +47,12 @@ struct FleetSnapshot {
   int64_t    follow_through_started_ms = 0;
 };
 
+struct FleetNotificationStamp {
+  uint64_t fleet_id        = 0;
+  int64_t  last_emitted_ms = 0;
+  bool     occupied        = false;
+};
+
 using TransitionPredicate = bool (*)(FleetState, FleetState);
 
 struct FleetTransitionRule {
@@ -56,9 +62,9 @@ struct FleetTransitionRule {
 
 std::array<FleetSnapshot, kFleetSlotCount>                                s_slots{};
 std::array<std::array<int64_t, kFleetNotificationCount>, kFleetSlotCount> s_last_emitted_ms{};
+std::array<FleetNotificationStamp, kFleetSlotCount>                       s_node_depleted_stamps{};
 FleetNotificationMask                                                     s_enabled_notifications       = 0;
 bool                                                                      s_state_observation_enabled   = false;
-bool                                                                      s_transition_follow_enabled   = false;
 bool                                                                      s_opc_entry_follow_enabled    = false;
 bool                                                                      s_seed_pending                = false;
 int64_t                                                                   s_last_follow_through_scan_ms = 0;
@@ -92,29 +98,30 @@ bool allow_notification(int slot_index, FleetNotificationKind kind)
   return true;
 }
 
-constexpr bool state_is_follow_through(FleetState state)
-{
-  switch (state) {
-    case FleetState::TieringUp:
-    case FleetState::Repairing:
-    case FleetState::Battling:
-    case FleetState::WarpCharging:
-    case FleetState::Warping:
-    case FleetState::Impulsing:
-    case FleetState::Capturing:
-      return true;
-    default:
-      return false;
-  }
-}
-
-constexpr bool state_is_opc_entry_follow_through(FleetState state)
-{ return state == FleetState::WarpCharging || state == FleetState::Warping || state == FleetState::Impulsing; }
+bool any_notification_enabled(FleetNotificationMask mask)
+{ return (s_enabled_notifications & mask) != 0; }
 
 bool state_requires_enabled_follow_through(FleetState state)
 {
-  return (s_transition_follow_enabled && state_is_follow_through(state))
-         || (s_opc_entry_follow_enabled && state_is_opc_entry_follow_through(state));
+  constexpr auto arrival_events             = fleet_notification_bit(FleetNotificationKind::ArrivedInSystem)
+                                              | fleet_notification_bit(FleetNotificationKind::ArrivedAtDestination);
+  constexpr auto movement_completion_events = arrival_events
+                                              | fleet_notification_bit(FleetNotificationKind::StartedMining)
+                                              | fleet_notification_bit(FleetNotificationKind::Docked);
+
+  switch (state) {
+    case FleetState::WarpCharging:
+    case FleetState::Warping:
+    case FleetState::Impulsing:
+      return any_notification_enabled(movement_completion_events) || s_opc_entry_follow_enabled;
+    case FleetState::Battling:
+    case FleetState::Capturing:
+      return notification_enabled(FleetNotificationKind::Docked);
+    case FleetState::Repairing:
+      return notification_enabled(FleetNotificationKind::RepairComplete);
+    default:
+      return false;
+  }
 }
 
 constexpr bool state_is_destination(FleetState state)
@@ -276,6 +283,13 @@ void emit_transition(FleetNotificationKind kind, FleetPlayerData* fleet, int64_t
   }
 }
 
+constexpr bool cargo_is_opc(double current_value, double protected_limit)
+{ return current_value > protected_limit; }
+
+static_assert(!cargo_is_opc(99.0, 100.0));
+static_assert(!cargo_is_opc(100.0, 100.0));
+static_assert(cargo_is_opc(101.0, 100.0));
+
 bool read_opc(FleetPlayerData* fleet, bool& known)
 {
   known             = false;
@@ -285,8 +299,39 @@ bool read_opc(FleetPlayerData* fleet, bool& known)
     return false;
   }
 
+  const auto current_value   = unprotected->CurrentValue;
+  const auto protected_limit = unprotected->MinValue;
+  if (!std::isfinite(current_value) || !std::isfinite(protected_limit)) {
+    return false;
+  }
+
   known = true;
-  return unprotected->CurrentValue > 0.0;
+  return cargo_is_opc(current_value, protected_limit);
+}
+
+bool allow_node_depleted_notification(uint64_t fleet_id)
+{
+  const auto              now    = now_milliseconds();
+  FleetNotificationStamp* oldest = &s_node_depleted_stamps.front();
+  for (auto& stamp : s_node_depleted_stamps) {
+    if (stamp.occupied && stamp.fleet_id == fleet_id) {
+      if (now - stamp.last_emitted_ms < kDuplicateSuppressionMs) {
+        return false;
+      }
+      stamp.last_emitted_ms = now;
+      return true;
+    }
+    if (!stamp.occupied) {
+      oldest = &stamp;
+      break;
+    }
+    if (stamp.last_emitted_ms < oldest->last_emitted_ms) {
+      oldest = &stamp;
+    }
+  }
+
+  *oldest = FleetNotificationStamp{fleet_id, now, true};
+  return true;
 }
 
 int resolve_slot(FleetPlayerData* fleet, int requested_slot)
@@ -362,7 +407,7 @@ void observe_fleet(FleetPlayerData* fleet, int requested_slot, bool allow_notifi
   }
 
   if (same_fleet && allow_notifications && miner_opc_enabled && previous.state == FleetState::Mining
-      && current == FleetState::Mining && opc_known && !previous.opc && opc) {
+      && current == FleetState::Mining && previous.opc_known && opc_known && !previous.opc && opc) {
     if (!allow_notification(slot_index, FleetNotificationKind::MinerOpc)) {
       spdlog::debug("[FleetWatch] source={} suppressed duplicate event=MinerOPC slot={} fleet={}", source, slot_index,
                     fleet_id);
@@ -448,10 +493,10 @@ void fleet_watch_init()
   constexpr auto state_events   = follow_through_events | fleet_notification_bit(FleetNotificationKind::MinerOpc);
   s_enabled_notifications       = Config::Get().notify_fleet_events;
   s_state_observation_enabled   = (s_enabled_notifications & state_events) != 0;
-  s_transition_follow_enabled   = (s_enabled_notifications & follow_through_events) != 0;
   s_opc_entry_follow_enabled    = notification_enabled(FleetNotificationKind::MinerOpc);
   s_slots                       = {};
   s_last_emitted_ms             = {};
+  s_node_depleted_stamps        = {};
   s_seed_pending                = fleet_watch_uses_state_observation();
   s_last_follow_through_scan_ms = 0;
   s_last_mining_scan_ms         = 0;
@@ -476,9 +521,15 @@ void fleet_watch_observe_node_depleted(int64_t fleet_id)
     return;
   }
 
+  const auto fleet_key = static_cast<uint64_t>(fleet_id);
+  if (!allow_node_depleted_notification(fleet_key)) {
+    spdlog::debug("[FleetWatch] suppressed duplicate event=NodeDepleted fleet={}", fleet_key);
+    return;
+  }
+
   for (int index = 0; index < kFleetSlotCount; ++index) {
     const auto& snapshot = s_slots[index];
-    if (!snapshot.occupied || snapshot.fleet_id != static_cast<uint64_t>(fleet_id)) {
+    if (!snapshot.occupied || snapshot.fleet_id != fleet_key) {
       continue;
     }
 
@@ -486,24 +537,20 @@ void fleet_watch_observe_node_depleted(int64_t fleet_id)
     const auto subject  = notification_subject(fleet);
     const auto resource = resource_name(snapshot.resource_id);
     const auto detail   = resource.empty() ? std::string{" its node"} : " its " + resource + " node";
-    if (allow_notification(index, FleetNotificationKind::NodeDepleted)) {
-      notification_emit("Node Depleted", subject + " depleted" + detail + "." + cargo_text(fleet));
-    }
+    notification_emit("Node Depleted", subject + " depleted" + detail + "." + cargo_text(fleet));
     return;
   }
 
   for (int index = 0; index < kFleetSlotCount; ++index) {
     auto* fleet = fleet_for_slot(index);
-    if (!fleet || fleet->Id != static_cast<uint64_t>(fleet_id)) {
+    if (!fleet || fleet->Id != fleet_key) {
       continue;
     }
 
     auto*      mining_data = fleet->MiningData;
     const auto resource    = resource_name(mining_data ? mining_data->ResourceId : 0);
     const auto detail      = resource.empty() ? std::string{" its node"} : " its " + resource + " node";
-    if (allow_notification(index, FleetNotificationKind::NodeDepleted)) {
-      notification_emit("Node Depleted", notification_subject(fleet) + " depleted" + detail + "." + cargo_text(fleet));
-    }
+    notification_emit("Node Depleted", notification_subject(fleet) + " depleted" + detail + "." + cargo_text(fleet));
     return;
   }
 

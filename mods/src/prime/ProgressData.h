@@ -2,9 +2,12 @@
 
 #include <il2cpp/il2cpp_helper.h>
 
+#include <limits>
+
 struct ProgressData {
 public:
   __declspec(property(get = __get_CurrentValue)) double CurrentValue;
+  __declspec(property(get = __get_MinValue)) double     MinValue;
 
 private:
   static IL2CppClassHelper& get_class_helper()
@@ -19,6 +22,12 @@ public:
   {
     static auto property = get_class_helper().GetProperty("CurrentValue");
     auto*       value    = property.Get<double>(this);
-    return value ? *value : 0.0;
+    return value ? *value : std::numeric_limits<double>::quiet_NaN();
+  }
+  double __get_MinValue()
+  {
+    static auto property = get_class_helper().GetProperty("MinValue");
+    auto*       value    = property.Get<double>(this);
+    return value ? *value : std::numeric_limits<double>::quiet_NaN();
   }
 };
