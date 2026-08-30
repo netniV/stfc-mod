@@ -727,11 +727,15 @@ void fleet_watch_observe_widget(FleetPlayerData* fleet)
     return;
   }
 
-  const auto slot_index = resolve_slot(fleet, -1);
-  if (!s_seed_pending && s_seed_manager_backed && slot_index >= 0 && !manager_slot_matches(slot_index, fleet->Id)) {
+  const auto slot_index           = resolve_slot(fleet, -1);
+  const bool sample_opc           = slot_index >= 0 && (s_widget_opc_sample_mask & (1U << slot_index)) != 0;
+  const bool transition_candidate = slot_index >= 0 && s_slots[slot_index].occupied
+                                    && s_slots[slot_index].fleet_id == fleet->Id
+                                    && s_slots[slot_index].state != fleet->CurrentState;
+  if (!s_seed_pending && s_seed_manager_backed && (transition_candidate || sample_opc)
+      && !manager_slot_matches(slot_index, fleet->Id)) {
     restart_seed_stabilization(slot_index, fleet->Id);
   }
-  const bool sample_opc = slot_index >= 0 && (s_widget_opc_sample_mask & (1U << slot_index)) != 0;
   observe_fleet(fleet, -1, !s_seed_pending, sample_opc, "fleet-state-widget");
   if (sample_opc) {
     s_widget_opc_sample_mask &= ~(1U << slot_index);

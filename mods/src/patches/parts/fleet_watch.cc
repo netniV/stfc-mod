@@ -19,8 +19,9 @@ FleetPlayerData* fleet_widget_context(void* self)
     return nullptr;
   }
 
-  auto helper      = IL2CppClassHelper{reinterpret_cast<Il2CppObject*>(self)->klass};
-  auto get_context = helper.GetMethod<FleetPlayerData*(void*)>("get_Context", 0);
+  static auto get_context =
+      IL2CppClassHelper{reinterpret_cast<Il2CppObject*>(self)->klass}.GetMethod<FleetPlayerData*(void*)>("get_Context",
+                                                                                                         0);
   return get_context ? get_context(self) : nullptr;
 }
 
