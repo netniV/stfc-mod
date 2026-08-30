@@ -34,6 +34,7 @@
 #include "prime/ScanEngageButtonsWidget.h"
 #include "prime/ScreenManager.h"
 #include "prime/SelectableList.h"
+#include "prime/ShortcutsManager.h"
 
 #include "patches/key.h"
 #include "patches/mapkey.h"
@@ -53,7 +54,6 @@
 static bool reset_focus_next_frame = false;
 static int  show_info_pending      = 0;
 
-static void*             shortcuts_manager_instance = nullptr;
 static const MethodInfo* on_galaxy_action           = nullptr;
 
 struct InputActionCallbackContext {
@@ -65,7 +65,8 @@ static_assert(sizeof(InputActionCallbackContext) == 16);
 
 bool InvokeNativeShortcut(const MethodInfo* method, const char* action_name)
 {
-  if (!shortcuts_manager_instance || !method) {
+  auto* shortcuts_manager = ShortcutsManager::Instance();
+  if (!shortcuts_manager || !method) {
     spdlog::warn("[Hotkeys] native {} shortcut is unavailable", action_name);
     return false;
   }
@@ -75,7 +76,7 @@ bool InvokeNativeShortcut(const MethodInfo* method, const char* action_name)
   InputActionCallbackContext context{};
   void*                      args[]{&context};
   Il2CppException*           exception = nullptr;
-  il2cpp_runtime_invoke(method, shortcuts_manager_instance, args, &exception);
+  il2cpp_runtime_invoke(method, shortcuts_manager, args, &exception);
   if (exception) {
     spdlog::warn("[Hotkeys] native {} shortcut raised exception={}", action_name, static_cast<void*>(exception));
     return false;
@@ -993,7 +994,6 @@ void ChatMessageListLocalViewController_AboutToShow_Hook(ChatMessageListLocalVie
 
 void InitializeActions_Hook(auto original, void* _this)
 {
-  shortcuts_manager_instance = _this;
   if (Config::Get().use_scopely_hotkeys) {
     return original(_this);
   }

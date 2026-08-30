@@ -6,7 +6,6 @@
 
 #include <il2cpp/il2cpp_helper.h>
 
-#include <prime/Hub.h>
 #include <prime/NavigationPan.h>
 #include <prime/NavigationZoom.h>
 #include <prime/PlanetViewUtils.h>
@@ -148,8 +147,7 @@ void NavigationZoom_Update_Hook(auto original, NavigationZoom *_this)
   EnsureSystemZoomRange(_this);
 
   const auto mod_camera_shortcuts_enabled = config->hotkeys_enabled && !config->use_scopely_hotkeys;
-  const auto navigation_owns_chord =
-      mod_camera_shortcuts_enabled && !Hub::IsInChat() && IsScreenNavigationShortcutPressed();
+  const auto navigation_owns_chord = mod_camera_shortcuts_enabled && IsScreenNavigationShortcutPressed();
   const auto camera_shortcuts_enabled = mod_camera_shortcuts_enabled && !navigation_owns_chord;
 
   if (!Key::IsInputFocused()) {
