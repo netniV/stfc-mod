@@ -85,11 +85,15 @@ int                                                                       s_foll
 
 int64_t now_milliseconds();
 
-void restart_seed_stabilization(int slot_index, uint64_t fleet_id)
+void restart_seed_stabilization(int slot_index, uint64_t fleet_id, bool preserve_snapshots = false)
 {
-  const auto now_ms               = now_milliseconds();
-  s_slots                         = {};
-  s_last_emitted_ms               = {};
+  const auto now_ms = now_milliseconds();
+  if (!preserve_snapshots) {
+    s_slots                      = {};
+    s_last_emitted_ms            = {};
+    s_mining_watch_count         = 0;
+    s_follow_through_watch_count = 0;
+  }
   s_seed_pending                  = true;
   s_seed_has_observation          = false;
   s_seed_manager_backed           = false;
@@ -101,10 +105,9 @@ void restart_seed_stabilization(int slot_index, uint64_t fleet_id)
   s_seed_first_observed_ms        = 0;
   s_seed_last_change_ms           = 0;
   s_seed_candidate_count          = 0;
-  s_mining_watch_count            = 0;
-  s_follow_through_watch_count    = 0;
-  spdlog::debug("[FleetWatch] fleet topology changed; restarting initial-state stabilization slot={} fleet={}",
-                slot_index, fleet_id);
+  spdlog::debug(
+      "[FleetWatch] fleet topology changed; restarting initial-state stabilization slot={} fleet={} preserve={}",
+      slot_index, fleet_id, preserve_snapshots);
 }
 
 int64_t now_milliseconds()
@@ -415,7 +418,8 @@ int resolve_slot(FleetPlayerData* fleet, int requested_slot)
 void observe_fleet(FleetPlayerData* fleet, int requested_slot, bool allow_notifications, bool sample_opc,
                    std::string_view source)
 {
-  const auto slot_index = resolve_slot(fleet, requested_slot);
+  const bool widget_observation = requested_slot < 0;
+  const auto slot_index         = resolve_slot(fleet, requested_slot);
   if (!fleet || slot_index < 0) {
     return;
   }
@@ -425,7 +429,7 @@ void observe_fleet(FleetPlayerData* fleet, int requested_slot, bool allow_notifi
   const auto current    = fleet->CurrentState;
   const bool same_fleet = previous.occupied && previous.fleet_id == fleet_id;
   if (!same_fleet && (!s_seed_pending || s_seed_has_observation)) {
-    restart_seed_stabilization(slot_index, fleet_id);
+    restart_seed_stabilization(slot_index, fleet_id, widget_observation);
   }
   allow_notifications                 = allow_notifications && !s_seed_pending;
   const bool resource_context_enabled = notification_enabled(FleetNotificationKind::StartedMining)
