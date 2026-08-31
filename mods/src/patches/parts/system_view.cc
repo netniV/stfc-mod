@@ -12,7 +12,8 @@
 
 namespace
 {
-constexpr float kDedupeDistance = 25.0f;
+constexpr int64_t kDedupeSystemParentId = 1836706599;
+constexpr float   kDedupeDistance      = 75.0f;
 
 struct SlotObject
 {
@@ -30,7 +31,8 @@ struct TreeNodeView
   void*       address;
   void*       attributes;
   int64_t     id;
-  int64_t     parentNullable[2];
+  uint8_t     parent_has_value;
+  int64_t     parent_id;
   int32_t     type;
   SlotObject* coords;
 };
@@ -44,9 +46,8 @@ struct PlanetIconDataView
 
 struct CreatedObject
 {
-  void*   resource;
-  float   x;
-  float   y;
+  float    x;
+  float    y;
   void*   game_object;
   int64_t node_id;
 };
@@ -68,9 +69,10 @@ void Deactivate(void* game_object)
   }
 }
 
-void HandleCreated(const TreeNodeView* node, const void* resource)
+void HandleCreated(const TreeNodeView* node)
 {
-  if (node == nullptr || node->coords == nullptr || resource == nullptr) {
+  if (node == nullptr || node->coords == nullptr || node->parent_has_value == 0 ||
+      node->parent_id != kDedupeSystemParentId) {
     s_last_created_go = nullptr;
     return;
   }
@@ -78,22 +80,18 @@ void HandleCreated(const TreeNodeView* node, const void* resource)
   const std::lock_guard<std::mutex> lock(s_mutex);
 
   for (auto it = s_created.begin(); it != s_created.end(); ++it) {
-    if (it->resource != resource) {
-      continue;
-    }
     const auto dx = node->coords->x - it->x;
     const auto dy = node->coords->y - it->y;
     if (dx * dx + dy * dy < kDedupeDistance * kDedupeDistance) {
       Deactivate(it->game_object);
       s_deduped_node_ids.insert(it->node_id);
-      *it = CreatedObject{const_cast<void*>(resource), node->coords->x, node->coords->y, s_last_created_go, node->id};
+      *it = CreatedObject{node->coords->x, node->coords->y, s_last_created_go, node->id};
       s_last_created_go = nullptr;
       return;
     }
   }
 
-  s_created.push_back(
-      CreatedObject{const_cast<void*>(resource), node->coords->x, node->coords->y, s_last_created_go, node->id});
+  s_created.push_back(CreatedObject{node->coords->x, node->coords->y, s_last_created_go, node->id});
   s_last_created_go = nullptr;
 }
 
@@ -115,19 +113,11 @@ void PlanetViewUtils_CreateGameObjectAndBlock_Hook(auto original, void* _this, v
 }
 
 void PlanetViewUtils_CreateCelestialBody_Hook(auto original, void* _this, TreeNodeView* node, void* resource,
-                                              bool usingDefault)
+                                               bool usingDefault)
 {
   s_last_created_go = nullptr;
   original(_this, node, resource, usingDefault);
-  HandleCreated(node, resource);
-}
-
-void PlanetViewUtils_CreateEntity_Hook(auto original, void* _this, TreeNodeView* node, void* resource,
-                                       bool usingDefault, Il2CppString* entityName)
-{
-  s_last_created_go = nullptr;
-  original(_this, node, resource, usingDefault, entityName);
-  HandleCreated(node, resource);
+  HandleCreated(node);
 }
 
 void NavigationPlanetWidget_OnDidBindContext_Hook(auto original, void* _this)
@@ -200,12 +190,6 @@ void InstallSystemViewHooks()
     SPUD_STATIC_DETOUR(ptr, PlanetViewUtils_CreateCelestialBody_Hook);
   } else {
     ErrorMsg::MissingMethod("PlanetViewUtils", "CreateCelestialBody");
-  }
-
-  if (const auto ptr = planet_view_utils.GetMethod("CreateEntity", 4); ptr != nullptr) {
-    SPUD_STATIC_DETOUR(ptr, PlanetViewUtils_CreateEntity_Hook);
-  } else {
-    ErrorMsg::MissingMethod("PlanetViewUtils", "CreateEntity");
   }
 
   if (const auto ptr = planet_widget_helper.GetMethod("OnDidBindContext", 0); ptr != nullptr) {
