@@ -953,6 +953,8 @@ void Config::Load()
   this->installAudioEventHooks = this->trace_audio_events || !this->disabled_audio_events.empty();
   this->auto_open_bulk_claim_flyout = get_config_or_default(config, parsed, "ui", "auto_open_bulk_claim_flyout",
                                                              DCU::auto_open_bulk_claim_flyout, write_config);
+  this->allow_officer_preset_reordering = get_config_or_default(
+      config, parsed, "ui", "allow_officer_preset_reordering", DCU::allow_officer_preset_reordering, write_config);
 
   read_daily_bulk_claim_factions(config, parsed, this->daily_bulk_claim_factions, DCU::daily_bulk_claim_factions,
                                  write_config);

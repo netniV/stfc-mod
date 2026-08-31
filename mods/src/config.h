@@ -197,6 +197,7 @@ public:
   bool trace_audio_events;
   std::vector<std::string> disabled_audio_events;
   bool auto_open_bulk_claim_flyout;
+  bool allow_officer_preset_reordering;
   bool auto_confirm_ft_upgrade;
 
   std::vector<std::string> daily_bulk_claim_factions;
