@@ -218,6 +218,7 @@ public:
   NotificationSound alert_armada_battle_won;
   NotificationSound alert_armada_battle_lost;
   bool auto_open_bulk_claim_flyout;
+  bool allow_officer_preset_reordering;
   bool auto_confirm_ft_upgrade;
 
   std::vector<std::string> daily_bulk_claim_factions;
