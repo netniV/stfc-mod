@@ -13,6 +13,42 @@
 struct FabricEventManager {
 };
 
+namespace
+{
+enum class FabricEventAction : int {
+  PlaySound       = 0,
+  StopSound       = 1,
+  UnpauseSound    = 3,
+  AdvanceSequence = 16,
+  StopAll         = 21,
+  UnloadAudio     = 23,
+  PlayScheduled   = 33,
+};
+
+constexpr bool can_start_audio(int event_action)
+{
+  switch (static_cast<FabricEventAction>(event_action)) {
+    case FabricEventAction::PlaySound:
+    case FabricEventAction::UnpauseSound:
+    case FabricEventAction::AdvanceSequence:
+    case FabricEventAction::PlayScheduled:
+      return true;
+    default:
+      return false;
+  }
+}
+
+constexpr bool should_suppress_audio_event(bool disable_all, bool event_is_disabled, int event_action)
+{ return (disable_all || event_is_disabled) && can_start_audio(event_action); }
+
+static_assert(should_suppress_audio_event(true, false, static_cast<int>(FabricEventAction::PlaySound)));
+static_assert(should_suppress_audio_event(true, false, static_cast<int>(FabricEventAction::UnpauseSound)));
+static_assert(should_suppress_audio_event(false, true, static_cast<int>(FabricEventAction::PlayScheduled)));
+static_assert(!should_suppress_audio_event(true, false, static_cast<int>(FabricEventAction::StopSound)));
+static_assert(!should_suppress_audio_event(true, false, static_cast<int>(FabricEventAction::StopAll)));
+static_assert(!should_suppress_audio_event(true, false, static_cast<int>(FabricEventAction::UnloadAudio)));
+} // namespace
+
 // Fabric.EventManager.PostEvent(string, EventAction, object, GameObject,
 // InitialiseParameters, bool, OnEventNotify)
 bool FabricEventManager_PostEvent_Hook(auto original, FabricEventManager* _this, Il2CppString* event_name,
@@ -29,11 +65,13 @@ bool FabricEventManager_PostEvent_Hook(auto original, FabricEventManager* _this,
   auto&      config = Config::Get();
 
   if (config.trace_audio_events) {
-    spdlog::info("Audio event: {}", event);
+    spdlog::info("Audio event: {} (action {})", event, event_action);
   }
 
-  if (std::ranges::find(config.disabled_audio_events, event) != config.disabled_audio_events.end()) {
-    spdlog::debug("Suppressed audio event: {}", event);
+  const bool event_is_disabled =
+      std::ranges::find(config.disabled_audio_events, event) != config.disabled_audio_events.end();
+  if (should_suppress_audio_event(config.disable_all_audio_events, event_is_disabled, event_action)) {
+    spdlog::debug("Suppressed audio event: {} (action {})", event, event_action);
     return false;
   }
 
