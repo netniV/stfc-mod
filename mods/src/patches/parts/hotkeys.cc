@@ -42,6 +42,7 @@
 #include "patches/screen_update_hook.h"
 #include "patches/parts/daily_faction_bulk_claim.h"
 #include "patches/parts/focus_search.h"
+#include "str_utils.h"
 
 #include <EASTL/vector.h>
 
@@ -86,6 +87,301 @@ bool InvokeNativeShortcut(const MethodInfo* method, const char* action_name)
   }
 
   return true;
+}
+
+using GetShowKeybindingsFn             = bool(void*);
+using SetShowKeybindingsFn             = void(void*, bool);
+using CanUseShortcutsFn                = bool();
+using ClearTextOverrideFn              = void(void*);
+using UpdateShortcutHintTextFn         = void(void*);
+using GetInputActionFn                 = void*(void*);
+using GetInputActionNameFn             = Il2CppString*(void*);
+using OverrideLocalizedTextFn          = void(void*, Il2CppString*);
+using UpdateShortcutHintVisibilityFn   = void(void*, bool);
+
+static GetShowKeybindingsFn*     get_show_keybindings               = nullptr;
+static SetShowKeybindingsFn*     set_show_keybindings               = nullptr;
+static CanUseShortcutsFn*        can_use_shortcuts                  = nullptr;
+static ClearTextOverrideFn*      clear_text_override                = nullptr;
+static GetInputActionFn*         get_input_action                   = nullptr;
+static GetInputActionNameFn*     get_input_action_name              = nullptr;
+static OverrideLocalizedTextFn*  override_localized_text            = nullptr;
+static UpdateShortcutHintTextFn* original_shortcut_hint_update_text = nullptr;
+static ptrdiff_t                  shortcut_hint_input_action_offset   = 0;
+static ptrdiff_t                  shortcut_hint_text_localizer_offset = 0;
+static bool                       shortcut_hint_fields_ready          = false;
+static bool                       initialize_actions_hook_ready       = false;
+static bool                       shortcut_hints_ready                = false;
+
+bool SetNativeShortcutHintsVisible(bool visible)
+{
+  auto* shortcuts_manager = ShortcutsManager::Instance();
+  if (!shortcuts_manager || !get_show_keybindings || !set_show_keybindings) {
+    spdlog::warn("[Hotkeys] native shortcut hints are unavailable");
+    return false;
+  }
+
+  if (get_show_keybindings(shortcuts_manager) != visible)
+    set_show_keybindings(shortcuts_manager, visible);
+
+  return true;
+}
+
+bool ToggleNativeShortcutHints()
+{
+  auto* shortcuts_manager = ShortcutsManager::Instance();
+  if (!shortcut_hints_ready || !shortcuts_manager || !get_show_keybindings || !set_show_keybindings ||
+      !can_use_shortcuts) {
+    spdlog::warn("[Hotkeys] native shortcut hints are unavailable");
+    return false;
+  }
+
+  // Match the native OnShowKeybindingsAction gate while avoiding a fabricated InputAction.CallbackContext.
+  if (!can_use_shortcuts())
+    return false;
+
+  set_show_keybindings(shortcuts_manager, !get_show_keybindings(shortcuts_manager));
+
+  return true;
+}
+
+std::string CompactShortcutToken(std::string_view token, bool is_primary_key)
+{
+  // Use AutoHotkey's established ASCII modifier notation so the native game's limited font can render every badge.
+  if (token == "SHIFT")
+    return "+";
+  if (token == "CTRL")
+    return "^";
+  if (token == "ALT" || token == "ALTGR")
+    return "!";
+  if (token == "APPLE" || token == "CMD" || token == "WIN")
+    return "#";
+  if (token == "LSHIFT")
+    return "<+";
+  if (token == "RSHIFT")
+    return ">+";
+  if (token == "LCTRL")
+    return "<^";
+  if (token == "RCTRL")
+    return ">^";
+  if (token == "LALT")
+    return "<!";
+  if (token == "RALT")
+    return ">!";
+  if (token == "LAPPLE" || token == "LCOM" || token == "LWIN")
+    return "<#";
+  if (token == "RAPPLE" || token == "RCOM" || token == "RWIN")
+    return ">#";
+  if (is_primary_key && token == "+")
+    return "PLS";
+  if (is_primary_key && token == "^")
+    return "CAR";
+  if (is_primary_key && token == "!")
+    return "EXC";
+  if (is_primary_key && token == "#")
+    return "HSH";
+  if (token == "SPACE")
+    return "SPC";
+  if (token == "MOUSE0")
+    return "M0";
+  if (token == "MOUSE1")
+    return "M1";
+  if (token == "MOUSE2")
+    return "M2";
+  if (token == "MOUSE3")
+    return "M3";
+  if (token == "MOUSE4")
+    return "M4";
+  if (token == "MOUSE5")
+    return "M5";
+  if (token == "MOUSE6")
+    return "M6";
+  if (token == "ENTER" || token == "RETURN")
+    return "ENT";
+  if (token == "ESCAPE")
+    return "ESC";
+  if (token == "TAB")
+    return "TAB";
+  if (token == "BACKSPACE")
+    return "BS";
+  if (token == "DELETE")
+    return "DEL";
+  if (token == "MINUS")
+    return "-";
+  if (token == "EQUAL")
+    return "=";
+  if (token == "LEFT")
+    return "LT";
+  if (token == "RIGHT")
+    return "RT";
+  if (token == "UP")
+    return "UP";
+  if (token == "DOWN")
+    return "DN";
+  if (token == "PGUP")
+    return "PU";
+  if (token == "PGDOWN")
+    return "PD";
+  if (token == "HOME")
+    return "HM";
+  if (token == "END")
+    return "END";
+  if (token == "NONE")
+    return "-";
+  return std::string(token);
+}
+
+std::string CompactShortcutForHint(std::string_view shortcuts)
+{
+  if (shortcuts.empty()) {
+    return "-";
+  }
+
+  // A native badge only has room for one chord, so show the first configured alternative.
+  if (const auto alternative = shortcuts.find(" | "); alternative != std::string_view::npos) {
+    shortcuts = shortcuts.substr(0, alternative);
+  }
+
+  std::string compact;
+  for (size_t start = 0; start <= shortcuts.size();) {
+    const auto separator = shortcuts.find('-', start);
+    const auto end       = separator == std::string_view::npos ? shortcuts.size() : separator;
+    compact.append(CompactShortcutToken(shortcuts.substr(start, end - start), separator == std::string_view::npos));
+    if (separator == std::string_view::npos) {
+      break;
+    }
+    start = separator + 1;
+  }
+  return compact;
+}
+
+GameFunction ModFunctionForNativeAction(std::string_view action_name)
+{
+  if (action_name == "interior_view")
+    return GameFunction::ShowStationInterior;
+  if (action_name == "exterior_view")
+    return GameFunction::ShoWStationExterior;
+  if (action_name == "system_view")
+    return GameFunction::ShowSystem;
+  if (action_name == "galaxy_view")
+    return GameFunction::NativeShortcutGalaxy;
+  if (action_name == "events")
+    return GameFunction::NativeShortcutEvents;
+  if (action_name == "ship_a")
+    return GameFunction::SelectShip1;
+  if (action_name == "ship_b")
+    return GameFunction::SelectShip2;
+  if (action_name == "ship_c")
+    return GameFunction::SelectShip3;
+  if (action_name == "ship_d")
+    return GameFunction::SelectShip4;
+  if (action_name == "ship_e")
+    return GameFunction::SelectShip5;
+  if (action_name == "ship_f")
+    return GameFunction::SelectShip6;
+  if (action_name == "ship_g")
+    return GameFunction::SelectShip7;
+  if (action_name == "ship_h")
+    return GameFunction::SelectShip8;
+  if (action_name == "alliance")
+    return GameFunction::ShowAlliance;
+  if (action_name == "chat")
+    return GameFunction::ShowChat;
+  if (action_name == "side_chat")
+    return GameFunction::ShowChatSide1;
+  if (action_name == "away_teams")
+    return GameFunction::ShowAwayTeam;
+  if (action_name == "missions")
+    return GameFunction::ShowMissions;
+  if (action_name == "daily_goals")
+    return GameFunction::ShowDaily;
+  if (action_name == "ship_locate")
+    return GameFunction::SelectCurrent;
+  if (action_name == "ship_manage")
+    return GameFunction::ShowShips;
+  if (action_name == "research")
+    return GameFunction::ShowResearch;
+  if (action_name == "consumables")
+    return GameFunction::ShowExoComp;
+  if (action_name == "ship_recall")
+    return GameFunction::ActionRecall;
+  if (action_name == "show_keybindings")
+    return GameFunction::ToggleShortcutHints;
+  if (action_name == "gifts")
+    return GameFunction::ShowGifts;
+  if (action_name == "help_alliance")
+    return GameFunction::ShowAllianceHelp;
+  if (action_name == "officers")
+    return GameFunction::ShowOfficers;
+  if (action_name == "factions")
+    return GameFunction::ShowFactions;
+  if (action_name == "items")
+    return GameFunction::ShowInventory;
+  if (action_name == "refinery")
+    return GameFunction::ShowRefinery;
+  if (action_name == "commanders")
+    return GameFunction::ShowCommander;
+  if (action_name == "challenges")
+    return GameFunction::ShowQTrials;
+  return GameFunction::Max;
+}
+
+void ShortcutKeybindHint_UpdateText_Hook(auto original, void* _this)
+{
+  if (!_this || !shortcut_hints_ready) {
+    return original(_this);
+  }
+
+  auto* text_localizer =
+      *reinterpret_cast<void**>(reinterpret_cast<char*>(_this) + shortcut_hint_text_localizer_offset);
+  if (!text_localizer) {
+    return original(_this);
+  }
+
+  // UpdateText does not clear an existing localization override. Clear ours first so native, disabled, and unknown
+  // actions cannot retain a stale mod badge.
+  clear_text_override(text_localizer);
+  original(_this);
+
+  const auto& config = Config::Get();
+  if (!config.hotkeys_enabled || config.use_scopely_hotkeys) {
+    return;
+  }
+
+  auto* input_action_reference =
+      *reinterpret_cast<void**>(reinterpret_cast<char*>(_this) + shortcut_hint_input_action_offset);
+  if (!input_action_reference) {
+    return;
+  }
+
+  auto* action = get_input_action(input_action_reference);
+  auto* name   = action ? get_input_action_name(action) : nullptr;
+  if (!name) {
+    return;
+  }
+
+  const auto action_name   = to_string(name);
+  const auto game_function = ModFunctionForNativeAction(action_name);
+  if (game_function == GameFunction::Max) {
+    override_localized_text(text_localizer, il2cpp_string_new("-"));
+    return;
+  }
+
+  auto shortcuts = MapKey::GetShortcuts(game_function);
+  if (action_name == "side_chat" && shortcuts.empty()) {
+    shortcuts = MapKey::GetShortcuts(GameFunction::ShowChatSide2);
+  }
+
+  auto shortcut = CompactShortcutForHint(shortcuts);
+  override_localized_text(text_localizer, il2cpp_string_new(shortcut.c_str()));
+}
+
+void ShortcutKeybindHint_UpdateVisibility_Hook(auto original, void* _this, bool visible)
+{
+  original(_this, visible);
+  if (visible && shortcut_hints_ready && original_shortcut_hint_update_text) {
+    ShortcutKeybindHint_UpdateText_Hook(original_shortcut_hint_update_text, _this);
+  }
 }
 
 bool force_space_action_next_frame = false;
@@ -239,6 +535,7 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
   Key::ResetCache();
 
   if (MapKey::IsDown(GameFunction::DisableHotKeys)) {
+    SetNativeShortcutHintsVisible(false);
     Config::Get().hotkeys_enabled = false;
     spdlog::warn("Setting hotkeys to DISABLED");
     return;
@@ -256,6 +553,11 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
 
   if (!Config::Get().hotkeys_enabled) {
     fleet_watch_after_update();
+    return;
+  }
+
+  if (MapKey::IsDown(GameFunction::ToggleShortcutHints)) {
+    ToggleNativeShortcutHints();
     return;
   }
 
@@ -1115,12 +1417,95 @@ void InstallHotkeyHooks()
       ErrorMsg::MissingMethod("ShortcutsManager", "OnGalaxyAction");
     }
 
+    get_show_keybindings = shortcuts_manager_helper.GetMethod<bool(void*)>("get_ShowKeybindings", 0);
+    set_show_keybindings = shortcuts_manager_helper.GetMethod<void(void*, bool)>("set_ShowKeybindings", 1);
+    can_use_shortcuts     = shortcuts_manager_helper.GetMethod<bool()>("get_CanUseShortcuts", 0);
+    if (!get_show_keybindings)
+      ErrorMsg::MissingMethod("ShortcutsManager", "get_ShowKeybindings");
+    if (!set_show_keybindings)
+      ErrorMsg::MissingMethod("ShortcutsManager", "set_ShowKeybindings");
+    if (!can_use_shortcuts)
+      ErrorMsg::MissingMethod("ShortcutsManager", "get_CanUseShortcuts");
+
     auto ptr_can_user_shortcuts = shortcuts_manager_helper.GetMethod("InitializeActions");
     if (ptr_can_user_shortcuts == nullptr) {
       ErrorMsg::MissingMethod("ShortcutsManager", "InitializeActions");
     } else {
       SPUD_STATIC_DETOUR(ptr_can_user_shortcuts, InitializeActions_Hook);
+      initialize_actions_hook_ready = true;
     }
+  }
+
+  auto text_localizer_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.UI", "TextLocalizer");
+  if (!text_localizer_helper.isValidHelper()) {
+    ErrorMsg::MissingHelper("Digit.Client.UI", "TextLocalizer");
+  } else {
+    clear_text_override = text_localizer_helper.GetMethod<void(void*)>("ClearTextOverride", 0);
+    override_localized_text =
+        text_localizer_helper.GetMethod<void(void*, Il2CppString*)>("OverrideLocalizedText", 1);
+    if (!clear_text_override)
+      ErrorMsg::MissingMethod("TextLocalizer", "ClearTextOverride");
+    if (!override_localized_text)
+      ErrorMsg::MissingMethod("TextLocalizer", "OverrideLocalizedText");
+  }
+
+  UpdateShortcutHintTextFn* shortcut_hint_update_text = nullptr;
+  UpdateShortcutHintVisibilityFn* shortcut_hint_update_visibility = nullptr;
+  auto shortcut_hint_helper =
+      il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.GameInput", "ShortcutKeybindHint");
+  if (!shortcut_hint_helper.isValidHelper()) {
+    ErrorMsg::MissingHelper("GameInput", "ShortcutKeybindHint");
+  } else {
+    auto input_action_field   = shortcut_hint_helper.GetField("_inputAction");
+    auto text_localizer_field = shortcut_hint_helper.GetField("_keyTextLocalizer");
+    if (!input_action_field.isValidHelper()) {
+      spdlog::error("Unable to find field 'ShortcutKeybindHint->_inputAction'");
+    }
+    if (!text_localizer_field.isValidHelper()) {
+      spdlog::error("Unable to find field 'ShortcutKeybindHint->_keyTextLocalizer'");
+    }
+    if (input_action_field.isValidHelper() && text_localizer_field.isValidHelper()) {
+      shortcut_hint_input_action_offset   = input_action_field.offset();
+      shortcut_hint_text_localizer_offset = text_localizer_field.offset();
+      shortcut_hint_fields_ready          = true;
+    }
+
+    shortcut_hint_update_text = shortcut_hint_helper.GetMethod<void(void*)>("UpdateText", 0);
+    shortcut_hint_update_visibility =
+        shortcut_hint_helper.GetMethod<void(void*, bool)>("UpdateVisibility", 1);
+    if (!shortcut_hint_update_text) {
+      ErrorMsg::MissingMethod("ShortcutKeybindHint", "UpdateText");
+    }
+    if (!shortcut_hint_update_visibility)
+      ErrorMsg::MissingMethod("ShortcutKeybindHint", "UpdateVisibility");
+  }
+
+  auto input_action_reference_helper =
+      il2cpp_get_class_helper("Unity.InputSystem", "UnityEngine.InputSystem", "InputActionReference");
+  auto input_action_helper =
+      il2cpp_get_class_helper("Unity.InputSystem", "UnityEngine.InputSystem", "InputAction");
+  if (!input_action_reference_helper.isValidHelper()) {
+    ErrorMsg::MissingHelper("UnityEngine.InputSystem", "InputActionReference");
+  } else {
+    get_input_action = input_action_reference_helper.GetMethod<void*(void*)>("get_action", 0);
+    if (!get_input_action)
+      ErrorMsg::MissingMethod("InputActionReference", "get_action");
+  }
+  if (!input_action_helper.isValidHelper()) {
+    ErrorMsg::MissingHelper("UnityEngine.InputSystem", "InputAction");
+  } else {
+    get_input_action_name = input_action_helper.GetMethod<Il2CppString*(void*)>("get_name", 0);
+    if (!get_input_action_name)
+      ErrorMsg::MissingMethod("InputAction", "get_name");
+  }
+
+  if (get_show_keybindings && set_show_keybindings && can_use_shortcuts && initialize_actions_hook_ready &&
+      clear_text_override && override_localized_text && shortcut_hint_fields_ready && shortcut_hint_update_text &&
+      shortcut_hint_update_visibility && get_input_action && get_input_action_name) {
+    original_shortcut_hint_update_text =
+        SPUD_STATIC_DETOUR(shortcut_hint_update_text, ShortcutKeybindHint_UpdateText_Hook);
+    SPUD_STATIC_DETOUR(shortcut_hint_update_visibility, ShortcutKeybindHint_UpdateVisibility_Hook);
+    shortcut_hints_ready = true;
   }
 
   install_screen_manager_update_hook();

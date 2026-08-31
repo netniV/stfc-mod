@@ -527,6 +527,10 @@ show_scrapyard = "Y"
 # Ga naar Instellingen
 show_settings = "SHIFT-S"
 
+# Schermtips voor sneltoetsen in- of uitschakelen (toont ondersteunde mod-sneltoetsen)
+toggle_shortcut_hints = "NONE"
+# Modificatietoetsen gebruiken AutoHotkey-notatie: ^ Ctrl, ! Alt, + Shift, # Win/Command
+
 # Ga naar Scheepsmanagement
 show_ships = "N"
 

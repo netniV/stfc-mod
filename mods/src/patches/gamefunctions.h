@@ -48,6 +48,7 @@ enum GameFunction {
   ShowEvents,
   NativeShortcutEvents,
   ShowSettings,
+  ToggleShortcutHints,
   ZoomPreset1,
   ZoomPreset2,
   ZoomPreset3,

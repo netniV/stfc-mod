@@ -527,6 +527,10 @@ show_scrapyard = "Y"
 # Aller aux paramètres
 show_settings = "SHIFT-S"
 
+# Afficher ou masquer les raccourcis à l’écran (affiche les raccourcis du mod pris en charge)
+toggle_shortcut_hints = "NONE"
+# Les modificateurs utilisent la notation AutoHotkey : ^ Ctrl, ! Alt, + Maj, # Win/Commande
+
 # Aller aux vaisseaux
 show_ships = "N"
 
