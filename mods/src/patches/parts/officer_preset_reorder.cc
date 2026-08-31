@@ -4,7 +4,6 @@
 #include "str_utils.h"
 
 #include <il2cpp/il2cpp_helper.h>
-#include <vm/Array.h>
 
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
@@ -495,12 +494,13 @@ bool render_local_order(Il2CppObject* controller, bool preserve_scroll)
     spdlog::warn("[OfficerPresetReorder] unable to allocate the scroller view array");
     return false;
   }
+  auto** view_slots = reinterpret_cast<void**>(reinterpret_cast<Il2CppArraySize*>(view_array)->vector);
   for (int32_t index = 0; index < size; ++index) {
     auto* context = view_items[index];
     if (context != nullptr) {
       context->presentation = active_presentations[index];
     }
-    il2cpp_array_setref(view_array, index, context);
+    il2cpp_gc_wbarrier_set_field(reinterpret_cast<Il2CppObject*>(view_array), &view_slots[index], context);
   }
 
   const auto scroll_position = preserve_scroll && get_scroll_position != nullptr ? get_scroll_position(scroller) : 0.0f;
