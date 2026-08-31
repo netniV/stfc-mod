@@ -54,38 +54,48 @@
 static bool reset_focus_next_frame = false;
 static int  show_info_pending      = 0;
 
-static const MethodInfo* on_show_keybindings_action = nullptr;
+using GetShowKeybindingsFn  = bool(void*);
+using SetShowKeybindingsFn  = void(void*, bool);
+using CanUseShortcutsFn     = bool();
+using ClearTextOverrideFn   = void(void*);
 
-struct InputActionCallbackContext {
-  void*   state;
-  int32_t action_index;
-};
+static GetShowKeybindingsFn* get_show_keybindings = nullptr;
+static SetShowKeybindingsFn* set_show_keybindings = nullptr;
+static CanUseShortcutsFn*    can_use_shortcuts     = nullptr;
+static ClearTextOverrideFn*  clear_text_override  = nullptr;
 
-static_assert(sizeof(InputActionCallbackContext) == 16);
-
-bool InvokeNativeShortcut(const MethodInfo* method, const char* action_name)
+bool SetNativeShortcutHintsVisible(bool visible)
 {
   auto* shortcuts_manager = ShortcutsManager::Instance();
-  if (!shortcuts_manager || !method) {
-    spdlog::warn("[Hotkeys] native {} shortcut is unavailable", action_name);
+  if (!shortcuts_manager || !get_show_keybindings || !set_show_keybindings) {
+    spdlog::warn("[Hotkeys] native shortcut hints are unavailable");
     return false;
   }
 
-  // The callback does not inspect CallbackContext, but runtime_invoke still requires storage for the value-type
-  // argument. Using the managed invoker also avoids platform-specific by-value ABI assumptions.
-  InputActionCallbackContext context{};
-  void*                      args[]{&context};
-  Il2CppException*           exception = nullptr;
-  il2cpp_runtime_invoke(method, shortcuts_manager, args, &exception);
-  if (exception) {
-    spdlog::warn("[Hotkeys] native {} shortcut raised exception={}", action_name, static_cast<void*>(exception));
-    return false;
-  }
+  if (get_show_keybindings(shortcuts_manager) != visible)
+    set_show_keybindings(shortcuts_manager, visible);
 
   return true;
 }
 
-std::string CompactShortcutToken(std::string_view token)
+bool ToggleNativeShortcutHints()
+{
+  auto* shortcuts_manager = ShortcutsManager::Instance();
+  if (!shortcuts_manager || !get_show_keybindings || !set_show_keybindings || !can_use_shortcuts) {
+    spdlog::warn("[Hotkeys] native shortcut hints are unavailable");
+    return false;
+  }
+
+  // Match the native OnShowKeybindingsAction gate while avoiding a fabricated InputAction.CallbackContext.
+  if (!can_use_shortcuts())
+    return false;
+
+  set_show_keybindings(shortcuts_manager, !get_show_keybindings(shortcuts_manager));
+
+  return true;
+}
+
+std::string CompactShortcutToken(std::string_view token, bool is_primary_key)
 {
   // Use AutoHotkey's established ASCII modifier notation so the native game's limited font can render every badge.
   if (token == "SHIFT")
@@ -94,12 +104,36 @@ std::string CompactShortcutToken(std::string_view token)
     return "^";
   if (token == "ALT" || token == "ALTGR")
     return "!";
-  if (token == "APPLE" || token == "CMD")
+  if (token == "APPLE" || token == "CMD" || token == "WIN")
     return "#";
-  if (token == "WIN")
-    return "#";
+  if (token == "LSHIFT")
+    return "<+";
+  if (token == "RSHIFT")
+    return ">+";
+  if (token == "LCTRL")
+    return "<^";
+  if (token == "RCTRL")
+    return ">^";
+  if (token == "LALT")
+    return "<!";
+  if (token == "RALT")
+    return ">!";
+  if (token == "LAPPLE" || token == "LCOM" || token == "LWIN")
+    return "<#";
+  if (token == "RAPPLE" || token == "RCOM" || token == "RWIN")
+    return ">#";
+  if (is_primary_key && token == "+")
+    return "PLS";
+  if (is_primary_key && token == "^")
+    return "CAR";
+  if (is_primary_key && token == "!")
+    return "EXC";
+  if (is_primary_key && token == "#")
+    return "HSH";
   if (token == "SPACE")
     return "SPC";
+  if (token == "MOUSE0")
+    return "M0";
   if (token == "MOUSE1")
     return "M1";
   if (token == "MOUSE2")
@@ -110,6 +144,8 @@ std::string CompactShortcutToken(std::string_view token)
     return "M4";
   if (token == "MOUSE5")
     return "M5";
+  if (token == "MOUSE6")
+    return "M6";
   if (token == "ENTER" || token == "RETURN")
     return "ENT";
   if (token == "ESCAPE")
@@ -125,13 +161,13 @@ std::string CompactShortcutToken(std::string_view token)
   if (token == "EQUAL")
     return "=";
   if (token == "LEFT")
-    return "L";
+    return "LT";
   if (token == "RIGHT")
-    return "R";
+    return "RT";
   if (token == "UP")
-    return "U";
+    return "UP";
   if (token == "DOWN")
-    return "D";
+    return "DN";
   if (token == "PGUP")
     return "PU";
   if (token == "PGDOWN")
@@ -160,7 +196,7 @@ std::string CompactShortcutForHint(std::string_view shortcuts)
   for (size_t start = 0; start <= shortcuts.size();) {
     const auto separator = shortcuts.find('-', start);
     const auto end       = separator == std::string_view::npos ? shortcuts.size() : separator;
-    compact.append(CompactShortcutToken(shortcuts.substr(start, end - start)));
+    compact.append(CompactShortcutToken(shortcuts.substr(start, end - start), separator == std::string_view::npos));
     if (separator == std::string_view::npos) {
       break;
     }
@@ -242,24 +278,32 @@ GameFunction ModFunctionForNativeAction(std::string_view action_name)
 
 void ShortcutKeybindHint_UpdateText_Hook(auto original, void* _this)
 {
-  original(_this);
-
-  const auto& config = Config::Get();
-  if (!_this || !config.hotkeys_enabled || config.use_scopely_hotkeys) {
-    return;
-  }
-
   static auto hint_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.GameInput", "ShortcutKeybindHint");
   static auto input_action_field   = hint_helper.GetField("_inputAction");
   static auto text_localizer_field = hint_helper.GetField("_keyTextLocalizer");
-  if (!input_action_field.isValidHelper() || !text_localizer_field.isValidHelper()) {
+  if (!_this || !input_action_field.isValidHelper() || !text_localizer_field.isValidHelper() ||
+      !clear_text_override) {
+    return original(_this);
+  }
+
+  auto* text_localizer = *reinterpret_cast<void**>(reinterpret_cast<char*>(_this) + text_localizer_field.offset());
+  if (!text_localizer) {
+    return original(_this);
+  }
+
+  // UpdateText does not clear an existing localization override. Clear ours first so native, disabled, and unknown
+  // actions cannot retain a stale mod badge.
+  clear_text_override(text_localizer);
+  original(_this);
+
+  const auto& config = Config::Get();
+  if (!config.hotkeys_enabled || config.use_scopely_hotkeys) {
     return;
   }
 
   auto* input_action_reference =
       *reinterpret_cast<void**>(reinterpret_cast<char*>(_this) + input_action_field.offset());
-  auto* text_localizer = *reinterpret_cast<void**>(reinterpret_cast<char*>(_this) + text_localizer_field.offset());
-  if (!input_action_reference || !text_localizer) {
+  if (!input_action_reference) {
     return;
   }
 
@@ -281,12 +325,19 @@ void ShortcutKeybindHint_UpdateText_Hook(auto original, void* _this)
     return;
   }
 
-  const auto game_function = ModFunctionForNativeAction(to_string(name));
+  const auto action_name   = to_string(name);
+  const auto game_function = ModFunctionForNativeAction(action_name);
   if (game_function == GameFunction::Max) {
+    override_text(text_localizer, il2cpp_string_new("-"));
     return;
   }
 
-  auto shortcut = CompactShortcutForHint(MapKey::GetShortcuts(game_function));
+  auto shortcuts = MapKey::GetShortcuts(game_function);
+  if (action_name == "side_chat" && shortcuts.empty()) {
+    shortcuts = MapKey::GetShortcuts(GameFunction::ShowChatSide2);
+  }
+
+  auto shortcut = CompactShortcutForHint(shortcuts);
   override_text(text_localizer, il2cpp_string_new(shortcut.c_str()));
 }
 
@@ -434,6 +485,7 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
   Key::ResetCache();
 
   if (MapKey::IsDown(GameFunction::DisableHotKeys)) {
+    SetNativeShortcutHintsVisible(false);
     Config::Get().hotkeys_enabled = false;
     spdlog::warn("Setting hotkeys to DISABLED");
     return;
@@ -452,7 +504,7 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
   }
 
   if (MapKey::IsDown(GameFunction::ToggleShortcutHints)) {
-    InvokeNativeShortcut(on_show_keybindings_action, "Show Keybindings");
+    ToggleNativeShortcutHints();
     return;
   }
 
@@ -1277,10 +1329,15 @@ void InstallHotkeyHooks()
   if (!shortcuts_manager_helper.isValidHelper()) {
     ErrorMsg::MissingHelper("GameInput", "ShortcutsManager");
   } else {
-    on_show_keybindings_action = shortcuts_manager_helper.GetMethodInfo("OnShowKeybindingsAction", 1);
-    if (on_show_keybindings_action == nullptr) {
-      ErrorMsg::MissingMethod("ShortcutsManager", "OnShowKeybindingsAction");
-    }
+    get_show_keybindings = shortcuts_manager_helper.GetMethod<bool(void*)>("get_ShowKeybindings", 0);
+    set_show_keybindings = shortcuts_manager_helper.GetMethod<void(void*, bool)>("set_ShowKeybindings", 1);
+    can_use_shortcuts     = shortcuts_manager_helper.GetMethod<bool()>("get_CanUseShortcuts", 0);
+    if (!get_show_keybindings)
+      ErrorMsg::MissingMethod("ShortcutsManager", "get_ShowKeybindings");
+    if (!set_show_keybindings)
+      ErrorMsg::MissingMethod("ShortcutsManager", "set_ShowKeybindings");
+    if (!can_use_shortcuts)
+      ErrorMsg::MissingMethod("ShortcutsManager", "get_CanUseShortcuts");
 
     auto ptr_can_user_shortcuts = shortcuts_manager_helper.GetMethod("InitializeActions");
     if (ptr_can_user_shortcuts == nullptr) {
@@ -1288,6 +1345,15 @@ void InstallHotkeyHooks()
     } else {
       SPUD_STATIC_DETOUR(ptr_can_user_shortcuts, InitializeActions_Hook);
     }
+  }
+
+  auto text_localizer_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.UI", "TextLocalizer");
+  if (!text_localizer_helper.isValidHelper()) {
+    ErrorMsg::MissingHelper("Digit.Client.UI", "TextLocalizer");
+  } else {
+    clear_text_override = text_localizer_helper.GetMethod<void(void*)>("ClearTextOverride", 0);
+    if (!clear_text_override)
+      ErrorMsg::MissingMethod("TextLocalizer", "ClearTextOverride");
   }
 
   auto shortcut_hint_helper =
@@ -1298,7 +1364,7 @@ void InstallHotkeyHooks()
     auto update_text = shortcut_hint_helper.GetMethod("UpdateText");
     if (update_text == nullptr) {
       ErrorMsg::MissingMethod("ShortcutKeybindHint", "UpdateText");
-    } else {
+    } else if (clear_text_override) {
       SPUD_STATIC_DETOUR(update_text, ShortcutKeybindHint_UpdateText_Hook);
     }
   }
