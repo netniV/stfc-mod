@@ -491,6 +491,10 @@ show_scrapyard = "Y"
 # Zu den Einstellungen
 show_settings = "SHIFT-S"
 
+# Bildschirmhinweise für Tastenkürzel umschalten (zeigt unterstützte Mod-Tastenkürzel)
+toggle_shortcut_hints = "NONE"
+# Hinweissymbole verwenden die AutoHotkey-Schreibweise: ^ Strg, ! Alt, + Umschalt, # Win/Befehl
+
 # Zur Schiffsverwaltung
 show_ships = "N"
 
@@ -829,4 +833,3 @@ verify_ssl = true
 #  <[===================================================================================================================================================================================]> 
 
 [sync.targets.spocksclub]
-

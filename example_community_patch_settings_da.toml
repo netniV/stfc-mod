@@ -491,6 +491,10 @@ show_scrapyard = "Y"
 # Gå til indstillinger
 show_settings = "SHIFT-S"
 
+# Slå genvejstips på skærmen til/fra (viser mod-genveje, hvor de understøttes)
+toggle_shortcut_hints = "NONE"
+# Symboler i mærker bruger AutoHotkey-notation: ^ Ctrl, ! Alt, + Shift, # Win/Command
+
 # Gå til administration af skibe
 show_ships = "N"
 
@@ -829,4 +833,3 @@ verify_ssl = true
 #  <[========================================================================================================================================================================================================]> 
 
 [sync.targets.spocksclub]
-
