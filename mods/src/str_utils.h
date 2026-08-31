@@ -57,14 +57,14 @@ constexpr std::string_view StripPrefix(std::string_view str, const std::string_v
 
 constexpr std::string AsciiStrToUpper(const std::string_view s)
 {
-  std::string str = s.data();
+  std::string str{s};
   std::ranges::transform(str, str.begin(), ::toupper);
   return str;
 }
 
 constexpr std::string AsciiStrToLower(const std::string_view s)
 {
-  std::string str = s.data();
+  std::string str{s};
   std::ranges::transform(str, str.begin(), ::tolower);
   return str;
 }
