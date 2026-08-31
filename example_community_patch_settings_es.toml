@@ -244,6 +244,7 @@ panhooks = true
 # Fija las naves configuradas al principio del muelle de gestión de flota
 pinnedshiphooks = true
 syncpatches = true
+systemviewhooks = true
 tempcrashfixes = true
 testpatches = true
 toastbannerhooks = true

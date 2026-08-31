@@ -244,6 +244,7 @@ panhooks = true
 # Помещает настроенные корабли в начало списка в окне управления флотом
 pinnedshiphooks = true
 syncpatches = true
+systemviewhooks = true
 tempcrashfixes = true
 testpatches = true
 toastbannerhooks = true

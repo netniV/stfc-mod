@@ -244,6 +244,7 @@ panhooks = true
 # Pin configured ships to the front of the fleet management dock
 pinnedshiphooks = true
 syncpatches = true
+systemviewhooks = true
 tempcrashfixes = true
 testpatches = true
 toastbannerhooks = true

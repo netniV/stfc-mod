@@ -48,6 +48,7 @@ void InstallDoubleClickAssignShipHooks();
 void InstallInstantWarpConfirmationHooks();
 void InstallForbiddenTechConfirmationHooks();
 void InstallAudioEventHooks();
+void InstallSystemViewHooks();
 
 __int64 il2cpp_init_hook(auto original, const char* domain_name)
 {
@@ -151,6 +152,7 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
       {"InstantWarpConfirm",   {InstallInstantWarpConfirmationHooks, &cfg.installInstantWarpConfirmationHooks}},
       {"ForbiddenTechConfirm", {InstallForbiddenTechConfirmationHooks, &cfg.auto_confirm_ft_upgrade}},
       {"AudioEvents",          {InstallAudioEventHooks,                 &cfg.installAudioEventHooks}},
+      {"SystemViewHooks",     {InstallSystemViewHooks,         &cfg.installSystemViewHooks}},
   };
   printf("il2cpp_init_hook(%s)\n", domain_name);
 
