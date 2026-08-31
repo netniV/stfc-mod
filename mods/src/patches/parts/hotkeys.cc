@@ -54,15 +54,28 @@
 static bool reset_focus_next_frame = false;
 static int  show_info_pending      = 0;
 
-using GetShowKeybindingsFn  = bool(void*);
-using SetShowKeybindingsFn  = void(void*, bool);
-using CanUseShortcutsFn     = bool();
-using ClearTextOverrideFn   = void(void*);
+using GetShowKeybindingsFn     = bool(void*);
+using SetShowKeybindingsFn     = void(void*, bool);
+using CanUseShortcutsFn        = bool();
+using ClearTextOverrideFn      = void(void*);
+using UpdateShortcutHintTextFn = void(void*);
+using GetInputActionFn         = void*(void*);
+using GetInputActionNameFn     = Il2CppString*(void*);
+using OverrideLocalizedTextFn  = void(void*, Il2CppString*);
+using KeybindVisibilityChangedFn = void(void*, bool);
 
-static GetShowKeybindingsFn* get_show_keybindings = nullptr;
-static SetShowKeybindingsFn* set_show_keybindings = nullptr;
-static CanUseShortcutsFn*    can_use_shortcuts     = nullptr;
-static ClearTextOverrideFn*  clear_text_override  = nullptr;
+static GetShowKeybindingsFn*     get_show_keybindings               = nullptr;
+static SetShowKeybindingsFn*     set_show_keybindings               = nullptr;
+static CanUseShortcutsFn*        can_use_shortcuts                  = nullptr;
+static ClearTextOverrideFn*      clear_text_override                = nullptr;
+static GetInputActionFn*         get_input_action                   = nullptr;
+static GetInputActionNameFn*     get_input_action_name              = nullptr;
+static OverrideLocalizedTextFn*  override_localized_text            = nullptr;
+static UpdateShortcutHintTextFn* original_shortcut_hint_update_text = nullptr;
+static ptrdiff_t                  shortcut_hint_input_action_offset   = 0;
+static ptrdiff_t                  shortcut_hint_text_localizer_offset = 0;
+static bool                       shortcut_hint_fields_ready          = false;
+static bool                       shortcut_hints_ready                = false;
 
 bool SetNativeShortcutHintsVisible(bool visible)
 {
@@ -81,7 +94,8 @@ bool SetNativeShortcutHintsVisible(bool visible)
 bool ToggleNativeShortcutHints()
 {
   auto* shortcuts_manager = ShortcutsManager::Instance();
-  if (!shortcuts_manager || !get_show_keybindings || !set_show_keybindings || !can_use_shortcuts) {
+  if (!shortcut_hints_ready || !shortcuts_manager || !get_show_keybindings || !set_show_keybindings ||
+      !can_use_shortcuts) {
     spdlog::warn("[Hotkeys] native shortcut hints are unavailable");
     return false;
   }
@@ -278,15 +292,12 @@ GameFunction ModFunctionForNativeAction(std::string_view action_name)
 
 void ShortcutKeybindHint_UpdateText_Hook(auto original, void* _this)
 {
-  static auto hint_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.GameInput", "ShortcutKeybindHint");
-  static auto input_action_field   = hint_helper.GetField("_inputAction");
-  static auto text_localizer_field = hint_helper.GetField("_keyTextLocalizer");
-  if (!_this || !input_action_field.isValidHelper() || !text_localizer_field.isValidHelper() ||
-      !clear_text_override) {
+  if (!_this || !shortcut_hints_ready) {
     return original(_this);
   }
 
-  auto* text_localizer = *reinterpret_cast<void**>(reinterpret_cast<char*>(_this) + text_localizer_field.offset());
+  auto* text_localizer =
+      *reinterpret_cast<void**>(reinterpret_cast<char*>(_this) + shortcut_hint_text_localizer_offset);
   if (!text_localizer) {
     return original(_this);
   }
@@ -302,25 +313,13 @@ void ShortcutKeybindHint_UpdateText_Hook(auto original, void* _this)
   }
 
   auto* input_action_reference =
-      *reinterpret_cast<void**>(reinterpret_cast<char*>(_this) + input_action_field.offset());
+      *reinterpret_cast<void**>(reinterpret_cast<char*>(_this) + shortcut_hint_input_action_offset);
   if (!input_action_reference) {
     return;
   }
 
-  static auto input_action_reference_helper =
-      il2cpp_get_class_helper("Unity.InputSystem", "UnityEngine.InputSystem", "InputActionReference");
-  static auto input_action_helper =
-      il2cpp_get_class_helper("Unity.InputSystem", "UnityEngine.InputSystem", "InputAction");
-  static auto text_localizer_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.UI", "TextLocalizer");
-  static auto get_action            = input_action_reference_helper.GetMethod<void*(void*)>("get_action", 0);
-  static auto get_name              = input_action_helper.GetMethod<Il2CppString*(void*)>("get_name", 0);
-  static auto override_text = text_localizer_helper.GetMethod<void(void*, Il2CppString*)>("OverrideLocalizedText", 1);
-  if (!get_action || !get_name || !override_text) {
-    return;
-  }
-
-  auto* action = get_action(input_action_reference);
-  auto* name   = action ? get_name(action) : nullptr;
+  auto* action = get_input_action(input_action_reference);
+  auto* name   = action ? get_input_action_name(action) : nullptr;
   if (!name) {
     return;
   }
@@ -328,7 +327,7 @@ void ShortcutKeybindHint_UpdateText_Hook(auto original, void* _this)
   const auto action_name   = to_string(name);
   const auto game_function = ModFunctionForNativeAction(action_name);
   if (game_function == GameFunction::Max) {
-    override_text(text_localizer, il2cpp_string_new("-"));
+    override_localized_text(text_localizer, il2cpp_string_new("-"));
     return;
   }
 
@@ -338,7 +337,15 @@ void ShortcutKeybindHint_UpdateText_Hook(auto original, void* _this)
   }
 
   auto shortcut = CompactShortcutForHint(shortcuts);
-  override_text(text_localizer, il2cpp_string_new(shortcut.c_str()));
+  override_localized_text(text_localizer, il2cpp_string_new(shortcut.c_str()));
+}
+
+void ShortcutKeybindHint_KeybindShowVisibilityChanged_Hook(auto original, void* _this, bool visible)
+{
+  if (visible && shortcut_hints_ready && original_shortcut_hint_update_text) {
+    ShortcutKeybindHint_UpdateText_Hook(original_shortcut_hint_update_text, _this);
+  }
+  original(_this, visible);
 }
 
 bool force_space_action_next_frame = false;
@@ -1352,21 +1359,71 @@ void InstallHotkeyHooks()
     ErrorMsg::MissingHelper("Digit.Client.UI", "TextLocalizer");
   } else {
     clear_text_override = text_localizer_helper.GetMethod<void(void*)>("ClearTextOverride", 0);
+    override_localized_text =
+        text_localizer_helper.GetMethod<void(void*, Il2CppString*)>("OverrideLocalizedText", 1);
     if (!clear_text_override)
       ErrorMsg::MissingMethod("TextLocalizer", "ClearTextOverride");
+    if (!override_localized_text)
+      ErrorMsg::MissingMethod("TextLocalizer", "OverrideLocalizedText");
   }
 
+  UpdateShortcutHintTextFn* shortcut_hint_update_text = nullptr;
+  KeybindVisibilityChangedFn* keybind_show_visibility_changed = nullptr;
   auto shortcut_hint_helper =
       il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.GameInput", "ShortcutKeybindHint");
   if (!shortcut_hint_helper.isValidHelper()) {
     ErrorMsg::MissingHelper("GameInput", "ShortcutKeybindHint");
   } else {
-    auto update_text = shortcut_hint_helper.GetMethod("UpdateText");
-    if (update_text == nullptr) {
-      ErrorMsg::MissingMethod("ShortcutKeybindHint", "UpdateText");
-    } else if (clear_text_override) {
-      SPUD_STATIC_DETOUR(update_text, ShortcutKeybindHint_UpdateText_Hook);
+    auto input_action_field   = shortcut_hint_helper.GetField("_inputAction");
+    auto text_localizer_field = shortcut_hint_helper.GetField("_keyTextLocalizer");
+    if (!input_action_field.isValidHelper()) {
+      spdlog::error("Unable to find field 'ShortcutKeybindHint->_inputAction'");
     }
+    if (!text_localizer_field.isValidHelper()) {
+      spdlog::error("Unable to find field 'ShortcutKeybindHint->_keyTextLocalizer'");
+    }
+    if (input_action_field.isValidHelper() && text_localizer_field.isValidHelper()) {
+      shortcut_hint_input_action_offset   = input_action_field.offset();
+      shortcut_hint_text_localizer_offset = text_localizer_field.offset();
+      shortcut_hint_fields_ready          = true;
+    }
+
+    shortcut_hint_update_text = shortcut_hint_helper.GetMethod<void(void*)>("UpdateText", 0);
+    keybind_show_visibility_changed =
+        shortcut_hint_helper.GetMethod<void(void*, bool)>("KeybindShowVisibilityChanged", 1);
+    if (!shortcut_hint_update_text) {
+      ErrorMsg::MissingMethod("ShortcutKeybindHint", "UpdateText");
+    }
+    if (!keybind_show_visibility_changed)
+      ErrorMsg::MissingMethod("ShortcutKeybindHint", "KeybindShowVisibilityChanged");
+  }
+
+  auto input_action_reference_helper =
+      il2cpp_get_class_helper("Unity.InputSystem", "UnityEngine.InputSystem", "InputActionReference");
+  auto input_action_helper =
+      il2cpp_get_class_helper("Unity.InputSystem", "UnityEngine.InputSystem", "InputAction");
+  if (!input_action_reference_helper.isValidHelper()) {
+    ErrorMsg::MissingHelper("UnityEngine.InputSystem", "InputActionReference");
+  } else {
+    get_input_action = input_action_reference_helper.GetMethod<void*(void*)>("get_action", 0);
+    if (!get_input_action)
+      ErrorMsg::MissingMethod("InputActionReference", "get_action");
+  }
+  if (!input_action_helper.isValidHelper()) {
+    ErrorMsg::MissingHelper("UnityEngine.InputSystem", "InputAction");
+  } else {
+    get_input_action_name = input_action_helper.GetMethod<Il2CppString*(void*)>("get_name", 0);
+    if (!get_input_action_name)
+      ErrorMsg::MissingMethod("InputAction", "get_name");
+  }
+
+  if (get_show_keybindings && set_show_keybindings && can_use_shortcuts && clear_text_override &&
+      override_localized_text && shortcut_hint_fields_ready && shortcut_hint_update_text &&
+      keybind_show_visibility_changed && get_input_action && get_input_action_name) {
+    original_shortcut_hint_update_text =
+        SPUD_STATIC_DETOUR(shortcut_hint_update_text, ShortcutKeybindHint_UpdateText_Hook);
+    SPUD_STATIC_DETOUR(keybind_show_visibility_changed, ShortcutKeybindHint_KeybindShowVisibilityChanged_Hook);
+    shortcut_hints_ready = true;
   }
 
   auto screen_manager_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.UI", "ScreenManager");
