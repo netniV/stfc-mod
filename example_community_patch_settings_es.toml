@@ -627,6 +627,11 @@ auto_confirm_discovery = true
 # Open the bulk gift claim flyout automatically
 auto_open_bulk_claim_flyout = false
 
+# EXPERIMENTAL: Allow officer presets to be reordered in the presets screen
+# Shift-click a preset's edit-name button to move it up; Ctrl-click to move it down
+# The chosen order is stored locally and does not change Scopely's preset slots
+allow_officer_preset_reordering = false
+
 # Impide que "Escape" pregunte si deseas salir del juego
 disable_escape_exit = true
 
