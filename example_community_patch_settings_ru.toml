@@ -31,7 +31,7 @@
 #  <[=======================================]> 
 
 [audio]
-# Comma-separated audio event names to suppress; leave blank to allow all audio events
+# Comma-separated audio event names to suppress; use "All" to silence Scopely audio while keeping mod alert cues
 disabled_events = ""
 
 # Write audio event names to the trace log for troubleshooting

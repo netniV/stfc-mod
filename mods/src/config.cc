@@ -1052,14 +1052,18 @@ void Config::Load()
       get_config_or_default(config, parsed, "audio", "trace_events", DCA::trace_events, write_config);
   auto disabled_audio_events = get_config_or_default<std::string>(
       config, parsed, "audio", "disabled_events", DCA::disabled_events, write_config);
+  this->disable_all_audio_events = false;
   this->disabled_audio_events.clear();
   for (const auto& event : StrSplit(disabled_audio_events, ',')) {
     auto stripped = StripAsciiWhitespace(event);
-    if (!stripped.empty()) {
+    if (AsciiStrToUpper(stripped) == "ALL") {
+      this->disable_all_audio_events = true;
+    } else if (!stripped.empty()) {
       this->disabled_audio_events.emplace_back(stripped);
     }
   }
-  this->installAudioEventHooks = this->trace_audio_events || !this->disabled_audio_events.empty();
+  this->installAudioEventHooks =
+      this->trace_audio_events || this->disable_all_audio_events || !this->disabled_audio_events.empty();
   this->alert_victory =
       get_notification_sound(config, parsed, "alert_victory", DCA::alert_victory, write_config);
   this->alert_defeat = get_notification_sound(config, parsed, "alert_defeat", DCA::alert_defeat, write_config);
