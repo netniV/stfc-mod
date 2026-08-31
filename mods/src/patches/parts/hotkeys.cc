@@ -62,7 +62,7 @@ using UpdateShortcutHintTextFn = void(void*);
 using GetInputActionFn         = void*(void*);
 using GetInputActionNameFn     = Il2CppString*(void*);
 using OverrideLocalizedTextFn  = void(void*, Il2CppString*);
-using KeybindVisibilityChangedFn = void(void*, bool);
+using UpdateShortcutHintVisibilityFn = void(void*, bool);
 
 static GetShowKeybindingsFn*     get_show_keybindings               = nullptr;
 static SetShowKeybindingsFn*     set_show_keybindings               = nullptr;
@@ -75,6 +75,7 @@ static UpdateShortcutHintTextFn* original_shortcut_hint_update_text = nullptr;
 static ptrdiff_t                  shortcut_hint_input_action_offset   = 0;
 static ptrdiff_t                  shortcut_hint_text_localizer_offset = 0;
 static bool                       shortcut_hint_fields_ready          = false;
+static bool                       initialize_actions_hook_ready       = false;
 static bool                       shortcut_hints_ready                = false;
 
 bool SetNativeShortcutHintsVisible(bool visible)
@@ -340,12 +341,12 @@ void ShortcutKeybindHint_UpdateText_Hook(auto original, void* _this)
   override_localized_text(text_localizer, il2cpp_string_new(shortcut.c_str()));
 }
 
-void ShortcutKeybindHint_KeybindShowVisibilityChanged_Hook(auto original, void* _this, bool visible)
+void ShortcutKeybindHint_UpdateVisibility_Hook(auto original, void* _this, bool visible)
 {
+  original(_this, visible);
   if (visible && shortcut_hints_ready && original_shortcut_hint_update_text) {
     ShortcutKeybindHint_UpdateText_Hook(original_shortcut_hint_update_text, _this);
   }
-  original(_this, visible);
 }
 
 bool force_space_action_next_frame = false;
@@ -1351,6 +1352,7 @@ void InstallHotkeyHooks()
       ErrorMsg::MissingMethod("ShortcutsManager", "InitializeActions");
     } else {
       SPUD_STATIC_DETOUR(ptr_can_user_shortcuts, InitializeActions_Hook);
+      initialize_actions_hook_ready = true;
     }
   }
 
@@ -1368,7 +1370,7 @@ void InstallHotkeyHooks()
   }
 
   UpdateShortcutHintTextFn* shortcut_hint_update_text = nullptr;
-  KeybindVisibilityChangedFn* keybind_show_visibility_changed = nullptr;
+  UpdateShortcutHintVisibilityFn* shortcut_hint_update_visibility = nullptr;
   auto shortcut_hint_helper =
       il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.GameInput", "ShortcutKeybindHint");
   if (!shortcut_hint_helper.isValidHelper()) {
@@ -1389,13 +1391,13 @@ void InstallHotkeyHooks()
     }
 
     shortcut_hint_update_text = shortcut_hint_helper.GetMethod<void(void*)>("UpdateText", 0);
-    keybind_show_visibility_changed =
-        shortcut_hint_helper.GetMethod<void(void*, bool)>("KeybindShowVisibilityChanged", 1);
+    shortcut_hint_update_visibility =
+        shortcut_hint_helper.GetMethod<void(void*, bool)>("UpdateVisibility", 1);
     if (!shortcut_hint_update_text) {
       ErrorMsg::MissingMethod("ShortcutKeybindHint", "UpdateText");
     }
-    if (!keybind_show_visibility_changed)
-      ErrorMsg::MissingMethod("ShortcutKeybindHint", "KeybindShowVisibilityChanged");
+    if (!shortcut_hint_update_visibility)
+      ErrorMsg::MissingMethod("ShortcutKeybindHint", "UpdateVisibility");
   }
 
   auto input_action_reference_helper =
@@ -1417,12 +1419,12 @@ void InstallHotkeyHooks()
       ErrorMsg::MissingMethod("InputAction", "get_name");
   }
 
-  if (get_show_keybindings && set_show_keybindings && can_use_shortcuts && clear_text_override &&
-      override_localized_text && shortcut_hint_fields_ready && shortcut_hint_update_text &&
-      keybind_show_visibility_changed && get_input_action && get_input_action_name) {
+  if (get_show_keybindings && set_show_keybindings && can_use_shortcuts && initialize_actions_hook_ready &&
+      clear_text_override && override_localized_text && shortcut_hint_fields_ready && shortcut_hint_update_text &&
+      shortcut_hint_update_visibility && get_input_action && get_input_action_name) {
     original_shortcut_hint_update_text =
         SPUD_STATIC_DETOUR(shortcut_hint_update_text, ShortcutKeybindHint_UpdateText_Hook);
-    SPUD_STATIC_DETOUR(keybind_show_visibility_changed, ShortcutKeybindHint_KeybindShowVisibilityChanged_Hook);
+    SPUD_STATIC_DETOUR(shortcut_hint_update_visibility, ShortcutKeybindHint_UpdateVisibility_Hook);
     shortcut_hints_ready = true;
   }
 
