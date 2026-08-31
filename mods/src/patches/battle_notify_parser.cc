@@ -355,11 +355,61 @@ static BattleSummaryData build_battle_data(Il2CppObject* data)
   return result;
 }
 
+template <typename T>
+static T read_instance_field(Il2CppObject* obj, const char* name, T fallback = {})
+{
+  if (!obj) return fallback;
+  auto* field = il2cpp_class_get_field_from_name(il2cpp_object_get_class(obj), name);
+  if (!field) return fallback;
+
+  T value = fallback;
+  il2cpp_field_get_value(obj, field, &value);
+  return value;
+}
+
+static std::string build_armada_created_body(Il2CppObject* data)
+{
+  std::string result;
+  if (!seh_call([&] {
+        auto* attack   = read_instance_field<Il2CppObject*>(data, "ArmadaAttack");
+        auto* alliance = read_instance_field<Il2CppObject*>(data, "Alliance");
+        auto* owner    = read_instance_field<Il2CppObject*>(attack, "<Owner>k__BackingField");
+        auto* target   = read_instance_field<Il2CppObject*>(attack, "<TargetUserProfile>k__BackingField");
+
+        auto* tag_value   = read_instance_field<Il2CppString*>(alliance, "tag_");
+        auto* owner_value = read_instance_field<Il2CppString*>(owner, "name_");
+        auto* target_value = read_instance_field<Il2CppString*>(target, "name_");
+
+        auto tag         = tag_value ? to_string(tag_value) : std::string{};
+        auto owner_name  = owner_value ? to_string(owner_value) : std::string{};
+        auto target_name = target_value ? to_string(target_value) : std::string{};
+        auto target_level = read_instance_field<int32_t>(target, "level_");
+
+        if (target_name.empty()) {
+          auto loca_id = read_instance_field<int64_t>(target, "_locaId");
+          if (loca_id != 0) target_name = localize_enemy_name(loca_id);
+        }
+
+        if (owner_name.empty()) owner_name = "An alliance member";
+        if (target_name.empty() || target_name == "Unknown") target_name = "Armada target";
+
+        auto owner_label = tag.empty() ? owner_name : fmt::format("[{}] {}", tag, owner_name);
+        result = fmt::format("{} started an Armada!\nLv.{:03} {}", owner_label, target_level, target_name);
+      })) {
+    spdlog::warn("[Notify] SEH: ArmadaCreated data parsing crashed");
+    return {};
+  }
+  return result;
+}
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 std::string battle_notify_parse(Toast* toast)
 {
+  if (toast->get_State() == ArmadaCreated)
+    return build_armada_created_body(toast->get_Data());
+
   switch (toast->get_State()) {
     case Victory:
     case Defeat:
