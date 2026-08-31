@@ -1,6 +1,6 @@
 #include "errormsg.h"
 #include "file.h"
-#include "patches/key.h"
+#include "prime/KeyCode.h"
 #include "str_utils.h"
 
 #include <il2cpp/il2cpp_helper.h>
@@ -94,7 +94,28 @@ void load_session_order()
   }
 }
 
-void save_session_order()
+bool replace_state_file(const std::filesystem::path& temporary_path, const std::filesystem::path& path)
+{
+#if _WIN32
+  if (MoveFileExW(temporary_path.c_str(), path.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != 0) {
+    return true;
+  }
+  spdlog::warn("[OfficerPresetReorder] unable to replace state file '{}' (Windows error {})", path.string(),
+               GetLastError());
+#else
+  std::error_code error;
+  std::filesystem::rename(temporary_path, path, error);
+  if (!error) {
+    return true;
+  }
+  spdlog::warn("[OfficerPresetReorder] unable to replace state file '{}': {}", path.string(), error.message());
+#endif
+  std::error_code cleanup_error;
+  std::filesystem::remove(temporary_path, cleanup_error);
+  return false;
+}
+
+bool save_session_order()
 {
   const auto     path  = state_path();
   nlohmann::json state = nlohmann::json::object();
@@ -118,12 +139,24 @@ void save_session_order()
   state["version"]              = 1;
   state["officer_preset_order"] = std::move(order);
 
-  std::ofstream file(path, std::ios::out | std::ios::binary | std::ios::trunc);
+  auto temporary_path = path;
+  temporary_path += ".tmp";
+  std::ofstream file(temporary_path, std::ios::out | std::ios::binary | std::ios::trunc);
   if (!file) {
-    spdlog::warn("[OfficerPresetReorder] unable to write state file '{}'", path.string());
-    return;
+    spdlog::warn("[OfficerPresetReorder] unable to open temporary state file '{}'", temporary_path.string());
+    return false;
   }
   file << state.dump(2) << '\n';
+  file.flush();
+  const bool write_succeeded = file.good();
+  file.close();
+  if (!write_succeeded || file.fail()) {
+    spdlog::warn("[OfficerPresetReorder] unable to finish temporary state file '{}'", temporary_path.string());
+    std::error_code cleanup_error;
+    std::filesystem::remove(temporary_path, cleanup_error);
+    return false;
+  }
+  return replace_state_file(temporary_path, path);
 }
 
 static_assert(offsetof(OfficerPresetItemContext, presentation) == 0x18);
@@ -140,6 +173,18 @@ bool is_reorderable_preset(const OfficerPresetItemContext* context)
 
 template <typename T> T* read_object_field(void* object, ptrdiff_t offset)
 { return object != nullptr ? *reinterpret_cast<T**>(reinterpret_cast<char*>(object) + offset) : nullptr; }
+
+bool key_pressed(KeyCode key)
+{
+  static auto get_key = il2cpp_resolve_icall_typed<bool(KeyCode)>("UnityEngine.Input::GetKeyInt(UnityEngine.KeyCode)");
+  return get_key != nullptr && get_key(key);
+}
+
+bool shift_pressed()
+{ return key_pressed(KeyCode::LeftShift) || key_pressed(KeyCode::RightShift); }
+
+bool control_pressed()
+{ return key_pressed(KeyCode::LeftControl) || key_pressed(KeyCode::RightControl); }
 
 void remember_slots(OfficerPresetItemContext** items, il2cpp_array_size_t size)
 {
@@ -250,9 +295,10 @@ bool move_preset(OfficerPresetItemContext* context, int direction)
   remember_slots(items, static_cast<il2cpp_array_size_t>(size));
   const auto current_order = std::find(session_order.begin(), session_order.end(), context->slot_id);
   const auto target_order  = std::find(session_order.begin(), session_order.end(), target->slot_id);
+  bool       persisted     = false;
   if (current_order != session_order.end() && target_order != session_order.end()) {
     std::iter_swap(current_order, target_order);
-    save_session_order();
+    persisted = save_session_order();
   }
 
   std::swap(context->presentation, target->presentation);
@@ -264,8 +310,9 @@ bool move_preset(OfficerPresetItemContext* context, int direction)
   }
 
   const auto scroll_position = get_scroll_position != nullptr ? get_scroll_position(scroller) : 0.0f;
-  spdlog::info("[OfficerPresetReorder] moved slot={} {} across slot={} (persisted locally)", context->slot_id,
-               direction < 0 ? "up" : "down", target->slot_id);
+  spdlog::info("[OfficerPresetReorder] moved slot={} {} across slot={} ({})", context->slot_id,
+               direction < 0 ? "up" : "down", target->slot_id,
+               persisted ? "persisted locally" : "local persistence failed");
   clear_and_generate(scroller, active_controller, list);
   if (restore_scroll_position != nullptr) {
     restore_scroll_position(scroller, scroll_position);
@@ -293,8 +340,8 @@ bool OfficerManager_TryGetPresetItemContext_Hook(auto original, void* _this, Il2
 
 void OfficerPresetItemWidget_OnEditNameButtonClicked_Hook(auto original, void* _this)
 {
-  const bool move_up   = Key::HasShift();
-  const bool move_down = Key::HasCtrl();
+  const bool move_up   = shift_pressed();
+  const bool move_down = control_pressed();
   if (move_up != move_down) {
     auto* context = read_object_field<OfficerPresetItemContext>(_this, widget_context_offset);
     if (move_preset(context, move_up ? -1 : 1)) {
