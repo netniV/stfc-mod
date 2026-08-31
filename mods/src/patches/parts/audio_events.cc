@@ -140,7 +140,9 @@ uintptr_t canonical_spud_target(uintptr_t address)
   }
   int32_t offset = 0;
   std::memcpy(&offset, memory + 1, sizeof(offset));
-  return canonical_spud_target(address + offset + 5);
+  // Match Spud's x86_64 resolver exactly: it recursively skips the special prologue above, but an E9 is
+  // resolved only once because that first-hop destination is the address Spud will actually patch.
+  return address + offset + 5;
 #endif
 }
 
