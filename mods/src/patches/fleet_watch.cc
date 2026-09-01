@@ -344,7 +344,9 @@ std::string cargo_text(FleetPlayerData* fleet)
 FleetPlayerData* fleet_for_slot(int slot_index)
 {
   auto* manager = FleetsManager::Instance();
-  return manager && slot_index >= 0 && slot_index < kFleetSlotCount ? manager->GetFleetPlayerData(slot_index) : nullptr;
+  return manager && manager->HasFleetService() && slot_index >= 0 && slot_index < kFleetSlotCount
+             ? manager->GetFleetPlayerData(slot_index)
+             : nullptr;
 }
 
 FleetPlayerData* fleet_for_snapshot(int slot_index, uint64_t fleet_id)
@@ -586,7 +588,7 @@ int occupied_snapshot_count()
 bool manager_baseline_matches(int& changed_slot, uint64_t& changed_fleet)
 {
   auto* manager = FleetsManager::Instance();
-  if (!manager) {
+  if (!manager || !manager->HasFleetService()) {
     changed_slot  = -1;
     changed_fleet = 0;
     return false;
@@ -604,8 +606,9 @@ bool manager_baseline_matches(int& changed_slot, uint64_t& changed_fleet)
 bool manager_slot_matches(int slot_index, uint64_t fleet_id)
 {
   auto* manager = FleetsManager::Instance();
-  auto* fleet =
-      manager && slot_index >= 0 && slot_index < kFleetSlotCount ? manager->GetFleetPlayerData(slot_index) : nullptr;
+  auto* fleet = manager && manager->HasFleetService() && slot_index >= 0 && slot_index < kFleetSlotCount
+                    ? manager->GetFleetPlayerData(slot_index)
+                    : nullptr;
   return fleet && fleet->Id == fleet_id;
 }
 
@@ -634,7 +637,7 @@ ScanResult scan_fleets(bool allow_notifications, bool sample_opc, std::string_vi
 {
   ScanResult result;
   auto*      manager = FleetsManager::Instance();
-  if (!manager) {
+  if (!manager || !manager->HasFleetService()) {
     if (allow_notifications && !s_seed_pending && s_seed_manager_backed) {
       restart_seed_stabilization(-1, 0);
     }
