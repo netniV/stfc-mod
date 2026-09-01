@@ -441,7 +441,8 @@ std::string_view to_string(FleetLabelDetail detail)
 
 FleetLabelDetail parse_fleet_label_detail(std::string_view key, std::string_view value)
 {
-  const auto normalized = AsciiStrToUpper(StripAsciiWhitespace(value));
+  const auto trimmed    = std::string(StripAsciiWhitespace(value));
+  const auto normalized = AsciiStrToUpper(trimmed);
 
   if (normalized == "EXPANDED" || normalized == "ALWAYS") {
     return FleetLabelDetail::Expanded;

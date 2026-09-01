@@ -79,7 +79,10 @@ const FleetLabelProfile *FleetLabelProfileFor(NavigationFleetWidget *widget)
 const FleetLabelProfile *FleetLabelProfileFor(NavigationLOD *lod)
 {
   const auto widget = fleet_label_widgets.find(lod);
-  return widget != fleet_label_widgets.end() ? FleetLabelProfileFor(widget->second) : nullptr;
+  if (widget == fleet_label_widgets.end() || widget->second == nullptr || widget->second->Context == nullptr) {
+    return nullptr;
+  }
+  return FleetLabelProfileFor(widget->second);
 }
 
 ZoomLevels ExpandedFleetLabelZoomLevel(ZoomLevels native_level)
@@ -118,7 +121,7 @@ ZoomLevels FleetLabelZoomLevel(ZoomLevels native_level, const FleetLabelProfile 
 
 void ApplyFleetLabelDetail(NavigationLOD *lod, ZoomLevels native_level)
 {
-  if (lod == nullptr || !system_zoom_state_valid) {
+  if (lod == nullptr || !system_zoom_state_valid || FleetLabelProfileFor(lod) == nullptr) {
     return;
   }
 
@@ -439,14 +442,13 @@ void NavigationZoom_Update_Hook(auto original, NavigationZoom *_this)
 
 void NavigationLOD_UpdateLOD_Hook(auto original, NavigationLOD *_this, ZoomLevels level)
 {
-  const auto  tracked         = fleet_label_widgets.contains(_this);
   const auto *profile         = FleetLabelProfileFor(_this);
   const auto  effective_level = profile != nullptr ? FleetLabelZoomLevel(level, *profile) : level;
-  if (tracked) {
+  if (profile != nullptr) {
     _this->SetTargetLevel(effective_level);
   }
   original(_this, effective_level);
-  if (tracked) {
+  if (profile != nullptr) {
     _this->SetTargetLevel(effective_level);
   }
 }
@@ -455,6 +457,12 @@ void NavigationFleetWidget_OnEnable_Hook(auto original, NavigationFleetWidget *_
 {
   original(_this);
   if (!_this) {
+    return;
+  }
+
+  // Fresh pooled widgets are enabled before BindDataContext assigns m_context. Forcing an LOD in that window can fire
+  // OnLODChanged callbacks that dereference the not-yet-bound fleet data.
+  if (_this->Context == nullptr) {
     return;
   }
 
@@ -473,7 +481,9 @@ void NavigationFleetWidget_OnDisable_Hook(auto original, NavigationFleetWidget *
   if (_this) {
     auto *lod = _this->_lod;
     fleet_label_widgets.erase(lod);
-    RestoreNativeFleetLabelDetail(lod);
+    if (_this->Context != nullptr) {
+      RestoreNativeFleetLabelDetail(lod);
+    }
   }
   original(_this);
 }
@@ -498,7 +508,9 @@ void NavigationFleetWidget_OnAboutToReleaseContext_Hook(auto original, Navigatio
     auto *lod = _this->_lod;
     if (lod != nullptr) {
       fleet_label_widgets.erase(lod);
-      RestoreNativeFleetLabelDetail(lod);
+      if (_this->Context != nullptr) {
+        RestoreNativeFleetLabelDetail(lod);
+      }
     }
   }
   original(_this);
