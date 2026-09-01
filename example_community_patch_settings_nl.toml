@@ -140,15 +140,20 @@ enable_experimental = false
 # Frame-rate scaling factor
 fr_scale = 2.0
 
-# Detailniveau van vlootlabels in de systeemweergave:
+# Detailniveau van vlootlabels. Configureer spelers- en niet-spelersvloten afzonderlijk:
 #   "native"    - gebruik Scopely's Near/Middle/Far-gedrag
 #   "expanded"  - toon altijd lange vlootlabels
 #   "compact"   - toon altijd compacte vlootlabels
-#   "threshold" - schakel bij fleet_label_zoom_threshold van uitgebreid naar compact
-fleet_label_detail = "native"
+#   "threshold" - schakel bij de bijbehorende zoomgrens van uitgebreid naar compact
+# Spelersvloten
+zoom_label_player_detail = "native"
 
 # Genormaliseerde zoomgrens voor "threshold" (0.0 = altijd compact, 1.0 = altijd uitgebreid)
-fleet_label_zoom_threshold = 0.5
+zoom_label_player_threshold = 0.5
+
+# Niet-spelersvloten en niet-geclassificeerde vloten
+zoom_label_non_player_detail = "native"
+zoom_label_non_player_threshold = 0.5
 
 # Bepaald de tijd tussen transities, hoe hoger het getal des te trager de transitie
 transition_time = 0.01

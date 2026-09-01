@@ -127,6 +127,11 @@ enum class FleetLabelDetail {
   Threshold,
 };
 
+struct FleetLabelProfile {
+  FleetLabelDetail detail;
+  float            zoom_threshold;
+};
+
 // Part of UI Scale
 void ApplyUiShipScaleToLoadedShips(float old_multiplier, float new_multiplier);
 
@@ -164,8 +169,8 @@ public:
   float ui_scale_viewer;
   float zoom;
   float fr_scale;
-  FleetLabelDetail fleet_label_detail;
-  float fleet_label_zoom_threshold;
+  FleetLabelProfile zoom_label_player;
+  FleetLabelProfile zoom_label_non_player;
   bool  allow_cursor;
   bool  free_resize;
   bool  adjust_scale_res;

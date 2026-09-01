@@ -140,15 +140,20 @@ enable_experimental = false
 # Frame-rate scaling factor
 fr_scale = 2.0
 
-# Detailgrad der Flottenbeschriftungen in der Systemansicht:
+# Detailgrad der Flottenbeschriftungen. Spieler- und Nicht-Spieler-Flotten werden separat konfiguriert:
 #   "native"    - Scopelys Near/Middle/Far-Verhalten verwenden
 #   "expanded"  - lange Flottenbeschriftungen immer anzeigen
 #   "compact"   - kompakte Flottenbeschriftungen immer anzeigen
-#   "threshold" - bei fleet_label_zoom_threshold von erweitert zu kompakt wechseln
-fleet_label_detail = "native"
+#   "threshold" - an der zugehörigen Zoomgrenze von erweitert zu kompakt wechseln
+# Spielerflotten
+zoom_label_player_detail = "native"
 
 # Normalisierte Zoomgrenze für "threshold" (0.0 = immer kompakt, 1.0 = immer erweitert)
-fleet_label_zoom_threshold = 0.5
+zoom_label_player_threshold = 0.5
+
+# Nicht-Spieler-Flotten und nicht klassifizierte Flotten
+zoom_label_non_player_detail = "native"
+zoom_label_non_player_threshold = 0.5
 
 # Dauer zwischen Übergängen; erhöhen, um Übergänge zu verlangsamen
 transition_time = 0.01
