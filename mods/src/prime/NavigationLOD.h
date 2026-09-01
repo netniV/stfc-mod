@@ -5,12 +5,18 @@
 #include "ZoomLevels.h"
 
 struct NavigationLOD {
-  void OnZoomChanged(ZoomLevels level)
+  void UpdateLOD(ZoomLevels level)
   {
-    static auto on_zoom_changed = get_class_helper().GetMethod<void(NavigationLOD*, ZoomLevels)>("OnZoomChanged");
-    if (on_zoom_changed != nullptr) {
-      on_zoom_changed(this, level);
+    static auto update_lod = get_class_helper().GetMethod<void(NavigationLOD*, ZoomLevels)>("UpdateLOD");
+    if (update_lod != nullptr) {
+      update_lod(this, level);
     }
+  }
+
+  void SetTargetLevel(ZoomLevels level)
+  {
+    static auto field                                = get_class_helper().GetField("<TargetLevel>k__BackingField");
+    *(ZoomLevels*)((ptrdiff_t)this + field.offset()) = level;
   }
 
 private:

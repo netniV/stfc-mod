@@ -121,15 +121,20 @@ enable_experimental = false
 # Frame-rate scaling factor
 fr_scale = 2.0
 
-# Detaljegrad for flådeetiketter i systemvisning:
+# Detaljegrad for flådeetiketter i systemvisning. Konfigurer spiller- og ikke-spillerflåder separat:
 #   "native"    - brug Scopelys Near/Middle/Far-adfærd
 #   "expanded"  - vis altid lange flådeetiketter
 #   "compact"   - vis altid kompakte flådeetiketter
-#   "threshold" - skift fra lange til kompakte etiketter ved fleet_label_zoom_threshold
-fleet_label_detail = "native"
+#   "threshold" - skift fra lange til kompakte etiketter ved den tilsvarende zoomgrænse
+# Spillerflåder
+fleet_label_player_detail = "native"
 
 # Normaliseret zoomgrænse for "threshold" (0.0 = altid kompakt, 1.0 = altid udvidet)
-fleet_label_zoom_threshold = 0.5
+fleet_label_player_zoom_threshold = 0.5
+
+# Ikke-spillerflåder og uklassificerede flåder
+fleet_label_non_player_detail = "native"
+fleet_label_non_player_zoom_threshold = 0.5
 
 # Tiden mellem overgange; øg værdien for at gøre overgangene langsommere
 transition_time = 0.01

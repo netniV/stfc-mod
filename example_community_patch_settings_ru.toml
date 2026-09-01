@@ -121,15 +121,20 @@ enable_experimental = false
 # Frame-rate scaling factor
 fr_scale = 2.0
 
-# Детализация меток флотов в системном виде:
+# Детализация меток. Настройте отдельно флоты игроков и неигровые флоты:
 #   "native"    - использовать поведение Scopely Near/Middle/Far
 #   "expanded"  - всегда показывать длинные метки флотов
 #   "compact"   - всегда показывать компактные метки флотов
-#   "threshold" - переключать расширенные метки на компактные при fleet_label_zoom_threshold
-fleet_label_detail = "native"
+#   "threshold" - переключать расширенные метки на компактные при соответствующем пороге масштаба
+# Флоты игроков
+fleet_label_player_detail = "native"
 
 # Нормализованный порог масштаба для "threshold" (0.0 = всегда компактно, 1.0 = всегда расширенно)
-fleet_label_zoom_threshold = 0.5
+fleet_label_player_zoom_threshold = 0.5
+
+# Неигровые и неклассифицированные флоты
+fleet_label_non_player_detail = "native"
+fleet_label_non_player_zoom_threshold = 0.5
 
 # Время между переходами; увеличьте значение, чтобы замедлить переходы
 transition_time = 0.01

@@ -439,7 +439,7 @@ std::string_view to_string(FleetLabelDetail detail)
   }
 }
 
-FleetLabelDetail parse_fleet_label_detail(std::string_view value)
+FleetLabelDetail parse_fleet_label_detail(std::string_view key, std::string_view value)
 {
   const auto normalized = AsciiStrToUpper(StripAsciiWhitespace(value));
 
@@ -457,39 +457,40 @@ FleetLabelDetail parse_fleet_label_detail(std::string_view value)
     return FleetLabelDetail::Native;
   }
 
-  spdlog::warn("invalid config value graphics.fleet_label_detail: '{}'; using native", value);
+  spdlog::warn("invalid config value graphics.{}: '{}'; using native", key, value);
   return FleetLabelDetail::Native;
 }
 
-FleetLabelDetail get_fleet_label_detail(toml::table& config, toml::table& new_config, std::string_view default_value,
-                                        bool write_log)
+FleetLabelDetail get_fleet_label_detail(toml::table& config, toml::table& new_config, std::string_view key,
+                                        std::string_view default_value, bool write_log)
 {
-  const auto value = config["graphics"]["fleet_label_detail"].value<std::string>().value_or(std::string(default_value));
-  const auto detail = parse_fleet_label_detail(value);
+  const auto value  = config["graphics"][key].value<std::string>().value_or(std::string(default_value));
+  const auto detail = parse_fleet_label_detail(key, value);
 
   new_config.emplace<toml::table>("graphics", toml::table());
-  new_config["graphics"].as_table()->insert_or_assign("fleet_label_detail", std::string(to_string(detail)));
+  new_config["graphics"].as_table()->insert_or_assign(key, std::string(to_string(detail)));
 
   if (write_log) {
-    spdlog::debug("config value graphics.fleet_label_detail value: {}", to_string(detail));
+    spdlog::debug("config value graphics.{} value: {}", key, to_string(detail));
   }
 
   return detail;
 }
 
-float get_fleet_label_zoom_threshold(toml::table& config, toml::table& new_config, float default_value, bool write_log)
+float get_fleet_label_zoom_threshold(toml::table& config, toml::table& new_config, std::string_view key,
+                                     float default_value, bool write_log)
 {
-  auto threshold = config["graphics"]["fleet_label_zoom_threshold"].value<float>().value_or(default_value);
+  auto threshold = config["graphics"][key].value<float>().value_or(default_value);
   if (!std::isfinite(threshold) || threshold < 0.0f || threshold > 1.0f) {
-    spdlog::warn("invalid config value graphics.fleet_label_zoom_threshold: {}; using {}", threshold, default_value);
+    spdlog::warn("invalid config value graphics.{}: {}; using {}", key, threshold, default_value);
     threshold = default_value;
   }
 
   new_config.emplace<toml::table>("graphics", toml::table());
-  new_config["graphics"].as_table()->insert_or_assign("fleet_label_zoom_threshold", threshold);
+  new_config["graphics"].as_table()->insert_or_assign(key, threshold);
 
   if (write_log) {
-    spdlog::debug("config value graphics.fleet_label_zoom_threshold value: {}", threshold);
+    spdlog::debug("config value graphics.{} value: {}", key, threshold);
   }
 
   return threshold;
@@ -955,9 +956,15 @@ void Config::Load()
       get_config_or_default(config, parsed, "graphics", "ui_scale_viewer", DCG::ui_scale_viewer, write_config);
   this->zoom               = get_config_or_default(config, parsed, "graphics", "zoom", DCG::zoom, write_config);
   this->fr_scale           = get_config_or_default(config, parsed, "graphics", "fr_scale", DCG::fr_scale, write_config);
-  this->fleet_label_detail = get_fleet_label_detail(config, parsed, DCG::fleet_label_detail, write_config);
-  this->fleet_label_zoom_threshold =
-      get_fleet_label_zoom_threshold(config, parsed, DCG::fleet_label_zoom_threshold, write_config);
+  this->fleet_label_player.detail =
+      get_fleet_label_detail(config, parsed, "fleet_label_player_detail", DCG::fleet_label_player_detail, write_config);
+  this->fleet_label_player.zoom_threshold = get_fleet_label_zoom_threshold(
+      config, parsed, "fleet_label_player_zoom_threshold", DCG::fleet_label_player_zoom_threshold, write_config);
+  this->fleet_label_non_player.detail = get_fleet_label_detail(config, parsed, "fleet_label_non_player_detail",
+                                                               DCG::fleet_label_non_player_detail, write_config);
+  this->fleet_label_non_player.zoom_threshold =
+      get_fleet_label_zoom_threshold(config, parsed, "fleet_label_non_player_zoom_threshold",
+                                     DCG::fleet_label_non_player_zoom_threshold, write_config);
   this->free_resize = get_config_or_default(config, parsed, "graphics", "free_resize", DCG::free_resize, write_config);
   this->allow_cursor =
       get_config_or_default(config, parsed, "graphics", "allow_cursor", DCG::allow_cursor, write_config);
