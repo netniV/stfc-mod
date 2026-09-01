@@ -944,7 +944,25 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
   }
 
   if (config->disable_escape_exit && Key::Pressed(KeyCode::Escape)) {
-    return;
+    // Keep suppressing a held key. Only distinct key-down edges participate in
+    // the double-tap window.
+    if (config->escape_exit_timer <= 0 || !Key::Down(KeyCode::Escape)) {
+      return;
+    }
+
+    static auto previous_escape_down = std::chrono::steady_clock::time_point{};
+    const auto  escape_now           = std::chrono::steady_clock::now();
+    const auto  escape_diff =
+        std::chrono::duration_cast<std::chrono::milliseconds>(escape_now - previous_escape_down);
+
+    if (previous_escape_down == std::chrono::steady_clock::time_point{}
+        || escape_diff > std::chrono::milliseconds(config->escape_exit_timer)) {
+      previous_escape_down = escape_now;
+      return;
+    }
+
+    // Consume the completed pair so a rapid third press starts a new one.
+    previous_escape_down = {};
   }
 
   // config->Load();

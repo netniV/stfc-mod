@@ -210,6 +210,7 @@ public:
   bool disable_preview_locate;
   bool disable_preview_recall;
   bool disable_escape_exit;
+  int  escape_exit_timer;
   bool disable_galaxy_chat;
   bool disable_veil_chat;
   bool disable_first_popup;
