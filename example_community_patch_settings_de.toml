@@ -127,14 +127,14 @@ fr_scale = 2.0
 #   "compact"   - kompakte Flottenbeschriftungen immer anzeigen
 #   "threshold" - an der zugehörigen Zoomgrenze von erweitert zu kompakt wechseln
 # Spielerflotten
-fleet_label_player_detail = "native"
+zoom_label_player_detail = "native"
 
 # Normalisierte Zoomgrenze für "threshold" (0.0 = immer kompakt, 1.0 = immer erweitert)
-fleet_label_player_zoom_threshold = 0.5
+zoom_label_player_threshold = 0.5
 
 # Nicht-Spieler-Flotten und nicht klassifizierte Flotten
-fleet_label_non_player_detail = "native"
-fleet_label_non_player_zoom_threshold = 0.5
+zoom_label_non_player_detail = "native"
+zoom_label_non_player_threshold = 0.5
 
 # Dauer zwischen Übergängen; erhöhen, um Übergänge zu verlangsamen
 transition_time = 0.01

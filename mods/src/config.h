@@ -165,8 +165,8 @@ public:
   float ui_scale_viewer;
   float zoom;
   float fr_scale;
-  FleetLabelProfile fleet_label_player;
-  FleetLabelProfile fleet_label_non_player;
+  FleetLabelProfile zoom_label_player;
+  FleetLabelProfile zoom_label_non_player;
   bool  allow_cursor;
   bool  free_resize;
   bool  adjust_scale_res;

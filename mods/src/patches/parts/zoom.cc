@@ -33,15 +33,15 @@ bool                                                         non_player_threshol
 bool FleetLabelProfilesEnabled()
 {
   const auto &config = Config::Get();
-  return config.fleet_label_player.detail != FleetLabelDetail::Native
-         || config.fleet_label_non_player.detail != FleetLabelDetail::Native;
+  return config.zoom_label_player.detail != FleetLabelDetail::Native
+         || config.zoom_label_non_player.detail != FleetLabelDetail::Native;
 }
 
 bool FleetLabelThresholdEnabled()
 {
   const auto &config = Config::Get();
-  return config.fleet_label_player.detail == FleetLabelDetail::Threshold
-         || config.fleet_label_non_player.detail == FleetLabelDetail::Threshold;
+  return config.zoom_label_player.detail == FleetLabelDetail::Threshold
+         || config.zoom_label_non_player.detail == FleetLabelDetail::Threshold;
 }
 
 const FleetLabelProfile *FleetLabelProfileFor(NavigationFleetWidget *widget)
@@ -53,26 +53,26 @@ const FleetLabelProfile *FleetLabelProfileFor(NavigationFleetWidget *widget)
   const auto &config  = Config::Get();
   auto       *context = widget->Context;
   if (context == nullptr) {
-    return &config.fleet_label_non_player;
+    return &config.zoom_label_non_player;
   }
 
   DeployedFleetType fleet_type;
   if (!context->TryGetFleetType(fleet_type)) {
-    return &config.fleet_label_non_player;
+    return &config.zoom_label_non_player;
   }
 
   switch (fleet_type) {
     case DeployedFleetType::Player:
-      return &config.fleet_label_player;
+      return &config.zoom_label_player;
     case DeployedFleetType::Marauder:
     case DeployedFleetType::NpcInstantiated:
     case DeployedFleetType::Sentinel:
     case DeployedFleetType::Alliance:
     case DeployedFleetType::Challenge:
-      return &config.fleet_label_non_player;
+      return &config.zoom_label_non_player;
     case DeployedFleetType::Nonexistent:
     default:
-      return &config.fleet_label_non_player;
+      return &config.zoom_label_non_player;
   }
 }
 
@@ -170,13 +170,13 @@ void UpdateFleetLabelThreshold()
   }
 
   const auto &config                    = Config::Get();
-  const auto  player_uses_threshold     = config.fleet_label_player.detail == FleetLabelDetail::Threshold;
-  const auto  non_player_uses_threshold = config.fleet_label_non_player.detail == FleetLabelDetail::Threshold;
+  const auto  player_uses_threshold     = config.zoom_label_player.detail == FleetLabelDetail::Threshold;
+  const auto  non_player_uses_threshold = config.zoom_label_non_player.detail == FleetLabelDetail::Threshold;
   const auto  player_expanded =
-      player_uses_threshold && FleetLabelsExpandedAt(system_normalized_zoom, config.fleet_label_player.zoom_threshold);
+      player_uses_threshold && FleetLabelsExpandedAt(system_normalized_zoom, config.zoom_label_player.zoom_threshold);
   const auto non_player_expanded =
       non_player_uses_threshold
-      && FleetLabelsExpandedAt(system_normalized_zoom, config.fleet_label_non_player.zoom_threshold);
+      && FleetLabelsExpandedAt(system_normalized_zoom, config.zoom_label_non_player.zoom_threshold);
   if (threshold_state_valid && (!player_uses_threshold || player_expanded == player_threshold_state_expanded)
       && (!non_player_uses_threshold || non_player_expanded == non_player_threshold_state_expanded)) {
     return;

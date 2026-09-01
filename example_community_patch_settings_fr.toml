@@ -127,14 +127,14 @@ fr_scale = 2.0
 #   "compact"   - toujours afficher les étiquettes compactes
 #   "threshold" - passer du format étendu au format compact au seuil de zoom correspondant
 # Flottes de joueurs
-fleet_label_player_detail = "native"
+zoom_label_player_detail = "native"
 
 # Seuil de zoom normalisé pour "threshold" (0.0 = toujours compact, 1.0 = toujours étendu)
-fleet_label_player_zoom_threshold = 0.5
+zoom_label_player_threshold = 0.5
 
 # Flottes non-joueurs et flottes non classées
-fleet_label_non_player_detail = "native"
-fleet_label_non_player_zoom_threshold = 0.5
+zoom_label_non_player_detail = "native"
+zoom_label_non_player_threshold = 0.5
 
 # Temps entre les transitions, augmenter pour ralentir les transitions
 transition_time = 0.01

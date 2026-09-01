@@ -127,14 +127,14 @@ fr_scale = 2.0
 #   "compact"   - всегда показывать компактные метки флотов
 #   "threshold" - переключать расширенные метки на компактные при соответствующем пороге масштаба
 # Флоты игроков
-fleet_label_player_detail = "native"
+zoom_label_player_detail = "native"
 
 # Нормализованный порог масштаба для "threshold" (0.0 = всегда компактно, 1.0 = всегда расширенно)
-fleet_label_player_zoom_threshold = 0.5
+zoom_label_player_threshold = 0.5
 
 # Неигровые и неклассифицированные флоты
-fleet_label_non_player_detail = "native"
-fleet_label_non_player_zoom_threshold = 0.5
+zoom_label_non_player_detail = "native"
+zoom_label_non_player_threshold = 0.5
 
 # Время между переходами; увеличьте значение, чтобы замедлить переходы
 transition_time = 0.01

@@ -956,15 +956,14 @@ void Config::Load()
       get_config_or_default(config, parsed, "graphics", "ui_scale_viewer", DCG::ui_scale_viewer, write_config);
   this->zoom               = get_config_or_default(config, parsed, "graphics", "zoom", DCG::zoom, write_config);
   this->fr_scale           = get_config_or_default(config, parsed, "graphics", "fr_scale", DCG::fr_scale, write_config);
-  this->fleet_label_player.detail =
-      get_fleet_label_detail(config, parsed, "fleet_label_player_detail", DCG::fleet_label_player_detail, write_config);
-  this->fleet_label_player.zoom_threshold = get_fleet_label_zoom_threshold(
-      config, parsed, "fleet_label_player_zoom_threshold", DCG::fleet_label_player_zoom_threshold, write_config);
-  this->fleet_label_non_player.detail = get_fleet_label_detail(config, parsed, "fleet_label_non_player_detail",
-                                                               DCG::fleet_label_non_player_detail, write_config);
-  this->fleet_label_non_player.zoom_threshold =
-      get_fleet_label_zoom_threshold(config, parsed, "fleet_label_non_player_zoom_threshold",
-                                     DCG::fleet_label_non_player_zoom_threshold, write_config);
+  this->zoom_label_player.detail =
+      get_fleet_label_detail(config, parsed, "zoom_label_player_detail", DCG::zoom_label_player_detail, write_config);
+  this->zoom_label_player.zoom_threshold = get_fleet_label_zoom_threshold(
+      config, parsed, "zoom_label_player_threshold", DCG::zoom_label_player_threshold, write_config);
+  this->zoom_label_non_player.detail         = get_fleet_label_detail(config, parsed, "zoom_label_non_player_detail",
+                                                                      DCG::zoom_label_non_player_detail, write_config);
+  this->zoom_label_non_player.zoom_threshold = get_fleet_label_zoom_threshold(
+      config, parsed, "zoom_label_non_player_threshold", DCG::zoom_label_non_player_threshold, write_config);
   this->free_resize = get_config_or_default(config, parsed, "graphics", "free_resize", DCG::free_resize, write_config);
   this->allow_cursor =
       get_config_or_default(config, parsed, "graphics", "allow_cursor", DCG::allow_cursor, write_config);
