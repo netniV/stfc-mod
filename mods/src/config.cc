@@ -1062,7 +1062,7 @@ void Config::Load()
   this->disabled_audio_events.clear();
   for (const auto& event : StrSplit(disabled_audio_events, ',')) {
     auto stripped = StripAsciiWhitespace(event);
-    if (AsciiStrToUpper(stripped) == "ALL") {
+    if (AsciiStrToUpper(std::string{stripped}) == "ALL") {
       this->disable_all_audio_events = true;
     } else if (!stripped.empty()) {
       this->disabled_audio_events.emplace_back(stripped);
