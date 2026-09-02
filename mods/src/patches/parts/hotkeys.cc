@@ -80,8 +80,13 @@ static bool                       shortcut_hints_ready                = false;
 
 bool SetNativeShortcutHintsVisible(bool visible)
 {
+  if (!get_show_keybindings || !set_show_keybindings) {
+    spdlog::warn("[Hotkeys] native shortcut hints are unavailable");
+    return false;
+  }
+
   auto* shortcuts_manager = ShortcutsManager::Instance();
-  if (!shortcuts_manager || !get_show_keybindings || !set_show_keybindings) {
+  if (!shortcuts_manager) {
     spdlog::warn("[Hotkeys] native shortcut hints are unavailable");
     return false;
   }
@@ -94,9 +99,13 @@ bool SetNativeShortcutHintsVisible(bool visible)
 
 bool ToggleNativeShortcutHints()
 {
+  if (!shortcut_hints_ready || !get_show_keybindings || !set_show_keybindings || !can_use_shortcuts) {
+    spdlog::warn("[Hotkeys] native shortcut hints are unavailable");
+    return false;
+  }
+
   auto* shortcuts_manager = ShortcutsManager::Instance();
-  if (!shortcut_hints_ready || !shortcuts_manager || !get_show_keybindings || !set_show_keybindings ||
-      !can_use_shortcuts) {
+  if (!shortcuts_manager) {
     spdlog::warn("[Hotkeys] native shortcut hints are unavailable");
     return false;
   }
@@ -108,116 +117,6 @@ bool ToggleNativeShortcutHints()
   set_show_keybindings(shortcuts_manager, !get_show_keybindings(shortcuts_manager));
 
   return true;
-}
-
-std::string CompactShortcutToken(std::string_view token, bool is_primary_key)
-{
-  // Use AutoHotkey's established ASCII modifier notation so the native game's limited font can render every badge.
-  if (token == "SHIFT")
-    return "+";
-  if (token == "CTRL")
-    return "^";
-  if (token == "ALT" || token == "ALTGR")
-    return "!";
-  if (token == "APPLE" || token == "CMD" || token == "WIN")
-    return "#";
-  if (token == "LSHIFT")
-    return "<+";
-  if (token == "RSHIFT")
-    return ">+";
-  if (token == "LCTRL")
-    return "<^";
-  if (token == "RCTRL")
-    return ">^";
-  if (token == "LALT")
-    return "<!";
-  if (token == "RALT")
-    return ">!";
-  if (token == "LAPPLE" || token == "LCOM" || token == "LWIN")
-    return "<#";
-  if (token == "RAPPLE" || token == "RCOM" || token == "RWIN")
-    return ">#";
-  if (is_primary_key && token == "+")
-    return "PLS";
-  if (is_primary_key && token == "^")
-    return "CAR";
-  if (is_primary_key && token == "!")
-    return "EXC";
-  if (is_primary_key && token == "#")
-    return "HSH";
-  if (token == "SPACE")
-    return "SPC";
-  if (token == "MOUSE0")
-    return "M0";
-  if (token == "MOUSE1")
-    return "M1";
-  if (token == "MOUSE2")
-    return "M2";
-  if (token == "MOUSE3")
-    return "M3";
-  if (token == "MOUSE4")
-    return "M4";
-  if (token == "MOUSE5")
-    return "M5";
-  if (token == "MOUSE6")
-    return "M6";
-  if (token == "ENTER" || token == "RETURN")
-    return "ENT";
-  if (token == "ESCAPE")
-    return "ESC";
-  if (token == "TAB")
-    return "TAB";
-  if (token == "BACKSPACE")
-    return "BS";
-  if (token == "DELETE")
-    return "DEL";
-  if (token == "MINUS")
-    return "-";
-  if (token == "EQUAL")
-    return "=";
-  if (token == "LEFT")
-    return "LT";
-  if (token == "RIGHT")
-    return "RT";
-  if (token == "UP")
-    return "UP";
-  if (token == "DOWN")
-    return "DN";
-  if (token == "PGUP")
-    return "PU";
-  if (token == "PGDOWN")
-    return "PD";
-  if (token == "HOME")
-    return "HM";
-  if (token == "END")
-    return "END";
-  if (token == "NONE")
-    return "-";
-  return std::string(token);
-}
-
-std::string CompactShortcutForHint(std::string_view shortcuts)
-{
-  if (shortcuts.empty()) {
-    return "-";
-  }
-
-  // A native badge only has room for one chord, so show the first configured alternative.
-  if (const auto alternative = shortcuts.find(" | "); alternative != std::string_view::npos) {
-    shortcuts = shortcuts.substr(0, alternative);
-  }
-
-  std::string compact;
-  for (size_t start = 0; start <= shortcuts.size();) {
-    const auto separator = shortcuts.find('-', start);
-    const auto end       = separator == std::string_view::npos ? shortcuts.size() : separator;
-    compact.append(CompactShortcutToken(shortcuts.substr(start, end - start), separator == std::string_view::npos));
-    if (separator == std::string_view::npos) {
-      break;
-    }
-    start = separator + 1;
-  }
-  return compact;
 }
 
 GameFunction ModFunctionForNativeAction(std::string_view action_name)
@@ -332,12 +231,13 @@ void ShortcutKeybindHint_UpdateText_Hook(auto original, void* _this)
     return;
   }
 
-  auto shortcuts = MapKey::GetShortcuts(game_function);
-  if (action_name == "side_chat" && shortcuts.empty()) {
-    shortcuts = MapKey::GetShortcuts(GameFunction::ShowChatSide2);
+  auto shortcut = MapKey::GetShortcutHint(game_function);
+  if (action_name == "side_chat" && shortcut.empty()) {
+    shortcut = MapKey::GetShortcutHint(GameFunction::ShowChatSide2);
   }
-
-  auto shortcut = CompactShortcutForHint(shortcuts);
+  if (shortcut.empty()) {
+    shortcut = "-";
+  }
   override_localized_text(text_localizer, il2cpp_string_new(shortcut.c_str()));
 }
 

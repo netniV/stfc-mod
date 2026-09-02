@@ -10,6 +10,102 @@
 #include <string_view>
 #include <vector>
 
+namespace
+{
+std::string CompactShortcutToken(std::string_view token, bool is_primary_key)
+{
+  // Use AutoHotkey's established ASCII modifier notation so the native game's limited font can render every badge.
+  if (token == "SHIFT")
+    return "+";
+  if (token == "CTRL")
+    return "^";
+  if (token == "ALT" || token == "ALTGR")
+    return "!";
+  if (token == "APPLE" || token == "CMD" || token == "WIN")
+    return "#";
+  if (token == "LSHIFT")
+    return "<+";
+  if (token == "RSHIFT")
+    return ">+";
+  if (token == "LCTRL")
+    return "<^";
+  if (token == "RCTRL")
+    return ">^";
+  if (token == "LALT")
+    return "<!";
+  if (token == "RALT")
+    return ">!";
+  if (token == "LAPPLE" || token == "LCOM" || token == "LWIN")
+    return "<#";
+  if (token == "RAPPLE" || token == "RCOM" || token == "RWIN")
+    return ">#";
+  if (is_primary_key && token == "+")
+    return "PLS";
+  if (is_primary_key && token == "^")
+    return "CAR";
+  if (is_primary_key && token == "!")
+    return "EXC";
+  if (is_primary_key && token == "#")
+    return "HSH";
+  if (token == "SPACE")
+    return "SPC";
+  if (token == "MOUSE0")
+    return "M0";
+  if (token == "MOUSE1")
+    return "M1";
+  if (token == "MOUSE2")
+    return "M2";
+  if (token == "MOUSE3")
+    return "M3";
+  if (token == "MOUSE4")
+    return "M4";
+  if (token == "MOUSE5")
+    return "M5";
+  if (token == "MOUSE6")
+    return "M6";
+  if (token == "ENTER" || token == "RETURN")
+    return "ENT";
+  if (token == "ESCAPE")
+    return "ESC";
+  if (token == "TAB")
+    return "TAB";
+  if (token == "BACKSPACE")
+    return "BS";
+  if (token == "DELETE")
+    return "DEL";
+  if (token == "MINUS")
+    return "-";
+  if (token == "EQUAL")
+    return "=";
+  if (token == "LEFT")
+    return "LT";
+  if (token == "RIGHT")
+    return "RT";
+  if (token == "UP")
+    return "UP";
+  if (token == "DOWN")
+    return "DN";
+  if (token == "PGUP")
+    return "PU";
+  if (token == "PGDOWN")
+    return "PD";
+  if (token == "HOME")
+    return "HM";
+  if (token == "END")
+    return "END";
+  return std::string(token);
+}
+
+std::string CompactShortcutForHint(const std::vector<std::string>& shortcuts)
+{
+  std::string compact;
+  for (size_t index = 0; index < shortcuts.size(); ++index) {
+    compact.append(CompactShortcutToken(shortcuts[index], index + 1 == shortcuts.size()));
+  }
+  return compact;
+}
+} // namespace
+
 MapKey::MapKey()
 {
   this->Key          = KeyCode::None;
@@ -49,6 +145,7 @@ MapKey MapKey::Parse(std::string_view key)
 #endif
   }
 
+  mapKey->shortcutHint = CompactShortcutForHint(mapKey->Shortcuts);
   return *mapKey;
 }
 
@@ -68,6 +165,12 @@ std::string MapKey::GetShortcuts(GameFunction gameFunction)
   }
 
   return shortcuts;
+}
+
+std::string MapKey::GetShortcutHint(GameFunction gameFunction)
+{
+  const auto& mapKeys = MapKey::mappedKeys[gameFunction];
+  return mapKeys.empty() ? "" : mapKeys.front().shortcutHint;
 }
 
 void MapKey::AddMappedKey(GameFunction gameFunction, MapKey mappedKey)
