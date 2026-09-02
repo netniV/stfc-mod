@@ -148,15 +148,6 @@ static std::string il2cpp_object_to_string(Il2CppObject* obj)
 }
 
 // ---------------------------------------------------------------------------
-// Read an Il2CppArray* from a raw pointer at the given offset
-// ---------------------------------------------------------------------------
-static Il2CppArray* read_array_field(void* obj, size_t offset)
-{
-  if (!obj) return nullptr;
-  return *reinterpret_cast<Il2CppArray**>(reinterpret_cast<char*>(obj) + offset);
-}
-
-// ---------------------------------------------------------------------------
 // SEH wrapper — catches access violations from bad IL2CPP pointers
 // ---------------------------------------------------------------------------
 template <typename Fn>
@@ -222,20 +213,70 @@ static std::string format_with_array(const std::string& tmpl, Il2CppArray* arr)
     auto val = safe_il2cpp_to_string(elem, i);
     if (val.empty()) continue;
 
-    auto  placeholder = "{" + std::to_string(i) + "}";
-    for (auto pos = result.find(placeholder); pos != std::string::npos; pos = result.find(placeholder, pos + val.size()))
-      result.replace(pos, placeholder.size(), val);
+    auto prefix = "{" + std::to_string(i);
+    for (auto pos = result.find(prefix); pos != std::string::npos; pos = result.find(prefix, pos + val.size())) {
+      auto suffix = pos + prefix.size();
+      auto end    = result.find('}', suffix);
+      if (end == std::string::npos) break;
+
+      // Accept both {N} and the numeric zero-padding form used by toast
+      // templates, for example {5:000}.
+      auto replacement = val;
+      if (suffix != end) {
+        if (result[suffix] != ':') continue;
+        auto format = result.substr(suffix + 1, end - suffix - 1);
+        if (!format.empty() && format.find_first_not_of('0') == std::string::npos && replacement.size() < format.size())
+          replacement.insert(0, format.size() - replacement.size(), '0');
+      }
+
+      result.replace(pos, end - pos + 1, replacement);
+    }
+  }
+  return result;
+}
+
+// ---------------------------------------------------------------------------
+// Try every instance array field on an object. Toast parameter arrays have
+// moved and changed names between game builds, including generated backing
+// fields, so runtime metadata is more reliable than names or offsets.
+// ---------------------------------------------------------------------------
+static std::string format_with_array_fields(const std::string& tmpl, Il2CppObject* obj, std::string& fields_seen)
+{
+  if (!obj) return tmpl;
+
+  auto result = tmpl;
+  for (auto* cls = il2cpp_object_get_class(obj); cls; cls = il2cpp_class_get_parent(cls)) {
+    void* iter = nullptr;
+    while (auto* field = il2cpp_class_get_fields(cls, &iter)) {
+      if ((il2cpp_field_get_flags(field) & 0x10) != 0) continue; // FieldAttributes.Static
+
+      auto* type = il2cpp_field_get_type(field);
+      auto  kind = type ? il2cpp_type_get_type(type) : IL2CPP_TYPE_END;
+      if (kind != IL2CPP_TYPE_SZARRAY && kind != IL2CPP_TYPE_ARRAY) continue;
+
+      Il2CppArray* arr = nullptr;
+      il2cpp_field_get_value(obj, field, &arr);
+
+      if (!fields_seen.empty()) fields_seen += ", ";
+      fields_seen += il2cpp_field_get_name(field);
+      fields_seen += arr ? "[" + std::to_string(reinterpret_cast<Il2CppArraySize*>(arr)->max_length) + "]" : "[null]";
+
+      if (!arr || reinterpret_cast<Il2CppArraySize*>(arr)->max_length == 0) continue;
+      auto candidate = format_with_array(tmpl, arr);
+      if (std::ranges::count(candidate, '{') < std::ranges::count(result, '{'))
+        result = std::move(candidate);
+    }
   }
   return result;
 }
 
 // ---------------------------------------------------------------------------
 // Replace {N} placeholders using Toast.TextParameters, falling back to
-// LocaleTextContext._textParameters (offset 0x40) if the Toast array is empty.
+// LocaleTextContext._textParameters if the Toast array is empty.
 // ---------------------------------------------------------------------------
 static std::string format_placeholders(const std::string& tmpl, Toast* toast, void* ltc)
 {
-  // Try Toast.TextParameters first (offset 0x18)
+  // Try Toast.TextParameters first.
   auto* toast_arr = toast->get_TextParameters();
   if (toast_arr) {
     auto len = static_cast<il2cpp_array_size_t>(reinterpret_cast<Il2CppArraySize*>(toast_arr)->max_length);
@@ -244,26 +285,17 @@ static std::string format_placeholders(const std::string& tmpl, Toast* toast, vo
     }
   }
 
-  // Fall back to LocaleTextContext._textParameters (offset 0x40)
-  auto* ltc_arr = read_array_field(ltc, 0x40);
-  if (ltc_arr) {
-    auto len = static_cast<il2cpp_array_size_t>(reinterpret_cast<Il2CppArraySize*>(ltc_arr)->max_length);
-    if (len > 0) {
-      return format_with_array(tmpl, ltc_arr);
-    }
-  }
+  std::string fields_seen;
+  auto result = format_with_array_fields(tmpl, reinterpret_cast<Il2CppObject*>(toast), fields_seen);
+  if (result != tmpl) return result;
 
-  // Also try LocaleTextContext._identifierParameters (offset 0x38)
-  auto* id_arr = read_array_field(ltc, 0x38);
-  if (id_arr) {
-    auto len = static_cast<il2cpp_array_size_t>(reinterpret_cast<Il2CppArraySize*>(id_arr)->max_length);
-    if (len > 0) {
-      return format_with_array(tmpl, id_arr);
-    }
-  }
+  result = format_with_array_fields(tmpl, reinterpret_cast<Il2CppObject*>(ltc), fields_seen);
+  if (result != tmpl) return result;
 
-  if (tmpl.find('{') != std::string::npos)
-    spdlog::warn("[Notify] Placeholders in template but no parameter arrays found: \"{}\"", tmpl);
+  if (tmpl.find('{') != std::string::npos) {
+    spdlog::warn("[Notify] Placeholders unresolved; array fields seen: {}. Template: \"{}\"",
+                 fields_seen.empty() ? "none" : fields_seen, tmpl);
+  }
   return tmpl;
 }
 
@@ -297,7 +329,7 @@ static std::string resolve_toast_text(Toast* toast)
       auto result = to_string(reinterpret_cast<Il2CppString*>(ret));
       // LocaleUtilities.Localize may return a template with unresolved {N}
       // placeholders if the LTC's own _textParameters are empty.  The actual
-      // parameter values may be in Toast.TextParameters (offset 0x18), so run
+      // parameter values may be in Toast.TextParameters, so run
       // format_placeholders to substitute them.
       if (result.find('{') != std::string::npos)
         result = format_placeholders(result, toast, ltc);
