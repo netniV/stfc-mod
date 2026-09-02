@@ -94,19 +94,6 @@ static const char* toast_state_title(int state)
   }
 }
 
-static NotificationSound toast_state_sound(int state)
-{
-  const auto& config = Config::Get();
-  switch (state) {
-    case Victory: return config.alert_victory;
-    case Defeat: return config.alert_defeat;
-    case ArmadaCreated: return config.alert_armada_created;
-    case ArmadaBattleWon: return config.alert_armada_battle_won;
-    case ArmadaBattleLost: return config.alert_armada_battle_lost;
-    default: return NotificationSound::None;
-  }
-}
-
 // ---------------------------------------------------------------------------
 // Platform notification delivery
 // ---------------------------------------------------------------------------
@@ -505,7 +492,7 @@ void notification_handle_toast(Toast* toast)
   if (!toast) return;
 
   auto state = toast->get_State();
-  notification_audio_play(toast_state_sound(state));
+  notification_audio_play(Config::Get().NotificationSoundForToast(state));
 
 #if _WIN32
 
