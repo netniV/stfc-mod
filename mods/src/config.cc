@@ -30,6 +30,27 @@ namespace DCS  = DefaultConfig::Sync;
 namespace DCSC = DefaultConfig::SystemConfig;
 namespace DCSH = DefaultConfig::Shortcuts;
 
+namespace
+{
+struct ToastAudioAlertConfig {
+  int                       toast_state;
+  std::string_view          config_name;
+  std::string_view          default_sound;
+  NotificationSound Config::* config_member;
+};
+
+constexpr std::array kToastAudioAlerts{
+    ToastAudioAlertConfig{ToastState::Victory, "alert_victory", DCA::alert_victory, &Config::alert_victory},
+    ToastAudioAlertConfig{ToastState::Defeat, "alert_defeat", DCA::alert_defeat, &Config::alert_defeat},
+    ToastAudioAlertConfig{ToastState::ArmadaCreated, "alert_armada_created", DCA::alert_armada_created,
+                          &Config::alert_armada_created},
+    ToastAudioAlertConfig{ToastState::ArmadaBattleWon, "alert_armada_battle_won", DCA::alert_armada_battle_won,
+                          &Config::alert_armada_battle_won},
+    ToastAudioAlertConfig{ToastState::ArmadaBattleLost, "alert_armada_battle_lost", DCA::alert_armada_battle_lost,
+                          &Config::alert_armada_battle_lost},
+};
+} // namespace
+
 static const eastl::tuple<const char*, int> bannerTypes[] = {
     {"All", ToastState::All},
     {"Standard", ToastState::Standard},
@@ -124,6 +145,19 @@ Config& Config::Get()
 {
   static Config config;
   return config;
+}
+
+NotificationSound Config::NotificationSoundForToast(int toast_state) const
+{
+  const auto alert = std::ranges::find(kToastAudioAlerts, toast_state, &ToastAudioAlertConfig::toast_state);
+  return alert == kToastAudioAlerts.end() ? NotificationSound::None : this->*(alert->config_member);
+}
+
+bool Config::AnyToastAudioAlertConfigured() const
+{
+  return std::ranges::any_of(kToastAudioAlerts, [this](const auto& alert) {
+    return this->*(alert.config_member) != NotificationSound::None;
+  });
 }
 
 MissionHudVisibility Config::MissionHudButtonVisibility(std::string_view button_name) const
@@ -970,20 +1004,11 @@ void Config::Load()
     }
   }
   this->installAudioEventHooks = this->trace_audio_events || !this->disabled_audio_events.empty();
-  this->alert_victory =
-      get_notification_sound(config, parsed, "alert_victory", DCA::alert_victory, write_config);
-  this->alert_defeat = get_notification_sound(config, parsed, "alert_defeat", DCA::alert_defeat, write_config);
-  this->alert_armada_created =
-      get_notification_sound(config, parsed, "alert_armada_created", DCA::alert_armada_created, write_config);
-  this->alert_armada_battle_won =
-      get_notification_sound(config, parsed, "alert_armada_battle_won", DCA::alert_armada_battle_won, write_config);
-  this->alert_armada_battle_lost =
-      get_notification_sound(config, parsed, "alert_armada_battle_lost", DCA::alert_armada_battle_lost, write_config);
-  if (!this->installToastBannerHooks
-      && (this->alert_victory != NotificationSound::None || this->alert_defeat != NotificationSound::None
-          || this->alert_armada_created != NotificationSound::None
-          || this->alert_armada_battle_won != NotificationSound::None
-          || this->alert_armada_battle_lost != NotificationSound::None)) {
+  for (const auto& alert : kToastAudioAlerts) {
+    this->*(alert.config_member) =
+        get_notification_sound(config, parsed, alert.config_name, alert.default_sound, write_config);
+  }
+  if (!this->installToastBannerHooks && AnyToastAudioAlertConfigured()) {
     spdlog::warn("audio alerts require patches.toastbannerhooks = true");
   }
   this->auto_open_bulk_claim_flyout = get_config_or_default(config, parsed, "ui", "auto_open_bulk_claim_flyout",
