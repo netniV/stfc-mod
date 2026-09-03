@@ -132,7 +132,7 @@ zoom_label_player_detail = "native"
 # Normaliseret zoomgrænse for "threshold" (0.0 = altid kompakt, 1.0 = altid udvidet)
 zoom_label_player_threshold = 0.5
 
-# Ikke-spillerflåder og uklassificerede flåder
+# Ikke-spillerflåder og ukendte flådetyper; ubundne widgets forbliver uændrede, indtil flådekonteksten er tilgængelig
 zoom_label_non_player_detail = "native"
 zoom_label_non_player_threshold = 0.5
 

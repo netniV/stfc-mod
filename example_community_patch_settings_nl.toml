@@ -132,7 +132,7 @@ zoom_label_player_detail = "native"
 # Genormaliseerde zoomgrens voor "threshold" (0.0 = altijd compact, 1.0 = altijd uitgebreid)
 zoom_label_player_threshold = 0.5
 
-# Niet-spelersvloten en niet-geclassificeerde vloten
+# Niet-spelersvloten en onbekende vloottypen; niet-gebonden widgets blijven standaard tot hun vlootcontext beschikbaar is
 zoom_label_non_player_detail = "native"
 zoom_label_non_player_threshold = 0.5
 

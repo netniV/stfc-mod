@@ -428,11 +428,14 @@ void NavigationZoom_Update_Hook(auto original, NavigationZoom *_this)
   EnsureSystemZoomRange(_this);
   if (fleet_label_hooks_installed && _this->_depth == NodeDepth::SolarSystem) {
     BeginFleetLabelSystemState(_this);
-    const auto state_was_valid = system_zoom_state_valid;
-    system_zoom_level       = _this->_zoomLevel;
-    system_normalized_zoom  = _this->NormalizedZoom;
+    const auto state_was_valid   = system_zoom_state_valid;
+    const auto threshold_enabled = FleetLabelThresholdEnabled();
+    system_zoom_level            = _this->_zoomLevel;
+    if (threshold_enabled) {
+      system_normalized_zoom = _this->NormalizedZoom;
+    }
     system_zoom_state_valid = true;
-    if (FleetLabelThresholdEnabled()) {
+    if (threshold_enabled) {
       UpdateFleetLabelThreshold();
     } else if (!state_was_valid) {
       ApplyAllFleetLabelDetails();
@@ -601,10 +604,10 @@ void InstallZoomHooks()
         il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Navigation", "NavigationFleetWidget");
     auto fleet_data_helper =
         il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Models", "FleetDeployedData");
-    auto  ptr_update_lod = lod_helper.isValidHelper() ? lod_helper.GetMethod("UpdateLOD") : nullptr;
-    auto  ptr_on_enable  = fleet_widget_helper.isValidHelper() ? fleet_widget_helper.GetMethod("OnEnable") : nullptr;
-    auto  ptr_on_disable = fleet_widget_helper.isValidHelper() ? fleet_widget_helper.GetMethod("OnDisable") : nullptr;
-    auto  ptr_on_did_bind_context =
+    auto ptr_update_lod = lod_helper.isValidHelper() ? lod_helper.GetMethod("UpdateLOD") : nullptr;
+    auto ptr_on_enable  = fleet_widget_helper.isValidHelper() ? fleet_widget_helper.GetMethod("OnEnable") : nullptr;
+    auto ptr_on_disable = fleet_widget_helper.isValidHelper() ? fleet_widget_helper.GetMethod("OnDisable") : nullptr;
+    auto ptr_on_did_bind_context =
         fleet_widget_helper.isValidHelper() ? fleet_widget_helper.GetMethod("OnDidBindContext") : nullptr;
     auto ptr_on_about_to_release_context =
         fleet_widget_helper.isValidHelper() ? fleet_widget_helper.GetMethod("OnAboutToReleaseContext") : nullptr;

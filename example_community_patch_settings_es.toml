@@ -132,7 +132,7 @@ zoom_label_player_detail = "native"
 # Umbral de zoom normalizado para "threshold" (0.0 = siempre compacto, 1.0 = siempre expandido)
 zoom_label_player_threshold = 0.5
 
-# Flotas que no son de jugadores y flotas sin clasificar
+# Flotas no jugadoras y tipos de flota desconocidos; los widgets sin vincular permanecen nativos hasta disponer de su contexto
 zoom_label_non_player_detail = "native"
 zoom_label_non_player_threshold = 0.5
 

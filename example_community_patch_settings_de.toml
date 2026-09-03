@@ -132,7 +132,7 @@ zoom_label_player_detail = "native"
 # Normalisierte Zoomgrenze für "threshold" (0.0 = immer kompakt, 1.0 = immer erweitert)
 zoom_label_player_threshold = 0.5
 
-# Nicht-Spieler-Flotten und nicht klassifizierte Flotten
+# Nicht-Spieler-Flotten und unbekannte Flottentypen; ungebundene Widgets bleiben nativ, bis ihr Flottenkontext verfügbar ist
 zoom_label_non_player_detail = "native"
 zoom_label_non_player_threshold = 0.5
 

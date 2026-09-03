@@ -132,7 +132,7 @@ zoom_label_player_detail = "native"
 # Нормализованный порог масштаба для "threshold" (0.0 = всегда компактно, 1.0 = всегда расширенно)
 zoom_label_player_threshold = 0.5
 
-# Неигровые и неклассифицированные флоты
+# Неигровые и неизвестные типы флота; непривязанные виджеты сохраняют штатный вид до появления контекста флота
 zoom_label_non_player_detail = "native"
 zoom_label_non_player_threshold = 0.5
 

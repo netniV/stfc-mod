@@ -132,7 +132,7 @@ zoom_label_player_detail = "native"
 # Normalized zoom crossover used by "threshold" (0.0 = always compact, 1.0 = always expanded)
 zoom_label_player_threshold = 0.5
 
-# Non-player and unclassified fleets
+# Non-player and unknown fleet types; unbound widgets remain native until their fleet context is available
 zoom_label_non_player_detail = "native"
 zoom_label_non_player_threshold = 0.5
 
