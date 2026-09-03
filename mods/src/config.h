@@ -143,7 +143,6 @@ public:
   [[nodiscard]] MissionHudVisibility MissionHudButtonVisibility(std::string_view button_name) const;
   [[nodiscard]] bool                 MissionHudTweaksEnabled() const;
   [[nodiscard]] NotificationSound    NotificationSoundForToast(int toast_state) const;
-  [[nodiscard]] bool                 AnyToastAudioAlertConfigured() const;
 
   // Disallow copying/moving to enforce singleton
   Config(const Config&)            = delete;

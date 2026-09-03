@@ -18,6 +18,6 @@ enum class NotificationSound : uint8_t {
   Count,
 };
 
-[[nodiscard]] const char*                      notification_sound_name(NotificationSound sound);
+[[nodiscard]] std::string_view                 notification_sound_name(NotificationSound sound);
 [[nodiscard]] std::optional<NotificationSound> notification_sound_from_name(std::string_view name);
 void                                           notification_audio_play(NotificationSound sound);
