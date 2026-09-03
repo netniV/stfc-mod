@@ -19,6 +19,7 @@
 #include <ranges>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace DCP  = DefaultConfig::Patches;
 namespace DCA  = DefaultConfig::Audio;
@@ -639,7 +640,7 @@ void parse_config_shortcut_value(toml::table& new_config, std::string_view item,
 
     if (mapKey.Key != KeyCode::None) {
       keyAdded = true;
-      MapKey::AddMappedKey(gameFunction, mapKey);
+      MapKey::AddMappedKey(gameFunction, std::move(mapKey));
     } else if (!wantedKey.empty()) {
       spdlog::warn("Invalid shortcut token [shortcuts].{} token='{}' value='{}'; ignoring token.",
                    shortcut_value.source_item, wantedKey, config_value);

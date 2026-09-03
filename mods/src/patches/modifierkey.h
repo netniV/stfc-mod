@@ -17,12 +17,12 @@ public:
   static ModifierKey Parse(std::string_view key);
 
   void AddModifier(std::string_view shortcut, KeyCode modifier1, KeyCode modifier2);
-  bool Contains(KeyCode modifier);
-  bool IsPressed();
-  bool IsDown();
-  bool HasModifiers();
+  bool Contains(KeyCode modifier) const;
+  bool IsPressed() const;
+  bool IsDown() const;
+  bool HasModifiers() const;
 
-  std::string GetParsedValues();
+  std::string GetParsedValues() const;
 
 private:
   std::vector<KeyCode>     Modifiers;

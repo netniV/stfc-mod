@@ -6,6 +6,7 @@
 
 #include <array>
 #include <string>
+#include <string_view>
 #include <vector>
 
 class MapKey
@@ -17,7 +18,7 @@ public:
   static void   AddMappedKey(GameFunction gameFunction, MapKey mappedKey);
   static bool   IsPressed(GameFunction gameFunction);
   static bool   IsDown(GameFunction gameFunction);
-  static bool   HasCorrectModifiers(MapKey mapKey);
+  static bool   HasCorrectModifiers(const MapKey& mapKey);
 
   static std::string GetShortcuts(GameFunction gameFunction);
   static std::string GetShortcutHint(GameFunction gameFunction);

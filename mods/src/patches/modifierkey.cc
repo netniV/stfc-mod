@@ -7,10 +7,7 @@
 #include <string>
 #include <string_view>
 
-
-bool hasModifier = false;
-
-bool ModifierKey::HasModifiers()
+bool ModifierKey::HasModifiers() const
 {
   return this->hasModifier;
 }
@@ -52,7 +49,7 @@ ModifierKey ModifierKey::Parse(std::string_view key)
   return modifierKey;
 }
 
-bool ModifierKey::Contains(KeyCode modifier)
+bool ModifierKey::Contains(KeyCode modifier) const
 {
   if (this->hasModifier) {
     return (std::find(this->Modifiers.begin(), this->Modifiers.end(), modifier) != this->Modifiers.end());
@@ -76,7 +73,7 @@ void ModifierKey::AddModifier(std::string_view shortcut, KeyCode modifier1, KeyC
   }
 }
 
-bool ModifierKey::IsPressed()
+bool ModifierKey::IsPressed() const
 {
   if (this->hasModifier) {
     for (auto modifier : this->Modifiers) {
@@ -89,7 +86,7 @@ bool ModifierKey::IsPressed()
   return false;
 }
 
-bool ModifierKey::IsDown()
+bool ModifierKey::IsDown() const
 {
   if (this->hasModifier) {
     for (auto modifier : this->Modifiers) {
@@ -102,7 +99,7 @@ bool ModifierKey::IsDown()
   return false;
 }
 
-std::string ModifierKey::GetParsedValues()
+std::string ModifierKey::GetParsedValues() const
 {
   std::string output = "";
   if (this->hasModifier) {

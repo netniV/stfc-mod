@@ -8,93 +8,97 @@
 #include <iostream>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace
 {
-std::string CompactShortcutToken(std::string_view token, bool is_primary_key)
+struct CompactShortcutTokenMapping {
+  std::string_view token;
+  std::string_view compact;
+  bool             primary_key_only = false;
+};
+
+// Use AutoHotkey's established ASCII modifier notation so the native game's limited font can render every badge.
+constexpr auto kCompactShortcutTokenMappings = std::to_array<CompactShortcutTokenMapping>({
+    {"SHIFT", "+"},
+    {"CTRL", "^"},
+    {"ALT", "!"},
+    {"ALTGR", "!"},
+    {"APPLE", "#"},
+    {"CMD", "#"},
+    {"WIN", "#"},
+    {"LSHIFT", "<+"},
+    {"RSHIFT", ">+"},
+    {"LCTRL", "<^"},
+    {"RCTRL", ">^"},
+    {"LALT", "<!"},
+    {"RALT", ">!"},
+    {"LAPPLE", "<#"},
+    {"LCOM", "<#"},
+    {"LWIN", "<#"},
+    {"RAPPLE", ">#"},
+    {"RCOM", ">#"},
+    {"RWIN", ">#"},
+    {"+", "PLS", true},
+    {"^", "CAR", true},
+    {"!", "EXC", true},
+    {"#", "HSH", true},
+    {"SPACE", "SPC"},
+    {"MOUSE0", "M0"},
+    {"MOUSE1", "M1"},
+    {"MOUSE2", "M2"},
+    {"MOUSE3", "M3"},
+    {"MOUSE4", "M4"},
+    {"MOUSE5", "M5"},
+    {"MOUSE6", "M6"},
+    {"ENTER", "ENT"},
+    {"RETURN", "ENT"},
+    {"ESCAPE", "ESC"},
+    {"TAB", "TAB"},
+    {"BACKSPACE", "BS"},
+    {"DELETE", "DEL"},
+    {"MINUS", "-"},
+    {"EQUAL", "="},
+    {"LEFT", "LT"},
+    {"RIGHT", "RT"},
+    {"UP", "UP"},
+    {"DOWN", "DN"},
+    {"PGUP", "PU"},
+    {"PGDOWN", "PD"},
+    {"HOME", "HM"},
+    {"END", "END"},
+});
+
+consteval bool CompactShortcutTokensAreUnique()
 {
-  // Use AutoHotkey's established ASCII modifier notation so the native game's limited font can render every badge.
-  if (token == "SHIFT")
-    return "+";
-  if (token == "CTRL")
-    return "^";
-  if (token == "ALT" || token == "ALTGR")
-    return "!";
-  if (token == "APPLE" || token == "CMD" || token == "WIN")
-    return "#";
-  if (token == "LSHIFT")
-    return "<+";
-  if (token == "RSHIFT")
-    return ">+";
-  if (token == "LCTRL")
-    return "<^";
-  if (token == "RCTRL")
-    return ">^";
-  if (token == "LALT")
-    return "<!";
-  if (token == "RALT")
-    return ">!";
-  if (token == "LAPPLE" || token == "LCOM" || token == "LWIN")
-    return "<#";
-  if (token == "RAPPLE" || token == "RCOM" || token == "RWIN")
-    return ">#";
-  if (is_primary_key && token == "+")
-    return "PLS";
-  if (is_primary_key && token == "^")
-    return "CAR";
-  if (is_primary_key && token == "!")
-    return "EXC";
-  if (is_primary_key && token == "#")
-    return "HSH";
-  if (token == "SPACE")
-    return "SPC";
-  if (token == "MOUSE0")
-    return "M0";
-  if (token == "MOUSE1")
-    return "M1";
-  if (token == "MOUSE2")
-    return "M2";
-  if (token == "MOUSE3")
-    return "M3";
-  if (token == "MOUSE4")
-    return "M4";
-  if (token == "MOUSE5")
-    return "M5";
-  if (token == "MOUSE6")
-    return "M6";
-  if (token == "ENTER" || token == "RETURN")
-    return "ENT";
-  if (token == "ESCAPE")
-    return "ESC";
-  if (token == "TAB")
-    return "TAB";
-  if (token == "BACKSPACE")
-    return "BS";
-  if (token == "DELETE")
-    return "DEL";
-  if (token == "MINUS")
-    return "-";
-  if (token == "EQUAL")
-    return "=";
-  if (token == "LEFT")
-    return "LT";
-  if (token == "RIGHT")
-    return "RT";
-  if (token == "UP")
-    return "UP";
-  if (token == "DOWN")
-    return "DN";
-  if (token == "PGUP")
-    return "PU";
-  if (token == "PGDOWN")
-    return "PD";
-  if (token == "HOME")
-    return "HM";
-  if (token == "END")
-    return "END";
-  return std::string(token);
+  for (size_t index = 0; index < kCompactShortcutTokenMappings.size(); ++index) {
+    for (size_t other = index + 1; other < kCompactShortcutTokenMappings.size(); ++other) {
+      if (kCompactShortcutTokenMappings[index].token == kCompactShortcutTokenMappings[other].token) {
+        return false;
+      }
+    }
+  }
+  return true;
 }
+
+static_assert(CompactShortcutTokensAreUnique());
+
+constexpr std::string_view CompactShortcutToken(std::string_view token, bool is_primary_key)
+{
+  for (const auto& mapping : kCompactShortcutTokenMappings) {
+    if (mapping.token == token && (!mapping.primary_key_only || is_primary_key)) {
+      return mapping.compact;
+    }
+  }
+  return token;
+}
+
+static_assert(CompactShortcutToken("CTRL", false) == "^");
+static_assert(CompactShortcutToken("ALTGR", false) == "!");
+static_assert(CompactShortcutToken("+", true) == "PLS");
+static_assert(CompactShortcutToken("+", false) == "+");
+static_assert(CompactShortcutToken("F7", true) == "F7");
 
 std::string CompactShortcutForHint(const std::vector<std::string>& shortcuts)
 {
@@ -118,13 +122,13 @@ MapKey MapKey::Parse(std::string_view key)
   auto lowerKey    = AsciiStrToUpper(strippedKey);
   auto wantedKeys  = StrSplit(lowerKey, '-');
 
-  auto mapKey = new MapKey();
+  MapKey mapKey;
   for (std::string_view wantedKey : wantedKeys) {
     auto modifier = ModifierKey::Parse(wantedKey);
     if (modifier.HasModifiers()) {
-      mapKey->hasModifiers = true;
-      mapKey->Modifiers.emplace_back(modifier);
-      mapKey->Shortcuts.emplace_back(wantedKey);
+      mapKey.hasModifiers = true;
+      mapKey.Modifiers.emplace_back(std::move(modifier));
+      mapKey.Shortcuts.emplace_back(wantedKey);
     } else {
       auto parsedKey = Key::Parse(wantedKey);
 
@@ -133,20 +137,20 @@ MapKey MapKey::Parse(std::string_view key)
       }
 
       if (parsedKey != KeyCode::None) {
-        mapKey->Key = parsedKey;
-        mapKey->Shortcuts.emplace_back(wantedKey);
+        mapKey.Key = parsedKey;
+        mapKey.Shortcuts.emplace_back(wantedKey);
       }
     }
 
 #ifndef NDEBUG
-    if (mapKey->Key == KeyCode::X) {
-      std::cout << "\n\n----------\nX key:\n" << mapKey << "\n----------\n\n";
+    if (mapKey.Key == KeyCode::X) {
+      std::cout << "\n\n----------\nX key:\n" << mapKey.GetParsedValues() << "\n----------\n\n";
     }
 #endif
   }
 
-  mapKey->shortcutHint = CompactShortcutForHint(mapKey->Shortcuts);
-  return *mapKey;
+  mapKey.shortcutHint = CompactShortcutForHint(mapKey.Shortcuts);
+  return mapKey;
 }
 
 std::string MapKey::GetShortcuts(GameFunction gameFunction)
@@ -175,7 +179,7 @@ std::string MapKey::GetShortcutHint(GameFunction gameFunction)
 
 void MapKey::AddMappedKey(GameFunction gameFunction, MapKey mappedKey)
 {
-  MapKey::mappedKeys[gameFunction].emplace_back(mappedKey);
+  MapKey::mappedKeys[gameFunction].emplace_back(std::move(mappedKey));
 }
 
 bool MapKey::IsPressed(GameFunction gameFunction)
@@ -210,7 +214,7 @@ bool MapKey::IsDown(GameFunction gameFunction)
   return false;
 }
 
-bool MapKey::HasCorrectModifiers(MapKey mapKey)
+bool MapKey::HasCorrectModifiers(const MapKey& mapKey)
 {
   auto        result  = false;
   std::string section = "non set";
@@ -219,7 +223,7 @@ bool MapKey::HasCorrectModifiers(MapKey mapKey)
     result  = !Key::IsModified();
   } else {
     result = true;
-    for (ModifierKey modifier : mapKey.Modifiers) {
+    for (const ModifierKey& modifier : mapKey.Modifiers) {
       if (!modifier.IsPressed()) {
         section = modifier.GetParsedValues();
         result  = false;
@@ -251,9 +255,3 @@ std::string MapKey::GetParsedValues() const
 }
 
 std::array<std::vector<MapKey>, (int)GameFunction::Max> MapKey::mappedKeys = {};
-
-std::vector<std::string> Shortcuts = {};
-std::vector<ModifierKey> Modifiers = {};
-
-bool    hasModifiers = false;
-KeyCode Key          = KeyCode::None;
