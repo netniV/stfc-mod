@@ -42,10 +42,15 @@
 #include "patches/parts/focus_search.h"
 #include "str_utils.h"
 
+#include <il2cpp-tabledefs.h>
+#include <il2cpp/il2cpp-functions.h>
+
 #include <EASTL/vector.h>
 
+#include <array>
 #include <iostream>
 #include <span>
+#include <string_view>
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -119,75 +124,87 @@ bool ToggleNativeShortcutHints()
   return true;
 }
 
-GameFunction ModFunctionForNativeAction(std::string_view action_name)
+struct NativeShortcutMapping {
+  std::string_view action_name;
+  GameFunction     primary;
+  GameFunction     fallback = GameFunction::Max;
+};
+
+constexpr std::array kNativeShortcutMappings{
+    NativeShortcutMapping{"interior_view", GameFunction::ShowStationInterior},
+    NativeShortcutMapping{"exterior_view", GameFunction::ShoWStationExterior},
+    NativeShortcutMapping{"system_view", GameFunction::ShowSystem},
+    NativeShortcutMapping{"galaxy_view", GameFunction::ShowGalaxy},
+    NativeShortcutMapping{"events", GameFunction::ShowEvents},
+    NativeShortcutMapping{"ship_a", GameFunction::SelectShip1},
+    NativeShortcutMapping{"ship_b", GameFunction::SelectShip2},
+    NativeShortcutMapping{"ship_c", GameFunction::SelectShip3},
+    NativeShortcutMapping{"ship_d", GameFunction::SelectShip4},
+    NativeShortcutMapping{"ship_e", GameFunction::SelectShip5},
+    NativeShortcutMapping{"ship_f", GameFunction::SelectShip6},
+    NativeShortcutMapping{"ship_g", GameFunction::SelectShip7},
+    NativeShortcutMapping{"ship_h", GameFunction::SelectShip8},
+    NativeShortcutMapping{"alliance", GameFunction::ShowAlliance},
+    NativeShortcutMapping{"chat", GameFunction::ShowChat},
+    NativeShortcutMapping{"side_chat", GameFunction::ShowChatSide1, GameFunction::ShowChatSide2},
+    NativeShortcutMapping{"away_teams", GameFunction::ShowAwayTeam},
+    NativeShortcutMapping{"missions", GameFunction::ShowMissions},
+    NativeShortcutMapping{"daily_goals", GameFunction::ShowDaily},
+    NativeShortcutMapping{"ship_locate", GameFunction::SelectCurrent},
+    NativeShortcutMapping{"ship_manage", GameFunction::ShowShips},
+    NativeShortcutMapping{"research", GameFunction::ShowResearch},
+    NativeShortcutMapping{"consumables", GameFunction::ShowExoComp},
+    NativeShortcutMapping{"ship_recall", GameFunction::ActionRecall},
+    NativeShortcutMapping{"show_keybindings", GameFunction::ToggleShortcutHints},
+    NativeShortcutMapping{"gifts", GameFunction::ShowGifts},
+    NativeShortcutMapping{"help_alliance", GameFunction::ShowAllianceHelp},
+    NativeShortcutMapping{"officers", GameFunction::ShowOfficers},
+    NativeShortcutMapping{"factions", GameFunction::ShowFactions},
+    NativeShortcutMapping{"items", GameFunction::ShowInventory},
+    NativeShortcutMapping{"refinery", GameFunction::ShowRefinery},
+    NativeShortcutMapping{"commanders", GameFunction::ShowCommander},
+    NativeShortcutMapping{"challenges", GameFunction::ShowQTrials},
+};
+
+consteval bool NativeShortcutActionsAreUnique()
 {
-  if (action_name == "interior_view")
-    return GameFunction::ShowStationInterior;
-  if (action_name == "exterior_view")
-    return GameFunction::ShoWStationExterior;
-  if (action_name == "system_view")
-    return GameFunction::ShowSystem;
-  if (action_name == "galaxy_view")
-    return GameFunction::ShowGalaxy;
-  if (action_name == "events")
-    return GameFunction::ShowEvents;
-  if (action_name == "ship_a")
-    return GameFunction::SelectShip1;
-  if (action_name == "ship_b")
-    return GameFunction::SelectShip2;
-  if (action_name == "ship_c")
-    return GameFunction::SelectShip3;
-  if (action_name == "ship_d")
-    return GameFunction::SelectShip4;
-  if (action_name == "ship_e")
-    return GameFunction::SelectShip5;
-  if (action_name == "ship_f")
-    return GameFunction::SelectShip6;
-  if (action_name == "ship_g")
-    return GameFunction::SelectShip7;
-  if (action_name == "ship_h")
-    return GameFunction::SelectShip8;
-  if (action_name == "alliance")
-    return GameFunction::ShowAlliance;
-  if (action_name == "chat")
-    return GameFunction::ShowChat;
-  if (action_name == "side_chat")
-    return GameFunction::ShowChatSide1;
-  if (action_name == "away_teams")
-    return GameFunction::ShowAwayTeam;
-  if (action_name == "missions")
-    return GameFunction::ShowMissions;
-  if (action_name == "daily_goals")
-    return GameFunction::ShowDaily;
-  if (action_name == "ship_locate")
-    return GameFunction::SelectCurrent;
-  if (action_name == "ship_manage")
-    return GameFunction::ShowShips;
-  if (action_name == "research")
-    return GameFunction::ShowResearch;
-  if (action_name == "consumables")
-    return GameFunction::ShowExoComp;
-  if (action_name == "ship_recall")
-    return GameFunction::ActionRecall;
-  if (action_name == "show_keybindings")
-    return GameFunction::ToggleShortcutHints;
-  if (action_name == "gifts")
-    return GameFunction::ShowGifts;
-  if (action_name == "help_alliance")
-    return GameFunction::ShowAllianceHelp;
-  if (action_name == "officers")
-    return GameFunction::ShowOfficers;
-  if (action_name == "factions")
-    return GameFunction::ShowFactions;
-  if (action_name == "items")
-    return GameFunction::ShowInventory;
-  if (action_name == "refinery")
-    return GameFunction::ShowRefinery;
-  if (action_name == "commanders")
-    return GameFunction::ShowCommander;
-  if (action_name == "challenges")
-    return GameFunction::ShowQTrials;
-  return GameFunction::Max;
+  for (size_t index = 0; index < kNativeShortcutMappings.size(); ++index) {
+    for (size_t other = index + 1; other < kNativeShortcutMappings.size(); ++other) {
+      if (kNativeShortcutMappings[index].action_name == kNativeShortcutMappings[other].action_name) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+static_assert(NativeShortcutActionsAreUnique());
+
+constexpr const NativeShortcutMapping* NativeShortcutForAction(std::string_view action_name)
+{
+  for (const auto& mapping : kNativeShortcutMappings) {
+    if (mapping.action_name == action_name) {
+      return &mapping;
+    }
+  }
+  return nullptr;
+}
+
+static_assert(NativeShortcutForAction("interior_view")->primary == GameFunction::ShowStationInterior);
+static_assert(NativeShortcutForAction("side_chat")->fallback == GameFunction::ShowChatSide2);
+static_assert(NativeShortcutForAction("unknown") == nullptr);
+
+bool IsInstanceClassField(const FieldInfo* field, std::string_view expected_namespace, std::string_view expected_name)
+{
+  if (!field || !field->type || field->type->byref || field->type->type != IL2CPP_TYPE_CLASS
+      || (il2cpp_field_get_flags(const_cast<FieldInfo*>(field)) & FIELD_ATTRIBUTE_STATIC) != 0
+      || field->offset < static_cast<int32_t>(sizeof(Il2CppObject))) {
+    return false;
+  }
+
+  auto* field_class = il2cpp_class_from_type(field->type);
+  return field_class && field_class->namespaze && field_class->name && field_class->namespaze == expected_namespace
+         && field_class->name == expected_name;
 }
 
 void ShortcutKeybindHint_UpdateText_Hook(auto original, void* _this)
@@ -224,16 +241,16 @@ void ShortcutKeybindHint_UpdateText_Hook(auto original, void* _this)
     return;
   }
 
-  const auto action_name   = to_string(name);
-  const auto game_function = ModFunctionForNativeAction(action_name);
-  if (game_function == GameFunction::Max) {
+  const auto  action_name = to_string(name);
+  const auto* mapping     = NativeShortcutForAction(action_name);
+  if (!mapping) {
     override_localized_text(text_localizer, il2cpp_string_new("-"));
     return;
   }
 
-  auto shortcut = MapKey::GetShortcutHint(game_function);
-  if (action_name == "side_chat" && shortcut.empty()) {
-    shortcut = MapKey::GetShortcutHint(GameFunction::ShowChatSide2);
+  auto shortcut = MapKey::GetShortcutHint(mapping->primary);
+  if (shortcut.empty() && mapping->fallback != GameFunction::Max) {
+    shortcut = MapKey::GetShortcutHint(mapping->fallback);
   }
   if (shortcut.empty()) {
     shortcut = "-";
@@ -1276,17 +1293,21 @@ void InstallHotkeyHooks()
   if (!shortcut_hint_helper.isValidHelper()) {
     ErrorMsg::MissingHelper("GameInput", "ShortcutKeybindHint");
   } else {
-    auto input_action_field   = shortcut_hint_helper.GetField("_inputAction");
-    auto text_localizer_field = shortcut_hint_helper.GetField("_keyTextLocalizer");
-    if (!input_action_field.isValidHelper()) {
-      spdlog::error("Unable to find field 'ShortcutKeybindHint->_inputAction'");
+    auto* input_action_field   = il2cpp_class_get_field_from_name(shortcut_hint_helper.get_cls(), "_inputAction");
+    auto* text_localizer_field = il2cpp_class_get_field_from_name(shortcut_hint_helper.get_cls(), "_keyTextLocalizer");
+    const bool input_action_field_valid =
+        IsInstanceClassField(input_action_field, "UnityEngine.InputSystem", "InputActionReference");
+    const bool text_localizer_field_valid =
+        IsInstanceClassField(text_localizer_field, "Digit.Client.UI", "TextLocalizer");
+    if (!input_action_field_valid) {
+      spdlog::error("Unable to resolve field 'ShortcutKeybindHint->_inputAction' as InputActionReference");
     }
-    if (!text_localizer_field.isValidHelper()) {
-      spdlog::error("Unable to find field 'ShortcutKeybindHint->_keyTextLocalizer'");
+    if (!text_localizer_field_valid) {
+      spdlog::error("Unable to resolve field 'ShortcutKeybindHint->_keyTextLocalizer' as TextLocalizer");
     }
-    if (input_action_field.isValidHelper() && text_localizer_field.isValidHelper()) {
-      shortcut_hint_input_action_offset   = input_action_field.offset();
-      shortcut_hint_text_localizer_offset = text_localizer_field.offset();
+    if (input_action_field_valid && text_localizer_field_valid) {
+      shortcut_hint_input_action_offset   = input_action_field->offset;
+      shortcut_hint_text_localizer_offset = text_localizer_field->offset;
       shortcut_hint_fields_ready          = true;
     }
 
