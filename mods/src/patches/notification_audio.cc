@@ -8,7 +8,6 @@
 #include <array>
 #include <cmath>
 #include <cstdint>
-#include <mutex>
 #include <span>
 #include <string>
 #include <vector>
@@ -39,8 +38,92 @@ constexpr std::array<ToneSegment, 3> kSoftPattern{{{523.0, 90}, {0.0, 26}, {659.
 constexpr std::array<ToneSegment, 1> kPingPattern{{{1046.0, 95}}};
 constexpr std::array<ToneSegment, 5> kRepairPattern{{{440.0, 70}, {0.0, 18}, {554.0, 70}, {0.0, 18}, {740.0, 140}}};
 
-std::once_flag                                                                  s_sound_buffers_once;
-std::array<std::vector<uint8_t>, static_cast<size_t>(NotificationSound::Count)> s_sound_buffers;
+struct SoundDefinition {
+  NotificationSound            sound;
+  std::string_view             name;
+  std::span<const ToneSegment> pattern;
+};
+
+constexpr auto kSoundDefinitions = std::to_array<SoundDefinition>({
+    {NotificationSound::None, "none", {}},
+    {NotificationSound::Default, "default", kDefaultPattern},
+    {NotificationSound::Info, "info", kInfoPattern},
+    {NotificationSound::Success, "success", kSuccessPattern},
+    {NotificationSound::Warning, "warning", kWarningPattern},
+    {NotificationSound::Alarm, "alarm", kAlarmPattern},
+    {NotificationSound::Arrival, "arrival", kArrivalPattern},
+    {NotificationSound::Soft, "soft", kSoftPattern},
+    {NotificationSound::Ping, "ping", kPingPattern},
+    {NotificationSound::Repair, "repair", kRepairPattern},
+});
+
+struct SoundAlias {
+  std::string_view  name;
+  NotificationSound sound;
+};
+
+constexpr auto kSoundAliases = std::to_array<SoundAlias>({
+    {"off", NotificationSound::None},
+    {"silent", NotificationSound::None},
+    {"victory", NotificationSound::Success},
+    {"warn", NotificationSound::Warning},
+    {"attack", NotificationSound::Alarm},
+    {"arrive", NotificationSound::Arrival},
+    {"quiet", NotificationSound::Soft},
+    {"repaired", NotificationSound::Repair},
+});
+
+consteval bool SoundCatalogIsValid()
+{
+  if (kSoundDefinitions.size() != static_cast<size_t>(NotificationSound::Count)) {
+    return false;
+  }
+
+  for (size_t index = 0; index < kSoundDefinitions.size(); ++index) {
+    const auto& definition = kSoundDefinitions[index];
+    if (static_cast<size_t>(definition.sound) != index || definition.name.empty()
+        || (definition.sound == NotificationSound::None) != definition.pattern.empty()) {
+      return false;
+    }
+    for (size_t other = index + 1; other < kSoundDefinitions.size(); ++other) {
+      if (definition.name == kSoundDefinitions[other].name) {
+        return false;
+      }
+    }
+  }
+
+  for (size_t index = 0; index < kSoundAliases.size(); ++index) {
+    const auto& alias = kSoundAliases[index];
+    if (alias.name.empty() || static_cast<size_t>(alias.sound) >= kSoundDefinitions.size()) {
+      return false;
+    }
+    for (const auto& definition : kSoundDefinitions) {
+      if (alias.name == definition.name) {
+        return false;
+      }
+    }
+    for (size_t other = index + 1; other < kSoundAliases.size(); ++other) {
+      if (alias.name == kSoundAliases[other].name) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+static_assert(SoundCatalogIsValid());
+
+constexpr const SoundDefinition* sound_definition(NotificationSound sound)
+{
+  const auto index = static_cast<size_t>(sound);
+  if (index >= kSoundDefinitions.size() || kSoundDefinitions[index].sound != sound) {
+    return nullptr;
+  }
+  return &kSoundDefinitions[index];
+}
+
+static_assert(sound_definition(NotificationSound::Success)->name == "success");
+static_assert(sound_definition(NotificationSound::Count) == nullptr);
 
 std::string normalize_sound_name(std::string_view value)
 {
@@ -56,32 +139,6 @@ std::string normalize_sound_name(std::string_view value)
     }
   }
   return normalized;
-}
-
-std::span<const ToneSegment> sound_pattern(NotificationSound sound)
-{
-  switch (sound) {
-    case NotificationSound::Default:
-      return kDefaultPattern;
-    case NotificationSound::Info:
-      return kInfoPattern;
-    case NotificationSound::Success:
-      return kSuccessPattern;
-    case NotificationSound::Warning:
-      return kWarningPattern;
-    case NotificationSound::Alarm:
-      return kAlarmPattern;
-    case NotificationSound::Arrival:
-      return kArrivalPattern;
-    case NotificationSound::Soft:
-      return kSoftPattern;
-    case NotificationSound::Ping:
-      return kPingPattern;
-    case NotificationSound::Repair:
-      return kRepairPattern;
-    default:
-      return {};
-  }
 }
 
 void append_u16(std::vector<uint8_t>& buffer, uint16_t value)
@@ -146,68 +203,40 @@ std::vector<uint8_t> build_wav(std::span<const ToneSegment> pattern)
   return buffer;
 }
 
-void initialize_sound_buffers()
+using SoundBuffers = std::array<std::vector<uint8_t>, static_cast<size_t>(NotificationSound::Count)>;
+
+const SoundBuffers& sound_buffers()
 {
-  for (size_t index = 0; index < s_sound_buffers.size(); ++index) {
-    const auto pattern = sound_pattern(static_cast<NotificationSound>(index));
-    if (!pattern.empty()) {
-      s_sound_buffers[index] = build_wav(pattern);
+  static const auto buffers = [] {
+    SoundBuffers result;
+    for (const auto& definition : kSoundDefinitions) {
+      if (!definition.pattern.empty()) {
+        result[static_cast<size_t>(definition.sound)] = build_wav(definition.pattern);
+      }
     }
-  }
+    return result;
+  }();
+  return buffers;
 }
 } // namespace
 
-const char* notification_sound_name(NotificationSound sound)
+std::string_view notification_sound_name(NotificationSound sound)
 {
-  switch (sound) {
-    case NotificationSound::None:
-      return "none";
-    case NotificationSound::Default:
-      return "default";
-    case NotificationSound::Info:
-      return "info";
-    case NotificationSound::Success:
-      return "success";
-    case NotificationSound::Warning:
-      return "warning";
-    case NotificationSound::Alarm:
-      return "alarm";
-    case NotificationSound::Arrival:
-      return "arrival";
-    case NotificationSound::Soft:
-      return "soft";
-    case NotificationSound::Ping:
-      return "ping";
-    case NotificationSound::Repair:
-      return "repair";
-    default:
-      return "none";
-  }
+  const auto* definition = sound_definition(sound);
+  return definition ? definition->name : kSoundDefinitions.front().name;
 }
 
 std::optional<NotificationSound> notification_sound_from_name(std::string_view name)
 {
   const auto normalized = normalize_sound_name(name);
-  if (normalized == "none" || normalized == "off" || normalized == "silent")
-    return NotificationSound::None;
-  if (normalized == "default")
-    return NotificationSound::Default;
-  if (normalized == "info")
-    return NotificationSound::Info;
-  if (normalized == "success" || normalized == "victory")
-    return NotificationSound::Success;
-  if (normalized == "warning" || normalized == "warn")
-    return NotificationSound::Warning;
-  if (normalized == "alarm" || normalized == "attack")
-    return NotificationSound::Alarm;
-  if (normalized == "arrival" || normalized == "arrive")
-    return NotificationSound::Arrival;
-  if (normalized == "soft" || normalized == "quiet")
-    return NotificationSound::Soft;
-  if (normalized == "ping")
-    return NotificationSound::Ping;
-  if (normalized == "repair" || normalized == "repaired")
-    return NotificationSound::Repair;
+  if (const auto definition = std::ranges::find(kSoundDefinitions, normalized, &SoundDefinition::name);
+      definition != kSoundDefinitions.end()) {
+    return definition->sound;
+  }
+  if (const auto alias = std::ranges::find(kSoundAliases, normalized, &SoundAlias::name);
+      alias != kSoundAliases.end()) {
+    return alias->sound;
+  }
   return std::nullopt;
 }
 
@@ -216,12 +245,14 @@ void notification_audio_play(NotificationSound sound)
   if (sound == NotificationSound::None)
     return;
 
-  std::call_once(s_sound_buffers_once, initialize_sound_buffers);
   const auto index = static_cast<size_t>(sound);
-  if (index >= s_sound_buffers.size() || s_sound_buffers[index].empty())
+  if (index >= kSoundDefinitions.size())
     return;
 
-  const auto& buffer = s_sound_buffers[index];
+  const auto& buffer = sound_buffers()[index];
+  if (buffer.empty())
+    return;
+
   if (!notification_audio_platform_play(buffer.data(), buffer.size())) {
     spdlog::warn("[NotifyAudio] Failed to play '{}' cue", notification_sound_name(sound));
   }

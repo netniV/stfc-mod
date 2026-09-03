@@ -450,6 +450,7 @@ static std::string strip_unity_rich_text(const std::string& s)
 
 void notification_init()
 {
+#if _WIN32
   // Resolve LanguageManager::Localize(out string, LocaleTextContext) — the
   // 2-parameter overload that takes an LTC and returns a localized string.
   auto lm_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.Localization", "LanguageManager");
@@ -500,7 +501,6 @@ void notification_init()
     spdlog::warn("[Notify] Could not resolve Object::ToString — placeholder formatting may be incomplete");
   }
 
-#if _WIN32
   try {
     winrt::init_apartment(winrt::apartment_type::single_threaded);
     spdlog::info("[Notify] Windows notification service initialized");
@@ -510,12 +510,10 @@ void notification_init()
   } catch (...) {
     spdlog::warn("[Notify] Windows notification service failed (unknown error)");
   }
-#else
-#if __APPLE__
+#elif __APPLE__
   spdlog::info("[Notify] macOS audio notification service ready");
 #else
   spdlog::info("[Notify] Notification service: platform not supported (no-op)");
-#endif
 #endif
 }
 
@@ -523,13 +521,14 @@ void notification_handle_toast(Toast* toast)
 {
   if (!toast) return;
 
-  auto state = toast->get_State();
-  notification_audio_play(Config::Get().NotificationSoundForToast(state));
+  const auto& config = Config::Get();
+  const auto  state  = toast->get_State();
+  notification_audio_play(config.NotificationSoundForToast(state));
 
 #if _WIN32
 
   // Check if this toast type is in the user's notify list
-  const auto& notify_types = Config::Get().notify_banner_types;
+  const auto& notify_types = config.notify_banner_types;
   if (std::ranges::find(notify_types, state) == notify_types.end()) {
     return;
   }
