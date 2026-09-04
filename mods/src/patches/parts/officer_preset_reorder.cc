@@ -510,6 +510,7 @@ void OfficerPresetsViewController_OnDidBindCanvasContext_Hook(auto original, Il2
   Il2CppArraySize* backing_items  = nullptr;
   int32_t          size           = 0;
   if (!try_get_preset_list(view_context, &canonical_list, &backing_items, &size)) {
+    active_controller = nullptr;
     active_presentations.clear();
     spdlog::warn("[OfficerPresetReorder] unable to capture the bound canonical preset list");
     return;
@@ -517,6 +518,7 @@ void OfficerPresetsViewController_OnDidBindCanvasContext_Hook(auto original, Il2
 
   auto** canonical_items = reinterpret_cast<OfficerPresetItemContext**>(backing_items->vector);
   if (!capture_native_presentations(canonical_items, size) || !render_local_order(_this, false)) {
+    active_controller = nullptr;
     active_presentations.clear();
     spdlog::warn("[OfficerPresetReorder] local ordering was disabled for the bound preset view");
   }
