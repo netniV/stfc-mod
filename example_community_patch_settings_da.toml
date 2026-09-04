@@ -632,6 +632,10 @@ disabled_banner_types = ""
 # Specifies banner types that should trigger notifications (comma separated)
 notify_banner_types = ""
 
+# Fleet events that should trigger Windows notifications (comma separated, or "All")
+# Options: ArrivedInSystem, ArrivedAtDestination, StartedMining, NodeDepleted, Docked, RepairComplete
+notify_fleet_events = ""
+
 # Subgroup: Chat
 # --------------
 
@@ -829,4 +833,3 @@ verify_ssl = true
 #  <[========================================================================================================================================================================================================]> 
 
 [sync.targets.spocksclub]
-

@@ -24,6 +24,7 @@
 static const MethodInfo* s_localize_ltc    = nullptr; // LanguageManager.Localize(out string, LocaleTextContext) — instance
 static const MethodInfo* s_locale_utils_localize = nullptr; // LocaleUtilities.Localize(LocaleTextContext, bool, bool) — static
 static const MethodInfo* s_object_tostring = nullptr;
+static bool              s_initialized     = false;
 
 // ---------------------------------------------------------------------------
 // Toast state → human-readable title
@@ -449,6 +450,11 @@ static std::string strip_unity_rich_text(const std::string& s)
 
 void notification_init()
 {
+  if (s_initialized) {
+    return;
+  }
+  s_initialized = true;
+
   // Resolve LanguageManager::Localize(out string, LocaleTextContext) — the
   // 2-parameter overload that takes an LTC and returns a localized string.
   auto lm_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.Localization", "LanguageManager");
@@ -511,6 +517,18 @@ void notification_init()
   }
 #else
   spdlog::info("[Notify] Notification service: platform not supported (no-op)");
+#endif
+}
+
+void notification_emit(std::string_view title, std::string_view body)
+{
+#if _WIN32
+  const std::string owned_title{title};
+  const std::string owned_body{body};
+  show_system_notification(owned_title.c_str(), owned_body.c_str());
+#else
+  (void)title;
+  (void)body;
 #endif
 }
 

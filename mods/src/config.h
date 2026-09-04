@@ -8,6 +8,8 @@
 
 #include <toml++/toml.h>
 
+#include "patches/fleet_notification_types.h"
+
 #if _WIN32
 #include <Windows.h>
 #endif
@@ -182,6 +184,7 @@ public:
   bool             borderless_fullscreen;
   std::vector<int> disabled_banner_types;
   std::vector<int> notify_banner_types;
+  FleetNotificationMask notify_fleet_events = 0;
 
   int  extend_chest_purchase_max;
   int  extend_donation_max;
@@ -238,6 +241,7 @@ public:
   bool installZoomHooks;
   bool installBuffFixHooks;
   bool installToastBannerHooks;
+  bool installFleetNotificationHooks;
   bool installPanHooks;
   bool installHotkeyHooks;
   bool installFreeResizeHooks;
