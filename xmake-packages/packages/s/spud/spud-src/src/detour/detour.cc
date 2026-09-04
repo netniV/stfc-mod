@@ -11,6 +11,8 @@
 #include <libkern/OSCacheControl.h>
 #endif
 
+#include <array>
+#include <atomic>
 #include <cinttypes>
 #include <cstdio>
 #include <cstring>
@@ -24,20 +26,40 @@
 extern "C" uintptr_t ASM_FUNC(spud_read_context_value, ());
 
 namespace spud {
+namespace {
+std::atomic<detour_diagnostic_handler> diagnostic_handler = nullptr;
+}
+
+void set_detour_diagnostic_handler(detour_diagnostic_handler handler) noexcept {
+  diagnostic_handler.store(handler, std::memory_order_release);
+}
+
 namespace detail {
 namespace {
 
 void report_conflict(const target_owner &candidate,
                      const target_owner &incumbent) noexcept {
-  std::fprintf(
-      stderr,
+  std::array<char, 512> message{};
+  std::snprintf(
+      message.data(), message.size(),
       "spud: duplicate detour rejected (requested=0x%" PRIxPTR
       ", canonical=0x%" PRIxPTR ", replacement=0x%" PRIxPTR
       "); existing owner requested=0x%" PRIxPTR ", canonical=0x%" PRIxPTR
-      ", replacement=0x%" PRIxPTR ")\n",
+      ", replacement=0x%" PRIxPTR ")",
       candidate.requested_address, candidate.canonical_address,
       candidate.replacement_address, incumbent.requested_address,
       incumbent.canonical_address, incumbent.replacement_address);
+
+  if (const auto handler = diagnostic_handler.load(std::memory_order_acquire);
+      handler != nullptr) {
+    try {
+      handler(message.data());
+      return;
+    } catch (...) {
+    }
+  }
+
+  std::fprintf(stderr, "%s\n", message.data());
   std::fflush(stderr);
 }
 

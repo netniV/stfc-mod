@@ -4,6 +4,7 @@
 
 #include <atomic>
 #include <barrier>
+#include <string>
 #include <thread>
 #include <utility>
 
@@ -29,6 +30,11 @@ SPUD_TEST_NOINLINE int reinstall_target(int value)
 
 SPUD_TEST_NOINLINE int detached_target(int value)
 { return value + 4; }
+
+std::string last_diagnostic;
+
+void capture_diagnostic(const char *message)
+{ last_diagnostic = message; }
 
 int add_ten(int (*original)(int), int value)
 { return original(value) + 10; }
@@ -123,8 +129,12 @@ TEST_CASE("duplicate detour preserves the first installed hook")
     REQUIRE(call_target(1) == 12);
 
     auto second = spud::create_detour(&duplicate_target, &add_twenty);
+    last_diagnostic.clear();
+    spud::set_detour_diagnostic_handler(&capture_diagnostic);
     second.install();
+    spud::set_detour_diagnostic_handler(nullptr);
     REQUIRE(second.last_install_status() == spud::detour_install_status::duplicate_target);
+    REQUIRE(last_diagnostic.find("duplicate detour rejected") != std::string::npos);
     REQUIRE(second.trampoline() == nullptr);
     REQUIRE(call_target(1) == 12);
   }

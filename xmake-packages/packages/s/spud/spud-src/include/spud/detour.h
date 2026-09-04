@@ -26,6 +26,11 @@ enum class detour_install_status : uint8_t {
   duplicate_target,
 };
 
+using detour_diagnostic_handler = void (*)(const char *message);
+
+// Installs a process-local diagnostic sink. The handler must remain valid until replaced.
+void set_detour_diagnostic_handler(detour_diagnostic_handler handler) noexcept;
+
 namespace detail {
 
 struct detour {
