@@ -40,4 +40,9 @@ bool Subscribe(Subscription subscription);
 
 // Called by the shared ScreenManager.Update detour. Consumers should use Subscribe rather than calling this directly.
 void Tick();
+
+#ifdef _MODDBG
+// Enables a raw transition logger when STFC_MOD_FLEET_WATCH_PROBE=1 for exact-artifact runtime validation.
+void InstallRuntimeProbe();
+#endif
 } // namespace fleet_watch

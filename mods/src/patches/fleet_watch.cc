@@ -6,51 +6,70 @@
 #include <il2cpp/il2cpp_helper.h>
 #include <prime/FleetsManager.h>
 
+#include <spdlog/spdlog.h>
 #include <spud/detour.h>
 
 #include <algorithm>
 #include <array>
 #include <chrono>
 #include <cstddef>
+#include <cstdlib>
+#include <exception>
 #include <string_view>
 #include <vector>
 
 namespace
 {
-constexpr int     kFleetSlotCount         = 10;
-constexpr int64_t kManagerProbeIntervalMs = 250;
-constexpr int64_t kFastPollIntervalMs     = 250;
-constexpr int64_t kFastPollBackoffMs      = 5'000;
-constexpr int64_t kFastPollPeriodMs       = 30'000;
-constexpr int64_t kFastPollLifetimeMs     = 24LL * 60 * 60 * 1'000;
-constexpr int64_t kSeedIntervalMs         = 1'000;
-constexpr int64_t kSeedBackoffIntervalMs  = 5'000;
-constexpr int64_t kSeedFastPeriodMs       = 30'000;
-constexpr int64_t kSeedLifetimeMs         = 120'000;
-constexpr int64_t kSeedStabilizationMs    = 5'000;
-constexpr int64_t kSeedMaxStabilizationMs = 30'000;
+constexpr int     kFleetSlotCount             = 10;
+constexpr int64_t kManagerProbeIntervalMs     = 250;
+constexpr int64_t kManagerDiscoveryIntervalMs = 5'000;
+constexpr int64_t kFastPollIntervalMs         = 250;
+constexpr int64_t kFastPollBackoffMs          = 5'000;
+constexpr int64_t kFastPollPeriodMs           = 30'000;
+constexpr int64_t kFastPollLifetimeMs         = 24LL * 60 * 60 * 1'000;
+constexpr int64_t kSeedIntervalMs             = 1'000;
+constexpr int64_t kSeedBackoffIntervalMs      = 5'000;
+constexpr int64_t kSeedFastPeriodMs           = 30'000;
+constexpr int64_t kSeedLifetimeMs             = 120'000;
+constexpr int64_t kSeedStabilizationMs        = 5'000;
+constexpr int64_t kSeedMaxStabilizationMs     = 30'000;
 
 struct ObservedFleet {
   uint64_t   fleet_id             = 0;
   FleetState state                = FleetState::Unknown;
   bool       occupied             = false;
   int64_t    fast_poll_started_ms = 0;
+  bool       fast_poll_exhausted  = false;
 };
 
 std::array<ObservedFleet, kFleetSlotCount> s_slots{};
 std::vector<fleet_watch::Subscription>     s_subscriptions;
-bool                                       s_hooks_installed        = false;
-bool                                       s_seed_pending           = false;
-bool                                       s_seed_has_observation   = false;
-bool                                       s_seed_manager_backed    = false;
-int64_t                                    s_seed_started_ms        = 0;
-int64_t                                    s_seed_first_observed_ms = 0;
-int64_t                                    s_seed_last_change_ms    = 0;
-int64_t                                    s_last_seed_attempt_ms   = 0;
-int64_t                                    s_last_manager_probe_ms  = 0;
-int64_t                                    s_last_fast_poll_ms      = 0;
-int                                        s_manager_probe_slot     = 0;
-int                                        s_fast_poll_count        = 0;
+bool                                       s_hooks_installed           = false;
+bool                                       s_seed_pending              = false;
+bool                                       s_seed_has_observation      = false;
+bool                                       s_seed_manager_backed       = false;
+bool                                       s_seed_finalize_candidate   = false;
+int64_t                                    s_seed_started_ms           = 0;
+int64_t                                    s_seed_first_observed_ms    = 0;
+int64_t                                    s_seed_last_change_ms       = 0;
+int64_t                                    s_last_seed_attempt_ms      = 0;
+int64_t                                    s_last_manager_probe_ms     = 0;
+int64_t                                    s_last_manager_discovery_ms = 0;
+int64_t                                    s_last_fast_poll_ms         = 0;
+int                                        s_manager_probe_slot        = 0;
+int                                        s_fast_poll_count           = 0;
+int                                        s_dispatch_depth            = 0;
+bool                                       s_evaluating_fast_poll      = false;
+
+class CallbackScope
+{
+public:
+  CallbackScope()
+  { ++s_dispatch_depth; }
+
+  ~CallbackScope()
+  { --s_dispatch_depth; }
+};
 
 int64_t now_milliseconds()
 {
@@ -60,25 +79,50 @@ int64_t now_milliseconds()
 
 bool needs_fast_poll(FleetState state)
 {
-  return std::any_of(s_subscriptions.begin(), s_subscriptions.end(), [state](const auto& subscription) {
-    return subscription.needs_fast_poll && subscription.needs_fast_poll(state);
-  });
+  if (s_evaluating_fast_poll) {
+    spdlog::warn("[FleetWatch] suppressed recursive fast-poll predicate evaluation");
+    return false;
+  }
+  s_evaluating_fast_poll = true;
+  struct PredicateScope {
+    ~PredicateScope()
+    { s_evaluating_fast_poll = false; }
+  } predicate_scope;
+  CallbackScope callback_scope;
+
+  for (const auto& subscription : s_subscriptions) {
+    if (!subscription.needs_fast_poll) {
+      continue;
+    }
+    try {
+      if (subscription.needs_fast_poll(state)) {
+        return true;
+      }
+    } catch (const std::exception& error) {
+      spdlog::warn("[FleetWatch] fast-poll predicate failed: {}", error.what());
+    } catch (...) {
+      spdlog::warn("[FleetWatch] fast-poll predicate failed with an unknown exception");
+    }
+  }
+  return false;
 }
 
 void reset_observation()
 {
-  s_slots                  = {};
-  s_seed_pending           = true;
-  s_seed_has_observation   = false;
-  s_seed_manager_backed    = false;
-  s_seed_started_ms        = now_milliseconds();
-  s_seed_first_observed_ms = 0;
-  s_seed_last_change_ms    = 0;
-  s_last_seed_attempt_ms   = 0;
-  s_last_manager_probe_ms  = 0;
-  s_last_fast_poll_ms      = 0;
-  s_manager_probe_slot     = 0;
-  s_fast_poll_count        = 0;
+  s_slots                     = {};
+  s_seed_pending              = true;
+  s_seed_has_observation      = false;
+  s_seed_manager_backed       = false;
+  s_seed_finalize_candidate   = false;
+  s_seed_started_ms           = now_milliseconds();
+  s_seed_first_observed_ms    = 0;
+  s_seed_last_change_ms       = 0;
+  s_last_seed_attempt_ms      = 0;
+  s_last_manager_probe_ms     = 0;
+  s_last_manager_discovery_ms = 0;
+  s_last_fast_poll_ms         = 0;
+  s_manager_probe_slot        = 0;
+  s_fast_poll_count           = 0;
 }
 
 void restart_seed(int slot, uint64_t fleet_id)
@@ -127,8 +171,15 @@ void dispatch_transition(int slot, FleetPlayerData* fleet, FleetState before, Fl
       .fleet  = fleet,
       .source = source,
   };
+  CallbackScope callback_scope;
   for (const auto& subscription : s_subscriptions) {
-    subscription.on_transition(transition);
+    try {
+      subscription.on_transition(transition);
+    } catch (const std::exception& error) {
+      spdlog::warn("[FleetWatch] transition callback failed: {}", error.what());
+    } catch (...) {
+      spdlog::warn("[FleetWatch] transition callback failed with an unknown exception");
+    }
   }
 }
 
@@ -143,21 +194,21 @@ void observe_fleet(FleetPlayerData* fleet, int requested_slot, bool publish, fle
   const auto fleet_id   = fleet->Id;
   const auto state      = fleet->CurrentState;
   const bool same_fleet = previous.occupied && previous.fleet_id == fleet_id;
-  if (!same_fleet && previous.occupied && !s_seed_pending) {
+  const bool same_state = same_fleet && previous.state == state;
+  if (!same_fleet && !s_seed_pending) {
     restart_seed(slot, fleet_id);
   }
 
-  const bool changed = !same_fleet || previous.state != state;
-  if (same_fleet && publish && !s_seed_pending && previous.state != state) {
-    dispatch_transition(slot, fleet, previous.state, state, source);
-  }
+  const bool changed = !same_state;
 
   const bool was_fast_polling = previous.occupied && previous.fast_poll_started_ms != 0;
   int64_t    fast_started_ms  = 0;
-  if (needs_fast_poll(state)) {
+  const bool fast_exhausted   = same_state && previous.fast_poll_exhausted;
+  if (!fast_exhausted && needs_fast_poll(state)) {
     fast_started_ms = same_fleet && was_fast_polling ? previous.fast_poll_started_ms : now_milliseconds();
   }
-  previous = ObservedFleet{fleet_id, state, true, fast_started_ms};
+  const auto previous_state = previous.state;
+  previous                  = ObservedFleet{fleet_id, state, true, fast_started_ms, fast_exhausted};
 
   const bool is_fast_polling = fast_started_ms != 0;
   if (was_fast_polling != is_fast_polling) {
@@ -172,7 +223,11 @@ void observe_fleet(FleetPlayerData* fleet, int requested_slot, bool publish, fle
       s_seed_has_observation   = true;
       s_seed_first_observed_ms = now_ms;
     }
-    s_seed_last_change_ms = now_ms;
+    s_seed_last_change_ms     = now_ms;
+    s_seed_finalize_candidate = false;
+  }
+  if (same_fleet && publish && !s_seed_pending && previous_state != state) {
+    dispatch_transition(slot, fleet, previous_state, state, source);
   }
 }
 
@@ -195,6 +250,9 @@ ScanResult scan_manager(bool publish, bool only_fast_polling)
 
   std::array<FleetPlayerData*, kFleetSlotCount> fleets{};
   for (int slot = 0; slot < kFleetSlotCount; ++slot) {
+    if (only_fast_polling && (!s_slots[slot].occupied || s_slots[slot].fast_poll_started_ms == 0)) {
+      continue;
+    }
     fleets[slot] = manager->GetFleetPlayerData(slot);
     if (fleets[slot]) {
       ++result.observed_count;
@@ -217,7 +275,8 @@ ScanResult scan_manager(bool publish, bool only_fast_polling)
     restart_seed(result.changed_slot, result.changed_fleet);
     publish = false;
   } else if (result.topology_changed && s_seed_pending && s_seed_has_observation) {
-    s_seed_last_change_ms = now_milliseconds();
+    s_seed_last_change_ms     = now_milliseconds();
+    s_seed_finalize_candidate = false;
   }
 
   for (int slot = 0; slot < kFleetSlotCount; ++slot) {
@@ -269,10 +328,6 @@ void FleetStateWidget_SetWidgetData_Hook(auto original, void* self)
 
 bool install_hooks()
 {
-  if (!register_screen_manager_update_callback(fleet_watch::Tick)) {
-    return false;
-  }
-  install_screen_manager_update_hook();
   auto helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.HUD", "FleetStateWidget");
   if (!helper.isValidHelper()) {
     ErrorMsg::MissingHelper("HUD", "FleetStateWidget");
@@ -283,8 +338,11 @@ bool install_hooks()
     ErrorMsg::MissingMethod("FleetStateWidget", "SetWidgetData");
     return false;
   }
+  if (!install_screen_manager_update_hook()) {
+    return false;
+  }
   SPUD_STATIC_DETOUR(method, FleetStateWidget_SetWidgetData_Hook);
-  return true;
+  return register_screen_manager_update_callback(fleet_watch::Tick);
 }
 } // namespace
 
@@ -292,7 +350,7 @@ namespace fleet_watch
 {
 bool Subscribe(Subscription subscription)
 {
-  if (!subscription.on_transition) {
+  if (!subscription.on_transition || s_dispatch_depth != 0) {
     return false;
   }
   const auto duplicate = std::find_if(s_subscriptions.begin(), s_subscriptions.end(), [&](const auto& existing) {
@@ -344,20 +402,39 @@ void Tick()
       const bool quiet  = now_ms - s_seed_last_change_ms >= kSeedStabilizationMs;
       const bool forced = now_ms - s_seed_first_observed_ms >= kSeedMaxStabilizationMs;
       if (quiet || forced) {
+        if (!s_seed_finalize_candidate) {
+          s_seed_finalize_candidate = true;
+          return;
+        }
         const auto final_scan = scan_manager(false, false);
+        if (!forced && now_ms - s_seed_last_change_ms < kSeedStabilizationMs) {
+          s_seed_finalize_candidate = false;
+          return;
+        }
         if (final_scan.manager_available || !s_seed_manager_backed) {
           const auto baseline_count = final_scan.observed_count > 0 ? final_scan.observed_count : occupied_slot_count();
-          s_seed_pending          = false;
-          s_last_manager_probe_ms = now_ms;
-          s_last_fast_poll_ms     = s_fast_poll_count > 0 ? now_ms : 0;
+          s_seed_pending            = false;
+          s_last_manager_probe_ms   = now_ms;
+          s_last_fast_poll_ms       = s_fast_poll_count > 0 ? now_ms : 0;
           spdlog::debug("[FleetWatch] established stable baseline for {} fleet slots", baseline_count);
         }
       }
     } else if (lifetime >= kSeedLifetimeMs) {
-      s_seed_pending = false;
+      s_seed_pending              = false;
+      s_last_manager_discovery_ms = now_ms;
       spdlog::warn("[FleetWatch] baseline stopped after {}ms without an available fleet service", kSeedLifetimeMs);
     }
     return;
+  }
+
+  if (!s_seed_manager_backed
+      && (s_last_manager_discovery_ms == 0 || now_ms - s_last_manager_discovery_ms >= kManagerDiscoveryIntervalMs)) {
+    s_last_manager_discovery_ms = now_ms;
+    auto* manager               = FleetsManager::Instance();
+    if (manager && manager->HasFleetService()) {
+      restart_seed(-1, 0);
+      return;
+    }
   }
 
   if (s_seed_manager_backed
@@ -393,6 +470,7 @@ void Tick()
     const auto lifetime = now_ms - slot.fast_poll_started_ms;
     if (lifetime >= kFastPollLifetimeMs) {
       slot.fast_poll_started_ms = 0;
+      slot.fast_poll_exhausted  = true;
       --s_fast_poll_count;
     } else if (lifetime < kFastPollPeriodMs) {
       fast_period = true;
@@ -404,4 +482,33 @@ void Tick()
     scan_manager(true, true);
   }
 }
+
+#ifdef _MODDBG
+namespace
+{
+  void runtime_probe_transition(const Transition& transition)
+  {
+    spdlog::info("[FleetWatchProbe] source={} slot={} fleet={} oldState={} newState={}",
+                 transition.source == Source::FleetManager ? "fleet-manager" : "fleet-state-widget",
+                 transition.after.slot, transition.after.fleet_id, static_cast<int>(transition.before.state),
+                 static_cast<int>(transition.after.state));
+  }
+
+  bool runtime_probe_fast_poll(FleetState state)
+  { return state != FleetState::Unknown; }
+} // namespace
+
+void InstallRuntimeProbe()
+{
+  const auto* enabled = std::getenv("STFC_MOD_FLEET_WATCH_PROBE");
+  if (!enabled || std::string_view{enabled} != "1") {
+    return;
+  }
+  if (Subscribe({runtime_probe_transition, runtime_probe_fast_poll})) {
+    spdlog::info("[FleetWatchProbe] runtime subscriber installed");
+  } else {
+    spdlog::warn("[FleetWatchProbe] runtime subscriber installation failed");
+  }
+}
+#endif
 } // namespace fleet_watch

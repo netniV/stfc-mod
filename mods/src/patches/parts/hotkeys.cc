@@ -41,6 +41,10 @@
 #include "patches/parts/focus_search.h"
 #include "patches/screen_update_hook.h"
 
+#ifdef _MODDBG
+#include "patches/fleet_watch.h"
+#endif
+
 #include <EASTL/vector.h>
 
 #include <iostream>
@@ -1033,11 +1037,11 @@ void ShowWithFleet_Hook(auto original, PreScanTargetWidget* _this, void* a1)
   }
 }
 
-void install_screen_manager_update_hook()
+bool install_screen_manager_update_hook()
 {
   static bool installed = false;
   if (installed) {
-    return;
+    return true;
   }
 
   auto helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.UI", "ScreenManager");
@@ -1046,9 +1050,11 @@ void install_screen_manager_update_hook()
   } else if (auto update = helper.GetMethod("Update"); update) {
     SPUD_STATIC_DETOUR(update, ScreenManager_Update_Hook);
     installed = true;
+    return true;
   } else {
     ErrorMsg::MissingMethod("ScreenManager", "Update");
   }
+  return false;
 }
 
 void InstallHotkeyHooks()
@@ -1067,6 +1073,9 @@ void InstallHotkeyHooks()
   }
 
   install_screen_manager_update_hook();
+#ifdef _MODDBG
+  fleet_watch::InstallRuntimeProbe();
+#endif
 
   static auto rewards_button_widget =
       il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Combat", "RewardsButtonWidget");
