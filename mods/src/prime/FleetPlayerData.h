@@ -1,9 +1,9 @@
 #pragma once
 
 #include "BattleTargetData.h"
-#include "CanRepairRequirement.h"
 #include "HullSpec.h"
 #include "RecallRequirement.h"
+#include "CanRepairRequirement.h"
 
 #include <cstdint>
 
@@ -35,16 +35,16 @@ enum class FleetState {
   Deployed               = 8133,
   CanLocate              = 8135
 };
-
+    
 struct FleetPlayerData {
 public:
-  __declspec(property(get = __get_CurrentState)) FleetState  CurrentState;
+  __declspec(property(get = __get_CurrentState)) FleetState CurrentState;
   __declspec(property(get = __get_PreviousState)) FleetState PreviousState;
-  __declspec(property(get = __get_Id)) uint64_t              Id;
-  __declspec(property(get = __get_Hull)) HullSpec*           Hull;
-  __declspec(property(get = __get_Address)) void*            Address;
-  __declspec(property(get = __get_Level)) int64_t            Level;
-  __declspec(property(get = __get_HasShip)) bool             HasShip;
+  __declspec(property(get = __get_Id)) uint64_t Id;
+  __declspec(property(get = __get_Hull)) HullSpec* Hull;
+  __declspec(property(get = __get_Address)) void* Address;
+  __declspec(property(get = __get_Level)) int64_t Level;
+  __declspec(property(get = __get_HasShip)) bool HasShip;
 
 private:
   static IL2CppClassHelper& get_class_helper()
@@ -68,33 +68,33 @@ public:
   FleetState __get_CurrentState()
   {
     static auto field = get_class_helper().GetProperty("CurrentState");
-    auto*       value = field.Get<FleetState>(this);
+    auto*      value  = field.Get<FleetState>(this);
     return value ? *value : FleetState::Unknown;
   }
   FleetState __get_PreviousState()
   {
     static auto field = get_class_helper().GetProperty("PreviousState");
-    auto*       value = field.Get<FleetState>(this);
+    auto*      value  = field.Get<FleetState>(this);
     return value ? *value : FleetState::Unknown;
   }
-
+  
   uint64_t __get_Id()
   {
     static auto field = get_class_helper().GetProperty("Id");
-    auto*       value = field.Get<uint64_t>(this);
+    auto*      value  = field.Get<uint64_t>(this);
     return value ? *value : 0;
   }
   int64_t __get_Level()
   {
     static auto field = get_class_helper().GetProperty("Level");
-    auto*       value = field.Get<int64_t>(this);
+    auto*      value  = field.Get<int64_t>(this);
     return value ? *value : 0;
   }
 
   bool __get_HasShip()
   {
     static auto field = get_class_helper().GetProperty("HasShip");
-    auto*       value = field.Get<bool>(this);
+    auto*      value  = field.Get<bool>(this);
     return value ? *value : false;
   }
 };
