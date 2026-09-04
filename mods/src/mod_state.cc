@@ -190,8 +190,16 @@ static bool update_state(const std::function<void(nlohmann::json&)>& update, int
     state = nlohmann::json::object();
   }
 
+  const auto version = state.find("version");
+  if (version != state.end() && (!version->is_number_integer() || *version != 1)) {
+    spdlog::warn("[ModState] refusing to update unsupported state version in '{}'", path.string());
+    return false;
+  }
+
   try {
-    state["version"] = 1;
+    if (version == state.end()) {
+      state["version"] = 1;
+    }
     update(state);
   } catch (const std::exception& error) {
     spdlog::warn("[ModState] state update failed: {}", error.what());
