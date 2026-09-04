@@ -596,7 +596,7 @@ auto_open_bulk_claim_flyout = false
 # Prevent "escape" from prompting to exit the game
 disable_escape_exit = true
 
-# Max gap in ms for double-tap Escape to show the exit prompt.
+# Max gap in ms before a second Escape reaches the game's normal handling.
 # 0 = disabled; only applies when disable_escape_exit is true.
 escape_exit_timer = 0
 
