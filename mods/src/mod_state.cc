@@ -198,13 +198,21 @@ static bool update_state(const std::function<void(nlohmann::json&)>& update, int
     return false;
   }
 
+  std::string serialized_state;
+  try {
+    serialized_state = state.dump(2);
+  } catch (const std::exception& error) {
+    spdlog::warn("[ModState] state serialization failed: {}", error.what());
+    return false;
+  }
+
   const auto    temporary_path = temporary_state_path(path);
   std::ofstream file(temporary_path, std::ios::out | std::ios::binary | std::ios::trunc);
   if (!file) {
     spdlog::warn("[ModState] unable to open temporary state file '{}'", temporary_path.string());
     return false;
   }
-  file << state.dump(2) << '\n';
+  file << serialized_state << '\n';
   file.flush();
   const bool write_succeeded = file.good();
   file.close();
