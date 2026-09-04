@@ -142,6 +142,17 @@ bool replace_state_file(const std::filesystem::path& temporary_path, const std::
   std::filesystem::remove(temporary_path, cleanup_error);
   return false;
 }
+
+constexpr int state_version = 1;
+
+bool has_supported_state_version(const nlohmann::json& state, bool allow_missing)
+{
+  if (!state.is_object()) {
+    return false;
+  }
+  const auto version = state.find("version");
+  return version == state.end() ? allow_missing : version->is_number_integer() && *version == state_version;
+}
 } // namespace
 
 namespace mod_state
@@ -156,8 +167,8 @@ std::optional<nlohmann::json> Read()
 
   try {
     auto state = nlohmann::json::parse(file);
-    if (!state.is_object()) {
-      spdlog::warn("[ModState] ignored non-object state file '{}'", path.string());
+    if (!has_supported_state_version(state, true)) {
+      spdlog::warn("[ModState] ignored state file with unsupported shape or version '{}'", path.string());
       return std::nullopt;
     }
     return state;
@@ -190,17 +201,20 @@ static bool update_state(const std::function<void(nlohmann::json&)>& update, int
     state = nlohmann::json::object();
   }
 
-  const auto version = state.find("version");
-  if (version != state.end() && (!version->is_number_integer() || *version != 1)) {
+  if (!has_supported_state_version(state, true)) {
     spdlog::warn("[ModState] refusing to update unsupported state version in '{}'", path.string());
     return false;
   }
 
   try {
-    if (version == state.end()) {
-      state["version"] = 1;
+    if (!state.contains("version")) {
+      state["version"] = state_version;
     }
     update(state);
+    if (!has_supported_state_version(state, false)) {
+      spdlog::warn("[ModState] state update changed the reserved version field");
+      return false;
+    }
   } catch (const std::exception& error) {
     spdlog::warn("[ModState] state update failed: {}", error.what());
     return false;

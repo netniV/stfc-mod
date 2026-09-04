@@ -7,7 +7,8 @@
 
 namespace mod_state
 {
-// Reads the latest complete state snapshot. Missing, malformed, and non-object files return no value.
+// Reads the latest supported complete snapshot. Missing, malformed, non-object, and future-version files return no
+// value.
 std::optional<nlohmann::json> Read();
 
 // Performs a serialized read-modify-write transaction, retrying briefly when another writer holds the state lock.
