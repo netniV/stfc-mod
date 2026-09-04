@@ -140,23 +140,6 @@ void clear_slot(int slot)
   s_slots[slot] = {};
 }
 
-int resolve_slot(FleetPlayerData* fleet, int requested_slot)
-{
-  if (!fleet) {
-    return -1;
-  }
-  if (requested_slot >= 0 && requested_slot < kFleetSlotCount) {
-    return requested_slot;
-  }
-  for (int slot = 0; slot < kFleetSlotCount; ++slot) {
-    if (s_slots[slot].occupied && s_slots[slot].fleet_id == fleet->Id) {
-      return slot;
-    }
-  }
-  const auto model_slot = fleet->Index;
-  return model_slot >= 0 && model_slot < kFleetSlotCount ? model_slot : -1;
-}
-
 int occupied_slot_count()
 {
   return static_cast<int>(
@@ -184,10 +167,10 @@ void dispatch_transition(int slot, FleetPlayerData* fleet, FleetState before, Fl
 
 void observe_fleet(FleetPlayerData* fleet, int requested_slot, bool publish)
 {
-  const auto slot = resolve_slot(fleet, requested_slot);
-  if (!fleet || slot < 0) {
+  if (!fleet || requested_slot < 0 || requested_slot >= kFleetSlotCount) {
     return;
   }
+  const auto slot = requested_slot;
 
   auto&      previous   = s_slots[slot];
   const auto fleet_id   = fleet->Id;
