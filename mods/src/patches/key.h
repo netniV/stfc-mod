@@ -14,8 +14,9 @@ private:
   static int cacheInputFocused;
   static int cacheInputModified;
 
-  static std::array<int, (int)KeyCode::Max> cacheKeyPressed;
-  static std::array<int, (int)KeyCode::Max> cacheKeyDown;
+  static std::array<int, (int)KeyCode::Max>  cacheKeyPressed;
+  static std::array<int, (int)KeyCode::Max>  cacheKeyDown;
+  static std::array<bool, (int)KeyCode::Max> claimedDirectionalInput;
 
 public:
   static void    ClearInputFocus();
@@ -24,6 +25,9 @@ public:
 
   static bool Pressed(KeyCode key);
   static bool Down(KeyCode key);
+
+  static void ClaimDirectionalInput(KeyCode key);
+  static bool IsDirectionalInputClaimed();
 
   static bool IsModifier(KeyCode key);
 

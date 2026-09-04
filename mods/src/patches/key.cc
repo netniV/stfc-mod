@@ -10,8 +10,19 @@
 int Key::cacheInputFocused  = 0;
 int Key::cacheInputModified = 0;
 
-std::array<int, (int)KeyCode::Max> Key::cacheKeyPressed = {};
-std::array<int, (int)KeyCode::Max> Key::cacheKeyDown    = {};
+std::array<int, (int)KeyCode::Max>  Key::cacheKeyPressed         = {};
+std::array<int, (int)KeyCode::Max>  Key::cacheKeyDown            = {};
+std::array<bool, (int)KeyCode::Max> Key::claimedDirectionalInput = {};
+
+namespace
+{
+constexpr std::array directionalKeys = {
+    KeyCode::LeftArrow,
+    KeyCode::RightArrow,
+    KeyCode::UpArrow,
+    KeyCode::DownArrow,
+};
+}
 
 const std::unordered_map<std::string, KeyCode> Key::mappedKeys = {
     {"LALT", KeyCode::LeftAlt},
@@ -193,6 +204,39 @@ bool Key::IsModifier(KeyCode key)
   }
 }
 
+void Key::ClaimDirectionalInput(KeyCode key)
+{
+  switch (key) {
+    case KeyCode::LeftArrow:
+    case KeyCode::RightArrow:
+    case KeyCode::UpArrow:
+    case KeyCode::DownArrow:
+      claimedDirectionalInput[(int)key] = true;
+      break;
+    default:
+      break;
+  }
+}
+
+bool Key::IsDirectionalInputClaimed()
+{
+  auto claimed = false;
+  for (const auto key : directionalKeys) {
+    auto& directionClaimed = claimedDirectionalInput[(int)key];
+    if (!directionClaimed) {
+      continue;
+    }
+
+    if (Pressed(key)) {
+      claimed = true;
+    } else {
+      directionClaimed = false;
+    }
+  }
+
+  return claimed;
+}
+
 bool Key::IsModified()
 {
   if (cacheInputModified == 0) {
@@ -215,6 +259,15 @@ void Key::ResetCache()
   for (int i = 0; i < (int)KeyCode::Max; i++) {
     Key::cacheKeyDown[i]    = 0;
     Key::cacheKeyPressed[i] = 0;
+  }
+
+  // Direction claims span frames while their key is held so one-shot chords cannot leak into native movement.
+  // Prune them here as well as at the consumer so claims cannot survive a scene without NavigationPan.
+  for (const auto key : directionalKeys) {
+    auto& directionClaimed = claimedDirectionalInput[(int)key];
+    if (directionClaimed && !Pressed(key)) {
+      directionClaimed = false;
+    }
   }
 }
 bool Key::Down(KeyCode key)
