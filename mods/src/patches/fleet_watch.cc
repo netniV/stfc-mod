@@ -3,11 +3,9 @@
 #include "errormsg.h"
 #include "patches/screen_update_hook.h"
 
-#include <il2cpp/il2cpp_helper.h>
 #include <prime/FleetsManager.h>
 
 #include <spdlog/spdlog.h>
-#include <spud/detour.h>
 
 #include <algorithm>
 #include <array>
@@ -44,7 +42,7 @@ struct ObservedFleet {
 
 std::array<ObservedFleet, kFleetSlotCount> s_slots{};
 std::vector<fleet_watch::Subscription>     s_subscriptions;
-bool                                       s_hooks_installed           = false;
+bool                                       s_observer_installed        = false;
 bool                                       s_seed_pending              = false;
 bool                                       s_seed_has_observation      = false;
 bool                                       s_seed_manager_backed       = false;
@@ -165,14 +163,12 @@ int occupied_slot_count()
       std::count_if(s_slots.begin(), s_slots.end(), [](const auto& slot) { return slot.occupied; }));
 }
 
-void dispatch_transition(int slot, FleetPlayerData* fleet, FleetState before, FleetState after,
-                         fleet_watch::Source source)
+void dispatch_transition(int slot, FleetPlayerData* fleet, FleetState before, FleetState after)
 {
   const fleet_watch::Transition transition{
       .before = fleet_watch::Snapshot{slot, fleet->Id, before},
       .after  = fleet_watch::Snapshot{slot, fleet->Id, after},
       .fleet  = fleet,
-      .source = source,
   };
   CallbackScope callback_scope;
   for (const auto& subscription : s_subscriptions) {
@@ -186,7 +182,7 @@ void dispatch_transition(int slot, FleetPlayerData* fleet, FleetState before, Fl
   }
 }
 
-void observe_fleet(FleetPlayerData* fleet, int requested_slot, bool publish, fleet_watch::Source source)
+void observe_fleet(FleetPlayerData* fleet, int requested_slot, bool publish)
 {
   const auto slot = resolve_slot(fleet, requested_slot);
   if (!fleet || slot < 0) {
@@ -230,7 +226,7 @@ void observe_fleet(FleetPlayerData* fleet, int requested_slot, bool publish, fle
     s_seed_finalize_candidate = false;
   }
   if (same_fleet && publish && !s_seed_pending && previous_state != state) {
-    dispatch_transition(slot, fleet, previous_state, state, source);
+    dispatch_transition(slot, fleet, previous_state, state);
   }
 }
 
@@ -287,7 +283,7 @@ ScanResult scan_manager(bool publish, bool only_fast_polling)
       continue;
     }
     if (fleets[slot]) {
-      observe_fleet(fleets[slot], slot, publish, fleet_watch::Source::FleetManager);
+      observe_fleet(fleets[slot], slot, publish);
     } else if (!only_fast_polling) {
       clear_slot(slot);
     }
@@ -296,55 +292,11 @@ ScanResult scan_manager(bool publish, bool only_fast_polling)
   return result;
 }
 
-void observe_widget(FleetPlayerData* fleet)
+bool install_observer()
 {
-  if (!fleet || s_subscriptions.empty()) {
-    return;
-  }
-  const auto slot = resolve_slot(fleet, -1);
-  if (!s_seed_pending && s_seed_manager_backed && slot >= 0) {
-    auto* manager = FleetsManager::Instance();
-    auto* current = manager && manager->HasFleetService() ? manager->GetFleetPlayerData(slot) : nullptr;
-    if (!current || current->Id != fleet->Id) {
-      restart_seed(slot, fleet->Id);
-    }
-  }
-  observe_fleet(fleet, slot, true, fleet_watch::Source::FleetStateWidget);
-}
-
-FleetPlayerData* fleet_widget_context(void* self)
-{
-  if (!self) {
-    return nullptr;
-  }
-  static auto get_context =
-      IL2CppClassHelper{reinterpret_cast<Il2CppObject*>(self)->klass}.GetMethod<FleetPlayerData*(void*)>("get_Context",
-                                                                                                         0);
-  return get_context ? get_context(self) : nullptr;
-}
-
-void FleetStateWidget_SetWidgetData_Hook(auto original, void* self)
-{
-  original(self);
-  observe_widget(fleet_widget_context(self));
-}
-
-bool install_hooks()
-{
-  auto helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.HUD", "FleetStateWidget");
-  if (!helper.isValidHelper()) {
-    ErrorMsg::MissingHelper("HUD", "FleetStateWidget");
-    return false;
-  }
-  auto method = helper.GetMethod("SetWidgetData");
-  if (!method) {
-    ErrorMsg::MissingMethod("FleetStateWidget", "SetWidgetData");
-    return false;
-  }
   if (!install_screen_manager_update_hook()) {
     return false;
   }
-  SPUD_STATIC_DETOUR(method, FleetStateWidget_SetWidgetData_Hook);
   return register_screen_manager_update_callback(fleet_watch::Tick);
 }
 } // namespace
@@ -363,11 +315,11 @@ bool Subscribe(Subscription subscription)
     return false;
   }
 
-  if (!s_hooks_installed) {
-    if (!install_hooks()) {
+  if (!s_observer_installed) {
+    if (!install_observer()) {
       return false;
     }
-    s_hooks_installed = true;
+    s_observer_installed = true;
     reset_observation();
   }
   s_subscriptions.push_back(subscription);
@@ -463,7 +415,7 @@ void Tick()
       return;
     }
     if (fleet) {
-      observe_fleet(fleet, slot, true, Source::FleetManager);
+      observe_fleet(fleet, slot, true);
     }
   }
 
@@ -496,9 +448,8 @@ namespace
 {
   void runtime_probe_transition(const Transition& transition)
   {
-    spdlog::info("[FleetWatchProbe] source={} slot={} fleet={} oldState={} newState={}",
-                 transition.source == Source::FleetManager ? "fleet-manager" : "fleet-state-widget",
-                 transition.after.slot, transition.after.fleet_id, static_cast<int>(transition.before.state),
+    spdlog::info("[FleetWatchProbe] slot={} fleet={} oldState={} newState={}", transition.after.slot,
+                 transition.after.fleet_id, static_cast<int>(transition.before.state),
                  static_cast<int>(transition.after.state));
   }
 

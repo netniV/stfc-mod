@@ -2,15 +2,8 @@
 
 #include <prime/FleetPlayerData.h>
 
-#include <cstdint>
-
 namespace fleet_watch
 {
-enum class Source : uint8_t {
-  FleetManager,
-  FleetStateWidget,
-};
-
 struct Snapshot {
   int        slot     = -1;
   uint64_t   fleet_id = 0;
@@ -20,8 +13,7 @@ struct Snapshot {
 struct Transition {
   Snapshot         before;
   Snapshot         after;
-  FleetPlayerData* fleet  = nullptr;
-  Source           source = Source::FleetManager;
+  FleetPlayerData* fleet = nullptr;
 };
 
 using TransitionCallback = void (*)(const Transition& transition);
@@ -32,8 +24,8 @@ struct Subscription {
   FastPollPredicate  needs_fast_poll = nullptr;
 };
 
-// Registers a process-lifetime fleet-state observer. The first subscription installs the shared observation hooks;
-// with no subscriptions, Fleet Watch performs no hooks, scans, or IL2CPP work.
+// Registers a process-lifetime fleet-state observer. The first subscription joins the shared screen-update dispatcher;
+// with no subscriptions, Fleet Watch performs no scans or IL2CPP work.
 // Register during patch installation. Callbacks run synchronously on the game thread, and Transition::fleet is valid
 // only for the duration of the callback.
 bool Subscribe(Subscription subscription);
