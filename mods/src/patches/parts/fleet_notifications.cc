@@ -215,7 +215,10 @@ FleetPlayerData* find_fleet(uint64_t fleet_id)
 
 void ToastFleetObserver_HandleMiningDepleted_Hook(auto original, void* self, int64_t fleet_id)
 {
-  original(self, fleet_id);
+  {
+    ScopedToastNotificationSuppression suppress_duplicate_forwarding;
+    original(self, fleet_id);
+  }
   const auto id = static_cast<uint64_t>(fleet_id);
   if (!allow_node_depletion(id)) {
     return;

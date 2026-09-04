@@ -25,6 +25,7 @@ static const MethodInfo* s_localize_ltc    = nullptr; // LanguageManager.Localiz
 static const MethodInfo* s_locale_utils_localize = nullptr; // LocaleUtilities.Localize(LocaleTextContext, bool, bool) — static
 static const MethodInfo* s_object_tostring = nullptr;
 static bool              s_initialized     = false;
+static thread_local int   s_toast_notification_suppression_depth = 0;
 
 // ---------------------------------------------------------------------------
 // Toast state → human-readable title
@@ -448,6 +449,12 @@ static std::string strip_unity_rich_text(const std::string& s)
 // Public API
 // ---------------------------------------------------------------------------
 
+ScopedToastNotificationSuppression::ScopedToastNotificationSuppression()
+{ ++s_toast_notification_suppression_depth; }
+
+ScopedToastNotificationSuppression::~ScopedToastNotificationSuppression()
+{ --s_toast_notification_suppression_depth; }
+
 void notification_init()
 {
   if (s_initialized) {
@@ -534,6 +541,9 @@ void notification_emit(std::string_view title, std::string_view body)
 
 void notification_handle_toast(Toast* toast)
 {
+  if (s_toast_notification_suppression_depth > 0) {
+    return;
+  }
 #if !_WIN32
   return; // No notification delivery on non-Windows platforms yet
 #else
