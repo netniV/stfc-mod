@@ -39,6 +39,7 @@
 #include "patches/mapkey.h"
 #include "patches/parts/daily_faction_bulk_claim.h"
 #include "patches/parts/focus_search.h"
+#include "patches/screen_update_hook.h"
 
 #include <EASTL/vector.h>
 
@@ -188,6 +189,11 @@ bool MoveShipSelectionInDock(bool goLeft)
 
 void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
 {
+  dispatch_screen_manager_update_callbacks();
+  if (!Config::Get().installHotkeyHooks) {
+    return original(_this);
+  }
+
   // This function is called every frame to update the screen manager.
   // Create a global clock to detect time elapsed
   static std::chrono::time_point<std::chrono::steady_clock> select_clock             = std::chrono::steady_clock::now();
@@ -1027,6 +1033,24 @@ void ShowWithFleet_Hook(auto original, PreScanTargetWidget* _this, void* a1)
   }
 }
 
+void install_screen_manager_update_hook()
+{
+  static bool installed = false;
+  if (installed) {
+    return;
+  }
+
+  auto helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.UI", "ScreenManager");
+  if (!helper.isValidHelper()) {
+    ErrorMsg::MissingHelper("UI", "ScreenManager");
+  } else if (auto update = helper.GetMethod("Update"); update) {
+    SPUD_STATIC_DETOUR(update, ScreenManager_Update_Hook);
+    installed = true;
+  } else {
+    ErrorMsg::MissingMethod("ScreenManager", "Update");
+  }
+}
+
 void InstallHotkeyHooks()
 {
   auto shortcuts_manager_helper =
@@ -1042,17 +1066,7 @@ void InstallHotkeyHooks()
     }
   }
 
-  auto screen_manager_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.UI", "ScreenManager");
-  if (!screen_manager_helper.isValidHelper()) {
-    ErrorMsg::MissingHelper("UI", "ScreenManager");
-  } else {
-    auto ptr_update = screen_manager_helper.GetMethod("Update");
-    if (ptr_update == nullptr) {
-      ErrorMsg::MissingMethod("ScreenManager", "Update");
-    } else {
-      SPUD_STATIC_DETOUR(ptr_update, ScreenManager_Update_Hook);
-    }
-  }
+  install_screen_manager_update_hook();
 
   static auto rewards_button_widget =
       il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Combat", "RewardsButtonWidget");

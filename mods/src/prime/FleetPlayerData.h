@@ -8,26 +8,32 @@
 #include <cstdint>
 
 enum class FleetState {
-  Unknown      = 0,
-  IdleInSpace  = 1,
-  Docked       = 2,
-  Mining       = 4,
-  Destroyed    = 8,
-  TieringUp    = 16,
-  Repairing    = 32,
-  CannotLaunch = 56,
-  Battling     = 64,
-  WarpCharging = 128,
-  Warping      = 256,
-  CanRemove    = 384,
-  CannotMove   = 504,
-  Impulsing    = 512,
-  CanManage    = 899,
-  Capturing    = 1024,
-  CanRecall    = 1541,
-  CanEngage    = 1543,
-  Deployed     = 1989,
-  CanLocate    = 1991
+  Unknown                = 0,
+  IdleInSpace            = 1,
+  Docked                 = 2,
+  Mining                 = 4,
+  Destroyed              = 8,
+  TieringUp              = 16,
+  CanReplaceOfficers     = 18,
+  Repairing              = 32,
+  CannotLaunch           = 56,
+  Battling               = 64,
+  WarpCharging           = 128,
+  Warping                = 256,
+  CanRemove              = 384,
+  Impulsing              = 512,
+  CanActivateAbility     = 513,
+  CanDisco               = 515,
+  Capturing              = 1024,
+  AutoHunting            = 2048,
+  CannotMove             = 2552,
+  CanManage              = 2947,
+  CanBeTargetedByAbility = 3589,
+  CanEngage              = 3591,
+  Outposting             = 4096,
+  CanRecall              = 5637,
+  Deployed               = 8133,
+  CanLocate              = 8135
 };
     
 struct FleetPlayerData {
@@ -36,6 +42,7 @@ public:
   __declspec(property(get = __get_PreviousState)) FleetState PreviousState;
   __declspec(property(get = __get_Id)) uint64_t Id;
   __declspec(property(get = __get_Hull)) HullSpec* Hull;
+  __declspec(property(get = __get_Index)) int Index;
   __declspec(property(get = __get_Address)) void* Address;
   __declspec(property(get = __get_Level)) int64_t Level;
   __declspec(property(get = __get_HasShip)) bool HasShip;
@@ -53,6 +60,12 @@ public:
   {
     static auto field = get_class_helper().GetProperty("Hull");
     return field.GetRaw<HullSpec>(this);
+  }
+  int __get_Index()
+  {
+    static auto property = get_class_helper().GetProperty("Index");
+    auto*       value    = property.Get<int>(this);
+    return value ? *value : -1;
   }
   void* __get_Address()
   {
