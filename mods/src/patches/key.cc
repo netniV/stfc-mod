@@ -9,6 +9,7 @@
 
 int Key::cacheInputFocused  = 0;
 int Key::cacheInputModified = 0;
+int Key::cacheFrame         = -1;
 
 std::array<int, (int)KeyCode::Max>  Key::cacheKeyPressed         = {};
 std::array<int, (int)KeyCode::Max>  Key::cacheKeyDown            = {};
@@ -22,6 +23,12 @@ constexpr std::array directionalKeys = {
     KeyCode::UpArrow,
     KeyCode::DownArrow,
 };
+
+int CurrentInputFrame()
+{
+  static auto GetFrameCount = il2cpp_resolve_icall_typed<int()>("UnityEngine.Time::get_frameCount()");
+  return GetFrameCount();
+}
 }
 
 const std::unordered_map<std::string, KeyCode> Key::mappedKeys = {
@@ -220,6 +227,8 @@ void Key::ClaimDirectionalInput(KeyCode key)
 
 bool Key::IsDirectionalInputClaimed()
 {
+  EnsureCurrentFrame();
+
   auto claimed = false;
   for (const auto key : directionalKeys) {
     auto& directionClaimed = claimedDirectionalInput[(int)key];
@@ -239,6 +248,8 @@ bool Key::IsDirectionalInputClaimed()
 
 bool Key::IsModified()
 {
+  EnsureCurrentFrame();
+
   if (cacheInputModified == 0) {
     cacheInputModified = -1;
     if (Key::Pressed(KeyCode::LeftAlt) || Key::Pressed(KeyCode::LeftControl) || Key::Pressed(KeyCode::LeftShift)
@@ -254,6 +265,7 @@ bool Key::IsModified()
 
 void Key::ResetCache()
 {
+  Key::cacheFrame          = CurrentInputFrame();
   Key::cacheInputFocused  = 0;
   Key::cacheInputModified = 0;
   for (int i = 0; i < (int)KeyCode::Max; i++) {
@@ -270,8 +282,18 @@ void Key::ResetCache()
     }
   }
 }
+
+void Key::EnsureCurrentFrame()
+{
+  if (cacheFrame != CurrentInputFrame()) {
+    ResetCache();
+  }
+}
+
 bool Key::Down(KeyCode key)
 {
+  EnsureCurrentFrame();
+
   static auto GetKeyDownInt =
       il2cpp_resolve_icall_typed<bool(KeyCode)>("UnityEngine.Input::GetKeyDownInt(UnityEngine.KeyCode)");
 
@@ -284,6 +306,8 @@ bool Key::Down(KeyCode key)
 
 bool Key::Pressed(KeyCode key)
 {
+  EnsureCurrentFrame();
+
   static auto GetKeyInt =
       il2cpp_resolve_icall_typed<bool(KeyCode)>("UnityEngine.Input::GetKeyInt(UnityEngine.KeyCode)");
 
@@ -296,6 +320,8 @@ bool Key::Pressed(KeyCode key)
 
 bool Key::IsInputFocused()
 {
+  EnsureCurrentFrame();
+
   if (cacheInputFocused == 0) {
     cacheInputFocused = -1;
 

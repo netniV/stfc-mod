@@ -13,10 +13,13 @@ private:
 
   static int cacheInputFocused;
   static int cacheInputModified;
+  static int cacheFrame;
 
   static std::array<int, (int)KeyCode::Max>  cacheKeyPressed;
   static std::array<int, (int)KeyCode::Max>  cacheKeyDown;
   static std::array<bool, (int)KeyCode::Max> claimedDirectionalInput;
+
+  static void EnsureCurrentFrame();
 
 public:
   static void    ClearInputFocus();
