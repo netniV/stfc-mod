@@ -28,7 +28,8 @@ enum class detour_install_status : uint8_t {
 
 using detour_diagnostic_handler = void (*)(const char *message);
 
-// Installs a process-local diagnostic sink. The handler must remain valid until replaced.
+// Installs a process-local diagnostic sink. The handler must have process lifetime; replacement does not wait for
+// concurrent reports. The message is borrowed for the duration of the callback.
 void set_detour_diagnostic_handler(detour_diagnostic_handler handler) noexcept;
 
 namespace detail {
