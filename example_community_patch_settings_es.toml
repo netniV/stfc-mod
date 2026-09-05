@@ -121,6 +121,21 @@ enable_experimental = false
 # Frame-rate scaling factor
 fr_scale = 2.0
 
+# Detalle de las etiquetas. Configura por separado las flotas de jugadores y las que no son de jugadores:
+#   "native"    - usar el comportamiento Near/Middle/Far de Scopely
+#   "expanded"  - mostrar siempre las etiquetas largas
+#   "compact"   - mostrar siempre las etiquetas compactas
+#   "threshold" - cambiar de expandido a compacto en el umbral de zoom correspondiente
+# Flotas de jugadores
+zoom_label_player_detail = "native"
+
+# Umbral de zoom normalizado para "threshold" (0.0 = siempre compacto, 1.0 = siempre expandido)
+zoom_label_player_threshold = 0.5
+
+# Flotas no jugadoras y tipos de flota desconocidos; los widgets sin vincular permanecen nativos hasta disponer de su contexto
+zoom_label_non_player_detail = "native"
+zoom_label_non_player_threshold = 0.5
+
 # Tiempo entre transiciones; aumenta el valor para ralentizarlas
 transition_time = 0.01
 
@@ -838,4 +853,3 @@ verify_ssl = true
 #  <[==========================================================================================================================================================================================]> 
 
 [sync.targets.spocksclub]
-

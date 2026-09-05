@@ -121,6 +121,21 @@ enable_experimental = false
 # Frame-rate scaling factor
 fr_scale = 2.0
 
+# Fleet label detail in system view. Configure player and non-player fleets separately:
+#   "native"    - use Scopely's Near/Middle/Far behaviour
+#   "expanded"  - always show long fleet labels
+#   "compact"   - always show compact fleet labels
+#   "threshold" - switch from expanded to compact at the matching zoom threshold
+# Player fleets
+zoom_label_player_detail = "native"
+
+# Normalized zoom crossover used by "threshold" (0.0 = always compact, 1.0 = always expanded)
+zoom_label_player_threshold = 0.5
+
+# Non-player and unknown fleet types; unbound widgets remain native until their fleet context is available
+zoom_label_non_player_detail = "native"
+zoom_label_non_player_threshold = 0.5
+
 # Amount of time to spend between transitions, increase to slow transitions down
 transition_time = 0.01
 
@@ -838,4 +853,3 @@ verify_ssl = true
 #  <[========================================================================================]> 
 
 [sync.targets.spocksclub]
-
