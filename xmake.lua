@@ -6,6 +6,8 @@ includes("xmake/dependencies/common.lua")
 set_languages("c++23")
 set_runtimes("MT")
 
+includes("xmake/rules/stfc_identity.lua")
+
 if is_plat("windows") then
     includes("xmake/dependencies/windows.lua")
     includes("win-proxy-dll")

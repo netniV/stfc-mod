@@ -27,6 +27,7 @@ BEGIN
         BEGIN
 		VALUE "FileDescription",  VER_FILE_DESCRIPTION_STR
 		VALUE "FileVersion",      VER_FILE_VERSION_STR
+		VALUE "Comments",         STFC_IDENTITY_COMMENT_STR
 		VALUE "InternalName",     VER_INTERNAL_NAME_STR
 		VALUE "LegalCopyright",   VER_COPYRIGHT_STR
 		VALUE "OriginalFilename", VER_ORIGINAL_FILENAME_STR

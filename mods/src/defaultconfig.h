@@ -134,6 +134,10 @@ namespace Shortcuts
   constexpr const char* set_zoom_preset3      = "SHIFT-F3";
   constexpr const char* set_zoom_preset4      = "SHIFT-F4";
   constexpr const char* set_zoom_preset5      = "SHIFT-F5";
+
+  constexpr const char* native_shortcut_events = "CTRL-E";
+  constexpr const char* native_shortcut_galaxy = "CTRL-G";
+
   constexpr const char* show_alliance         = "ALT-'";
   constexpr const char* show_alliance_armada  = "CTRL-'";
   constexpr const char* show_alliance_help    = "SHIFT-'";
@@ -227,6 +231,9 @@ namespace UI
   constexpr const char* daily_bulk_claim_factions   = "";
   constexpr bool        daily_bulk_claim_toggle_default_on = false;
   constexpr bool        disable_escape_exit         = true;
+  // Maximum gap between Escape presses that opens the exit prompt.
+  // 0 disables double-tap and preserves the existing blocked behavior.
+  constexpr auto        disable_escape_exit_timer           = 0;
   constexpr bool        disable_first_popup         = false;
   constexpr bool        disable_galaxy_chat         = false;
   constexpr bool        disable_move_keys           = false;
