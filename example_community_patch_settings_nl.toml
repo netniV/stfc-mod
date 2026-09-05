@@ -455,6 +455,9 @@ show_daily = "Z"
 # Ga naar Evenementen
 show_events = "SHIFT-E"
 
+# Scopely shortcut-native Events Action
+native_shortcut_events = "CTRL-E"
+
 # Ga naar Exocomp
 show_exocomp = "X"
 
@@ -463,6 +466,9 @@ show_factions = "F"
 
 # Ga naar Sterrenstelsel
 show_galaxy = "G"
+
+# Scopely shortcut-native Galaxy Action
+native_shortcut_galaxy = "CTRL-G"
 
 # Ga naar Cadeaus
 show_gifts = "/"

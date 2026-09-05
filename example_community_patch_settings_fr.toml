@@ -455,6 +455,9 @@ show_daily = "Z"
 # Aller aux événements
 show_events = "SHIFT-E"
 
+# Scopely shortcut-native Events Action
+native_shortcut_events = "CTRL-E"
+
 # Aller aux Exocomps
 show_exocomp = "X"
 
@@ -463,6 +466,9 @@ show_factions = "F"
 
 # Aller à la galaxie
 show_galaxy = "G"
+
+# Scopely shortcut-native Galaxy Action
+native_shortcut_galaxy = "CTRL-G"
 
 # Aller aux cadeaux
 show_gifts = "/"

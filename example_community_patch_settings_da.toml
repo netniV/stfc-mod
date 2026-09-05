@@ -455,6 +455,9 @@ show_daily = "Z"
 # Gå til begivenheder
 show_events = "SHIFT-E"
 
+# Scopely shortcut-native Events Action
+native_shortcut_events = "CTRL-E"
+
 # Gå til Exocomp
 show_exocomp = "X"
 
@@ -463,6 +466,9 @@ show_factions = "F"
 
 # Gå til galaksen
 show_galaxy = "G"
+
+# Scopely shortcut-native Galaxy Action
+native_shortcut_galaxy = "CTRL-G"
 
 # Gå til gaver
 show_gifts = "/"

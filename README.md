@@ -72,10 +72,10 @@ been applied. Valid values for any short can be found in [KEYMAPPING.md](KEYMAPP
 | -----------: | -------------------------------- |
 |          F10 | Bug fixer (exits game)           |
 |        F1-F5 | Zoom presets                     |
-|            Q | Zoom Out                         |
-|            E | Zoom In                          |
+|            Q | Zoom In                          |
+|            E | Zoom Out                         |
 |        MINUS | Zoom (min)                       |
-|       EQUALS | Zoom (default)                   |
+|            = | Zoom (default)                   |
 |    BACKSPACE | Zoom (max)                       |
 |            C | Open/Focus Chat - Full Screen    |
 |        Alt-C | Open/Focus Chat - Side of Screen |
@@ -112,9 +112,12 @@ action items such as:
 
 |     Key | Shortcut         |
 | ------: | ---------------- |
-|       T | Events           |
+|       T | Away Teams       |
 |       G | Galaxy           |
+|  Ctrl-G | Galaxy (native)  |
 |       H | System           |
+| Shift-E | Events           |
+|  Ctrl-E | Events (native)  |
 | Shift-G | Exterior View    |
 | Shift-H | Interior View    |
 |       B | Bookmarks        |
@@ -128,7 +131,6 @@ action items such as:
 |       O | Command Center   |
 | Shift-O | Officers         |
 | Shift-Q | Q-Trials         |
-| Shift-T | Away Teams       |
 |       X | ExoComp          |
 |       Z | Daily Missions   |
 

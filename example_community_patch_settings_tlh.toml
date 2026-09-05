@@ -455,6 +455,9 @@ show_daily = "Z"
 # Go Daq  Events
 show_events = "SHIFT-E"
 
+# Scopely shortcut-native Events Action
+native_shortcut_events = "CTRL-E"
+
 # Go Daq  Exocomp
 show_exocomp = "X"
 
@@ -463,6 +466,9 @@ show_factions = "F"
 
 # Go Daq  Galaxy
 show_galaxy = "G"
+
+# Scopely shortcut-native Galaxy Action
+native_shortcut_galaxy = "CTRL-G"
 
 # Go Daq  Gifts
 show_gifts = "/"
