@@ -55,6 +55,9 @@ This project is maintained solely at my own cost of time, energy and money. Any 
 
 Please see the [INSTALL.md](INSTALL.md) instructions which has steps on how to use this mod with Star Trek Fleet Command.
 
+For the Windows DLL identity marker, artifact-attestation trust boundary, and verification command, see
+[Windows DLL provenance](docs/WINDOWS_DLL_PROVENANCE.md).
+
 Please note, that whilst Mac support was added in this version, it's supported on an as-is basis due to lack of Mac development environments.
 
 ## Keyboard shortcuts
