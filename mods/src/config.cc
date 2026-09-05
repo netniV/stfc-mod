@@ -1269,6 +1269,48 @@ void Config::Load()
   spdlog::debug("Final notify banner types: {}", notifyString);
   parsed["ui"].as_table()->insert_or_assign("notify_banner_types", notifyString);
 
+  auto notify_fleet_events_str = get_config_or_default<std::string>(config, parsed, "ui", "notify_fleet_events",
+                                                                    DCU::notify_fleet_events, write_log);
+  this->notify_fleet_events = 0;
+  for (const auto& event : StrSplit(notify_fleet_events_str, ',')) {
+    const std::string trimmed{StripAsciiWhitespace(event)};
+    if (trimmed.empty()) {
+      continue;
+    }
+    const auto normalized = AsciiStrToUpper(trimmed);
+    if (normalized == "ALL") {
+      this->notify_fleet_events = kAllFleetNotifications;
+      break;
+    }
+    const auto match = std::ranges::find_if(kFleetNotificationCatalog, [&](const auto& entry) {
+      return normalized == AsciiStrToUpper(entry.config_name);
+    });
+    if (match == kFleetNotificationCatalog.end()) {
+      spdlog::warn("Unknown fleet notification event '{}'; ignoring it", trimmed);
+      continue;
+    }
+    this->notify_fleet_events |= fleet_notification_bit(match->kind);
+  }
+
+  std::string fleet_events_string;
+  for (const auto& entry : kFleetNotificationCatalog) {
+    if ((this->notify_fleet_events & fleet_notification_bit(entry.kind)) == 0) {
+      continue;
+    }
+    if (!fleet_events_string.empty()) {
+      fleet_events_string.append(", ");
+    }
+    fleet_events_string.append(entry.config_name);
+  }
+  spdlog::debug("Final fleet notification events: {}", fleet_events_string);
+  parsed["ui"].as_table()->insert_or_assign("notify_fleet_events", fleet_events_string);
+
+#if _WIN32
+  this->installFleetNotificationHooks = this->notify_fleet_events != 0;
+#else
+  this->installFleetNotificationHooks = false;
+#endif
+
   spdlog::debug("");
 
   parse_config_shortcut(config, parsed, "move_left",  GameFunction::MoveLeft,  DCSH::move_left);
