@@ -100,9 +100,18 @@ static_assert(!docked(FleetState::Repairing, FleetState::Docked));
 static_assert(repair_complete(FleetState::Repairing, FleetState::Docked));
 
 FleetNotificationMask s_enabled_notifications = 0;
+FleetNotificationMask s_enabled_events = 0;
 
 bool notification_enabled(FleetNotificationKind kind)
 { return (s_enabled_notifications & fleet_notification_bit(kind)) != 0; }
+
+bool event_enabled(FleetNotificationKind kind)
+{ return (s_enabled_events & fleet_notification_bit(kind)) != 0; }
+
+void play_event_audio(FleetNotificationKind kind)
+{
+  notification_audio_play(Config::Get().alert_fleet_events[static_cast<std::size_t>(kind)]);
+}
 
 std::string normalize_name(std::string name)
 {
@@ -127,7 +136,7 @@ std::string fleet_subject(FleetPlayerData* fleet)
 void emit_transition(const fleet_watch::Transition& transition)
 {
   for (const auto& rule : kTransitionRules) {
-    if (!notification_enabled(rule.kind) || !rule.matches(transition.before.state, transition.after.state)) {
+    if (!event_enabled(rule.kind) || !rule.matches(transition.before.state, transition.after.state)) {
       continue;
     }
 #ifdef _MODDBG
@@ -135,7 +144,10 @@ void emit_transition(const fleet_watch::Transition& transition)
                  fleet_notification_name(rule.kind), transition.after.fleet_id,
                  static_cast<int>(transition.before.state), static_cast<int>(transition.after.state));
 #endif
-    notification_emit(rule.title, "Your " + fleet_subject(transition.fleet) + " " + std::string{rule.message});
+    play_event_audio(rule.kind);
+    if (notification_enabled(rule.kind)) {
+      notification_emit(rule.title, "Your " + fleet_subject(transition.fleet) + " " + std::string{rule.message});
+    }
   }
 }
 
@@ -168,12 +180,16 @@ constexpr bool needs_fast_poll(FleetNotificationMask enabled, FleetState state)
 }
 
 bool needs_enabled_fast_poll(FleetState state)
-{ return needs_fast_poll(s_enabled_notifications, state); }
+{ return needs_fast_poll(s_enabled_events, state); }
 
 static_assert(needs_fast_poll(fleet_notification_bit(FleetNotificationKind::ArrivedInSystem), FleetState::Warping));
 static_assert(!needs_fast_poll(fleet_notification_bit(FleetNotificationKind::ArrivedInSystem), FleetState::Impulsing));
 static_assert(needs_fast_poll(fleet_notification_bit(FleetNotificationKind::StartedMining), FleetState::Battling));
 static_assert(needs_fast_poll(fleet_notification_bit(FleetNotificationKind::RepairComplete), FleetState::Repairing));
+static_assert(!needs_fast_poll(0, FleetState::Warping));
+// Audio-only subscriptions use the same event mask and fast-poll path as desktop alerts.
+static_assert(needs_fast_poll(0 | fleet_notification_bit(FleetNotificationKind::ArrivedInSystem), FleetState::Warping));
+static_assert(!needs_fast_poll(fleet_notification_bit(FleetNotificationKind::NodeDepleted), FleetState::Mining));
 
 struct RecentNodeDepletion {
   uint64_t                              fleet_id = 0;
@@ -215,8 +231,10 @@ FleetPlayerData* find_fleet(uint64_t fleet_id)
 
 void ToastFleetObserver_HandleMiningDepleted_Hook(auto original, void* self, int64_t fleet_id)
 {
-  {
+  if (notification_enabled(FleetNotificationKind::NodeDepleted)) {
     ScopedToastNotificationSuppression suppress_duplicate_forwarding;
+    original(self, fleet_id);
+  } else {
     original(self, fleet_id);
   }
   const auto id = static_cast<uint64_t>(fleet_id);
@@ -227,9 +245,12 @@ void ToastFleetObserver_HandleMiningDepleted_Hook(auto original, void* self, int
   spdlog::info("[FleetNotificationsProbe] event={} fleet={}",
                fleet_notification_name(FleetNotificationKind::NodeDepleted), id);
 #endif
-  auto* fleet = find_fleet(id);
-  notification_emit("Node Depleted", fleet ? "Your " + fleet_subject(fleet) + " depleted its node."
-                                           : "A mining fleet depleted its node.");
+  play_event_audio(FleetNotificationKind::NodeDepleted);
+  if (notification_enabled(FleetNotificationKind::NodeDepleted)) {
+    auto* fleet = find_fleet(id);
+    notification_emit("Node Depleted", fleet ? "Your " + fleet_subject(fleet) + " depleted its node."
+                                             : "A mining fleet depleted its node.");
+  }
 }
 
 bool install_node_depletion_hook()
@@ -244,8 +265,7 @@ bool install_node_depletion_hook()
     ErrorMsg::MissingMethod("ToastFleetObserver", "HandleMiningDepleted");
     return false;
   }
-  SPUD_STATIC_DETOUR(method, ToastFleetObserver_HandleMiningDepleted_Hook);
-  return true;
+  return SPUD_STATIC_DETOUR(method, ToastFleetObserver_HandleMiningDepleted_Hook) != nullptr;
 }
 } // namespace
 
@@ -253,15 +273,18 @@ void InstallFleetNotificationHooks()
 {
 #if _WIN32
   s_enabled_notifications = Config::Get().notify_fleet_events;
+#endif
+#if _WIN32 || __APPLE__
+  s_enabled_events = s_enabled_notifications | Config::Get().audio_fleet_events;
   notification_init();
 
   constexpr auto transition_notifications =
       kAllFleetNotifications & ~fleet_notification_bit(FleetNotificationKind::NodeDepleted);
-  if ((s_enabled_notifications & transition_notifications) != 0
+  if ((s_enabled_events & transition_notifications) != 0
       && !fleet_watch::Subscribe({emit_transition, needs_enabled_fast_poll})) {
     spdlog::warn("[FleetNotifications] Fleet Watch subscription failed");
   }
-  if (notification_enabled(FleetNotificationKind::NodeDepleted) && !install_node_depletion_hook()) {
+  if (event_enabled(FleetNotificationKind::NodeDepleted) && !install_node_depletion_hook()) {
     spdlog::warn("[FleetNotifications] node-depletion hook installation failed");
   }
 #endif

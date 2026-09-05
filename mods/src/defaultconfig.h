@@ -16,6 +16,7 @@ namespace Audio
   constexpr const char* alert_armada_created = "none";
   constexpr const char* alert_armada_battle_won = "none";
   constexpr const char* alert_armada_battle_lost = "none";
+  constexpr const char* alert_fleet_default = "none";
 } // namespace Audio
 
 namespace SystemConfig

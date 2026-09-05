@@ -1090,6 +1090,15 @@ void Config::Load()
   if (!this->installToastBannerHooks && any_toast_audio_alert_configured) {
     spdlog::warn("audio alerts require patches.toastbannerhooks = true");
   }
+  this->audio_fleet_events = 0;
+  for (const auto& entry : kFleetNotificationCatalog) {
+    const auto sound = get_notification_sound(config, parsed, entry.audio_config_name,
+                                               DCA::alert_fleet_default, write_config);
+    this->alert_fleet_events[static_cast<std::size_t>(entry.kind)] = sound;
+    if (sound != NotificationSound::None) {
+      this->audio_fleet_events |= fleet_notification_bit(entry.kind);
+    }
+  }
   this->auto_open_bulk_claim_flyout = get_config_or_default(config, parsed, "ui", "auto_open_bulk_claim_flyout",
                                                              DCU::auto_open_bulk_claim_flyout, write_config);
 
@@ -1361,7 +1370,9 @@ void Config::Load()
   parsed["ui"].as_table()->insert_or_assign("notify_fleet_events", fleet_events_string);
 
 #if _WIN32
-  this->installFleetNotificationHooks = this->notify_fleet_events != 0;
+  this->installFleetNotificationHooks = (this->notify_fleet_events | this->audio_fleet_events) != 0;
+#elif __APPLE__
+  this->installFleetNotificationHooks = this->audio_fleet_events != 0;
 #else
   this->installFleetNotificationHooks = false;
 #endif

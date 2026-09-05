@@ -46,6 +46,15 @@ alert_armada_created = "none"
 alert_armada_battle_won = "none"
 alert_armada_battle_lost = "none"
 
+# Fleet cues are independent of desktop notifications and toastbannerhooks.
+# Use the sound names above; "none" disables a cue. Windows and macOS.
+alert_fleet_arrived_in_system = "none"
+alert_fleet_arrived_at_destination = "none"
+alert_fleet_started_mining = "none"
+alert_fleet_node_depleted = "none"
+alert_fleet_docked = "none"
+alert_fleet_repair_complete = "none"
+
 #  <[=======================================]> 
 #                                              
 #       ****            **     **              

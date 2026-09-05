@@ -201,6 +201,8 @@ public:
   std::vector<int> disabled_banner_types;
   std::vector<int> notify_banner_types;
   FleetNotificationMask notify_fleet_events = 0;
+  FleetNotificationMask audio_fleet_events = 0;
+  std::array<NotificationSound, kFleetNotificationCatalog.size()> alert_fleet_events{};
 
   int  extend_chest_purchase_max;
   int  extend_donation_max;
