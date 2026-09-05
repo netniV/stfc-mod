@@ -602,6 +602,10 @@ auto_open_bulk_claim_flyout = false
 # Empêcher "échap" de proposer de quitter le jeu
 disable_escape_exit = true
 
+# Max gap in ms before a second Escape reaches the game's normal handling.
+# 0 = disabled; only applies when disable_escape_exit is true.
+escape_exit_timer = 0
+
 # ⚠️ EXPÉRIMENTAL : Empêcher la première publicité pop-up d'apparaître
 disable_first_popup = false
 
@@ -835,4 +839,3 @@ verify_ssl = true
 #  <[==========================================================================================================================================================================================]> 
 
 [sync.targets.spocksclub]
-
