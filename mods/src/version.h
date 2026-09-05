@@ -4,7 +4,7 @@
 #define VERSION_MAJOR               1
 #define VERSION_MINOR               1
 #define VERSION_REVISION            7
-#define VERSION_PATCH               2
+#define VERSION_PATCH               3
 #define VERSION_COMMIT_HASH         ""
 
 #define STRINGIFY_(s)               #s
