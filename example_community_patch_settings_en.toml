@@ -596,8 +596,8 @@ auto_open_bulk_claim_flyout = false
 # Prevent "escape" from prompting to exit the game
 disable_escape_exit = true
 
-# ⚠️ EXPERIMENTAL: Prevent the first popup advert from appearing
-disable_first_popup = false
+# ⚠️ EXPERIMENTAL: Show only the first ad/interstitial popup after the game starts, then suppress the rest
+only_show_first_popup = false
 
 # ⚠️ EXPERIMENTAL: Prevent the standard move keys from working
 disable_move_keys = false

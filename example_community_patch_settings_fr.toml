@@ -596,8 +596,8 @@ auto_open_bulk_claim_flyout = false
 # Empêcher "échap" de proposer de quitter le jeu
 disable_escape_exit = true
 
-# ⚠️ EXPÉRIMENTAL : Empêcher la première publicité pop-up d'apparaître
-disable_first_popup = false
+# ⚠️ EXPÉRIMENTAL : Afficher uniquement la première publicité/interstitiel pop-up après le démarrage du jeu, puis supprimer les suivantes
+only_show_first_popup = false
 
 # ⚠️ EXPÉRIMENTAL : Empêcher les touches de déplacement standard de fonctionner
 disable_move_keys = false

@@ -596,8 +596,8 @@ auto_open_bulk_claim_flyout = false
 # Verhindert, dass die Escape-Taste zum Beenden des Spiels auffordert
 disable_escape_exit = true
 
-# ⚠️ EXPERIMENTELL: Verhindert das Erscheinen des ersten Werbe-Pop-ups
-disable_first_popup = false
+# ⚠️ EXPERIMENTELL: Zeigt nur das erste Werbe-/Interstitial-Pop-up nach dem Start des Spiels an und unterdrückt die übrigen
+only_show_first_popup = false
 
 # ⚠️ EXPERIMENTELL: Verhindert die Funktion der standardmäßigen Bewegungstasten
 disable_move_keys = false

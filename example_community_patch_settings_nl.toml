@@ -596,8 +596,8 @@ auto_open_bulk_claim_flyout = false
 # Zorgt ervoor dat het gebruiken van "escape" het spel niet sluit
 disable_escape_exit = true
 
-# ⚠️ EXPERIMENTEEL: Zorgt ervoor dat de eerste advertentie popup niet toont
-disable_first_popup = false
+# ⚠️ EXPERIMENTEEL: Toont alleen de eerste advertentie/interstitial pop-up na het starten van het spel en onderdrukt de rest
+only_show_first_popup = false
 
 # ⚠️ EXPERIMENTEEL: Zorgt ervoor dat de standaard toetsenbord toetsen voor het bewegen niet werken
 disable_move_keys = false

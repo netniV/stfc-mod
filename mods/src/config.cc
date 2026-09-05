@@ -933,8 +933,8 @@ void Config::Load()
       get_config_or_default(config, parsed, "ui", "disable_preview_locate", DCU::disable_preview_locate, write_config);
   this->disable_preview_recall =
       get_config_or_default(config, parsed, "ui", "disable_preview_recall", DCU::disable_preview_recall, write_config);
-  this->disable_first_popup =
-      get_config_or_default(config, parsed, "ui", "disable_first_popup", DCU::disable_first_popup, write_config);
+  this->only_show_first_popup = get_config_or_default(config, parsed, "ui", "only_show_first_popup",
+                                                      DCU::only_show_first_popup, write_config);
   this->disable_move_keys =
       get_config_or_default(config, parsed, "ui", "disable_move_keys", DCU::disable_move_keys, write_config);
   this->disable_toast_banners =
