@@ -130,8 +130,8 @@ namespace Shortcuts
   constexpr const char* set_zoom_preset4      = "SHIFT-F4";
   constexpr const char* set_zoom_preset5      = "SHIFT-F5";
 
-  constexpr const char* native_shortcut_events = "CTRL-E";
-  constexpr const char* native_shortcut_galaxy = "CTRL-G";
+  constexpr const char* show_events_native = "CTRL-E";
+  constexpr const char* show_galaxy_native = "CTRL-G";
 
   constexpr const char* show_alliance         = "ALT-'";
   constexpr const char* show_alliance_armada  = "CTRL-'";
