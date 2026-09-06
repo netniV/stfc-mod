@@ -267,6 +267,7 @@ panhooks = true
 # Konfigurierte Schiffe im Flottenmanagement-Dock an den Anfang stellen
 pinnedshiphooks = true
 syncpatches = true
+systemviewhooks = true
 tempcrashfixes = true
 testpatches = true
 toastbannerhooks = true

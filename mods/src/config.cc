@@ -933,6 +933,8 @@ void Config::Load()
       get_config_or_default(config, parsed, "patches", "officersorthooks", DCP::officersorthooks, write_config);
   this->installPinnedShipSortHooks =
       get_config_or_default(config, parsed, "patches", "pinnedshiphooks", DCP::pinnedshiphooks, write_config);
+  this->installSystemViewHooks =
+      get_config_or_default(config, parsed, "patches", "systemviewhooks", DCP::systemviewhooks, write_config);
   spdlog::debug("");
   this->queue_enabled =
       get_config_or_default(config, parsed, "control", "queue_enabled", DCC::queue_enabled, write_config);
