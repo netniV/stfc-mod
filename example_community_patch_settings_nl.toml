@@ -522,11 +522,20 @@ show_settings = "SHIFT-S"
 
 # Schermtips voor sneltoetsen in- of uitschakelen (toont ondersteunde mod-sneltoetsen)
 # NONE schakelt mod-tip-hooks en tekstcache uit; wijs een toets toe om in te schakelen (herstart vereist).
-toggle_shortcut_hints = "NONE"
+toggle_shortcut_hints = "HOME"
 # Modificatietoetsen gebruiken AutoHotkey-notatie: ^ Ctrl, ! Alt, + Shift, # Win/Command
 
 # Ga naar Scheepsmanagement
 show_ships = "N"
+
+# Open het scherm Schip bouwen van de scheepswerf
+show_shipconstruction = "SHIFT-N"
+
+# Open de selectie voor vredesschilden
+show_shields = "CTRL-S"
+
+# Open het postvak met gevechtsrapporten
+show_battlelogs = "SHIFT-B"
 
 # Station Exterieur
 show_stationexterior = "SHIFT-G"

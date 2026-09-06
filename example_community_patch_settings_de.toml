@@ -522,11 +522,20 @@ show_settings = "SHIFT-S"
 
 # Bildschirmhinweise für Tastenkürzel umschalten (zeigt unterstützte Mod-Tastenkürzel)
 # NONE deaktiviert Mod-Hinweis-Hooks und den Textcache; zum Aktivieren eine Taste zuweisen (Neustart erforderlich).
-toggle_shortcut_hints = "NONE"
+toggle_shortcut_hints = "HOME"
 # Hinweissymbole verwenden die AutoHotkey-Schreibweise: ^ Strg, ! Alt, + Umschalt, # Win/Befehl
 
 # Zur Schiffsverwaltung
 show_ships = "N"
+
+# Den Bildschirm Schiff bauen der Werft öffnen
+show_shipconstruction = "SHIFT-N"
+
+# Die Auswahl für Friedensschilde öffnen
+show_shields = "CTRL-S"
+
+# Den Posteingang für Kampfberichte öffnen
+show_battlelogs = "SHIFT-B"
 
 # Stationsaußenansicht
 show_stationexterior = "SHIFT-G"
