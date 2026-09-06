@@ -275,6 +275,9 @@ void ShortcutKeybindHint_UpdateVisibility_Hook(auto original, void* _this, bool 
 
 static const MethodInfo* on_events_action = nullptr;
 static const MethodInfo* on_galaxy_action = nullptr;
+static const MethodInfo* show_shipconstruction_action = nullptr;
+static const MethodInfo* show_shields_action = nullptr;
+static const MethodInfo* show_battlelogs_action = nullptr;
 
 struct InputActionCallbackContext {
   void*   state;
@@ -676,6 +679,15 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
         return ChangeNavigationSection(SectionID::Navigation_System);
       } else if (MapKey::IsDown(GameFunction::ShowArtifacts)) {
         return GotoSection(SectionID::ArtifactHall_Inventory);
+      } else if (MapKey::IsDown(GameFunction::ShowShipConstruction)) {
+        InvokeNativeShortcut(show_shipconstruction_action, "Ship Construction");
+        return;
+      } else if (MapKey::IsDown(GameFunction::ShowShields)) {
+        InvokeNativeShortcut(show_shields_action, "Peace Shields");
+        return;
+      } else if (MapKey::IsDown(GameFunction::ShowBattlelogs)) {
+        InvokeNativeShortcut(show_battlelogs_action, "Battle Reports");
+        return;
       } else if (MapKey::IsDown(GameFunction::ShowInventory)) {
         return GotoSection(SectionID::InventoryList);
       } else if (MapKey::IsDown(GameFunction::ShowMissions)) {
@@ -1453,6 +1465,21 @@ void InstallHotkeyHooks()
     on_galaxy_action = shortcuts_manager_helper.GetMethodInfo("OnGalaxyAction", 1);
     if (on_galaxy_action == nullptr) {
       ErrorMsg::MissingMethod("ShortcutsManager", "OnGalaxyAction");
+    }
+
+    show_shipconstruction_action = shortcuts_manager_helper.GetMethodInfo("OnShipsAction", 1);
+    if (show_shipconstruction_action == nullptr) {
+      ErrorMsg::MissingMethod("ShortcutsManager", "OnShipsAction");
+    }
+
+    show_shields_action = shortcuts_manager_helper.GetMethodInfo("OnPeaceShieldAction", 1);
+    if (show_shields_action == nullptr) {
+      ErrorMsg::MissingMethod("ShortcutsManager", "OnPeaceShieldAction");
+    }
+
+    show_battlelogs_action = shortcuts_manager_helper.GetMethodInfo("OnInboxAction", 1);
+    if (show_battlelogs_action == nullptr) {
+      ErrorMsg::MissingMethod("ShortcutsManager", "OnInboxAction");
     }
 
     auto ptr_can_user_shortcuts = shortcuts_manager_helper.GetMethod("InitializeActions");

@@ -522,11 +522,20 @@ show_settings = "SHIFT-S"
 
 # Alternar las indicaciones de atajos en pantalla (muestra los atajos compatibles del mod)
 # NONE desactiva los hooks y la caché de indicaciones del mod; asigna una tecla para activar (requiere reiniciar).
-toggle_shortcut_hints = "NONE"
+toggle_shortcut_hints = "HOME"
 # Los modificadores usan la notación de AutoHotkey: ^ Ctrl, ! Alt, + Mayús, # Win/Comando
 
 # Ir a administrar barcos
 show_ships = "N"
+
+# Abrir la pantalla Construir nave del astillero
+show_shipconstruction = "SHIFT-N"
+
+# Abrir la selección de escudos de paz
+show_shields = "CTRL-S"
+
+# Abrir la bandeja de informes de batalla
+show_battlelogs = "SHIFT-B"
 
 # Exterior de la estación
 show_stationexterior = "SHIFT-G"

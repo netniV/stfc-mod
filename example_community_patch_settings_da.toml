@@ -522,11 +522,21 @@ show_settings = "SHIFT-S"
 
 # Slå genvejstips på skærmen til/fra (viser mod-genveje, hvor de understøttes)
 # NONE deaktiverer mod-tiphooks og tekstcache; tildel en tast for at aktivere (kræver genstart).
-toggle_shortcut_hints = "NONE"
+toggle_shortcut_hints = "HOME"
+
 # Symboler i mærker bruger AutoHotkey-notation: ^ Ctrl, ! Alt, + Shift, # Win/Command
 
 # Gå til administration af skibe
 show_ships = "N"
+
+# Åbn skibsværftets Byg skib-skærm
+show_shipconstruction = "SHIFT-N"
+
+# Åbn valget af fredsskjolde
+show_shields = "CTRL-S"
+
+# Åbn indbakken med kamprapporter
+show_battlelogs = "SHIFT-B"
 
 # Stationens ydre
 show_stationexterior = "SHIFT-G"

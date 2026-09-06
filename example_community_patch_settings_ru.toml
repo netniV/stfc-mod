@@ -522,11 +522,20 @@ show_settings = "SHIFT-S"
 
 # Показать или скрыть подсказки клавиш (показывает поддерживаемые сочетания мода)
 # NONE отключает хуки и кэш подсказок мода; назначьте клавишу для включения (требуется перезапуск).
-toggle_shortcut_hints = "NONE"
+toggle_shortcut_hints = "HOME"
 # Модификаторы используют нотацию AutoHotkey: ^ Ctrl, ! Alt, + Shift, # Win/Command
 
 # Перейти к управлению кораблями
 show_ships = "N"
+
+# Открыть экран постройки корабля на верфи
+show_shipconstruction = "SHIFT-N"
+
+# Открыть окно выбора мирного щита
+show_shields = "CTRL-S"
+
+# Открыть входящие боевые отчёты
+show_battlelogs = "SHIFT-B"
 
 # Внешний вид станции
 show_stationexterior = "SHIFT-G"

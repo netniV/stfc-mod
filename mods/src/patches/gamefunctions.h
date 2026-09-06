@@ -100,6 +100,10 @@ enum GameFunction {
   Quit,
   FocusSearch,
 
+  ShowShipConstruction,
+  ShowShields,
+  ShowBattlelogs,
+
   // Automatic max value
   Max
 };
