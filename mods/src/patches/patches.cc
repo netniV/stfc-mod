@@ -49,6 +49,7 @@ void InstallInstantWarpConfirmationHooks();
 void InstallForbiddenTechConfirmationHooks();
 void InstallAudioEventHooks();
 void InstallOfficerPresetReorderHooks();
+void InstallOpcIndicatorHooks();
 
 __int64 il2cpp_init_hook(auto original, const char* domain_name)
 {
@@ -153,6 +154,7 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
       {"ForbiddenTechConfirm", {InstallForbiddenTechConfirmationHooks, &cfg.auto_confirm_ft_upgrade}},
       {"AudioEvents",          {InstallAudioEventHooks,                 &cfg.installAudioEventHooks}},
       {"OfficerPresetReorder", {InstallOfficerPresetReorderHooks, &cfg.allow_officer_preset_reordering}},
+      {"OpcIndicators",       {InstallOpcIndicatorHooks,               &cfg.installOpcIndicatorHooks}},
   };
   printf("il2cpp_init_hook(%s)\n", domain_name);
 

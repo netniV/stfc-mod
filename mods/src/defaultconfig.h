@@ -230,6 +230,8 @@ namespace UI
   constexpr bool        auto_confirm_ft_upgrade     = false;
   constexpr bool        auto_open_bulk_claim_flyout = false;
   constexpr bool        allow_officer_preset_reordering = false;
+  constexpr bool        highlight_opc_fleets        = false;
+  constexpr bool        fleet_hud_opc_eta           = false;
   constexpr const char* daily_bulk_claim_factions   = "";
   constexpr bool        daily_bulk_claim_toggle_default_on = false;
   constexpr bool        disable_escape_exit         = true;
