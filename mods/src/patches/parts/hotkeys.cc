@@ -454,7 +454,9 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
   Key::ResetCache();
 
   if (MapKey::IsDown(GameFunction::DisableHotKeys)) {
-    SetNativeShortcutHintsVisible(false);
+    if (shortcut_hints_ready) {
+      SetNativeShortcutHintsVisible(false);
+    }
     Config::Get().hotkeys_enabled = false;
     spdlog::warn("Setting hotkeys to DISABLED");
     return;
@@ -472,7 +474,7 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
     return;
   }
 
-  if (MapKey::IsDown(GameFunction::ToggleShortcutHints)) {
+  if (shortcut_hints_ready && MapKey::IsDown(GameFunction::ToggleShortcutHints)) {
     ToggleNativeShortcutHints();
     return;
   }
@@ -1335,8 +1337,13 @@ bool install_screen_manager_update_hook()
   return false;
 }
 
-void InstallHotkeyHooks()
+void InstallShortcutHintHooks()
 {
+  // Configuration is fully parsed before hook installation. NONE, empty, and invalid bindings opt out.
+  if (!MapKey::HasBinding(GameFunction::ToggleShortcutHints)) {
+    return;
+  }
+
   auto shortcuts_manager_helper =
       il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.GameInput", "ShortcutsManager");
   if (!shortcuts_manager_helper.isValidHelper()) {
@@ -1351,24 +1358,6 @@ void InstallHotkeyHooks()
       ErrorMsg::MissingMethod("ShortcutsManager", "set_ShowKeybindings");
     if (!can_use_shortcuts)
       ErrorMsg::MissingMethod("ShortcutsManager", "get_CanUseShortcuts");
-
-    on_events_action = shortcuts_manager_helper.GetMethodInfo("OnEventsAction", 1);
-    if (on_events_action == nullptr) {
-      ErrorMsg::MissingMethod("ShortcutsManager", "OnEventsAction");
-    }
-
-    on_galaxy_action = shortcuts_manager_helper.GetMethodInfo("OnGalaxyAction", 1);
-    if (on_galaxy_action == nullptr) {
-      ErrorMsg::MissingMethod("ShortcutsManager", "OnGalaxyAction");
-    }
-
-    auto ptr_can_user_shortcuts = shortcuts_manager_helper.GetMethod("InitializeActions");
-    if (ptr_can_user_shortcuts == nullptr) {
-      ErrorMsg::MissingMethod("ShortcutsManager", "InitializeActions");
-    } else {
-      SPUD_STATIC_DETOUR(ptr_can_user_shortcuts, InitializeActions_Hook);
-      initialize_actions_hook_ready = true;
-    }
   }
 
   auto text_localizer_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.UI", "TextLocalizer");
@@ -1441,11 +1430,41 @@ void InstallHotkeyHooks()
   if (get_show_keybindings && set_show_keybindings && can_use_shortcuts && initialize_actions_hook_ready &&
       clear_text_override && override_localized_text && shortcut_hint_fields_ready && shortcut_hint_update_text &&
       shortcut_hint_update_visibility && get_input_action && get_input_action_name) {
+    MapKey::CacheShortcutHints();
     original_shortcut_hint_update_text =
         SPUD_STATIC_DETOUR(shortcut_hint_update_text, ShortcutKeybindHint_UpdateText_Hook);
     SPUD_STATIC_DETOUR(shortcut_hint_update_visibility, ShortcutKeybindHint_UpdateVisibility_Hook);
     shortcut_hints_ready = true;
   }
+}
+
+void InstallHotkeyHooks()
+{
+  auto shortcuts_manager_helper =
+      il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.GameInput", "ShortcutsManager");
+  if (!shortcuts_manager_helper.isValidHelper()) {
+    ErrorMsg::MissingHelper("GameInput", "ShortcutsManager");
+  } else {
+    on_events_action = shortcuts_manager_helper.GetMethodInfo("OnEventsAction", 1);
+    if (on_events_action == nullptr) {
+      ErrorMsg::MissingMethod("ShortcutsManager", "OnEventsAction");
+    }
+
+    on_galaxy_action = shortcuts_manager_helper.GetMethodInfo("OnGalaxyAction", 1);
+    if (on_galaxy_action == nullptr) {
+      ErrorMsg::MissingMethod("ShortcutsManager", "OnGalaxyAction");
+    }
+
+    auto ptr_can_user_shortcuts = shortcuts_manager_helper.GetMethod("InitializeActions");
+    if (ptr_can_user_shortcuts == nullptr) {
+      ErrorMsg::MissingMethod("ShortcutsManager", "InitializeActions");
+    } else {
+      SPUD_STATIC_DETOUR(ptr_can_user_shortcuts, InitializeActions_Hook);
+      initialize_actions_hook_ready = true;
+    }
+  }
+
+  InstallShortcutHintHooks();
 
   install_screen_manager_update_hook();
 #ifdef _MODDBG

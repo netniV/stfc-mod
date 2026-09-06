@@ -16,12 +16,15 @@ public:
 
   static MapKey Parse(std::string_view key);
   static void   AddMappedKey(GameFunction gameFunction, MapKey mappedKey);
+  static bool   HasBinding(GameFunction gameFunction);
   static bool   IsPressed(GameFunction gameFunction);
   static bool   IsDown(GameFunction gameFunction);
   static bool   HasCorrectModifiers(const MapKey& mapKey);
 
   static std::string GetShortcuts(GameFunction gameFunction);
   static std::string GetShortcutHint(GameFunction gameFunction);
+  // Call once after config parsing, only when shortcut hints are enabled.
+  static void CacheShortcutHints();
 
   std::string GetParsedValues() const;
 

@@ -521,6 +521,7 @@ show_scrapyard = "Y"
 show_settings = "SHIFT-S"
 
 # Bildschirmhinweise für Tastenkürzel umschalten (zeigt unterstützte Mod-Tastenkürzel)
+# NONE deaktiviert Mod-Hinweis-Hooks und den Textcache; zum Aktivieren eine Taste zuweisen (Neustart erforderlich).
 toggle_shortcut_hints = "NONE"
 # Hinweissymbole verwenden die AutoHotkey-Schreibweise: ^ Strg, ! Alt, + Umschalt, # Win/Befehl
 

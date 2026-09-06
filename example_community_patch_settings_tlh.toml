@@ -521,6 +521,7 @@ show_scrapyard = "Y"
 show_settings = "SHIFT-S"
 
 # Toggle on-screen shortcut hints (shows mod bindings where supported)
+# NONE disables mod hint hooks and label caching; bind a key to enable (restart required).
 toggle_shortcut_hints = "NONE"
 # Badge modifiers use AutoHotkey notation: ^ Ctrl, ! Alt, + Shift, # Win/Command
 

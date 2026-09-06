@@ -521,6 +521,7 @@ show_scrapyard = "Y"
 show_settings = "SHIFT-S"
 
 # Afficher ou masquer les raccourcis à l’écran (affiche les raccourcis du mod pris en charge)
+# NONE désactive les hooks et le cache des indications du mod ; attribuez une touche pour activer (redémarrage requis).
 toggle_shortcut_hints = "NONE"
 # Les modificateurs utilisent la notation AutoHotkey : ^ Ctrl, ! Alt, + Maj, # Win/Commande
 

@@ -521,6 +521,7 @@ show_scrapyard = "Y"
 show_settings = "SHIFT-S"
 
 # Schermtips voor sneltoetsen in- of uitschakelen (toont ondersteunde mod-sneltoetsen)
+# NONE schakelt mod-tip-hooks en tekstcache uit; wijs een toets toe om in te schakelen (herstart vereist).
 toggle_shortcut_hints = "NONE"
 # Modificatietoetsen gebruiken AutoHotkey-notatie: ^ Ctrl, ! Alt, + Shift, # Win/Command
 

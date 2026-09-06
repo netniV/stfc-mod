@@ -150,7 +150,6 @@ MapKey MapKey::Parse(std::string_view key)
 #endif
   }
 
-  mapKey.shortcutHint = CompactShortcutForHint(mapKey.Shortcuts);
   return mapKey;
 }
 
@@ -176,6 +175,26 @@ std::string MapKey::GetShortcutHint(GameFunction gameFunction)
 {
   const auto& mapKeys = MapKey::mappedKeys[gameFunction];
   return mapKeys.empty() ? "" : mapKeys.front().shortcutHint;
+}
+
+void MapKey::CacheShortcutHints()
+{
+  // Native badges display only the first binding for each action.
+  for (auto& mapKeys : mappedKeys) {
+    if (!mapKeys.empty()) {
+      mapKeys.front().shortcutHint = CompactShortcutForHint(mapKeys.front().Shortcuts);
+    }
+  }
+}
+
+bool MapKey::HasBinding(GameFunction gameFunction)
+{
+  for (const auto& mapKey : mappedKeys[gameFunction]) {
+    if (mapKey.Key != KeyCode::None) {
+      return true;
+    }
+  }
+  return false;
 }
 
 void MapKey::AddMappedKey(GameFunction gameFunction, MapKey mappedKey)
