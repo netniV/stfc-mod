@@ -164,10 +164,13 @@ namespace Shortcuts
   constexpr const char* show_scrapyard        = "Y";
   constexpr const char* show_settings         = "SHIFT-S";
   constexpr const char* show_ships            = "N";
+  constexpr const char* show_shipconstruction = "SHIFT-N";
+  constexpr const char* show_shields          = "CTRL-S";
+  constexpr const char* show_battlelogs       = "SHIFT-B";
   constexpr const char* show_stationexterior  = "SHIFT-G";
   constexpr const char* show_stationinterior  = "SHIFT-H";
   constexpr const char* show_system           = "H";
-  constexpr const char* toggle_shortcut_hints = "NONE";
+  constexpr const char* toggle_shortcut_hints = "HOME";
   constexpr const char* toggle_cargo_armada   = "ALT-5";
   constexpr const char* toggle_cargo_default  = "ALT-1";
   constexpr const char* toggle_cargo_hostile  = "ALT-4";

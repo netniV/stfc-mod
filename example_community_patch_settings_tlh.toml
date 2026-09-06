@@ -522,11 +522,20 @@ show_settings = "SHIFT-S"
 
 # Toggle on-screen shortcut hints (shows mod bindings where supported)
 # NONE disables mod hint hooks and label caching; bind a key to enable (restart required).
-toggle_shortcut_hints = "NONE"
+toggle_shortcut_hints = "HOME"
 # Badge modifiers use AutoHotkey notation: ^ Ctrl, ! Alt, + Shift, # Win/Command
 
 # Go Daq  Manage Ships
 show_ships = "N"
+
+# Open the Shipyard Build Ship screen
+show_shipconstruction = "SHIFT-N"
+
+# Open the Peace Shield selection popup
+show_shields = "CTRL-S"
+
+# Open the Battle Reports inbox
+show_battlelogs = "SHIFT-B"
 
 # 'ejyo'waw' Exterior
 show_stationexterior = "SHIFT-G"
