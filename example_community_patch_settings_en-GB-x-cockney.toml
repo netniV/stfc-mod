@@ -520,6 +520,11 @@ show_scrapyard = "Y"
 # Go to Settings
 show_settings = "SHIFT-S"
 
+# Toggle on-screen shortcut hints (shows mod bindings where supported)
+# NONE disables mod hint hooks and label caching; bind a key to enable (restart required).
+toggle_shortcut_hints = "NONE"
+# Badge modifiers use AutoHotkey notation: ^ Ctrl, ! Alt, + Shift, # Win/Command
+
 # Go to Manage Ships
 show_ships = "N"
 
@@ -879,4 +884,3 @@ verify_ssl = true
 #  <[========================================================================================]> 
 
 [sync.targets.spocksclub]
-

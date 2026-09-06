@@ -520,6 +520,11 @@ show_scrapyard = "Y"
 # Ir a ajustes
 show_settings = "SHIFT-S"
 
+# Alternar las indicaciones de atajos en pantalla (muestra los atajos compatibles del mod)
+# NONE desactiva los hooks y la caché de indicaciones del mod; asigna una tecla para activar (requiere reiniciar).
+toggle_shortcut_hints = "NONE"
+# Los modificadores usan la notación de AutoHotkey: ^ Ctrl, ! Alt, + Mayús, # Win/Comando
+
 # Ir a administrar barcos
 show_ships = "N"
 
@@ -879,4 +884,3 @@ verify_ssl = true
 #  <[==========================================================================================================================================================================================]> 
 
 [sync.targets.spocksclub]
-
