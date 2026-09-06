@@ -84,6 +84,7 @@ void SomeFunction_Hook(auto original, SomeClass* _this, ...) {
 ```
 macOS does not tolerate repeated hooks of the same function. If multiple features need to intercept the same game method, consolidate the behavior behind one detour or add platform guards instead of installing overlapping hooks.
 Do not over-focus on hidden IL2CPP `MethodInfo*` parameters during drift repair; match the game-visible signature from `dump.cs` unless there is concrete runtime evidence that the hidden parameter is the issue.
+Before adding a detour to a small IL2CPP wrapper or thunk, verify its native method extent against SPUD's architecture-specific overwrite size on every supported architecture for the exact client build. A successful platform build does not validate hook fit; prefer a substantive downstream method when exact per-architecture extent is unavailable.
 
 **IL2CPP class resolution** — Game classes are resolved at runtime using helpers:
 ```cpp

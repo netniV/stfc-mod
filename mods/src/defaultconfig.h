@@ -38,6 +38,10 @@ namespace Graphics
 {
   constexpr bool        borderless_fullscreen       = true;
   constexpr bool        allow_cursor                = true;
+  constexpr const char* zoom_label_player_detail        = "native";
+  constexpr auto        zoom_label_player_threshold     = 0.5;
+  constexpr const char* zoom_label_non_player_detail    = "native";
+  constexpr auto        zoom_label_non_player_threshold = 0.5;
   constexpr auto        default_system_zoom         = 1750;
   constexpr bool        free_resize                 = true;
   constexpr auto        keyboard_zoom_speed         = 350;
@@ -135,8 +139,8 @@ namespace Shortcuts
   constexpr const char* set_zoom_preset4      = "SHIFT-F4";
   constexpr const char* set_zoom_preset5      = "SHIFT-F5";
 
-  constexpr const char* native_shortcut_events = "CTRL-E";
-  constexpr const char* native_shortcut_galaxy = "CTRL-G";
+  constexpr const char* show_events_native = "CTRL-E";
+  constexpr const char* show_galaxy_native = "CTRL-G";
 
   constexpr const char* show_alliance         = "ALT-'";
   constexpr const char* show_alliance_armada  = "CTRL-'";
