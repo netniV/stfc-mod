@@ -31,6 +31,36 @@ namespace DCS  = DefaultConfig::Sync;
 namespace DCSC = DefaultConfig::SystemConfig;
 namespace DCSH = DefaultConfig::Shortcuts;
 
+namespace
+{
+struct ToastAudioAlertConfig {
+  int                       toast_state;
+  std::string_view          config_name;
+  std::string_view          default_sound;
+  NotificationSound Config::* config_member;
+};
+
+constexpr auto kToastAudioAlerts = std::to_array<ToastAudioAlertConfig>({
+    {ToastState::Victory, "alert_victory", DCA::alert_victory, &Config::alert_victory},
+    {ToastState::Defeat, "alert_defeat", DCA::alert_defeat, &Config::alert_defeat},
+    {ToastState::ArmadaCreated, "alert_armada_created", DCA::alert_armada_created, &Config::alert_armada_created},
+    {ToastState::ArmadaBattleWon, "alert_armada_battle_won", DCA::alert_armada_battle_won,
+     &Config::alert_armada_battle_won},
+    {ToastState::ArmadaBattleLost, "alert_armada_battle_lost", DCA::alert_armada_battle_lost,
+     &Config::alert_armada_battle_lost},
+});
+
+constexpr bool is_all_audio_wildcard(std::string_view value)
+{
+  return value.size() == 3 && (value[0] == 'a' || value[0] == 'A') && (value[1] == 'l' || value[1] == 'L')
+         && (value[2] == 'l' || value[2] == 'L');
+}
+
+static_assert(is_all_audio_wildcard("aLl"));
+static_assert(!is_all_audio_wildcard(std::string_view{"All\0suffix", 10}));
+static_assert(!is_all_audio_wildcard(std::string_view{"\xffll", 3}));
+} // namespace
+
 static const eastl::tuple<const char*, int> bannerTypes[] = {
     {"All", ToastState::All},
     {"Standard", ToastState::Standard},
@@ -125,6 +155,12 @@ Config& Config::Get()
 {
   static Config config;
   return config;
+}
+
+NotificationSound Config::NotificationSoundForToast(int toast_state) const
+{
+  const auto alert = std::ranges::find(kToastAudioAlerts, toast_state, &ToastAudioAlertConfig::toast_state);
+  return alert == kToastAudioAlerts.end() ? NotificationSound::None : this->*(alert->config_member);
 }
 
 MissionHudVisibility Config::MissionHudButtonVisibility(std::string_view button_name) const
@@ -327,6 +363,25 @@ T get_config_or_default(toml::table& config, toml::table& new_config, std::strin
   }
 
   return (T)final_value;
+}
+
+NotificationSound get_notification_sound(toml::table& config, toml::table& new_config, std::string_view item,
+                                         std::string_view default_value, bool write_log)
+{
+  const auto value = get_config_or_default<std::string>(config, new_config, "audio", item,
+                                                         std::string(default_value), false);
+  auto sound = notification_sound_from_name(StripAsciiWhitespace(value));
+  if (!sound.has_value()) {
+    spdlog::warn("invalid config value audio.{}: '{}'; using {}", item, value, default_value);
+    sound = notification_sound_from_name(default_value);
+  }
+
+  const auto result = sound.value_or(NotificationSound::None);
+  new_config["audio"].as_table()->insert_or_assign(item, notification_sound_name(result));
+  if (write_log) {
+    spdlog::debug("config value audio.{} value: {}", item, notification_sound_name(result));
+  }
+  return result;
 }
 
 std::string_view to_string(MissionHudVisibility visibility)
@@ -1027,14 +1082,27 @@ void Config::Load()
       get_config_or_default(config, parsed, "audio", "trace_events", DCA::trace_events, write_config);
   auto disabled_audio_events = get_config_or_default<std::string>(
       config, parsed, "audio", "disabled_events", DCA::disabled_events, write_config);
+  this->disable_all_audio_events = false;
   this->disabled_audio_events.clear();
   for (const auto& event : StrSplit(disabled_audio_events, ',')) {
     auto stripped = StripAsciiWhitespace(event);
-    if (!stripped.empty()) {
+    if (is_all_audio_wildcard(stripped)) {
+      this->disable_all_audio_events = true;
+    } else if (!stripped.empty()) {
       this->disabled_audio_events.emplace_back(stripped);
     }
   }
-  this->installAudioEventHooks = this->trace_audio_events || !this->disabled_audio_events.empty();
+  this->installAudioEventHooks =
+      this->trace_audio_events || this->disable_all_audio_events || !this->disabled_audio_events.empty();
+  bool any_toast_audio_alert_configured = false;
+  for (const auto& alert : kToastAudioAlerts) {
+    const auto sound = get_notification_sound(config, parsed, alert.config_name, alert.default_sound, write_config);
+    this->*(alert.config_member) = sound;
+    any_toast_audio_alert_configured |= sound != NotificationSound::None;
+  }
+  if (!this->installToastBannerHooks && any_toast_audio_alert_configured) {
+    spdlog::warn("audio alerts require patches.toastbannerhooks = true");
+  }
   this->auto_open_bulk_claim_flyout = get_config_or_default(config, parsed, "ui", "auto_open_bulk_claim_flyout",
                                                              DCU::auto_open_bulk_claim_flyout, write_config);
 

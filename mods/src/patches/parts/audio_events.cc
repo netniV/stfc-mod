@@ -13,6 +13,40 @@
 struct FabricEventManager {
 };
 
+namespace
+{
+enum class FabricEventAction : int {
+  PlaySound       = 0,
+  StopSound       = 1,
+  UnpauseSound    = 3,
+  AdvanceSequence = 16,
+  StopAll         = 21,
+  UnloadAudio     = 23,
+  PlayScheduled   = 33,
+};
+
+constexpr bool can_start_audio(int event_action)
+{
+  switch (static_cast<FabricEventAction>(event_action)) {
+    case FabricEventAction::PlaySound:
+    case FabricEventAction::UnpauseSound:
+    case FabricEventAction::AdvanceSequence:
+    case FabricEventAction::PlayScheduled:
+      return true;
+    default:
+      return false;
+  }
+}
+
+constexpr bool should_suppress_audio_event(bool disable_all, bool event_is_disabled, int event_action)
+{ return disable_all ? can_start_audio(event_action) : event_is_disabled; }
+
+static_assert(should_suppress_audio_event(true, false, static_cast<int>(FabricEventAction::PlaySound)));
+static_assert(!should_suppress_audio_event(true, false, static_cast<int>(FabricEventAction::StopSound)));
+static_assert(should_suppress_audio_event(false, true, static_cast<int>(FabricEventAction::StopAll)));
+static_assert(!should_suppress_audio_event(true, true, static_cast<int>(FabricEventAction::UnloadAudio)));
+} // namespace
+
 // Fabric.EventManager.PostEvent(string, EventAction, object, GameObject,
 // InitialiseParameters, bool, OnEventNotify)
 bool FabricEventManager_PostEvent_Hook(auto original, FabricEventManager* _this, Il2CppString* event_name,
@@ -25,14 +59,16 @@ bool FabricEventManager_PostEvent_Hook(auto original, FabricEventManager* _this,
                     add_to_queue, on_event_notify);
   }
 
-  const auto event = to_string(event_name);
+  const auto event  = to_string(event_name);
   auto&      config = Config::Get();
 
   if (config.trace_audio_events) {
     spdlog::info("Audio event: {}", event);
   }
 
-  if (std::ranges::find(config.disabled_audio_events, event) != config.disabled_audio_events.end()) {
+  const bool event_is_disabled =
+      std::ranges::find(config.disabled_audio_events, event) != config.disabled_audio_events.end();
+  if (should_suppress_audio_event(config.disable_all_audio_events, event_is_disabled, event_action)) {
     spdlog::debug("Suppressed audio event: {}", event);
     return false;
   }
@@ -49,10 +85,19 @@ void InstallAudioEventHooks()
     return;
   }
 
-  // The shorter PostEvent overloads funnel into this seven-argument overload.
-  const auto method = helper.GetMethodInfo("PostEvent", 7);
+  // The shorter string PostEvent overloads funnel into this seven-argument overload. Select it by type because
+  // Fabric also has a seven-argument integer-ID overload with an incompatible native signature.
+  auto string_event_filter = [](int count, const Il2CppType** params) {
+    return count == 7 && params != nullptr && params[0] != nullptr && params[5] != nullptr
+           && params[0]->type == IL2CPP_TYPE_STRING && params[5]->type == IL2CPP_TYPE_BOOLEAN;
+  };
+  const auto method = helper.GetMethodInfoSpecial("PostEvent", string_event_filter);
   if (method == nullptr || method->methodPointer == nullptr) {
-    ErrorMsg::MissingMethod("EventManager", "PostEvent");
+    ErrorMsg::MissingMethod("EventManager", "PostEvent(string, ..., bool, ...)");
+    return;
+  }
+  if (method->return_type == nullptr || method->return_type->type != IL2CPP_TYPE_BOOLEAN) {
+    spdlog::error("Fabric EventManager string PostEvent route has an unexpected return type");
     return;
   }
 
