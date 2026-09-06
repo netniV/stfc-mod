@@ -97,6 +97,11 @@ queue_enabled = true
 # Auf true setzen, um die Hotkeys von Scopely zu verwenden
 use_scopely_hotkeys = false
 
+# Buchstaben: "physical" nutzt US-QWERTY-Positionen (Standard); "layout" folgt A-Z im aktiven Tastaturlayout.
+# Modifikatoren/andere Tasten bleiben gleich. Nicht auflösbare Buchstaben sind deaktiviert; Details stehen in vars.
+# Layoutwechsel werden sofort erkannt; gehaltene Tasten danach zuerst loslassen.
+keyboard_letter_mode = "physical"
+
 # Subgroup: Optionen
 # ------------------
 
@@ -879,4 +884,3 @@ verify_ssl = true
 #  <[===================================================================================================================================================================================]> 
 
 [sync.targets.spocksclub]
-

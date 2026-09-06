@@ -97,6 +97,11 @@ queue_enabled = true
 # Si vous préférez utiliser les raccourcis de Scopely mettez ça sur activer
 use_scopely_hotkeys = false
 
+# Lettres : "physical" garde les positions US-QWERTY (défaut) ; "layout" suit A-Z du clavier actif.
+# Modificateurs/autres touches inchangés. Lettres non résolues désactivées ; détails dans le fichier vars.
+# Le changement de disposition est pris en compte en jeu ; relâchez les touches maintenues.
+keyboard_letter_mode = "physical"
+
 # Subgroup: Options
 # -----------------
 
@@ -879,4 +884,3 @@ verify_ssl = true
 #  <[==========================================================================================================================================================================================]> 
 
 [sync.targets.spocksclub]
-

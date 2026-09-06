@@ -1,6 +1,7 @@
 #include "mapkey.h"
 #include "gamefunctions.h"
 #include "key.h"
+#include "keyboard_layout.h"
 #include "modifierkey.h"
 #include "str_utils.h"
 #include <prime/KeyCode.h>
@@ -80,8 +81,9 @@ bool MapKey::IsPressed(GameFunction gameFunction)
 {
   const auto &mapKeys = MapKey::mappedKeys[(int)gameFunction];
   for (const MapKey &mapKey : mapKeys) {
-    if (mapKey.Key != KeyCode::None) {
-      if (Key::Pressed(mapKey.Key)) {
+    const auto key = keyboard_layout::Resolve(mapKey.Key);
+    if (key != KeyCode::None) {
+      if (Key::Pressed(key)) {
         if (MapKey::HasCorrectModifiers(mapKey)) {
           if (mapKey.hasModifiers) {
             Key::ClaimDirectionalInput(mapKey.Key);
@@ -99,8 +101,9 @@ bool MapKey::IsDown(GameFunction gameFunction)
 {
   const auto &mapKeys = MapKey::mappedKeys[(int)gameFunction];
   for (const MapKey &mapKey : mapKeys) {
-    if (mapKey.Key != KeyCode::None) {
-      if (Key::Down(mapKey.Key)) {
+    const auto key = keyboard_layout::Resolve(mapKey.Key);
+    if (key != KeyCode::None) {
+      if (Key::Down(key)) {
         if (MapKey::HasCorrectModifiers(mapKey)) {
           if (mapKey.hasModifiers) {
             Key::ClaimDirectionalInput(mapKey.Key);

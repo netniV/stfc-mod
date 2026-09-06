@@ -97,6 +97,11 @@ queue_enabled = true
 # If you prefer to use Scopely's hotkeys set this to true
 use_scopely_hotkeys = false
 
+# Letter shortcuts: "physical" keeps US-QWERTY positions (default); "layout" follows A-Z on the active OS layout.
+# Modifiers/nonletters stay unchanged. Unresolved letters are disabled; see keyboard_mapping/shortcuts_resolved in vars.
+# Changes of OS layout apply live; release held keys before using the new layout.
+keyboard_letter_mode = "physical"
+
 # Subgroup: Options
 # -----------------
 
@@ -879,4 +884,3 @@ verify_ssl = true
 #  <[=============================================================================================================]> 
 
 [sync.targets.spocksclub]
-

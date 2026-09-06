@@ -97,6 +97,11 @@ queue_enabled = true
 # Als je de Scopely sneltoetsen prefereerd over die van de mod, schakel dit dan aan
 use_scopely_hotkeys = false
 
+# Letters: "physical" behoudt US-QWERTY-posities (standaard); "layout" volgt A-Z van de actieve toetsenbordindeling.
+# Modificatietoetsen/andere toetsen blijven gelijk. Niet gevonden letters zijn uitgeschakeld; zie het vars-bestand.
+# Indelingswijzigingen werken direct; laat ingedrukte toetsen eerst los.
+keyboard_letter_mode = "physical"
+
 # Subgroup: Options
 # -----------------
 
@@ -879,4 +884,3 @@ verify_ssl = true
 #  <[===========================================================================================================================]> 
 
 [sync.targets.spocksclub]
-
