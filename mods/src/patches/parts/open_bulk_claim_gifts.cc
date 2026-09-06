@@ -3,6 +3,7 @@
 
 #include <il2cpp/il2cpp_helper.h>
 #include <spud/detour.h>
+#include <spdlog/spdlog.h>
 
 #include <cstddef>
 
@@ -161,6 +162,7 @@ void InstallGiftsBulkClaimHooks()
   auto shop_list_scroller = ShopListScrollerViewController::ClassHelper();
   if (!shop_list_scroller.isValidHelper()) {
     ErrorMsg::MissingHelper("Digit.Prime.Shop", "ShopListScrollerViewController");
+    spdlog::warn("Skipping GiftsBulkClaimHooks: required IL2CPP dependencies are unavailable; no hooks installed.");
     return;
   }
 
@@ -188,6 +190,7 @@ void InstallGiftsBulkClaimHooks()
   }
 
   if (!can_install) {
+    spdlog::warn("Skipping GiftsBulkClaimHooks: required IL2CPP dependencies are unavailable; no hooks installed.");
     return;
   }
 
