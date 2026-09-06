@@ -1,5 +1,6 @@
 #include "mapkey.h"
 #include "gamefunctions.h"
+#include "key.h"
 #include "modifierkey.h"
 #include "str_utils.h"
 #include <prime/KeyCode.h>
@@ -189,6 +190,9 @@ bool MapKey::IsPressed(GameFunction gameFunction)
     if (mapKey.Key != KeyCode::None) {
       if (Key::Pressed(mapKey.Key)) {
         if (MapKey::HasCorrectModifiers(mapKey)) {
+          if (mapKey.hasModifiers) {
+            Key::ClaimDirectionalInput(mapKey.Key);
+          }
           return true;
         }
       }
@@ -205,6 +209,9 @@ bool MapKey::IsDown(GameFunction gameFunction)
     if (mapKey.Key != KeyCode::None) {
       if (Key::Down(mapKey.Key)) {
         if (MapKey::HasCorrectModifiers(mapKey)) {
+          if (mapKey.hasModifiers) {
+            Key::ClaimDirectionalInput(mapKey.Key);
+          }
           return true;
         }
       }

@@ -45,9 +45,16 @@
 #include <il2cpp-tabledefs.h>
 #include <il2cpp/il2cpp-functions.h>
 
+#include "patches/screen_update_hook.h"
+
+#ifdef _MODDBG
+#include "patches/fleet_watch.h"
+#endif
+
 #include <EASTL/vector.h>
 
 #include <array>
+#include <cstdint>
 #include <iostream>
 #include <span>
 #include <string_view>
@@ -266,6 +273,38 @@ void ShortcutKeybindHint_UpdateVisibility_Hook(auto original, void* _this, bool 
   }
 }
 
+static const MethodInfo* on_events_action = nullptr;
+static const MethodInfo* on_galaxy_action = nullptr;
+
+struct InputActionCallbackContext {
+  void*   state;
+  int32_t action_index;
+};
+
+static_assert(sizeof(InputActionCallbackContext) == 16);
+
+bool InvokeNativeShortcut(const MethodInfo* method, const char* action_name)
+{
+  auto* shortcuts_manager = ShortcutsManager::Instance();
+  if (!shortcuts_manager || !method) {
+    spdlog::warn("[Hotkeys] native {} shortcut is unavailable", action_name);
+    return false;
+  }
+
+  // These callbacks do not inspect CallbackContext, but runtime_invoke still requires storage for the value-type
+  // argument. Using the managed invoker also avoids platform-specific by-value ABI assumptions.
+  InputActionCallbackContext context{};
+  void*                      args[]{&context};
+  Il2CppException*           exception = nullptr;
+  il2cpp_runtime_invoke(method, shortcuts_manager, args, &exception);
+  if (exception) {
+    spdlog::warn("[Hotkeys] native {} shortcut raised exception={}", action_name, static_cast<void*>(exception));
+    return false;
+  }
+
+  return true;
+}
+
 bool force_space_action_next_frame = false;
 
 void     ChangeNavigationSection(SectionID sectionID);
@@ -402,6 +441,11 @@ bool MoveShipSelectionInDock(bool goLeft)
 
 void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
 {
+  dispatch_screen_manager_update_callbacks();
+  if (!Config::Get().installHotkeyHooks) {
+    return original(_this);
+  }
+
   // This function is called every frame to update the screen manager.
   // Create a global clock to detect time elapsed
   static std::chrono::time_point<std::chrono::steady_clock> select_clock             = std::chrono::steady_clock::now();
@@ -619,6 +663,9 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
         return GotoSection(SectionID::Shop_MainFactions);
       } else if (MapKey::IsDown(GameFunction::ShoWStationExterior)) {
         return GotoSection(SectionID::Starbase_Exterior);
+      } else if (MapKey::IsDown(GameFunction::NativeShortcutGalaxy)) {
+        InvokeNativeShortcut(on_galaxy_action, "Galaxy");
+        return;
       } else if (MapKey::IsDown(GameFunction::ShowGalaxy)) {
         return ChangeNavigationSection(SectionID::Navigation_Galaxy);
       } else if (MapKey::IsDown(GameFunction::ShowStationInterior)) {
@@ -643,6 +690,9 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
         return GotoSection(SectionID::FleetCommander_Management);
       } else if (MapKey::IsDown(GameFunction::ShowAwayTeam)) {
         return GotoSection(SectionID::Missions_AwayTeamsList);
+      } else if (MapKey::IsDown(GameFunction::NativeShortcutEvents)) {
+        InvokeNativeShortcut(on_events_action, "Events");
+        return;
       } else if (MapKey::IsDown(GameFunction::ShowEvents)) {
         return GotoSection(SectionID::Tournament_Group_Selection);
       } else if (MapKey::IsDown(GameFunction::ShowExoComp)) {
@@ -810,7 +860,25 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
   }
 
   if (config->disable_escape_exit && Key::Pressed(KeyCode::Escape)) {
-    return;
+    // Keep suppressing a held key. Only distinct key-down edges participate in
+    // the double-tap window.
+    if (config->disable_escape_exit_timer <= 0 || !Key::Down(KeyCode::Escape)) {
+      return;
+    }
+
+    static auto previous_escape_down = std::chrono::steady_clock::time_point{};
+    const auto  escape_now           = std::chrono::steady_clock::now();
+    const auto  escape_diff =
+        std::chrono::duration_cast<std::chrono::milliseconds>(escape_now - previous_escape_down);
+
+    if (previous_escape_down == std::chrono::steady_clock::time_point{}
+        || escape_diff > std::chrono::milliseconds(config->disable_escape_exit_timer)) {
+      previous_escape_down = escape_now;
+      return;
+    }
+
+    // Consume the completed pair so a rapid third press starts a new one.
+    previous_escape_down = {};
   }
 
   // config->Load();
@@ -1247,6 +1315,26 @@ void ShowWithFleet_Hook(auto original, PreScanTargetWidget* _this, void* a1)
   }
 }
 
+bool install_screen_manager_update_hook()
+{
+  static bool installed = false;
+  if (installed) {
+    return true;
+  }
+
+  auto helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.UI", "ScreenManager");
+  if (!helper.isValidHelper()) {
+    ErrorMsg::MissingHelper("UI", "ScreenManager");
+  } else if (auto update = helper.GetMethod("Update"); update) {
+    SPUD_STATIC_DETOUR(update, ScreenManager_Update_Hook);
+    installed = true;
+    return true;
+  } else {
+    ErrorMsg::MissingMethod("ScreenManager", "Update");
+  }
+  return false;
+}
+
 void InstallHotkeyHooks()
 {
   auto shortcuts_manager_helper =
@@ -1263,6 +1351,16 @@ void InstallHotkeyHooks()
       ErrorMsg::MissingMethod("ShortcutsManager", "set_ShowKeybindings");
     if (!can_use_shortcuts)
       ErrorMsg::MissingMethod("ShortcutsManager", "get_CanUseShortcuts");
+
+    on_events_action = shortcuts_manager_helper.GetMethodInfo("OnEventsAction", 1);
+    if (on_events_action == nullptr) {
+      ErrorMsg::MissingMethod("ShortcutsManager", "OnEventsAction");
+    }
+
+    on_galaxy_action = shortcuts_manager_helper.GetMethodInfo("OnGalaxyAction", 1);
+    if (on_galaxy_action == nullptr) {
+      ErrorMsg::MissingMethod("ShortcutsManager", "OnGalaxyAction");
+    }
 
     auto ptr_can_user_shortcuts = shortcuts_manager_helper.GetMethod("InitializeActions");
     if (ptr_can_user_shortcuts == nullptr) {
@@ -1349,17 +1447,10 @@ void InstallHotkeyHooks()
     shortcut_hints_ready = true;
   }
 
-  auto screen_manager_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.UI", "ScreenManager");
-  if (!screen_manager_helper.isValidHelper()) {
-    ErrorMsg::MissingHelper("UI", "ScreenManager");
-  } else {
-    auto ptr_update = screen_manager_helper.GetMethod("Update");
-    if (ptr_update == nullptr) {
-      ErrorMsg::MissingMethod("ScreenManager", "Update");
-    } else {
-      SPUD_STATIC_DETOUR(ptr_update, ScreenManager_Update_Hook);
-    }
-  }
+  install_screen_manager_update_hook();
+#ifdef _MODDBG
+  fleet_watch::InstallRuntimeProbe();
+#endif
 
   static auto rewards_button_widget =
       il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Combat", "RewardsButtonWidget");
