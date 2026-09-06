@@ -13,6 +13,7 @@
 #include "defaultconfig.h"
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstdio>
 #include <initializer_list>
 #include <iostream>
@@ -478,6 +479,79 @@ InstantWarpConfirmation get_auto_confirm_instant_warp(toml::table& config, toml:
   return confirmation;
 }
 
+std::string_view to_string(FleetLabelDetail detail)
+{
+  switch (detail) {
+    case FleetLabelDetail::Expanded:
+      return "expanded";
+    case FleetLabelDetail::Compact:
+      return "compact";
+    case FleetLabelDetail::Threshold:
+      return "threshold";
+    case FleetLabelDetail::Native:
+    default:
+      return "native";
+  }
+}
+
+FleetLabelDetail parse_fleet_label_detail(std::string_view key, std::string_view value)
+{
+  const auto trimmed    = std::string(StripAsciiWhitespace(value));
+  const auto normalized = AsciiStrToUpper(trimmed);
+
+  if (normalized == "EXPANDED" || normalized == "ALWAYS") {
+    return FleetLabelDetail::Expanded;
+  }
+  if (normalized == "COMPACT" || normalized == "NEVER") {
+    return FleetLabelDetail::Compact;
+  }
+  if (normalized == "THRESHOLD" || normalized == "CUSTOM") {
+    return FleetLabelDetail::Threshold;
+  }
+  if (normalized == "NATIVE" || normalized == "AUTO" || normalized == "NONE" || normalized == "OFF"
+      || normalized.empty()) {
+    return FleetLabelDetail::Native;
+  }
+
+  spdlog::warn("invalid config value graphics.{}: '{}'; using native", key, value);
+  return FleetLabelDetail::Native;
+}
+
+FleetLabelDetail get_fleet_label_detail(toml::table& config, toml::table& new_config, std::string_view key,
+                                        std::string_view default_value, bool write_log)
+{
+  const auto value  = config["graphics"][key].value<std::string>().value_or(std::string(default_value));
+  const auto detail = parse_fleet_label_detail(key, value);
+
+  new_config.emplace<toml::table>("graphics", toml::table());
+  new_config["graphics"].as_table()->insert_or_assign(key, std::string(to_string(detail)));
+
+  if (write_log) {
+    spdlog::debug("config value graphics.{} value: {}", key, to_string(detail));
+  }
+
+  return detail;
+}
+
+float get_fleet_label_zoom_threshold(toml::table& config, toml::table& new_config, std::string_view key,
+                                     float default_value, bool write_log)
+{
+  auto threshold = config["graphics"][key].value<float>().value_or(default_value);
+  if (!std::isfinite(threshold) || threshold < 0.0f || threshold > 1.0f) {
+    spdlog::warn("invalid config value graphics.{}: {}; using {}", key, threshold, default_value);
+    threshold = default_value;
+  }
+
+  new_config.emplace<toml::table>("graphics", toml::table());
+  new_config["graphics"].as_table()->insert_or_assign(key, threshold);
+
+  if (write_log) {
+    spdlog::debug("config value graphics.{} value: {}", key, threshold);
+  }
+
+  return threshold;
+}
+
 void parse_ship_filter(std::string_view value, std::vector<std::string>& names, bool& match_all)
 {
   names.clear();
@@ -936,8 +1010,16 @@ void Config::Load()
       get_config_or_default(config, parsed, "graphics", "ui_scale_ship", DCG::ui_scale_ship, write_config);
   this->ui_scale_viewer =
       get_config_or_default(config, parsed, "graphics", "ui_scale_viewer", DCG::ui_scale_viewer, write_config);
-  this->zoom        = get_config_or_default(config, parsed, "graphics", "zoom", DCG::zoom, write_config);
-  this->fr_scale    = get_config_or_default(config, parsed, "graphics", "fr_scale", DCG::fr_scale, write_config);
+  this->zoom               = get_config_or_default(config, parsed, "graphics", "zoom", DCG::zoom, write_config);
+  this->fr_scale           = get_config_or_default(config, parsed, "graphics", "fr_scale", DCG::fr_scale, write_config);
+  this->zoom_label_player.detail =
+      get_fleet_label_detail(config, parsed, "zoom_label_player_detail", DCG::zoom_label_player_detail, write_config);
+  this->zoom_label_player.zoom_threshold = get_fleet_label_zoom_threshold(
+      config, parsed, "zoom_label_player_threshold", DCG::zoom_label_player_threshold, write_config);
+  this->zoom_label_non_player.detail         = get_fleet_label_detail(config, parsed, "zoom_label_non_player_detail",
+                                                                      DCG::zoom_label_non_player_detail, write_config);
+  this->zoom_label_non_player.zoom_threshold = get_fleet_label_zoom_threshold(
+      config, parsed, "zoom_label_non_player_threshold", DCG::zoom_label_non_player_threshold, write_config);
   this->free_resize = get_config_or_default(config, parsed, "graphics", "free_resize", DCG::free_resize, write_config);
   this->allow_cursor =
       get_config_or_default(config, parsed, "graphics", "allow_cursor", DCG::allow_cursor, write_config);
@@ -984,6 +1066,8 @@ void Config::Load()
 
   this->disable_escape_exit =
       get_config_or_default(config, parsed, "ui", "disable_escape_exit", DCU::disable_escape_exit, write_config);
+  this->disable_escape_exit_timer =
+      get_config_or_default(config, parsed, "ui", "disable_escape_exit_timer", DCU::disable_escape_exit_timer, write_config);
   this->disable_preview_locate =
       get_config_or_default(config, parsed, "ui", "disable_preview_locate", DCU::disable_preview_locate, write_config);
   this->disable_preview_recall =
@@ -1294,6 +1378,8 @@ void Config::Load()
   parse_config_shortcut(config, parsed, "show_chatside1", GameFunction::ShowChatSide1, DCSH::show_chatside1);
   parse_config_shortcut(config, parsed, "show_chatside2", GameFunction::ShowChatSide2, DCSH::show_chatside2);
   parse_config_shortcut(config, parsed, "show_galaxy", GameFunction::ShowGalaxy, DCSH::show_galaxy);
+  parse_config_shortcut_aliases(config, parsed, "show_galaxy_native", GameFunction::NativeShortcutGalaxy,
+                                DCSH::show_galaxy_native, {"native_shortcut_galaxy"});
   parse_config_shortcut(config, parsed, "show_system", GameFunction::ShowSystem, DCSH::show_system);
   parse_config_shortcut(config, parsed, "zoom_preset1", GameFunction::ZoomPreset1, DCSH::zoom_preset1);
   parse_config_shortcut(config, parsed, "zoom_preset2", GameFunction::ZoomPreset2, DCSH::zoom_preset2);
@@ -1329,6 +1415,8 @@ void Config::Load()
   parse_config_shortcut(config, parsed, "show_commander", GameFunction::ShowCommander, DCSH::show_commander);
   parse_config_shortcut(config, parsed, "show_daily", GameFunction::ShowDaily, DCSH::show_daily);
   parse_config_shortcut(config, parsed, "show_events", GameFunction::ShowEvents, DCSH::show_events);
+  parse_config_shortcut_aliases(config, parsed, "show_events_native", GameFunction::NativeShortcutEvents,
+                                DCSH::show_events_native, {"native_shortcut_events"});
   parse_config_shortcut(config, parsed, "show_exocomp", GameFunction::ShowExoComp, DCSH::show_exocomp);
   parse_config_shortcut(config, parsed, "show_factions", GameFunction::ShowFactions, DCSH::show_factions);
   parse_config_shortcut(config, parsed, "show_inventory", GameFunction::ShowInventory, DCSH::show_inventory);

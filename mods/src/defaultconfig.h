@@ -38,6 +38,10 @@ namespace Graphics
 {
   constexpr bool        borderless_fullscreen       = true;
   constexpr bool        allow_cursor                = true;
+  constexpr const char* zoom_label_player_detail        = "native";
+  constexpr auto        zoom_label_player_threshold     = 0.5;
+  constexpr const char* zoom_label_non_player_detail    = "native";
+  constexpr auto        zoom_label_non_player_threshold = 0.5;
   constexpr auto        default_system_zoom         = 1750;
   constexpr bool        free_resize                 = true;
   constexpr auto        keyboard_zoom_speed         = 350;
@@ -134,6 +138,10 @@ namespace Shortcuts
   constexpr const char* set_zoom_preset3      = "SHIFT-F3";
   constexpr const char* set_zoom_preset4      = "SHIFT-F4";
   constexpr const char* set_zoom_preset5      = "SHIFT-F5";
+
+  constexpr const char* show_events_native = "CTRL-E";
+  constexpr const char* show_galaxy_native = "CTRL-G";
+
   constexpr const char* show_alliance         = "ALT-'";
   constexpr const char* show_alliance_armada  = "CTRL-'";
   constexpr const char* show_alliance_help    = "SHIFT-'";
@@ -227,6 +235,9 @@ namespace UI
   constexpr const char* daily_bulk_claim_factions   = "";
   constexpr bool        daily_bulk_claim_toggle_default_on = false;
   constexpr bool        disable_escape_exit         = true;
+  // Maximum gap between Escape presses that opens the exit prompt.
+  // 0 disables double-tap and preserves the existing blocked behavior.
+  constexpr auto        disable_escape_exit_timer           = 0;
   constexpr bool        disable_first_popup         = false;
   constexpr bool        disable_galaxy_chat         = false;
   constexpr bool        disable_move_keys           = false;
