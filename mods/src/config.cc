@@ -1370,6 +1370,7 @@ void Config::Load()
                         DCSH::show_stationexterior);
   parse_config_shortcut(config, parsed, "show_stationinterior", GameFunction::ShowStationInterior,
                         DCSH::show_stationinterior);
+  parse_config_shortcut(config, parsed, "show_haven", GameFunction::ShowHaven, DCSH::show_haven);
   parse_config_shortcut(config, parsed, "toggle_queue", GameFunction::ToggleQueue, DCSH::toggle_queue);
   parse_config_shortcut(config, parsed, "toggle_instant_warp", GameFunction::ToggleAutoConfirmInstantWarp,
                         DCSH::toggle_instant_warp);

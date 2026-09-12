@@ -543,6 +543,9 @@ show_stationexterior = "SHIFT-G"
 # 'ejyo'waw' Interior
 show_stationinterior = "SHIFT-H"
 
+# Open your Haven (requires the Iconian Gateway)
+show_haven = "ALT-H"
+
 # Go Daq  Hovtay'
 show_system = "H"
 

@@ -543,6 +543,9 @@ show_stationexterior = "SHIFT-G"
 # Stationsinnenansicht
 show_stationinterior = "SHIFT-H"
 
+# Eigenen Haven öffnen (erfordert das Iconianische Gateway)
+show_haven = "ALT-H"
+
 # Zum System
 show_system = "H"
 

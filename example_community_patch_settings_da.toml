@@ -544,6 +544,9 @@ show_stationexterior = "SHIFT-G"
 # Stationens indre
 show_stationinterior = "SHIFT-H"
 
+# Åbn din egen Haven (kræver Iconian Gateway)
+show_haven = "ALT-H"
+
 # Gå til system
 show_system = "H"
 
