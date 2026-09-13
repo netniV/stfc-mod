@@ -97,6 +97,11 @@ queue_enabled = true
 # Si prefieres usar los atajos de Scopely, establece este valor en verdadero
 use_scopely_hotkeys = false
 
+# Windows x64: "physical" preserves positions; "layout" follows the active layout.
+# Required Shift is inferred; characters requiring Ctrl/AltGr are unsupported.
+# Layout changes apply live; release held keys. See docs/keyboard-letter-layout.md.
+keyboard_layout_mode = "physical"
+
 # Subgroup: Options
 # -----------------
 
