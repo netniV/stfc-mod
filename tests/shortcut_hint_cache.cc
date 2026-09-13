@@ -259,8 +259,7 @@ int main()
   pressed[static_cast<int>(KeyCode::Backslash)] = down[static_cast<int>(KeyCode::Backslash)] = true;
   Check(MapKey::IsDown(GameFunction::ShowAllianceHelp) && MapKey::IsDown(GameFunction::ShowAllianceArmada),
         "German default overlap changed without an explicit modifier policy change");
-  // Use a spare action slot for the alternative configuration; the public API
-  // intentionally has no live binding replacement operation.
+  // Keep both configurations available to compare dispatch in the same sample.
   constexpr auto remappedHelp = GameFunction::ShowOfficers;
   MapKey::AddMappedKey(remappedHelp, MapKey::Parse("SHIFT-^"));
   Check(!MapKey::IsDown(remappedHelp) && MapKey::IsDown(GameFunction::ShowAllianceArmada),

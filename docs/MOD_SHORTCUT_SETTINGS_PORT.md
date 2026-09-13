@@ -15,6 +15,12 @@ shortcut dispatch while capture owns input; no additional detour is installed.
 Six fork-only console presentation entries are omitted because those actions
 are absent upstream. No console, OPC, audio or play integration is included.
 
+Extraction review found one dependency-failure correction: resolve Unity's focus
+query before exposing the editor. If unavailable, registration returns before
+adding its update callback or pages, so recording cannot acquire input ownership.
+The capture state machine still requires a focused key release after Alt-Tab.
+A stale test comment about live replacement was also corrected.
+
 The parent writer, TOML editor and persistence fixtures are retained. The #269
 diagnostic-save exception guard and checked startup save remain intact. Both
 settings runners include the shortcut fixture, including the POSIX runner that

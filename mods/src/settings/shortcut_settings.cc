@@ -88,6 +88,7 @@ namespace
   std::size_t                          recordingIndex = 0;
   ShortcutCapture                      capture;
   std::vector<KeyCode>                 sampledKeys;
+  bool (*isFocused)() = nullptr;
 
   // Compare the dispatcher's modifier rules as well as the physical key.
   // Contexts may still make an overlap intentional; warn without removing either.
@@ -143,13 +144,12 @@ namespace
     if (!capture.active())
       return; // No input scan, layout query or logging while idle.
     try {
-      static auto           focused = il2cpp_resolve_icall_typed<bool()>("UnityEngine.Application::get_isFocused()");
       ShortcutCapture::Keys held{}, down{};
       for (auto key : sampledKeys) {
         held[static_cast<int>(key)] = Key::RawPressed(key);
         down[static_cast<int>(key)] = Key::RawDown(key);
       }
-      const bool hasFocus = focused && focused();
+      const bool hasFocus = isFocused();
       const bool cancel   = !hasFocus || down[static_cast<int>(KeyCode::Escape)];
       auto*      editor   = recording;
       const auto primary  = capture.Tick(held, down, hasFocus, Key::IsModifier);
@@ -359,6 +359,13 @@ void RegisterShortcutPages(PageCatalog& catalog)
   if (!editors.empty() || !Config::Get().installHotkeyHooks || Config::Get().use_scopely_hotkeys)
     return;
 #if defined(_WIN32) && defined(_M_X64)
+  // Capture must observe a focused release before returning keys to gameplay.
+  // A missing query is not ordinary focus loss: never offer capture without it.
+  isFocused = il2cpp_resolve_icall_typed<bool()>("UnityEngine.Application::get_isFocused()");
+  if (!isFocused) {
+    spdlog::warn("[Shortcuts] Editor unavailable: focus query not resolved");
+    return;
+  }
   if (!install_screen_manager_update_hook() || !register_screen_manager_update_callback(UpdateCapture))
     return;
   for (int i = 1; i < static_cast<int>(KeyCode::Max); ++i) {
