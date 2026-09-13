@@ -11,8 +11,8 @@ presentation. Feature adapters own live values and persistence.
 | `settings/native/interop.*` | Managed invocation, temporary roots, weak handles, signature/extent checks and bounded list access. No feature state or hook installation. |
 | `settings/native/value_widgets.*` | Boolean, choice and slider metadata; live view records; guarded render/write/readback; confirmation placement and session invalidation. Installs value/session hooks. |
 | `settings/native/value_widget_record.h` | Private lifetime record shared with value-widget styling. Navigation queries busy state without borrowing these records. |
-| `settings/native/page_navigation.*` | Immutable plan, fresh page construction, navigation/Back, conditional sections, folding, summaries and heading hooks. Coordinates optional widget installation. |
-| `settings/native/action_widgets.*` | Command identity, indexed presentation rows, visibility, invocation and release guards. Installs button-widget hooks. The first consumer here is a noninteractive save-failure notice. |
+| `settings/native/page_navigation.*` | Immutable plan, fresh page construction, navigation/Back, conditional sections, folding, summaries and heading hooks. Owns page-departure callbacks and coordinates optional widget installation. |
+| `settings/native/action_widgets.*` | Command identity, indexed presentation rows, visibility, invocation and release guards. Installs button-widget hooks for shortcut commands and the noninteractive save-failure notice. |
 | `settings/native/row_style.*` | Scoped text, tint, arrow and selection-sprite overrides; restore native appearance before reuse. No writes or hook installation. |
 
 These are internal adapter modules. Metadata accessors support cross-module
@@ -27,7 +27,10 @@ installed by exactly one module. XMake's existing `src/**.cc` rule builds them.
 - Requests use the displayed snapshot, verify the owner, apply through it, then
   read back. Rendering never authorizes writes.
 - Value refreshes defer list rebinding while a value widget is busy. There is no
-  new update callback, polling, save worker or persistence path.
+  new polling hook, save worker or persistence path. Shortcut capture uses the
+  existing ScreenManager dispatcher; its callback returns immediately when idle.
+- Feature-owned page-departure callbacks cancel editor visits. Row recycling
+  only releases presentation; it must not discard drafts during scrolling.
 - Startup metadata/extent checks, overlap checks, activation gates and install
   order are preserved. Native support remains Windows x64; other platforms retain
   the no-op entry point.
@@ -47,3 +50,5 @@ previous implementation, including original-call behavior and installation order
 Native smoke checks cover confirmation rows, folding/Back, choices, slider labels,
 conditional cargo rows and notice appearance/recovery. Builds and fixtures do
 not establish native pooling behavior or macOS hook compatibility.
+Shortcut-specific checks and opt-in timing limits are in the
+[current contract](MOD_SETTINGS.md) and [editor guide](MOD_SHORTCUT_SETTINGS.md).

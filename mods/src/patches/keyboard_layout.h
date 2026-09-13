@@ -11,4 +11,8 @@ void RegisterShortcut(KeyCode key);
 void InitializeDiagnostics(toml::table& vars);
 // Game thread only; refresh on device notifications, never by polling.
 ResolvedChord ResolveChord(KeyCode configured);
+// Editor-only queries, without held-key suppression. Capture is converted back
+// to the configured character identity; layout ambiguity is rejected.
+ResolvedChord DescribeChord(KeyCode configured);
+KeyCode       CaptureIdentity(KeyCode physical, bool shift);
 } // namespace keyboard_layout

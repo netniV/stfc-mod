@@ -1,9 +1,9 @@
 // Link production MapKey/ModifierKey parsing, action dispatch and hint caching from mods.lib.
 // Key token parsing and input are test fixtures; layout lookup is injected below.
 // These tests do not exercise Unity lookup, native notifications or legacy input caching.
-#include "patches/mapkey.h"
-#include "patches/keyboard_layout.h"
 #include "patches/keyboard_layout_mapping.h"
+#include "patches/mapkey.h"
+#include "settings/shortcut_draft.h"
 
 #include <cstdlib>
 #include <iostream>
@@ -18,10 +18,24 @@ static std::array<keyboard_layout::ResolvedChord, keyboard_layout::LayoutKeyCoun
 KeyCode Key::Parse(std::string_view key)
 {
   static constexpr std::pair<std::string_view, KeyCode> tokens[] = {
-      {"=", KeyCode::Equals}, {"Z", KeyCode::Z}, {"LSHIFT", KeyCode::LeftShift},
-      {"F7", KeyCode::F7}, {"F8", KeyCode::F8}, {"G", KeyCode::G}, {"+", KeyCode::Plus},
-      {"/", KeyCode::Slash}, {"(", KeyCode::LeftParen}, {"1", KeyCode::Alpha1},
-      {"'", KeyCode::Quote}, {"^", KeyCode::Caret},
+      {"=", KeyCode::Equals},
+      {"Z", KeyCode::Z},
+      {"LSHIFT", KeyCode::LeftShift},
+      {"F7", KeyCode::F7},
+      {"F8", KeyCode::F8},
+      {"G", KeyCode::G},
+      {"+", KeyCode::Plus},
+      {"/", KeyCode::Slash},
+      {"(", KeyCode::LeftParen},
+      {"1", KeyCode::Alpha1},
+      {"'", KeyCode::Quote},
+      {"^", KeyCode::Caret},
+      {"I", KeyCode::I},
+      {"7", KeyCode::Alpha7},
+      {"RSHIFT", KeyCode::RightShift},
+      {"LCTRL", KeyCode::LeftControl},
+      {"RCTRL", KeyCode::RightControl},
+      {"EQUAL", KeyCode::Equals},
   };
   for (const auto& [token, code] : tokens) {
     if (key == token)
@@ -29,7 +43,11 @@ KeyCode Key::Parse(std::string_view key)
   }
   return KeyCode::None;
 }
-bool Key::IsModifier(KeyCode key) { return key == KeyCode::LeftShift; }
+bool Key::IsModifier(KeyCode key)
+{
+  return key == KeyCode::LeftShift || key == KeyCode::RightShift || key == KeyCode::LeftControl
+         || key == KeyCode::RightControl;
+}
 bool Key::Pressed(KeyCode key) { return pressed[static_cast<int>(key)]; }
 bool Key::Down(KeyCode key) { return down[static_cast<int>(key)]; }
 bool Key::IsModified() {
@@ -43,10 +61,16 @@ void Key::ClaimDirectionalInput(KeyCode) {}
 
 namespace keyboard_layout
 {
+void RegisterShortcut(KeyCode) {} // Runtime registration boundary, no Unity in this fixture.
 KeyCode Resolve(KeyCode configured) { return layout_enabled ? layout_bindings.Resolve(configured, [] { return 1; }, Key::Pressed) : configured; }
 ResolvedChord ResolveChord(KeyCode configured) {
   return {Resolve(configured), layout_enabled && IsLayoutKey(configured)
                                && (chords[static_cast<int>(configured)].shift) != 0};
+}
+ResolvedChord DescribeChord(KeyCode configured)
+{
+  return layout_enabled && IsLayoutKey(configured) ? chords[static_cast<int>(configured)]
+                                                   : ResolvedChord{configured, false};
 }
 } // namespace keyboard_layout
 
@@ -56,6 +80,53 @@ void Check(bool condition, const char* message)
     std::cerr << message << '\n';
     std::exit(1);
   }
+}
+
+// Compare the editor prediction against production modifier dispatch over every
+// held modifier combination, including either side and layout-required Shift.
+void CheckOverlap(const char* first, const char* second, bool expected)
+{
+  const auto     a = MapKey::Parse(first), b = MapKey::Parse(second);
+  const auto     ca = keyboard_layout::DescribeChord(a.Key), cb = keyboard_layout::DescribeChord(b.Key);
+  bool           reachable = false;
+  constexpr auto modifiers =
+      std::to_array<KeyCode>({KeyCode::LeftShift, KeyCode::RightShift, KeyCode::LeftControl, KeyCode::RightControl,
+                              KeyCode::LeftAlt, KeyCode::RightAlt, KeyCode::AltGr, KeyCode::LeftCommand,
+                              KeyCode::RightCommand, KeyCode::LeftWindows, KeyCode::RightWindows});
+  for (unsigned mask = 0; mask < (1u << modifiers.size()); ++mask) {
+    pressed.fill(false);
+    for (std::size_t i = 0; i < modifiers.size(); ++i)
+      pressed[static_cast<int>(modifiers[i])] = (mask & (1u << i)) != 0;
+    reachable |= ca.key != KeyCode::None && ca.key == cb.key && MapKey::HasCorrectModifiers(a, ca.shift)
+                 && MapKey::HasCorrectModifiers(b, cb.shift);
+  }
+  pressed.fill(false);
+  if (reachable != expected || MapKey::MayOverlap(a, b) != reachable || MapKey::MayOverlap(b, a) != reachable) {
+    std::cerr << "Overlap disagrees with dispatch: " << first << " / " << second << '\n';
+    std::exit(1);
+  }
+}
+
+void CheckDuplicate(const char* existing, const char* recorded, bool duplicate)
+{
+  using namespace mod_settings;
+  ShortcutList               live{existing};
+  int                        writes = 0;
+  ValueSetting<ShortcutList> owner({"shortcuts.duplicate_test", "Test",
+                                    [&] { return ValueReadResult<ShortcutList>::Known(live, 1); },
+                                    [&](ShortcutList value, std::uint64_t) {
+                                      live = std::move(value);
+                                      ++writes;
+                                      return ApplyResult::Applied;
+                                    }});
+  ShortcutDraft              draft(
+      owner, [](const auto& a, const auto& b) { return MapKey::SameBinding(MapKey::Parse(a), MapKey::Parse(b)); });
+  draft.Begin();
+  const auto result = draft.Stage(1, recorded);
+  Check((result == ShortcutStage::AlreadyBound) == duplicate, "Wrong same-action duplicate decision");
+  Check(writes == 0 && live == ShortcutList{existing}, "Recording changed live bindings");
+  Check(draft.Apply() == (duplicate ? Outcome::Suppressed : Outcome::AppliedVerified), "Wrong duplicate apply result");
+  Check(writes == (duplicate ? 0 : 1) && live.size() == (duplicate ? 1 : 2), "Duplicate escaped to writer");
 }
 
 int main()
@@ -89,6 +160,17 @@ int main()
   Check(MapKey::GetShortcutHint(GameFunction::ShowResearch).empty(), "Unbound action acquired a badge");
   MapKey::CacheShortcutHints();
   Check(MapKey::GetShortcutHint(galaxy) == "^G", "Repeated cache preparation changed label");
+
+  MapKey::RegisterAction(galaxy, "show_galaxy", "CTRL-G | F8");
+  Check(MapKey::Definition(galaxy).key == "show_galaxy", "Canonical storage key missing");
+  Check(MapKey::ReplaceBindings(galaxy, {MapKey::Parse("F7"), MapKey::Parse("F8")}), "Replace action failed");
+  Check(MapKey::GetShortcuts(galaxy) == "F7 | F8" && MapKey::GetShortcutHint(galaxy) == "F7",
+        "Replacement did not publish full list and fresh hint together");
+  Check(!MapKey::ReplaceBindings(galaxy, {MapKey::Parse("INVALID")}), "Invalid replacement was accepted");
+  Check(MapKey::GetShortcuts(galaxy) == "F7 | F8", "Invalid replacement lost prior bindings");
+  Check(MapKey::ReplaceBindings(galaxy, {}) && !MapKey::HasBinding(galaxy) && MapKey::GetShortcutHint(galaxy).empty(),
+        "Unbind left active input or a stale hint");
+  Check(MapKey::ReplaceBindings(galaxy, {MapKey::Parse("CTRL-G"), MapKey::Parse("F8")}), "Restore failed");
 
   // Supply a mapping fixture to test action dispatch through BindingState.
   // This does not assert that Unity returns these mappings on any real layout.
@@ -194,5 +276,40 @@ int main()
   pressed[static_cast<int>(KeyCode::Plus)] = true;
   down[static_cast<int>(KeyCode::Plus)] = true;
   Check(MapKey::IsDown(GameFunction::ShowDaily), "Physical mode no longer uses configured key");
+
+  CheckOverlap("I", "SHIFT-I", false); // Inventory must not appear for Shift-I.
+  CheckOverlap("I", "I", true);
+  CheckOverlap("SHIFT-I", "SHIFT-I", true);   // Artifacts must still appear.
+  CheckOverlap("SHIFT-I", "CTRL-I", true);    // Both can match Ctrl+Shift+I.
+  CheckOverlap("LSHIFT-I", "RSHIFT-I", true); // Both sides can be held.
+  CheckOverlap("LCTRL-I", "CTRL-SHIFT-I", true);
+  CheckOverlap("SHIFT-I", "SHIFT-G", false);
+  CheckOverlap("NONE", "NONE", false);
+  layout_enabled                            = true;
+  chords[static_cast<int>(KeyCode::Slash)]  = {KeyCode::Alpha7, true};
+  chords[static_cast<int>(KeyCode::Alpha7)] = {KeyCode::Alpha7, false};
+  CheckOverlap("/", "7", false);
+  CheckOverlap("/", "SHIFT-7", true);
+  CheckOverlap("/", "RSHIFT-7", true);
+  CheckOverlap("/", "CTRL-SHIFT-7", false);
+  CheckOverlap("/", "CTRL-/", false);
+  CheckOverlap("/", "/", true);
+  CheckOverlap("(", "SHIFT-7", false); // Unresolved layout character.
+  layout_enabled = false;
+  CheckDuplicate("SHIFT-I", "SHIFT-I", true);
+  CheckDuplicate("shift-i", "SHIFT-I", true);
+  CheckDuplicate("SHIFT-CTRL-I", "CTRL-SHIFT-I", true);
+  CheckDuplicate("SHIFT-SHIFT-I", "SHIFT-I", true);
+  CheckDuplicate("CMD-I", "APPLE-I", true);
+  CheckDuplicate("EQUAL", "=", true);
+  CheckDuplicate("LSHIFT-I", "SHIFT-I", false);
+  CheckDuplicate("LSHIFT-I", "RSHIFT-I", false);
+  CheckDuplicate("SHIFT-I", "CTRL-I", false); // An overlap is not a duplicate.
+  CheckDuplicate("SHIFT-I", "SHIFT-G", false);
+  CheckDuplicate("I", "SHIFT-I", false);
+  // Current layout equivalence must not collapse two configured identities.
+  layout_enabled = true;
+  CheckDuplicate("/", "SHIFT-7", false);
+  layout_enabled = false;
   std::cout << "Shortcut hint cache tests passed\n";
 }

@@ -29,6 +29,7 @@ reference. Moving a page does not rename stored keys or change defaults.
 | Fleet Labels | Collapsible Player and Non-player profiles | `[graphics]` |
 | Map & Travel | Instant warp mode, shared with its shortcut | `[ui]` |
 | Previews & Cargo | Preview shortcuts and automatic cargo previews | `[ui]` |
+| Shortcuts | Binding editors grouped by action, with current-binding summaries | `[shortcuts]` |
 
 Empty groups are omitted. Camera and preview controls require their existing
 consumer hooks to have installed successfully. FC and Forbidden Tech remain in
@@ -70,7 +71,20 @@ when it changes, on the game thread. Opening settings never retries or writes.
 F10's 500 ms best effort force close and the ordinary quit/drain path are
 unchanged. See [persistence contracts](config-save.md).
 
-## Native views
+## Editor lifetime and native views
+
+Shortcut changes, additions, removals and defaults stay drafts until Apply.
+Restore uses the existing canonical default definition; `NONE` means unbound.
+Overlap warnings allow keeping both, with Next to inspect each affected action.
+Uncategorized gives newly registered actions an editor before presentation
+metadata is supplied; it does not discover arbitrary TOML values. See
+[shortcut contracts and extension guidance](MOD_SHORTCUT_SETTINGS.md).
+
+The page owns cancellation through `Page::leave`. Navigation, controller
+destruction and session invalidation end the visit. Recycling a row, conditional
+filtering and section folding preserve the draft. Escape and focus loss cancel
+recording; input stays owned until a focused sample sees all keys released.
+The existing ScreenManager dispatcher samples keys only during capture.
 
 Widgets keep weak ownership records and restore text, tint, sprites, button
 visibility and interactability before reuse. Callback identity and the currently
@@ -81,11 +95,19 @@ button hidden and invocation disabled; visibility is checked on refresh.
 An unavailable action-widget family leaves controls usable and save details in
 the log. Failure notices never create otherwise-empty groups.
 
-There is no new polling hook, save worker, timer or global localization hook.
+There is no new polling hook, save worker or global localization hook.
 Platform guards and native method extent checks remain part of installation;
 macOS builds do not install these native UI hooks.
 
-## Validation and follow-up
+## Measurement, validation and follow-up
+
+In `_MODDBG` builds, `STFC_MOD_SETTINGS_TIMING=1` enables timing at existing
+tree construction, page binding and action refresh boundaries. Counts, mean and
+maximum milliseconds accumulate until page departure, then log as
+`[SettingsTiming]`. No values or bindings are logged. These scopes add no hook
+or frame callback and compile out of ordinary release builds. Durations include
+nested native work; they are neither additive nor whole-frame measurements.
+Measure before adding caches: binding-list reads remain authoritative copies.
 
 Run `tests/run-settings.ps1`, `tests/run-config-save.ps1` and the Windows build.
 Fixtures cover guarded values, range preservation, conditional sections, command
@@ -93,7 +115,11 @@ identities, writer failures and shutdown. Native checks separately cover Back,
 folding, conditional rows, notice layout and pooled stock-row restoration.
 Source observations and their limits are recorded in [the delivery notes](MOD_SETTINGS_POLISH.md).
 
-Shortcut editing, automatic action discovery and optional settings timing scopes
-follow in a separate PR. Numeric input boxes and a real client restart command
+Run the keyboard layout, chord and dispatch XMake fixtures for input changes.
+Native editor checks include scrolling/folding, Back, held-key focus changes,
+overlap inspection, live dispatch and restart persistence on an identified build.
+See [shortcut port evidence](MOD_SHORTCUT_SETTINGS_PORT.md).
+
+Numeric input boxes and a real client restart command
 remain later work. Neither generic TOML editing nor exposing every config key is
 implied by this catalog.

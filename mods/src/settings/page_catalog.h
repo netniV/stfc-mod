@@ -32,6 +32,8 @@ public:
   struct Page {
     std::string       id, label, parent;
     std::vector<Item> items; // Registration order is visual order, including headings.
+    // Page departure owns draft/capture cancellation, never a pooled row release.
+    std::function<void()>        leave;
     std::function<std::string()> summary;
     bool              HasConditionalSections() const
     {
@@ -121,6 +123,17 @@ public:
   }
   Registration AddBoolean(std::string_view page, BooleanSetting& setting)
   { return AddControl(page, setting); }
+  Registration OnLeave(std::string_view id, std::function<void()> callback)
+  {
+    CheckThread();
+    if (frozen_)
+      return Registration::Frozen;
+    auto* page = FindPage(id);
+    if (!page)
+      return Registration::Invalid;
+    page->leave = std::move(callback);
+    return Registration::Added;
+  }
   Registration SetSummary(std::string_view id, std::function<std::string()> callback)
   {
     CheckThread();

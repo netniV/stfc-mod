@@ -1,6 +1,7 @@
 #include "config.h"
 #include "patches/runtime_config.h"
 #include "settings/preview_settings.h"
+#include "settings/shortcut_settings.h"
 #include "settings/warp_mode.h"
 
 #include <spud/detour.h>
@@ -99,6 +100,8 @@ static ptrdiff_t                  shortcut_hint_text_localizer_offset = 0;
 static bool                       shortcut_hint_fields_ready          = false;
 static bool                       initialize_actions_hook_ready       = false;
 static bool                       shortcut_hints_ready                = false;
+bool                              mod_settings::ShortcutHintControlAvailable()
+{ return shortcut_hints_ready; }
 
 bool SetNativeShortcutHintsVisible(bool visible)
 {
@@ -434,6 +437,10 @@ bool MoveShipSelectionInDock(bool goLeft)
 void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
 {
   dispatch_screen_manager_update_callbacks();
+  // Capture owns the key through release, including the native shortcut path.
+  // UI mouse navigation continues through EventSystem.
+  if (Key::shortcutCaptureActive)
+    return;
   if (!Config::Get().installHotkeyHooks) {
     return original(_this);
   }

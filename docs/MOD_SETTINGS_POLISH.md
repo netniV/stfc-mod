@@ -6,6 +6,9 @@ feature-owned disabled wording, task-oriented navigation, summaries, adapter
 separation and save-failure feedback. The shortcut editor, discovery, page-owned
 drafts and timing scopes remain in the next PR.
 
+This document records the controls-only #282 extraction. The subsequent editor
+port is tracked separately in [shortcut delivery evidence](MOD_SHORTCUT_SETTINGS_PORT.md).
+
 ## Source evidence
 
 The source adapter refactor was reviewed and smoke-tested at `13e68131`. The

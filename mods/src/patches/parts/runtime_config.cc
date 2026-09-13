@@ -3,6 +3,7 @@
 #else
 #include "patches/runtime_config.h"
 #include "file.h"
+#include "patches/mapkey.h"
 #include "runtime_config_writer.h"
 #include <spdlog/spdlog.h>
 
@@ -209,6 +210,15 @@ void Configure(const toml::table& loaded)
       else if (node.is_floating_point())
         value = node.value<double>().value();
       writer->Register(section, key, std::move(value));
+    }
+    for (int i = 0; i < GameFunction::Max; ++i) {
+      const auto& definition = MapKey::Definition(static_cast<GameFunction>(i));
+      if (definition.key.empty())
+        continue;
+      std::optional<config_edit::Value> value;
+      if (auto text = loaded["shortcuts"][definition.key].value<std::string>())
+        value = *text;
+      writer->Register("shortcuts", definition.key, std::move(value));
     }
   } catch (...) {
     spdlog::warn("Runtime config persistence unavailable");

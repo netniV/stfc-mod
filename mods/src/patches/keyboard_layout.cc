@@ -151,8 +151,10 @@ void Configure(std::string_view mode)
 
 void RegisterShortcut(KeyCode key)
 {
-  if (enabled && IsLayoutKey(key))
+  if (enabled && IsLayoutKey(key) && !requested[static_cast<int>(key)]) {
     requested[static_cast<int>(key)] = true;
+    refresh.Invalidate(); // A runtime rebind can introduce a previously unused character.
+  }
 }
 
 void InitializeDiagnostics(toml::table& vars)
@@ -170,5 +172,46 @@ ResolvedChord ResolveChord(KeyCode configured)
     return {configured, false};
   Update();
   return {bindings.Resolve(configured, frame_count, Key::Pressed), required_shift[static_cast<int>(configured)]};
+}
+
+ResolvedChord DescribeChord(KeyCode configured)
+{
+  if (!enabled || !IsLayoutKey(configured))
+    return {configured, false};
+  Update();
+#if _WIN32
+  return ResolveWindowsChord(static_cast<char>(configured), layout_name);
+#else
+  return {};
+#endif
+}
+
+KeyCode CaptureIdentity(KeyCode physical, bool shift)
+{
+  if (!enabled || !IsLayoutKey(physical))
+    return physical;
+  Update();
+  // Prefer the unshifted character and preserve the user's explicit modifier.
+  // Where a layout has no supported unshifted character, accept a shifted one
+  // only if Shift was held. Never call text composition APIs during capture.
+  for (bool inferred : {false, true}) {
+    if (inferred && !shift)
+      break;
+    KeyCode found = KeyCode::None;
+    for (int i = 0; i < static_cast<int>(LayoutKeyCount); ++i) {
+      auto key = static_cast<KeyCode>(i);
+      if (!IsLayoutKey(key) || Key::Token(key).empty())
+        continue;
+      const auto chord = DescribeChord(key);
+      if (chord.key == physical && chord.shift == inferred) {
+        if (found != KeyCode::None)
+          return KeyCode::None;
+        found = key;
+      }
+    }
+    if (found != KeyCode::None)
+      return found;
+  }
+  return KeyCode::None;
 }
 } // namespace keyboard_layout

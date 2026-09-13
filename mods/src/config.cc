@@ -675,6 +675,7 @@ void set_shortcut_noop(toml::node_view<toml::node> sectionTable, toml::node_view
 void parse_config_shortcut_value(toml::table& new_config, std::string_view item, GameFunction gameFunction,
                                  std::string_view default_value, const ShortcutConfigValue& shortcut_value)
 {
+  MapKey::RegisterAction(gameFunction, item, default_value);
   auto section = "shortcuts";
   auto source  = "shortcuts_source";
 

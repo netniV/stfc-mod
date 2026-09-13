@@ -2,6 +2,7 @@
 #include "camera_settings.h"
 #include "fleet_labels.h"
 #include "preview_settings.h"
+#include "shortcut_settings.h"
 #include "warp_mode.h"
 
 namespace mod_settings
@@ -14,6 +15,7 @@ PageCatalog& ModPages()
 void RegisterModPages()
 {
   auto& catalog = ModPages();
+  RegisterShortcutPages(catalog);
   // Group by player tasks. Stable identities still map to existing TOML keys;
   // a presentation move does not migrate configuration.
   if (KeyboardZoomControlAvailable() || PanGlideControlAvailable()) {

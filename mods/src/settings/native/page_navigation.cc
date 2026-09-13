@@ -6,6 +6,7 @@
 #include "row_style.h"
 #include "settings/mod_pages.h"
 #include "settings/native_boolean_callback.h"
+#include "timing.h"
 #include <cstdlib>
 #include <cstring>
 #include <spdlog/spdlog.h>
@@ -61,12 +62,19 @@ struct SectionRefreshScope {
 };
 void ClearSectionPage()
 {
-  sectionPage.page = nullptr;
+  timing::Flush();
+  const auto* leaving = std::exchange(sectionPage.page, nullptr);
   Free(sectionPage.controller);
   Free(sectionPage.context);
   sectionPage.collapsed.clear();
   sectionPage.shown.clear();
   sectionPage.conditional = false;
+  try {
+    if (leaving && leaving->leave)
+      leaving->leave();
+  } catch (...) {
+    Warn("settings page cleanup unavailable");
+  }
 }
 const PageCatalog::Heading* CollapsibleHeadingFor(Il2CppObject* context)
 {
@@ -90,6 +98,7 @@ bool Collapsed(const PageCatalog::Heading& heading)
 }
 void ShowSections(Il2CppObject* controller, Il2CppObject* context, const PageCatalog::Page& page, bool force = false)
 {
+  timing::Scope measurement(timing::Operation::ShowPage);
   SyncActionRows(controller, context, page);
   Root children(Call(context, "get_Children"));
   struct OrderedRow {
@@ -473,6 +482,7 @@ void AddPages(Il2CppObject* director, Il2CppObject* context)
 {
   if (!pagesActive || Pages().empty())
     return;
+  timing::Scope measurement(timing::Operation::BuildTree);
   Root root(Call(context, "get_RootOption"));
   Root children(Call(root.get(), "get_Children"));
   for (int i = 0, count = Count(children.get()); i < count; ++i)
