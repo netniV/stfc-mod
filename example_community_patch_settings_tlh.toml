@@ -97,6 +97,11 @@ queue_enabled = true
 # If you prefer Daq  lo' Scopely's hotkeys cher this Daq  teH
 use_scopely_hotkeys = false
 
+# Windows x64: "physical" preserves positions; "layout" follows the active layout.
+# Required Shift is inferred; characters requiring Ctrl/AltGr are unsupported.
+# Layout changes apply live; release held keys. See docs/keyboard-letter-layout.md.
+keyboard_layout_mode = "physical"
+
 # Subgroup: Options
 # -----------------
 
@@ -661,6 +666,8 @@ auto_confirm_ft_upgrade = false
 #   "none" - Do not choose an action automatically; show the confirmation dialog
 #   "warp" - Automatically choose regular warp
 #   "jump" - Automatically choose instant jump
+# The mode shortcut persists this value on verified Windows clients; otherwise session-only.
+# External edits are preserved; conflicts are logged. See docs/config-save.md.
 auto_confirm_instant_warp = "none"
 
 # Comma-separated ship hull names for which the instant-warp popup is always shown, overriding all automatic actions

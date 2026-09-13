@@ -1,5 +1,8 @@
 #include "config.h"
 #include "errormsg.h"
+#include "settings/camera_settings.h"
+#include "settings/fleet_labels.h"
+#include "settings/windows_hook_extent.h"
 
 #include <patches/mapkey.h>
 
@@ -15,11 +18,13 @@
 #include <spdlog/spdlog.h>
 #include <spud/detour.h>
 
+#include <array>
 #include <cstdint>
 #include <unordered_map>
 
 namespace
 {
+bool keyboard_zoom_hook_installed = false;
 std::unordered_map<NavigationLOD *, NavigationFleetWidget *> fleet_label_widgets;
 bool                                                         fleet_label_hooks_installed         = false;
 uintptr_t                                                    active_system_zoom_id               = 0;
@@ -195,6 +200,15 @@ void UpdateFleetLabelThreshold()
 #endif
 }
 } // namespace
+
+bool FleetLabelControlsAvailable()
+{ return fleet_label_hooks_installed; }
+
+void RefreshFleetLabelControls()
+{
+  threshold_state_valid = false;
+  ApplyAllFleetLabelDetails();
+}
 
 vec3 GetMouseWorldPos(void *cam, vec3 *pos)
 {
@@ -591,6 +605,9 @@ void *PlanetViewUtils_get_FlatRenderable_Hook(auto original, PlanetViewUtils *_t
   return fr;
 }
 
+bool mod_settings::KeyboardZoomControlAvailable()
+{ return keyboard_zoom_hook_installed; }
+
 void InstallZoomHooks()
 {
   auto  navigation_zoom_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Navigation", "NavigationZoom");
@@ -602,7 +619,13 @@ void InstallZoomHooks()
   auto *normalized_zoom_property = navigation_zoom_class != nullptr
                                        ? il2cpp_class_get_property_from_name(navigation_zoom_class, "NormalizedZoom")
                                        : nullptr;
-  if (FleetLabelProfilesEnabled()) {
+  bool  enable_labels            = FleetLabelProfilesEnabled();
+#if defined(_WIN32) && defined(_M_X64)
+  // Install once so native settings can switch away from Native during play.
+  // Other platforms retain their existing startup configuration behavior.
+  enable_labels |= Config::Get().installNativeSettings;
+#endif
+  if (enable_labels) {
     auto lod_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Navigation", "NavigationLOD");
     auto fleet_widget_helper =
         il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Navigation", "NavigationFleetWidget");
@@ -679,20 +702,29 @@ void InstallZoomHooks()
       }
     }
 
-    const auto fleet_label_dependencies_valid =
+    auto fleet_label_dependencies_valid =
         lod_helper.isValidHelper() && ptr_update_lod != nullptr && target_level_field != nullptr
         && fleet_widget_helper.isValidHelper() && ptr_on_enable != nullptr && ptr_on_disable != nullptr
         && ptr_on_did_bind_context != nullptr && ptr_on_about_to_release_context != nullptr && lod_field != nullptr
         && context_field != nullptr && fleet_data_helper.isValidHelper() && fleet_type_property != nullptr
         && fleet_type_getter != nullptr && navigation_zoom_helper.isValidHelper() && ptr_update != nullptr
         && zoom_level_field != nullptr && normalized_zoom_property != nullptr;
+#if defined(_WIN32) && defined(_M_X64)
+    const std::array targets{ptr_update_lod, ptr_on_enable, ptr_on_disable, ptr_on_did_bind_context,
+                             ptr_on_about_to_release_context};
+    for (std::size_t i = 0; i < targets.size(); ++i) {
+      fleet_label_dependencies_valid &= mod_settings::WindowsHookFits(targets[i]);
+      for (std::size_t j = 0; j < i; ++j)
+        fleet_label_dependencies_valid &= targets[i] != targets[j];
+    }
+#endif
     if (fleet_label_dependencies_valid) {
-      fleet_label_hooks_installed = true;
       SPUD_STATIC_DETOUR(ptr_update_lod, NavigationLOD_UpdateLOD_Hook);
       SPUD_STATIC_DETOUR(ptr_on_enable, NavigationFleetWidget_OnEnable_Hook);
       SPUD_STATIC_DETOUR(ptr_on_disable, NavigationFleetWidget_OnDisable_Hook);
       SPUD_STATIC_DETOUR(ptr_on_did_bind_context, NavigationFleetWidget_OnDidBindContext_Hook);
       SPUD_STATIC_DETOUR(ptr_on_about_to_release_context, NavigationFleetWidget_OnAboutToReleaseContext_Hook);
+      fleet_label_hooks_installed = true;
     } else {
       spdlog::error("Fleet label detail hooks were not installed; using native fleet labels");
     }
@@ -725,7 +757,7 @@ void InstallZoomHooks()
     if (ptr_update == nullptr) {
       ErrorMsg::MissingMethod("NavigationZoom", "Update");
     } else {
-      SPUD_STATIC_DETOUR(ptr_update, NavigationZoom_Update_Hook);
+      keyboard_zoom_hook_installed = SPUD_STATIC_DETOUR(ptr_update, NavigationZoom_Update_Hook);
     }
 
 #if _WIN32
