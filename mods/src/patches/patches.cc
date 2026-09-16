@@ -98,8 +98,6 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
   spdlog::info("  Cfg: {}", File::Config());
   spdlog::info("  Var: {}", File::Vars());
   spdlog::info("   BL: {}", File::Battles());
-  InstallActionQueueTrace();
-
   spdlog::info("");
 
 #if VERSION_PATCH
@@ -173,6 +171,8 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
       patch_func();
     }
   }
+
+  InstallActionQueueTrace();
 
   spdlog::info("");
 
