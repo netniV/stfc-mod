@@ -3,6 +3,8 @@
 #include <cassert>
 #include <string_view>
 #include <thread>
+#include <algorithm>
+#include <iterator>
 
 namespace
 {
@@ -27,6 +29,12 @@ void                             Reset()
 } // namespace
 int main(int argc, char** argv)
 {
+  for (const auto& [section, key] : config_edit::persisted_settings) {
+    assert(std::count_if(std::begin(config_edit::persisted_settings), std::end(config_edit::persisted_settings),
+                        [&](const auto& entry) {
+                          return std::string_view(entry.first) == section && std::string_view(entry.second) == key;
+                        }) == 1);
+  }
   Reset();
   if (argc == 2) {
     const std::string_view mode(argv[1]);
