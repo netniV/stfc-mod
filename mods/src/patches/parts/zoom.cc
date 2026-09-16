@@ -3,6 +3,7 @@
 #include "settings/camera_settings.h"
 #include "settings/fleet_labels.h"
 #include "settings/windows_hook_extent.h"
+#include "galaxy_labels.h"
 
 #include <patches/mapkey.h>
 
@@ -25,6 +26,7 @@
 namespace
 {
 bool keyboard_zoom_hook_installed = false;
+bool galaxy_lod_hook_installed = false;
 std::unordered_map<NavigationLOD *, NavigationFleetWidget *> fleet_label_widgets;
 bool                                                         fleet_label_hooks_installed         = false;
 uintptr_t                                                    active_system_zoom_id               = 0;
@@ -444,6 +446,7 @@ void NavigationZoom_Update_Hook(auto original, NavigationZoom *_this)
   original(_this);
 
   EnsureSystemZoomRange(_this);
+  GalaxyLabelFrame(_this);
   if (fleet_label_hooks_installed && _this->_depth == NodeDepth::SolarSystem) {
     BeginFleetLabelSystemState(_this);
     const auto state_was_valid   = system_zoom_state_valid;
@@ -464,12 +467,13 @@ void NavigationZoom_Update_Hook(auto original, NavigationZoom *_this)
 void NavigationLOD_UpdateLOD_Hook(auto original, NavigationLOD *_this, ZoomLevels level)
 {
   const auto *profile         = FleetLabelProfileFor(_this);
-  const auto  effective_level = profile != nullptr ? FleetLabelZoomLevel(level, *profile) : level;
-  if (profile != nullptr) {
+  const auto  effective_level = profile != nullptr ? FleetLabelZoomLevel(level, *profile)
+                                                  : static_cast<ZoomLevels>(GalaxyLabelLOD(_this, static_cast<int>(level)));
+  if (profile != nullptr || effective_level != level) {
     _this->SetTargetLevel(effective_level);
   }
   original(_this, effective_level);
-  if (profile != nullptr) {
+  if (profile != nullptr || effective_level != level) {
     _this->SetTargetLevel(effective_level);
   }
 }
@@ -608,6 +612,9 @@ void *PlanetViewUtils_get_FlatRenderable_Hook(auto original, PlanetViewUtils *_t
 bool mod_settings::KeyboardZoomControlAvailable()
 { return keyboard_zoom_hook_installed; }
 
+bool GalaxyLabelZoomHooksReady()
+{ return galaxy_lod_hook_installed && keyboard_zoom_hook_installed; }
+
 void InstallZoomHooks()
 {
   auto  navigation_zoom_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Navigation", "NavigationZoom");
@@ -619,7 +626,7 @@ void InstallZoomHooks()
   auto *normalized_zoom_property = navigation_zoom_class != nullptr
                                        ? il2cpp_class_get_property_from_name(navigation_zoom_class, "NormalizedZoom")
                                        : nullptr;
-  bool  enable_labels            = FleetLabelProfilesEnabled();
+  bool  enable_labels            = FleetLabelProfilesEnabled() || GalaxyLabelsRequested();
 #if defined(_WIN32) && defined(_M_X64)
   // Install once so native settings can switch away from Native during play.
   // Other platforms retain their existing startup configuration behavior.
@@ -719,7 +726,7 @@ void InstallZoomHooks()
     }
 #endif
     if (fleet_label_dependencies_valid) {
-      SPUD_STATIC_DETOUR(ptr_update_lod, NavigationLOD_UpdateLOD_Hook);
+      galaxy_lod_hook_installed = SPUD_STATIC_DETOUR(ptr_update_lod, NavigationLOD_UpdateLOD_Hook);
       SPUD_STATIC_DETOUR(ptr_on_enable, NavigationFleetWidget_OnEnable_Hook);
       SPUD_STATIC_DETOUR(ptr_on_disable, NavigationFleetWidget_OnDisable_Hook);
       SPUD_STATIC_DETOUR(ptr_on_did_bind_context, NavigationFleetWidget_OnDidBindContext_Hook);

@@ -1,6 +1,7 @@
 #include "mod_pages.h"
 #include "camera_settings.h"
 #include "fleet_labels.h"
+#include "galaxy_labels.h"
 #include "preview_settings.h"
 #include "shortcut_settings.h"
 #include "warp_mode.h"
@@ -58,5 +59,23 @@ void RegisterModPages()
     catalog.AddChoice("community_mod.labels", FleetLabelDetailSetting(player));
     catalog.AddSlider("community_mod.labels", FleetLabelThresholdSetting(player));
   }
+  if (GalaxyLabelControlsAvailable()) {
+    catalog.AddPage("community_mod.galaxy", "Galaxy Labels", "community_mod.settings");
+    catalog.AddBoolean("community_mod.galaxy", GalaxyMultiSelectSetting());
+    catalog.AddHeading("community_mod.galaxy", "community_mod.galaxy.overlays", "Overlays", true, [] {
+      const auto state = GalaxyMultiSelectSetting().Observe().state;
+      return state.known() && *state.value;
+    });
+    for (int mode : {0, 2, 1, 3})
+      catalog.AddBoolean("community_mod.galaxy", GalaxyOverlaySetting(mode));
+    for (bool minor : {false, true}) {
+      catalog.AddHeading("community_mod.galaxy", minor ? "community_mod.galaxy.minor" : "community_mod.galaxy.major",
+                         minor ? "Minor systems" : "Major systems", true, {},
+                         [minor] { return GalaxyLabelSummary(minor); });
+      catalog.AddChoice("community_mod.galaxy", GalaxyLabelDetailSetting(minor));
+      catalog.AddSlider("community_mod.galaxy", GalaxyLabelThresholdSetting(minor));
+    }
+  }
+
 }
 } // namespace mod_settings

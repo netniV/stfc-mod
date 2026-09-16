@@ -3,6 +3,8 @@
 #include <cassert>
 #include <string_view>
 #include <thread>
+#include <algorithm>
+#include <iterator>
 
 namespace
 {
@@ -27,6 +29,17 @@ void                             Reset()
 } // namespace
 int main(int argc, char** argv)
 {
+  // Regression: settings can work live while every save is rejected if their
+  // key is missing from Configure's registration list.
+  for (std::string_view key : {"galaxy_multi_select", "galaxy_overlay_default", "galaxy_overlay_mining",
+                               "galaxy_overlay_hostiles", "galaxy_overlay_hazards", "galaxy_label_major_detail",
+                               "galaxy_label_major_threshold", "galaxy_label_minor_detail",
+                               "galaxy_label_minor_threshold"}) {
+    assert(std::count_if(std::begin(config_edit::persisted_settings), std::end(config_edit::persisted_settings),
+                        [key](const auto& entry) {
+                          return std::string_view(entry.first) == "graphics" && entry.second == key;
+                        }) == 1);
+  }
   Reset();
   if (argc == 2) {
     const std::string_view mode(argv[1]);
