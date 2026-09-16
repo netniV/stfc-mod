@@ -1,4 +1,5 @@
-// Temporary observation-only study. Enable with STFC_QUEUE_TRACE=1 in releasedbg.
+// Temporary opt-in recovery study; STFC_QUEUE_RECOVER=1 enables the candidate. Enable with STFC_QUEUE_TRACE=1 in
+// releasedbg.
 #if defined(_WIN32) && defined(_M_X64) && defined(_MODDBG)
 #include <Windows.h>
 #include <array>
@@ -19,6 +20,22 @@ Clock::time_point deadline;
 std::atomic_uint  budget{1024};
 std::atomic_bool  ready{false};
 Il2CppClass*      actionClass{};
+Il2CppClass*      queueClass{};
+bool              recover{};
+struct Request {
+  Il2CppGCHandle    queueHandle{};
+  std::int64_t      fleet{}, target{};
+  float             attempt{};
+  Clock::time_point started{};
+};
+std::array<Request, 8> requests{};
+std::mutex             requestsMutex;
+struct CourseContext {
+  std::int64_t  fleet{}, target{};
+  Il2CppObject* queue{}; // Borrowed only within the synchronous native Course call.
+  bool          engagingAtEntry{}, failed{};
+};
+thread_local CourseContext* currentCourse{};
 
 bool Active()
 { return ready.load() && budget.load() != 0 && Clock::now() < deadline; }
@@ -88,6 +105,79 @@ Snapshot Capture(Il2CppObject* queue, Il2CppObject* deployed = nullptr)
   }
   return s;
 }
+// Record the most recent native engagement attempt; weak handles prevent recycled object identities matching.
+void Remember(Il2CppObject* queue, const Snapshot& s)
+{
+  std::lock_guard lock(requestsMutex);
+  auto*           slot = &requests.front();
+  for (auto& r : requests) {
+    if (r.fleet == s.fleet) {
+      slot = &r;
+      break;
+    }
+    if (r.started < slot->started)
+      slot = &r;
+  }
+  if (slot->queueHandle)
+    il2cpp_gchandle_free(slot->queueHandle);
+  *slot = {il2cpp_gchandle_new_weakref(queue, false), s.fleet, s.frontKnown ? s.front : 0, s.attempt, Clock::now()};
+}
+bool ConsumeRequest(Il2CppObject* queue, const Snapshot& s, std::int64_t failedTarget)
+{
+  std::lock_guard lock(requestsMutex);
+  for (auto& r : requests) {
+    if (r.fleet != s.fleet)
+      continue;
+    const bool match = r.queueHandle && il2cpp_gchandle_get_target(r.queueHandle) == queue && r.target == failedTarget
+                       && r.attempt == s.attempt && Clock::now() - r.started < std::chrono::seconds(30);
+    if (match) {
+      il2cpp_gchandle_free(r.queueHandle);
+      r = {};
+    }
+    return match;
+  }
+  return false;
+}
+bool TargetAbsent(Il2CppObject* queue, std::int64_t target)
+{
+  auto* list = Read<Il2CppObject*>(queue, 0x28);
+  if (!list)
+    return false;
+  auto* cls     = il2cpp_object_get_class(list);
+  auto* size    = il2cpp_class_get_field_from_name(cls, "_size");
+  auto* storage = il2cpp_class_get_field_from_name(cls, "_items");
+  if (!size || !storage || !size->type || !storage->type || size->type->type != IL2CPP_TYPE_I4
+      || storage->type->type != IL2CPP_TYPE_SZARRAY)
+    return false;
+  int          count{};
+  Il2CppArray* items{};
+  il2cpp_field_get_value(list, size, &count);
+  il2cpp_field_get_value(list, storage, &items);
+  if (count <= 0 || count > 128 || !items || il2cpp_array_length(items) < static_cast<unsigned>(count)
+      || il2cpp_class_get_element_class(il2cpp_object_get_class(reinterpret_cast<Il2CppObject*>(items))) != actionClass)
+    return false;
+  auto* array = reinterpret_cast<Il2CppArraySize*>(items);
+  for (int i = 0; i < count; ++i) {
+    auto* action = static_cast<Il2CppObject*>(array->vector[i]);
+    if (!action || il2cpp_object_get_class(action) != actionClass || Read<std::int64_t>(action, 0x10) == target)
+      return false;
+  }
+  return true;
+}
+Il2CppObject* FindQueue(Il2CppObject* manager, std::int64_t fleet)
+{
+  auto* array = Read<Il2CppArray*>(manager, 0x48);
+  if (!array || il2cpp_array_length(array) > 64
+      || il2cpp_class_get_element_class(il2cpp_object_get_class(reinterpret_cast<Il2CppObject*>(array))) != queueClass)
+    return nullptr;
+  auto* values = reinterpret_cast<Il2CppArraySize*>(array);
+  for (unsigned i = 0; i < il2cpp_array_length(array); ++i) {
+    auto* queue = static_cast<Il2CppObject*>(values->vector[i]);
+    if (queue && il2cpp_object_get_class(queue) == queueClass && Read<std::int64_t>(queue, 0x30) == fleet)
+      return queue;
+  }
+  return nullptr;
+}
 void Log(const char* event, const Snapshot& s, int result = -1, std::int64_t sameSnapshotMs = -1,
          std::int64_t target = 0)
 {
@@ -150,8 +240,11 @@ int Engage(auto original, Il2CppObject* manager, Il2CppObject* player, Il2CppObj
   Snapshot before;
   try {
     trace = Active();
-    if (trace)
+    if (trace || (recover && ready.load())) {
       before = Capture(queue);
+      if (recover && ready.load())
+        Remember(queue, before);
+    }
   } catch (...) {
     trace = false;
   }
@@ -171,7 +264,7 @@ bool Retry(auto original, Il2CppObject* manager, std::int64_t target, Il2CppObje
   Snapshot before;
   try {
     trace = Active();
-    if (trace)
+    if (trace || (recover && ready.load()))
       before = Capture(queue);
   } catch (...) {
     trace = false;
@@ -180,6 +273,20 @@ bool Retry(auto original, Il2CppObject* manager, std::int64_t target, Il2CppObje
   try {
     if (trace)
       Log("retry-decision", before, result ? 1 : 0, -1, target);
+  } catch (...) {
+  }
+  // Course has already cleared IsEngaging. Only promote a non-retry after the exact outstanding
+  // target disappeared. Returning true uses Course's existing native planner/eligibility path.
+  try {
+    const auto* c = currentCourse;
+    if (!result && recover && ready.load() && c && c->failed && c->engagingAtEntry && c->queue == queue
+        && c->fleet == before.fleet && c->target == target && target != 0 && before.pending == target
+        && !before.engaging && before.frontKnown && before.front != target && before.count > 0
+        && TargetAbsent(queue, target) && ConsumeRequest(queue, before, target)) {
+      if (Active())
+        Log("advance-removed-front", before, 1, -1, target);
+      return true;
+    }
   } catch (...) {
   }
   return result;
@@ -202,19 +309,32 @@ struct CourseResponse {
 static_assert(sizeof(CourseResponse) == 24 && offsetof(CourseResponse, target) == 16);
 void Course(auto original, Il2CppObject* manager, CourseResponse args)
 {
+  CourseContext context{args.fleet};
   try {
-    if (Active() && Reserve()) {
-      std::int64_t target{};
-      if (args.target) {
-        const auto* name = il2cpp_class_get_name(il2cpp_object_get_class(args.target));
-        if (name && std::strcmp(name, "Int64") == 0)
-          std::memcpy(&target, il2cpp_object_unbox(args.target), sizeof(target));
-      }
+    std::int64_t target{};
+    if (args.target) {
+      const auto* name = il2cpp_class_get_name(il2cpp_object_get_class(args.target));
+      if (name && std::strcmp(name, "Int64") == 0)
+        std::memcpy(&target, il2cpp_object_unbox(args.target), sizeof(target));
+    }
+    context.target = target;
+    context.failed = !args.success && !args.recall;
+    if (recover && ready.load() && context.failed && target != 0) {
+      context.queue           = FindQueue(manager, args.fleet);
+      context.engagingAtEntry = context.queue && Read<bool>(context.queue, 0x10);
+    }
+    if (Active() && Reserve())
       spdlog::info("[QueueTrace] course-response fleet={} target={} success={} recall={}", args.fleet, target,
                    args.success, args.recall);
-    }
   } catch (...) {
   }
+  struct Scope {
+    CourseContext* previous{currentCourse};
+    explicit Scope(CourseContext* value)
+    { currentCourse = value; }
+    ~Scope()
+    { currentCourse = previous; }
+  } scope(&context);
   original(manager, args);
 }
 bool Field(IL2CppClassHelper& cls, const char* name, std::ptrdiff_t offset)
@@ -241,10 +361,13 @@ void InstallActionQueueTrace()
   char enabled[8]{};
   if (GetEnvironmentVariableA("STFC_QUEUE_TRACE", enabled, sizeof(enabled)) != 1 || enabled[0] != '1')
     return;
+  char recovery[8]{};
+  recover      = GetEnvironmentVariableA("STFC_QUEUE_RECOVER", recovery, sizeof(recovery)) == 1 && recovery[0] == '1';
   auto manager = il2cpp_get_class_helper("Assembly-CSharp", "Prime.ActionQueue", "ActionQueueManager");
   auto action  = il2cpp_get_class_helper("Assembly-CSharp", "Prime.ActionQueue", "QueueableAction");
   actionClass  = action.get_cls();
   auto queue   = il2cpp_get_class_helper("Assembly-CSharp", "Prime.ActionQueue", "ActionQueueInstance");
+  queueClass   = queue.get_cls();
   auto deployed =
       il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Models", "FleetDeployedData");
   if (!manager.isValidHelper()) {
@@ -269,7 +392,8 @@ void InstallActionQueueTrace()
   IL2CppClassHelper event(eventClass);
   std::uint32_t     alignment{};
   const bool        valid =
-      Field(action, "<FleetId>k__BackingField", 0x10) && Field(action, "SetCourseFailRetryCount", 0x18)
+      Field(manager, "_battleQueue", 0x48) && Field(action, "<FleetId>k__BackingField", 0x10)
+      && Field(action, "SetCourseFailRetryCount", 0x18)
       && Method(retry, 0x110d280, 662, {0x48, 0x89, 0x5c, 0x24, 0x10, 0x48, 0x89, 0x6c, 0x24, 0x18, 0x57, 0x48,
                                         0x83, 0xec, 0x20, 0x80, 0x3d, 0x7a, 0x04, 0xb1, 0x04, 0x00, 0x49, 0x8b})
       && Method(process, 0x110cb70, 367, {0x40, 0x53, 0x57, 0x41, 0x54, 0x41, 0x56, 0x41, 0x57, 0x48, 0x83, 0xec,
@@ -298,9 +422,9 @@ void InstallActionQueueTrace()
   const bool fifth  = SPUD_STATIC_DETOUR(process, ProcessTarget) != nullptr;
   deadline          = Clock::now() + std::chrono::minutes(30);
   ready.store(first && second && third && fourth && fifth);
-  spdlog::info("[QueueTrace] observation-only ready={} budget=1024 window=30min; engage result 0=success 1=skip "
+  spdlog::info("[QueueTrace] ready={} recovery={} budget=1024 window=30min; engage result 0=success 1=skip "
                "2=stop; retry result 0=no 1=yes",
-               ready.load());
+               ready.load(), recover);
 }
 #else
 void InstallActionQueueTrace() {}
