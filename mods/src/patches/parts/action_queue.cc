@@ -18,6 +18,7 @@ using Clock = std::chrono::steady_clock;
 Clock::time_point deadline;
 std::atomic_uint  budget{1024};
 std::atomic_bool  ready{false};
+Il2CppClass*      actionClass{};
 
 bool Active()
 { return ready.load() && budget.load() != 0 && Clock::now() < deadline; }
@@ -36,6 +37,9 @@ template <typename T> T Read(const void* object, std::size_t offset)
 }
 struct Snapshot {
   std::int64_t fleet{}, last{}, pending{};
+  std::int64_t front{}, next{};
+  int          retries{-1};
+  bool         frontKnown{}, nextKnown{};
   float        attempt{};
   int          count{-1}, state{-1};
   bool         engaging{};
@@ -58,15 +62,41 @@ Snapshot Capture(Il2CppObject* queue, Il2CppObject* deployed = nullptr)
     auto* field = il2cpp_class_get_field_from_name(il2cpp_object_get_class(list), "_size");
     if (field && field->type && field->type->type == IL2CPP_TYPE_I4)
       il2cpp_field_get_value(list, field, &s.count);
+    auto* itemsField = il2cpp_class_get_field_from_name(il2cpp_object_get_class(list), "_items");
+    if (s.count > 0 && itemsField && itemsField->type && itemsField->type->type == IL2CPP_TYPE_SZARRAY) {
+      Il2CppArray* items{};
+      il2cpp_field_get_value(list, itemsField, &items);
+      if (items && il2cpp_array_length(items) >= static_cast<unsigned>(s.count)
+          && il2cpp_class_get_element_class(il2cpp_object_get_class(reinterpret_cast<Il2CppObject*>(items)))
+                 == actionClass) {
+        auto* array = reinterpret_cast<Il2CppArraySize*>(items);
+        auto* front = static_cast<Il2CppObject*>(array->vector[0]);
+        if (front && il2cpp_object_get_class(front) == actionClass) {
+          s.frontKnown = true;
+          s.front      = Read<std::int64_t>(front, 0x10);
+          s.retries    = Read<int>(front, 0x18);
+        }
+        if (s.count > 1) {
+          auto* next = static_cast<Il2CppObject*>(array->vector[1]);
+          if (next && il2cpp_object_get_class(next) == actionClass) {
+            s.nextKnown = true;
+            s.next      = Read<std::int64_t>(next, 0x10);
+          }
+        }
+      }
+    }
   }
   return s;
 }
-void Log(const char* event, const Snapshot& s, int result = -1, std::int64_t sameSnapshotMs = -1)
+void Log(const char* event, const Snapshot& s, int result = -1, std::int64_t sameSnapshotMs = -1,
+         std::int64_t target = 0)
 {
   if (Reserve())
-    spdlog::info("[QueueTrace] {} fleet={} count={} engaging={} last={} pending={} attempt={} state={} result={} "
-                 "same_snapshot_observed_ms={}",
-                 event, s.fleet, s.count, s.engaging, s.last, s.pending, s.attempt, s.state, result, sameSnapshotMs);
+    spdlog::info(
+        "[QueueTrace] {} fleet={} count={} engaging={} last={} pending={} attempt={} state={} result={} "
+        "same_snapshot_observed_ms={} front_known={} front={} retries={} next_known={} next={} decision_target={}",
+        event, s.fleet, s.count, s.engaging, s.last, s.pending, s.attempt, s.state, result, sameSnapshotMs,
+        s.frontKnown, s.front, s.retries, s.nextKnown, s.next, target);
 }
 bool Changed(const Snapshot& s, std::int64_t& sameSnapshotMs)
 {
@@ -134,6 +164,35 @@ int Engage(auto original, Il2CppObject* manager, Il2CppObject* player, Il2CppObj
   }
   return result;
 }
+// Capture only primitives before native code; a decision is not proof that removal occurred.
+bool Retry(auto original, Il2CppObject* manager, std::int64_t target, Il2CppObject* queue)
+{
+  bool     trace = false;
+  Snapshot before;
+  try {
+    trace = Active();
+    if (trace)
+      before = Capture(queue);
+  } catch (...) {
+    trace = false;
+  }
+  const bool result = original(manager, target, queue);
+  try {
+    if (trace)
+      Log("retry-decision", before, result ? 1 : 0, -1, target);
+  } catch (...) {
+  }
+  return result;
+}
+void ProcessTarget(auto original, Il2CppObject* manager, std::int64_t target, bool canSelect)
+{
+  try {
+    if (Active() && Reserve())
+      spdlog::info("[QueueTrace] process-target-before target={} can_select_new={}", target, canSelect);
+  } catch (...) {
+  }
+  original(manager, target, canSelect);
+}
 struct CourseResponse {
   std::int64_t  fleet;
   bool          success, recall;
@@ -183,6 +242,8 @@ void InstallActionQueueTrace()
   if (GetEnvironmentVariableA("STFC_QUEUE_TRACE", enabled, sizeof(enabled)) != 1 || enabled[0] != '1')
     return;
   auto manager = il2cpp_get_class_helper("Assembly-CSharp", "Prime.ActionQueue", "ActionQueueManager");
+  auto action  = il2cpp_get_class_helper("Assembly-CSharp", "Prime.ActionQueue", "QueueableAction");
+  actionClass  = action.get_cls();
   auto queue   = il2cpp_get_class_helper("Assembly-CSharp", "Prime.ActionQueue", "ActionQueueInstance");
   auto deployed =
       il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Models", "FleetDeployedData");
@@ -193,6 +254,13 @@ void InstallActionQueueTrace()
   auto* stall = manager.GetMethodSpecial("HandleStall", [](int n, const Il2CppType**) { return n == 3; });
   auto* engage =
       manager.GetMethodSpecial("TryPlanPathAndEngageTarget", [](int n, const Il2CppType**) { return n == 2; });
+  auto* retry      = manager.GetMethodSpecial("ShouldRetryFailedSetCourse", [](int n, const Il2CppType** p) {
+    return n == 2 && p && p[0] && !p[0]->byref && p[0]->type == IL2CPP_TYPE_I8;
+  });
+  auto* process    = manager.GetMethodSpecial("ProcessQueue", [](int n, const Il2CppType** p) {
+    return n == 2 && p && p[0] && p[1] && !p[0]->byref && !p[1]->byref && p[0]->type == IL2CPP_TYPE_I8
+           && p[1]->type == IL2CPP_TYPE_BOOLEAN;
+  });
   auto* courseInfo = manager.GetMethodInfoSpecial("OnSetCourseResponseEventHandler", [](int n, const Il2CppType** p) {
     return n == 1 && p && p[0] && !p[0]->byref && p[0]->type == IL2CPP_TYPE_VALUETYPE;
   });
@@ -201,7 +269,12 @@ void InstallActionQueueTrace()
   IL2CppClassHelper event(eventClass);
   std::uint32_t     alignment{};
   const bool        valid =
-      eventClass && il2cpp_class_value_size(eventClass, &alignment) == sizeof(CourseResponse)
+      Field(action, "<FleetId>k__BackingField", 0x10) && Field(action, "SetCourseFailRetryCount", 0x18)
+      && Method(retry, 0x110d280, 662, {0x48, 0x89, 0x5c, 0x24, 0x10, 0x48, 0x89, 0x6c, 0x24, 0x18, 0x57, 0x48,
+                                        0x83, 0xec, 0x20, 0x80, 0x3d, 0x7a, 0x04, 0xb1, 0x04, 0x00, 0x49, 0x8b})
+      && Method(process, 0x110cb70, 367, {0x40, 0x53, 0x57, 0x41, 0x54, 0x41, 0x56, 0x41, 0x57, 0x48, 0x83, 0xec,
+                                          0x30, 0x80, 0x3d, 0x89, 0x0b, 0xb1, 0x04, 0x00, 0x45, 0x0f, 0xb6, 0xf0})
+      && eventClass && il2cpp_class_value_size(eventClass, &alignment) == sizeof(CourseResponse)
       && Field(event, "<FleetId>k__BackingField", 0x10) && Field(event, "<Success>k__BackingField", 0x18)
       && Field(event, "<IsRecall>k__BackingField", 0x19) && Field(event, "<TargetId>k__BackingField", 0x20)
       && Method(course, 0x110d070, 514, {0x48, 0x89, 0x5c, 0x24, 0x18, 0x57, 0x48, 0x83, 0xec, 0x20, 0x80, 0x3d,
@@ -221,9 +294,12 @@ void InstallActionQueueTrace()
   const bool first  = SPUD_STATIC_DETOUR(stall, Stall) != nullptr;
   const bool second = SPUD_STATIC_DETOUR(engage, Engage) != nullptr;
   const bool third  = SPUD_STATIC_DETOUR(course, Course) != nullptr;
+  const bool fourth = SPUD_STATIC_DETOUR(retry, Retry) != nullptr;
+  const bool fifth  = SPUD_STATIC_DETOUR(process, ProcessTarget) != nullptr;
   deadline          = Clock::now() + std::chrono::minutes(30);
-  ready.store(first && second && third);
-  spdlog::info("[QueueTrace] observation-only ready={} budget=1024 window=30min; result 0=success 1=skip 2=stop",
+  ready.store(first && second && third && fourth && fifth);
+  spdlog::info("[QueueTrace] observation-only ready={} budget=1024 window=30min; engage result 0=success 1=skip "
+               "2=stop; retry result 0=no 1=yes",
                ready.load());
 }
 #else
