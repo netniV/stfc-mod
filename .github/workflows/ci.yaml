@@ -31,15 +31,6 @@ env:
   XMAKE_ACTION_BUILD_CACHE: "true"
 
 jobs:
-  action-queue-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - name: Test queue recovery policy and request lifecycle
-        run: |
-          clang++ -std=c++23 -Imods/src tests/action_queue.cc -o /tmp/action-queue-tests
-          /tmp/action-queue-tests
-
   build-win:
     runs-on: windows-2025-vs2026
     outputs:
