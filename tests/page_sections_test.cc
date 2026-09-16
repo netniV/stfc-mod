@@ -26,7 +26,7 @@ void CheckPage(bool galaxy)
   PageCatalog    catalog("labels", galaxy ? "Galaxy Labels" : "Fleet Labels");
   if (galaxy) {
     catalog.AddBoolean("labels", master);
-    catalog.AddHeading("labels", "overlays", "Overlays", true, [&] { return overlays; });
+    catalog.AddHeading("labels", "overlays", "Overlays", false, [&] { return overlays; });
     catalog.AddBoolean("labels", overlay);
   }
   catalog.AddHeading("labels", "first.heading", galaxy ? "Major systems" : "Player", true);
@@ -44,14 +44,13 @@ void CheckPage(bool galaxy)
     assert(!sections.Visible(page, "first") && !sections.Visible(page, "second"));
     if (galaxy) {
       assert(sections.Visible(page, "master") && sections.Visible(page, "overlays"));
-      assert(!sections.Visible(page, "overlay"));
-      sections.Toggle(*page.SectionFor("overlay"));
+      assert(page.SectionFor("overlay") == nullptr);
       assert(sections.Visible(page, "overlay"));
       overlays = false;
       assert(!sections.Visible(page, "overlays") && !sections.Visible(page, "overlay"));
       assert(sections.Visible(page, "master") && sections.Visible(page, "first.heading"));
       overlays = true;
-      assert(sections.Visible(page, "overlay")); // Visibility doesn't discard expansion or saved choices.
+      assert(sections.Visible(page, "overlay")); // Direct controls return without an expansion click.
     }
     sections.Toggle(firstHeading);
     assert(sections.Visible(page, "first") && !sections.Visible(page, "second"));

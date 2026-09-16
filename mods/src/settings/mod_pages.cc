@@ -27,30 +27,23 @@ void RegisterModPages()
       catalog.AddSlider("community_mod.graphics.camera", PanGlideSetting());
   }
   catalog.AddPage("community_mod.navigation", "Map & Travel", "community_mod.settings");
-  catalog.AddPage("community_mod.navigation.warp", "Instant warp mode", "community_mod.navigation");
-  catalog.AddChoice("community_mod.navigation.warp", WarpModeSetting());
-  catalog.SetSummary("community_mod.navigation.warp", [] {
-    auto&      setting = WarpModeSetting();
-    const auto state   = setting.state().Observe().state;
-    return state.known() ? setting.labels().at(*state.value) : std::string{"Unavailable"};
-  });
+  catalog.AddHeading("community_mod.navigation", "community_mod.navigation.warp", "Instant warp mode");
+  catalog.AddChoice("community_mod.navigation", WarpModeSetting());
   catalog.AddPage("community_mod.previews", "Previews & Cargo", "community_mod.settings");
   if (PreviewShortcutsAvailable()) {
-    catalog.AddPage("community_mod.ui.preview_shortcuts", "Preview shortcuts", "community_mod.previews");
     for (auto option : {PreviewOption::Locate, PreviewOption::Recall})
-      catalog.AddBoolean("community_mod.ui.preview_shortcuts", PreviewSetting(option));
+      catalog.AddBoolean("community_mod.previews", PreviewSetting(option));
   }
   if (CargoPreviewsAvailable()) {
-    catalog.AddPage("community_mod.ui.cargo_previews", "Cargo previews", "community_mod.previews");
-    catalog.AddBoolean("community_mod.ui.cargo_previews", PreviewSetting(PreviewOption::Cargo));
+    catalog.AddBoolean("community_mod.previews", PreviewSetting(PreviewOption::Cargo));
     // Only presentation depends on the master; target choices remain saved.
-    catalog.AddHeading("community_mod.ui.cargo_previews", "community_mod.ui.cargo_targets", "Target types", false, [] {
+    catalog.AddHeading("community_mod.previews", "community_mod.ui.cargo_targets", "Target types", false, [] {
       const auto state = PreviewSetting(PreviewOption::Cargo).Observe().state;
       return state.known() && *state.value;
     });
     for (auto option : {PreviewOption::PlayerCargo, PreviewOption::StationCargo, PreviewOption::HostileCargo,
                         PreviewOption::ArmadaCargo})
-      catalog.AddBoolean("community_mod.ui.cargo_previews", PreviewSetting(option));
+      catalog.AddBoolean("community_mod.previews", PreviewSetting(option));
   }
   catalog.AddPage("community_mod.labels", "Fleet Labels", "community_mod.settings");
   for (bool player : {true, false}) {
@@ -62,7 +55,7 @@ void RegisterModPages()
   if (GalaxyLabelControlsAvailable()) {
     catalog.AddPage("community_mod.galaxy", "Galaxy Labels", "community_mod.settings");
     catalog.AddBoolean("community_mod.galaxy", GalaxyMultiSelectSetting());
-    catalog.AddHeading("community_mod.galaxy", "community_mod.galaxy.overlays", "Overlays", true, [] {
+    catalog.AddHeading("community_mod.galaxy", "community_mod.galaxy.overlays", "Overlays", false, [] {
       const auto state = GalaxyMultiSelectSetting().Observe().state;
       return state.known() && *state.value;
     });
