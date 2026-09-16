@@ -300,10 +300,9 @@ bool Retry(auto original, Il2CppObject* manager, std::int64_t target, Il2CppObje
   try {
     const auto* c = currentCourse;
     if (!result && recover && ready.load() && c && c->failed && c->engagingAtEntry && c->queue == queue
-        && c->fleet == before.fleet && c->target == target && target != 0 && before.pending == target
-        && !before.engaging && before.frontKnown && before.front != target && before.count > 0
-        && TargetAbsent(queue, target) && AbsentFromAllQueues(manager, target)
-        && ConsumeRequest(queue, before, target)) {
+        && c->fleet == before.fleet && c->target == target && target != 0 && !before.engaging && before.frontKnown
+        && before.front != target && before.count > 0 && TargetAbsent(queue, target)
+        && AbsentFromAllQueues(manager, target) && ConsumeRequest(queue, before, target)) {
       if (Active())
         Log("advance-removed-front", before, 1, -1, target);
       return true;
