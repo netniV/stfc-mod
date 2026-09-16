@@ -5,6 +5,7 @@
 #include "patches/runtime_config.h"
 #include "row_style.h"
 #include "settings/mod_pages.h"
+#include "settings/page_sections.h"
 #include "settings/native_boolean_callback.h"
 #include "timing.h"
 #include <cstdlib>
@@ -49,24 +50,18 @@ const PageCatalog::Page* PageFor(Il2CppObject* context)
 struct SectionPage {
   const PageCatalog::Page*   page       = nullptr;
   Il2CppGCHandle             controller = nullptr, context = nullptr;
-  std::vector<std::string>   collapsed;
+  PageSections              sections;
   std::vector<Il2CppObject*> shown; // Comparison only; native context/panel owns rows.
-  bool                       refreshing  = false;
   bool                       conditional = false;
 } sectionPage;
-struct SectionRefreshScope {
-  SectionRefreshScope()
-  { sectionPage.refreshing = true; }
-  ~SectionRefreshScope()
-  { sectionPage.refreshing = false; }
-};
+using SectionRefreshScope = PageSections::RefreshScope;
 void ClearSectionPage()
 {
   timing::Flush();
   const auto* leaving = std::exchange(sectionPage.page, nullptr);
   Free(sectionPage.controller);
   Free(sectionPage.context);
-  sectionPage.collapsed.clear();
+  sectionPage.sections.ExpandAll();
   sectionPage.shown.clear();
   sectionPage.conditional = false;
   try {
@@ -93,8 +88,7 @@ const PageCatalog::Heading* CollapsibleHeadingFor(Il2CppObject* context)
 }
 bool Collapsed(const PageCatalog::Heading& heading)
 {
-  return std::find(sectionPage.collapsed.begin(), sectionPage.collapsed.end(), heading.id)
-         != sectionPage.collapsed.end();
+  return sectionPage.sections.Collapsed(heading);
 }
 void ShowSections(Il2CppObject* controller, Il2CppObject* context, const PageCatalog::Page& page, bool force = false)
 {
@@ -108,20 +102,16 @@ void ShowSections(Il2CppObject* controller, Il2CppObject* context, const PageCat
   std::vector<OrderedRow> ordered;
   for (int i = 0, count = Count(children.get()); i < count; ++i) {
     auto*                       row     = Item(children.get(), i); // Rooted by the unchanged native children.
-    const PageCatalog::Heading* section = nullptr;
     std::string                 id;
     std::size_t                 index = 0;
     if (OwnsValueContext(row)) {
       if (const auto choice = ChoiceFor(row); choice.first) {
         id      = choice.first->state().id();
         index   = choice.second;
-        section = page.SectionFor(choice.first->state().id());
       } else if (auto* slider = SliderFor(row)) {
         id      = slider->state().id();
-        section = page.SectionFor(slider->state().id());
       } else if (auto* setting = SettingFor(row)) {
         id      = setting->id();
-        section = page.SectionFor(setting->id());
       }
     }
     if (ActionsActive())
@@ -130,7 +120,6 @@ void ShowSections(Il2CppObject* controller, Il2CppObject* context, const PageCat
           continue;
         id      = action.first->id();
         index   = action.second;
-        section = page.SectionFor(id);
       }
     if (id.empty())
       for (const auto& item : page.items)
@@ -139,7 +128,7 @@ void ShowSections(Il2CppObject* controller, Il2CppObject* context, const PageCat
           id = heading->id;
           break;
         }
-    if (page.IsVisible(id) && (!section || !Collapsed(*section)))
+    if (sectionPage.sections.Visible(page, id))
       ordered.push_back({row, page.PositionFor(id), index});
   }
   // Repeated rows may have been appended after other native children. Keep the
@@ -185,7 +174,7 @@ void ShowSections(Il2CppObject* controller, Il2CppObject* context, const PageCat
 }
 
 bool PageRefreshInProgress()
-{ return sectionPage.refreshing; }
+{ return sectionPage.sections.Refreshing(); }
 void RenderCategory(Il2CppObject* widget)
 {
   try {
@@ -271,23 +260,20 @@ void PageSelectedHook(auto original, Il2CppObject* controller, Il2CppObject* con
     try {
       if (const auto* heading = CollapsibleHeadingFor(context)) {
         sectionClick = true;
-        if (sectionPage.refreshing || Target(sectionPage.controller) != controller)
+        if (sectionPage.sections.Refreshing() || Target(sectionPage.controller) != controller)
           return;
         Root parent(Call(context, "get_Parent"));
         Root canvas(Call(controller, "get_CanvasContext"));
         Root selected(Call(canvas.get(), "get_SelectedOption"));
         if (!parent.get() || parent.get() != Target(sectionPage.context) || selected.get() != parent.get())
           return; // An old pooled heading cannot navigate or change this page.
-        SectionRefreshScope scope;
-        const auto          before = sectionPage.collapsed;
-        if (Collapsed(*heading))
-          std::erase(sectionPage.collapsed, heading->id);
-        else
-          sectionPage.collapsed.push_back(heading->id);
+        SectionRefreshScope scope(sectionPage.sections);
+        const auto before = sectionPage.sections.Snapshot();
+        sectionPage.sections.Toggle(*heading);
         try {
           ShowSections(controller, parent.get(), *PageFor(parent.get()), true);
         } catch (...) {
-          sectionPage.collapsed = before;
+          sectionPage.sections.Restore(before);
           try {
             ShowSections(controller, parent.get(), *PageFor(parent.get()), true);
           } catch (...) {
@@ -318,9 +304,7 @@ void PageSelectedHook(auto original, Il2CppObject* controller, Il2CppObject* con
           ClearSectionPage();
         else {
           sectionPage.conditional = page->HasConditionalSections();
-          for (const auto& item : page->items)
-            if (const auto* heading = std::get_if<PageCatalog::Heading>(&item); heading && heading->collapsible)
-              sectionPage.collapsed.push_back(heading->id);
+          sectionPage.sections.Begin(*page);
         }
       }
     } catch (...) {
@@ -330,7 +314,14 @@ void PageSelectedHook(auto original, Il2CppObject* controller, Il2CppObject* con
   }
   if (OnUIThread())
     ClearRowText(controller);
-  original(controller, context);
+  if (OnUIThread() && pagesActive) {
+    // Native navigation binds rows before returning. Callbacks from those rows
+    // must not rebind the panel while its initial population is still running.
+    SectionRefreshScope scope(sectionPage.sections);
+    original(controller, context);
+  } else {
+    original(controller, context);
+  }
   if (!OnUIThread() || !pagesActive)
     return;
   try {
@@ -338,16 +329,16 @@ void PageSelectedHook(auto original, Il2CppObject* controller, Il2CppObject* con
       Root label(ReadField(controller, PageMeta().title));
       SetRowText(controller, label.get(), page->label);
       if (Target(sectionPage.controller) == controller && Target(sectionPage.context) == context
-          && !sectionPage.refreshing) {
+          && !sectionPage.sections.Refreshing()) {
         // Let native navigation establish the page and Back target, then apply
         // the initial folded presentation in the same call, before a frame draws.
-        SectionRefreshScope scope;
+        SectionRefreshScope scope(sectionPage.sections);
         try {
-          ShowSections(controller, context, *page);
+          ShowSections(controller, context, *page, true);
         } catch (...) {
           // If folding is unavailable, keep the controls accessible and the
           // heading arrows consistent with the expanded fallback.
-          sectionPage.collapsed.clear();
+          sectionPage.sections.ExpandAll();
           try {
             ShowSections(controller, context, *page);
           } catch (...) {
@@ -422,7 +413,7 @@ void RefreshPageRows()
 {
   if (!OnUIThread() || !pagesActive)
     return;
-  if (sectionPage.refreshing)
+  if (sectionPage.sections.Refreshing())
     return;
   // Value-change observers run inside the write guard. Rebinding there could
   // release the requesting row before it has consumed its authoritative result.
@@ -434,7 +425,7 @@ void RefreshPageRows()
       Root canvas(Call(controller.get(), "get_CanvasContext"));
       Root selected(Call(canvas.get(), "get_SelectedOption"));
       if (const auto* page = PageFor(context.get()); page && selected.get() == context.get()) {
-        SectionRefreshScope scope;
+        SectionRefreshScope scope(sectionPage.sections);
         ShowSections(controller.get(), context.get(), *page);
       }
     }
