@@ -48,7 +48,7 @@ void InstallDoubleClickAssignShipHooks();
 void InstallInstantWarpConfirmationHooks();
 void InstallForbiddenTechConfirmationHooks();
 void InstallAudioEventHooks();
-void InstallActionQueueTrace();
+void InstallActionQueueRecovery();
 
 __int64 il2cpp_init_hook(auto original, const char* domain_name)
 {
@@ -172,7 +172,7 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
     }
   }
 
-  InstallActionQueueTrace();
+  InstallActionQueueRecovery();
 
   spdlog::info("");
 
