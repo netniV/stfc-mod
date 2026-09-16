@@ -61,17 +61,18 @@ Snapshot Capture(Il2CppObject* queue, Il2CppObject* deployed = nullptr)
   }
   return s;
 }
-void Log(const char* event, const Snapshot& s, int result = -1)
+void Log(const char* event, const Snapshot& s, int result = -1, std::int64_t sameSnapshotMs = -1)
 {
   if (Reserve())
-    spdlog::info("[QueueTrace] {} fleet={} count={} engaging={} last={} pending={} attempt={} state={} result={}",
-                 event, s.fleet, s.count, s.engaging, s.last, s.pending, s.attempt, s.state, result);
+    spdlog::info("[QueueTrace] {} fleet={} count={} engaging={} last={} pending={} attempt={} state={} result={} "
+                 "same_snapshot_observed_ms={}",
+                 event, s.fleet, s.count, s.engaging, s.last, s.pending, s.attempt, s.state, result, sameSnapshotMs);
 }
-bool Changed(const Snapshot& s)
+bool Changed(const Snapshot& s, std::int64_t& sameSnapshotMs)
 {
   struct Record {
     Snapshot          snapshot;
-    Clock::time_point logged{};
+    Clock::time_point logged{}, firstObserved{};
   };
   static std::array<Record, 8> records{};
   static std::mutex            mutex;
@@ -85,19 +86,29 @@ bool Changed(const Snapshot& s)
     if (entry.logged < record->logged)
       record = &entry;
   }
-  const auto now = Clock::now();
-  if (record->snapshot == s && now - record->logged < std::chrono::seconds(30))
+  const auto now  = Clock::now();
+  const bool same = record->logged != Clock::time_point{} && record->snapshot == s;
+  if (!same)
+    record->firstObserved = now;
+  // This is equality at native watchdog samples, not proof that nothing changed between them.
+  sameSnapshotMs = std::chrono::duration_cast<std::chrono::milliseconds>(now - record->firstObserved).count();
+  // Idle nonempty queues deserve closer observation even when IsEngaging blocks the native watchdog.
+  // Reuse its callbacks: no timer, polling loop, or changes to retry eligibility.
+  const auto interval = std::chrono::seconds(s.state == 0 && s.count != 0 ? 3 : 30);
+  if (same && now - record->logged < interval)
     return false;
-  *record = {s, now};
+  record->snapshot = s;
+  record->logged   = now;
   return true;
 }
 void Stall(auto original, Il2CppObject* manager, Il2CppObject* queue, Il2CppObject* player, Il2CppObject* deployed)
 {
   try {
     if (Active()) {
-      const auto snapshot = Capture(queue, deployed);
-      if (Changed(snapshot))
-        Log("watchdog-before", snapshot);
+      const auto   snapshot = Capture(queue, deployed);
+      std::int64_t sameSnapshotMs{};
+      if (Changed(snapshot, sameSnapshotMs))
+        Log("watchdog-before", snapshot, -1, sameSnapshotMs);
     }
   } catch (...) {
   }
