@@ -1,3 +1,4 @@
+#include "runtime_config_keys.h"
 #ifdef CONFIG_RUNTIME_TEST
 #include CONFIG_RUNTIME_TEST // Isolated fixture substitutes Unity/worker boundaries only.
 #else
@@ -185,20 +186,7 @@ void Configure(const toml::table& loaded)
     initial = *value;
   try {
     writer = new config_edit::RuntimeConfigWriter(File::MakePath(File::Config()), initial, Report);
-    for (const auto& [section, key] : {std::pair{"graphics", "zoom_label_player_detail"},
-                                       {"graphics", "zoom_label_non_player_detail"},
-                                       {"graphics", "zoom_label_player_threshold"},
-                                       {"graphics", "zoom_label_non_player_threshold"},
-                                       {"graphics", "keyboard_zoom_speed"},
-                                       {"graphics", "system_pan_momentum_falloff"},
-                                       {"ui", "auto_confirm_ft_upgrade"},
-                                       {"ui", "disable_preview_locate"},
-                                       {"ui", "disable_preview_recall"},
-                                       {"ui", "show_cargo_default"},
-                                       {"ui", "show_player_cargo"},
-                                       {"ui", "show_station_cargo"},
-                                       {"ui", "show_hostile_cargo"},
-                                       {"ui", "show_armada_cargo"}}) {
+    for (const auto& [section, key] : config_edit::persisted_settings) {
       std::optional<config_edit::Value> value;
       auto                              node = loaded[section][key];
       if (node.is_boolean())
