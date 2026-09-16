@@ -178,6 +178,26 @@ Il2CppObject* FindQueue(Il2CppObject* manager, std::int64_t fleet)
   }
   return nullptr;
 }
+// Preserve native cross-fleet cleanup: do not take the planner branch if any queue still holds this target.
+bool AbsentFromAllQueues(Il2CppObject* manager, std::int64_t target)
+{
+  auto* array = Read<Il2CppArray*>(manager, 0x48);
+  if (!array || il2cpp_array_length(array) > 64
+      || il2cpp_class_get_element_class(il2cpp_object_get_class(reinterpret_cast<Il2CppObject*>(array))) != queueClass)
+    return false;
+  auto* values = reinterpret_cast<Il2CppArraySize*>(array);
+  for (unsigned i = 0; i < il2cpp_array_length(array); ++i) {
+    auto* queue = static_cast<Il2CppObject*>(values->vector[i]);
+    if (!queue)
+      continue;
+    if (il2cpp_object_get_class(queue) != queueClass)
+      return false;
+    const auto snapshot = Capture(queue);
+    if (snapshot.count < 0 || (snapshot.count > 0 && !TargetAbsent(queue, target)))
+      return false;
+  }
+  return true;
+}
 void Log(const char* event, const Snapshot& s, int result = -1, std::int64_t sameSnapshotMs = -1,
          std::int64_t target = 0)
 {
@@ -282,7 +302,8 @@ bool Retry(auto original, Il2CppObject* manager, std::int64_t target, Il2CppObje
     if (!result && recover && ready.load() && c && c->failed && c->engagingAtEntry && c->queue == queue
         && c->fleet == before.fleet && c->target == target && target != 0 && before.pending == target
         && !before.engaging && before.frontKnown && before.front != target && before.count > 0
-        && TargetAbsent(queue, target) && ConsumeRequest(queue, before, target)) {
+        && TargetAbsent(queue, target) && AbsentFromAllQueues(manager, target)
+        && ConsumeRequest(queue, before, target)) {
       if (Active())
         Log("advance-removed-front", before, 1, -1, target);
       return true;
