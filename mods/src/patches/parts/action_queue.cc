@@ -1,12 +1,13 @@
 #include "action_queue.h"
 #include <config.h>
 
-// The callback ABI and native extents below have been verified only for client 261 on Windows x64.
+// The callback ABI below is Windows x64. Validate its contract against the running client.
 #if defined(_WIN32) && defined(_M_X64)
 #include <Windows.h>
 #include <atomic>
 #include <cstring>
 #include <il2cpp/il2cpp_helper.h>
+#include <il2cpp/method_contract.h>
 #include <mutex>
 #include <spdlog/spdlog.h>
 #include <spud/detour.h>
@@ -222,16 +223,6 @@ bool Field(Il2CppClass* cls, const char* name, std::ptrdiff_t offset, Il2CppType
   auto* field = cls ? il2cpp_class_get_field_from_name(cls, name) : nullptr;
   return field && field->offset == offset && field->type && field->type->type == type;
 }
-bool Method(void* method, std::uintptr_t rva, unsigned extent, const std::array<unsigned char, 24>& bytes)
-{
-  const auto base = reinterpret_cast<std::uintptr_t>(GetModuleHandleW(L"GameAssembly.dll"));
-  if (!base || reinterpret_cast<std::uintptr_t>(method) != base + rva)
-    return false;
-  DWORD64 image{};
-  auto*   entry = RtlLookupFunctionEntry(base + rva, &image, nullptr);
-  return entry && image == base && entry->BeginAddress == rva && entry->EndAddress - entry->BeginAddress == extent
-         && std::memcmp(method, bytes.data(), bytes.size()) == 0;
-}
 } // namespace
 
 void InstallActionQueueRecovery()
@@ -246,22 +237,25 @@ void InstallActionQueueRecovery()
     spdlog::warn("[FasterQueueRecovery] unavailable: native types not found");
     return;
   }
-  IL2CppClassHelper manager(cls);
-  auto*             engage =
-      manager.GetMethodSpecial("TryPlanPathAndEngageTarget", [](int n, const Il2CppType**) { return n == 2; });
-  auto* retry = manager.GetMethodSpecial("ShouldRetryFailedSetCourse", [](int n, const Il2CppType** p) {
-    return n == 2 && p && p[0] && !p[0]->byref && p[0]->type == IL2CPP_TYPE_I8;
-  });
-  auto* clear =
-      manager.GetMethodSpecial("StopWatchdogAndClearAllQueues", [](int n, const Il2CppType**) { return n == 0; });
-  auto*         info = manager.GetMethodInfoSpecial("OnSetCourseResponseEventHandler", [](int n, const Il2CppType** p) {
-    return n == 1 && p && p[0] && !p[0]->byref && p[0]->type == IL2CPP_TYPE_VALUETYPE;
-  });
-  auto*         course = info ? reinterpret_cast<void*>(info->methodPointer) : nullptr;
-  auto*         event  = info ? il2cpp_class_from_type(info->parameters[0]) : nullptr;
+  using method_contract::Resolve;
+  using method_contract::Pointer;
+  const auto* engage_info = Resolve(cls, "TryPlanPathAndEngageTarget", false, "Digit.Prime.Combat.EngageResult",
+      {"Digit.PrimeServer.Models.FleetPlayerData", "Prime.ActionQueue.ActionQueueInstance"});
+  auto* engage = Pointer(engage_info);
+  auto* retry = Pointer(Resolve(cls, "ShouldRetryFailedSetCourse", false, "System.Boolean",
+      {"System.Int64", "Prime.ActionQueue.ActionQueueInstance"}));
+  auto* clear = Pointer(Resolve(cls, "StopWatchdogAndClearAllQueues", false, "System.Void", {}));
+  const auto* info = Resolve(cls, "OnSetCourseResponseEventHandler", false, "System.Void",
+      {"Digit.PrimeServer.Events.SetCourseResponseEventArgs"});
+  auto* course = Pointer(info);
+  auto* event = info ? il2cpp_class_from_type(info->parameters[0]) : nullptr;
+  auto* result = engage_info ? il2cpp_class_from_type(engage_info->return_type) : nullptr;
+  const auto* underlying = result && il2cpp_class_is_enum(result) ? il2cpp_class_enum_basetype(result) : nullptr;
   std::uint32_t alignment{};
   const bool    valid =
-      event && il2cpp_class_value_size(event, &alignment) == sizeof(CourseResponse)
+      underlying && underlying->type == IL2CPP_TYPE_I4
+      && event && info->parameters[0]->type == IL2CPP_TYPE_VALUETYPE
+      && il2cpp_class_value_size(event, &alignment) == sizeof(CourseResponse)
       && Field(event, "<FleetId>k__BackingField", 0x10, IL2CPP_TYPE_I8)
       && Field(event, "<Success>k__BackingField", 0x18, IL2CPP_TYPE_BOOLEAN)
       && Field(event, "<IsRecall>k__BackingField", 0x19, IL2CPP_TYPE_BOOLEAN)
@@ -272,16 +266,9 @@ void InstallActionQueueRecovery()
       && Field(queueClass, "<PlayerFleetId>k__BackingField", 0x30, IL2CPP_TYPE_I8)
       && Field(queueClass, "_actionQueue", 0x28, IL2CPP_TYPE_GENERICINST)
       && Field(actionClass, "<FleetId>k__BackingField", 0x10, IL2CPP_TYPE_I8)
-      && Method(engage, 0x1109f60, 2340, {0x4c, 0x89, 0x44, 0x24, 0x18, 0x48, 0x89, 0x54, 0x24, 0x10, 0x48, 0x89,
-                                          0x4c, 0x24, 0x08, 0x53, 0x56, 0x57, 0x41, 0x54, 0x41, 0x55, 0x41, 0x56})
-      && Method(retry, 0x110d280, 662, {0x48, 0x89, 0x5c, 0x24, 0x10, 0x48, 0x89, 0x6c, 0x24, 0x18, 0x57, 0x48,
-                                        0x83, 0xec, 0x20, 0x80, 0x3d, 0x7a, 0x04, 0xb1, 0x04, 0x00, 0x49, 0x8b})
-      && Method(course, 0x110d070, 514, {0x48, 0x89, 0x5c, 0x24, 0x18, 0x57, 0x48, 0x83, 0xec, 0x20, 0x80, 0x3d,
-                                         0x8e, 0x06, 0xb1, 0x04, 0x00, 0x48, 0x8b, 0xfa, 0x48, 0x8b, 0xd9, 0x75})
-      && Method(clear, 0x110bcc0, 493, {0x48, 0x89, 0x5c, 0x24, 0x08, 0x57, 0x48, 0x83, 0xec, 0x70, 0x48, 0x8b,
-                                        0xd9, 0x80, 0x3d, 0x33, 0x1a, 0xb1, 0x04, 0x00, 0x75, 0x5c, 0x48, 0x8d});
+      && engage && retry && course && clear;
   if (!valid) {
-    spdlog::warn("[FasterQueueRecovery] unavailable: requires verified Windows x64 client 261 layout");
+    spdlog::warn("[FasterQueueRecovery] unavailable: incompatible method signature or queue layout");
     return;
   }
   const bool a = SPUD_STATIC_DETOUR(engage, Engage) != nullptr;

@@ -9,7 +9,7 @@ Enable the opt-in recovery at startup:
 faster_queue_recovery = true
 ```
 
-The feature also respects `control.queue_enabled`. Support is limited to the verified Windows x64 client 261 layout. Other platforms do not install these hooks; incompatible Windows layouts log an unavailable message and retain native behavior.
+The feature also respects `control.queue_enabled`. Hooks are supported on Windows x64 when the required method signatures and queue layout are compatible. Other platforms do not install these hooks; incompatible Windows layouts log an unavailable message and retain native behavior.
 
 ## Behavior
 
@@ -28,14 +28,9 @@ There is no watchdog hook, frame scan, timer, background worker, or per-engageme
 
 ## Native integration
 
-One detour owns each method. Installation checks metadata, exact RVA, PE unwind extent, and a 24-byte prefix before installing any hook. Windows x64 client 261 targets:
+One detour owns each method. Methods are resolved through their complete managed signatures. Installation validates the event and queue field layouts and the engagement result's integer representation. SPUD builds the trampolines using its existing instruction decoder. Addresses and relocation-dependent instruction bytes are not pinned to a client release.
 
-| Method | RVA | Native extent |
-| --- | --- | --- |
-| TryPlanPathAndEngageTarget | `0x1109f60` | 2340 bytes |
-| ShouldRetryFailedSetCourse | `0x110d280` | 662 bytes |
-| OnSetCourseResponseEventHandler | `0x110d070` | 514 bytes |
-| StopWatchdogAndClearAllQueues | `0x110bcc0` | 493 bytes |
+The hooked methods are `TryPlanPathAndEngageTarget`, `ShouldRetryFailedSetCourse`, `OnSetCourseResponseEventHandler` and `StopWatchdogAndClearAllQueues`. These checks establish binding compatibility; changes to the native retry/planner behavior still require update review and runtime testing.
 
 The course event is a 24-byte value type, with fleet ID at 0, success/recall at 8/9 and boxed target at 16. Metadata field offsets include the boxed object header. The native retry handler is called synchronously inside the course handler; returning true selects its existing planner branch.
 
