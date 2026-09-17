@@ -1,4 +1,5 @@
 #include <il2cpp/il2cpp_helper.h>
+#include <il2cpp/method_contract.h>
 #include <spdlog/spdlog.h>
 #include <spud/detour.h>
 #include "galaxy_labels.h"
@@ -644,19 +645,6 @@ private:
     const int effective = star ? Effective(star, level) : level;
     original(handler, effective);
   }
-  bool Fits(void* pointer, uintptr_t rva, unsigned extent, const char* hex)
-  {
-    const auto base = reinterpret_cast<uintptr_t>(GetModuleHandleW(L"GameAssembly.dll"));
-    DWORD64 image = 0;
-    const auto* entry = pointer ? RtlLookupFunctionEntry(reinterpret_cast<DWORD64>(pointer), &image, nullptr) : nullptr;
-    if (!base || reinterpret_cast<uintptr_t>(pointer) != base + rva || !entry || image != base
-        || entry->BeginAddress != rva || entry->EndAddress - entry->BeginAddress != extent || extent < 32) return false;
-    for (int i = 0; i < 32; ++i) {
-      const auto digit = [](char c) { return c <= '9' ? c - '0' : c - 'a' + 10; };
-      if (static_cast<unsigned char*>(pointer)[i] != (digit(hex[i*2]) * 16 + digit(hex[i*2+1]))) return false;
-    }
-    return true;
-  }
   static void FilterHook(auto original, void* filter)
   { Instance().Filter(original, filter); }
   static void BindHook(auto original, void* widget)
@@ -793,35 +781,35 @@ public:
         || !zoom.isValidHelper() || !filter.isValidHelper() || !world.isValidHelper()) return;
     world_instance = il2cpp_class_get_method_from_name(il2cpp_class_get_parent(world.get_cls()), "get_Instance", 0);
     is_minor = world.GetMethodInfo("IsMinorNode");
-    auto should_filter = filter.GetMethod("RebuildCullingGroup");
+    using method_contract::Resolve;
+    using method_contract::Pointer;
+    auto should_filter = Pointer(Resolve(filter.get_cls(), "RebuildCullingGroup", false, "System.Void", {}));
     auto* dirty = il2cpp_class_get_field_from_name(filter.get_cls(), "_cullingDirty");
     auto* current = il2cpp_class_get_field_from_name(filter.get_cls(), "_currentLevel");
     auto* context = il2cpp_class_get_field_from_name(star.get_cls(), "m_context");
     if (!world_instance || !is_minor || !dirty || dirty->offset != 0x80 || !current || current->offset != 0x7c
         || !context || context->offset != 0x50) return;
-    auto data = star.GetMethod("UpdateStarData"), name = star.GetMethod("UpdateStarName");
-    auto bind = star.GetMethod("OnDidBindContext"), release = star.GetMethod("OnAboutToReleaseContext");
-    // These helpers are called, not detoured. Retain the native multi-pass fallback
-    // if their exact-client signatures or native fingerprints do not match.
-    resource_update = star.GetMethodInfo("UpdateResourcesList");
-    hostile_update = star.GetMethodInfo("UpdateHostilesList");
-    const auto bool_method = [](const MethodInfo* method, int count) {
-      if (!method || method->parameters_count != count || method->return_type->type != IL2CPP_TYPE_VOID) return false;
-      for (int i = 0; i < count; ++i)
-        if (method->parameters[i]->type != IL2CPP_TYPE_BOOLEAN) return false;
-      return true;
-    };
-    if (!bool_method(resource_update, 3) || !bool_method(hostile_update, 2)
-        || !Fits(star.GetMethod("UpdateResourcesList"), 0xfa5c00, 605,
-                 "48895c240848896c2410488974241848897c242041564883ec30803d8771c704")
-        || !Fits(star.GetMethod("UpdateHostilesList"), 0xfa5e60, 265,
-                 "48895c240848896c24104889742418574883ec20803d2e6fc70400410fb6e80f")) {
-      resource_update = nullptr;
-      hostile_update = nullptr;
-    }
+    const auto* data_info = Resolve(star.get_cls(), "UpdateStarData", false, "System.Void",
+                                    {"Digit.Prime.Navigation.ZoomLevels"});
+    auto data = Pointer(data_info);
+    auto name = Pointer(Resolve(star.get_cls(), "UpdateStarName", false, "System.Void",
+        {"System.Boolean", "System.Boolean", "System.Boolean", "System.Boolean"}));
+    auto bind = Pointer(Resolve(star.get_cls(), "OnDidBindContext", false, "System.Void", {}));
+    auto release = Pointer(Resolve(star.get_cls(), "OnAboutToReleaseContext", false, "System.Void", {}));
+    // Optional helpers use managed invocation and keep the native multi-pass fallback.
+    resource_update = Resolve(star.get_cls(), "UpdateResourcesList", false, "System.Void",
+                              {"System.Boolean", "System.Boolean", "System.Boolean"});
+    hostile_update = Resolve(star.get_cls(), "UpdateHostilesList", false, "System.Void",
+                             {"System.Boolean", "System.Boolean"});
     spdlog::info("[GalaxyLabels] single-pass helpers available={}", resource_update && hostile_update);
-    auto select = hud.GetMethod("ChangeGalaxyViewInfo"), animation = toggle.GetMethod("UpdateSelectedAnimation");
-    auto zoom_changed = zoom.GetMethod("OnZoomChanged");
+    auto select = Pointer(Resolve(hud.get_cls(), "ChangeGalaxyViewInfo", false, "System.Void", {"System.Int32"}));
+    auto animation = Pointer(Resolve(toggle.get_cls(), "UpdateSelectedAnimation", false, "System.Void",
+        {"System.Boolean", "System.Boolean", "System.Boolean", "System.Boolean"}));
+    const auto* zoom_info = Resolve(zoom.get_cls(), "OnZoomChanged", false, "System.Void",
+                                    {"Digit.Prime.Navigation.ZoomLevels"});
+    auto zoom_changed = Pointer(zoom_info);
+    auto* level = data_info ? il2cpp_class_from_type(data_info->parameters[0]) : nullptr;
+    const auto* underlying = level && il2cpp_class_is_enum(level) ? il2cpp_class_enum_basetype(level) : nullptr;
     mode_field = il2cpp_class_get_field_from_name(director.get_cls(), "GalaxyViewMode");
     get_component = component.GetMethodInfoSpecial("GetComponent", [](auto count, auto params) {
       return count == 1 && params[0]->type == IL2CPP_TYPE_CLASS;
@@ -840,18 +828,11 @@ public:
     auto list = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.UI", "BaseListContainer");
     const auto* container = list.isValidHelper() ? il2cpp_class_get_field_from_name(list.get_cls(), "m_container") : nullptr;
     if (!container || container->offset != 0x28) return;
-    if (!mode_field || !get_component || !star_type
-        || !Fits(bind, 0xfa0840, 629, "48895c24104889742418574883ec50803d3bc5c70400488bf90f85e301000048")
-        || !Fits(release, 0xf9f960, 692, "48895c2418574883ec30803d1ed4c70400488bd90f8527020000488d0d9f64a3")
-        || !Fits(should_filter, 0x88c090, 296, "4053574881ecc8000000803d6ade380500488bd90f8506010000488d0d971b0f")
-        || !Fits(data, 0xfa5640, 389, "40535556415441554883ec50803d5377c704008bf2488bd9754b488d0d5f20a2")
-        || !Fits(name, 0xfa6300, 600, "44884c2420535556415441554883ec60803d956ac70400410fb6e9450fb6e044")
-        // This callback's exact unwind extent is 35 bytes, including the tail
-        // branch. 24-byte Windows SPUD overwrite fits; no other platform enabled.
-        || !Fits(select, 0x1029260, 35, "40534883ec204533c0488bd9e85f0100004533c0b201488bcb4883c4205be94d")
-        || !Fits(animation, 0x1023020, 973, "48895c240848896c2410488974241848897c242041564883ec20803d9ba0bf04")
-        || !Fits(zoom_changed, 0xf8adc0, 410, "48895c2418574883ec20803d251fc904008bfa488bd97518488d0dc97aa004e8")) {
-      spdlog::warn("[GalaxyLabels] exact-client validation failed"); return;
+    // The small selection callback requires native inspection when reviewing client
+    // updates. Other bindings follow the normal IL2CPP resolution/SPUD hook path.
+    if (!mode_field || !get_component || !star_type || !underlying || underlying->type != IL2CPP_TYPE_I4
+        || !bind || !release || !should_filter || !data || !name || !select || !animation || !zoom_changed) {
+      spdlog::warn("[GalaxyLabels] incompatible native bindings"); return;
     }
     for (auto [field, offset] : {std::pair{"_resourceList", 0xf0}, {"_resourceListContainer", 0x100},
                                   {"_hostilesListContainer", 0x108}, {"_hazardsListContainer", 0x118}, {"_hazardsWidget", 0x110},
