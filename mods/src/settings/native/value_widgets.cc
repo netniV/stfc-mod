@@ -963,13 +963,16 @@ bool InstallCoreValueWidgets()
       throw std::runtime_error("settings observer ownership");
     if (!ForbiddenTechConfirmationSetting().SetChangeObserver(RefreshViews))
       throw std::runtime_error("settings observer ownership");
-    SPUD_STATIC_DETOUR(m.refresh->methodPointer, RefreshHook);
-    SPUD_STATIC_DETOUR(m.changed->methodPointer, ChangedHook);
-    SPUD_STATIC_DETOUR(m.release->methodPointer, ReleaseHook);
-    SPUD_STATIC_DETOUR(m.reload->methodPointer, ReloadHook);
-    SPUD_STATIC_DETOUR(m.session->methodPointer, SessionHook);
-    SPUD_STATIC_DETOUR(m.load->methodPointer, LoadHook);
-    SPUD_STATIC_DETOUR(m.addGeneral->methodPointer, AddGeneralHook);
+    // A rejected target need not throw. Keep any installed hooks on their native
+    // path until the complete adapter is ready; do not retry a partial install.
+    if (!SPUD_STATIC_DETOUR(m.refresh->methodPointer, RefreshHook)
+        || !SPUD_STATIC_DETOUR(m.changed->methodPointer, ChangedHook)
+        || !SPUD_STATIC_DETOUR(m.release->methodPointer, ReleaseHook)
+        || !SPUD_STATIC_DETOUR(m.reload->methodPointer, ReloadHook)
+        || !SPUD_STATIC_DETOUR(m.session->methodPointer, SessionHook)
+        || !SPUD_STATIC_DETOUR(m.load->methodPointer, LoadHook)
+        || !SPUD_STATIC_DETOUR(m.addGeneral->methodPointer, AddGeneralHook))
+      throw std::runtime_error("settings hook installation");
     active = true;
     return true;
   } catch (...) {
