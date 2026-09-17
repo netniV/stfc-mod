@@ -640,8 +640,9 @@ void InstallPages()
           if (target->methodPointer == existing->methodPointer)
             throw std::runtime_error("heading slider overlap");
     }
-    SPUD_STATIC_DETOUR(heading.refresh->methodPointer, HeadingRefreshHook);
-    SPUD_STATIC_DETOUR(heading.clear->methodPointer, HeadingClearHook);
+    if (!SPUD_STATIC_DETOUR(heading.refresh->methodPointer, HeadingRefreshHook)
+        || !SPUD_STATIC_DETOUR(heading.clear->methodPointer, HeadingClearHook))
+      throw std::runtime_error("heading hook installation");
     headingsActive = true;
   }
   InstallActionWidgets();
