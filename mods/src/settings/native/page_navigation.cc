@@ -650,8 +650,9 @@ void InstallPages()
           if (target->methodPointer == existing->methodPointer)
             throw std::runtime_error("heading slider overlap");
     }
-    SPUD_STATIC_DETOUR(heading.refresh->methodPointer, HeadingRefreshHook);
-    SPUD_STATIC_DETOUR(heading.clear->methodPointer, HeadingClearHook);
+    if (!SPUD_STATIC_DETOUR(heading.refresh->methodPointer, HeadingRefreshHook)
+        || !SPUD_STATIC_DETOUR(heading.clear->methodPointer, HeadingClearHook))
+      throw std::runtime_error("heading hook installation");
     headingsActive = true;
   }
   InstallActionWidgets();
@@ -664,10 +665,11 @@ void InstallPages()
       if (!setting->SetChangeObserver(RefreshViews))
         throw std::runtime_error("settings observer ownership");
     }
-  SPUD_STATIC_DETOUR(m.bind->methodPointer, CategoryBindHook);
-  SPUD_STATIC_DETOUR(m.release->methodPointer, CategoryReleaseHook);
-  SPUD_STATIC_DETOUR(m.selected->methodPointer, PageSelectedHook);
-  SPUD_STATIC_DETOUR(m.destroyed->methodPointer, PageDestroyedHook);
+  if (!SPUD_STATIC_DETOUR(m.bind->methodPointer, CategoryBindHook)
+      || !SPUD_STATIC_DETOUR(m.release->methodPointer, CategoryReleaseHook)
+      || !SPUD_STATIC_DETOUR(m.selected->methodPointer, PageSelectedHook)
+      || !SPUD_STATIC_DETOUR(m.destroyed->methodPointer, PageDestroyedHook))
+    throw std::runtime_error("settings page hook installation");
   pagesActive = true;
   spdlog::info("[ModSettings] Native navigation installed: {} registered pages", Pages().size());
 }
