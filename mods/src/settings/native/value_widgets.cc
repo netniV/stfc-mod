@@ -670,8 +670,32 @@ void ChangeValue(auto original, Il2CppObject* widget, auto desired)
 }
 void ChangedHook(auto original, Il2CppObject* widget, bool desired)
 { ChangeValue(original, widget, desired); }
+// Core controls may already be active when an optional family's install fails.
+// Keep its retained detours native until every hook in that family is ready.
+void SelectionRefreshHook(auto original, Il2CppObject* widget)
+{
+  if (!selectionActive)
+    return original(widget);
+  RefreshHook(original, widget);
+}
+void SelectionChangedHook(auto original, Il2CppObject* widget, bool desired)
+{
+  if (!selectionActive)
+    return original(widget, desired);
+  ChangeValue(original, widget, desired);
+}
+void SliderRefreshHook(auto original, Il2CppObject* widget)
+{
+  if (!sliderActive)
+    return original(widget);
+  RefreshHook(original, widget);
+}
 void SliderChangedHook(auto original, Il2CppObject* widget, float desired)
-{ ChangeValue(original, widget, desired); }
+{
+  if (!sliderActive)
+    return original(widget, desired);
+  ChangeValue(original, widget, desired);
+}
 void SliderValueLabelHook(auto original, Il2CppObject* widget, float value)
 {
   if (OnUIThread() && sliderActive) {
@@ -870,10 +894,11 @@ void InstallChoiceAndSliderWidgets()
       for (auto* choice : page.Controls<ChoiceSetting>())
         if (!choice->state().SetChangeObserver(RefreshViews))
           throw std::runtime_error("selection observer ownership");
-    SPUD_STATIC_DETOUR(selection.refresh->methodPointer, RefreshHook);
-    SPUD_STATIC_DETOUR(selection.changed->methodPointer, ChangedHook);
-    SPUD_STATIC_DETOUR(selection.release->methodPointer, ReleaseHook);
-    SPUD_STATIC_DETOUR(transition->methodPointer, SelectionTransitionHook);
+    if (!SPUD_STATIC_DETOUR(selection.refresh->methodPointer, SelectionRefreshHook)
+        || !SPUD_STATIC_DETOUR(selection.changed->methodPointer, SelectionChangedHook)
+        || !SPUD_STATIC_DETOUR(selection.release->methodPointer, ReleaseHook)
+        || !SPUD_STATIC_DETOUR(transition->methodPointer, SelectionTransitionHook))
+      throw std::runtime_error("selection hook installation");
     selectionActive = true;
   }
   if (std::any_of(Pages().begin(), Pages().end(),
@@ -920,11 +945,11 @@ void InstallChoiceAndSliderWidgets()
       for (auto* setting : page.Controls<SliderSetting>())
         if (!setting->state().SetChangeObserver(RefreshViews))
           throw std::runtime_error("slider observer ownership");
-    SPUD_STATIC_DETOUR(slider.refresh->methodPointer, RefreshHook);
-    SPUD_STATIC_DETOUR(slider.changed->methodPointer, SliderChangedHook);
-    SPUD_STATIC_DETOUR(slider.release->methodPointer, ReleaseHook);
-    if (!SPUD_STATIC_DETOUR(slider.valueLabel->methodPointer, SliderValueLabelHook))
-      throw std::runtime_error("slider label hook installation");
+    if (!SPUD_STATIC_DETOUR(slider.refresh->methodPointer, SliderRefreshHook)
+        || !SPUD_STATIC_DETOUR(slider.changed->methodPointer, SliderChangedHook)
+        || !SPUD_STATIC_DETOUR(slider.release->methodPointer, ReleaseHook)
+        || !SPUD_STATIC_DETOUR(slider.valueLabel->methodPointer, SliderValueLabelHook))
+      throw std::runtime_error("slider hook installation");
     sliderActive = true;
   }
 }
@@ -963,13 +988,16 @@ bool InstallCoreValueWidgets()
       throw std::runtime_error("settings observer ownership");
     if (!ForbiddenTechConfirmationSetting().SetChangeObserver(RefreshViews))
       throw std::runtime_error("settings observer ownership");
-    SPUD_STATIC_DETOUR(m.refresh->methodPointer, RefreshHook);
-    SPUD_STATIC_DETOUR(m.changed->methodPointer, ChangedHook);
-    SPUD_STATIC_DETOUR(m.release->methodPointer, ReleaseHook);
-    SPUD_STATIC_DETOUR(m.reload->methodPointer, ReloadHook);
-    SPUD_STATIC_DETOUR(m.session->methodPointer, SessionHook);
-    SPUD_STATIC_DETOUR(m.load->methodPointer, LoadHook);
-    SPUD_STATIC_DETOUR(m.addGeneral->methodPointer, AddGeneralHook);
+    // A rejected target need not throw. Keep any installed hooks on their native
+    // path until the complete adapter is ready; do not retry a partial install.
+    if (!SPUD_STATIC_DETOUR(m.refresh->methodPointer, RefreshHook)
+        || !SPUD_STATIC_DETOUR(m.changed->methodPointer, ChangedHook)
+        || !SPUD_STATIC_DETOUR(m.release->methodPointer, ReleaseHook)
+        || !SPUD_STATIC_DETOUR(m.reload->methodPointer, ReloadHook)
+        || !SPUD_STATIC_DETOUR(m.session->methodPointer, SessionHook)
+        || !SPUD_STATIC_DETOUR(m.load->methodPointer, LoadHook)
+        || !SPUD_STATIC_DETOUR(m.addGeneral->methodPointer, AddGeneralHook))
+      throw std::runtime_error("settings hook installation");
     active = true;
     return true;
   } catch (...) {

@@ -1,7 +1,7 @@
 #if defined(_WIN32) && defined(_M_X64)
 #include "interop.h"
 #include "settings/page_catalog.h"
-#include <Windows.h>
+#include "settings/windows_hook_extent.h"
 #include <cstring>
 #include <spdlog/spdlog.h>
 
@@ -144,14 +144,7 @@ bool HasLabel(Il2CppObject* row, const char* id)
 }
 bool Extent(const MethodInfo* method)
 {
-  if (!method || !method->methodPointer)
-    return false;
-  DWORD64    base    = 0;
-  const auto address = reinterpret_cast<DWORD64>(method->methodPointer);
-  auto*      entry   = RtlLookupFunctionEntry(address, &base, nullptr);
-  // Bundled x64 SPUD reserves 24 bytes; the 64-byte minimum and exact entry reject
-  // shared tiny accessors/thunks. Only Windows x64 is enabled by this adapter.
-  return entry && base + entry->BeginAddress == address && entry->EndAddress - entry->BeginAddress >= 64;
+  return method && WindowsHookFits(method->methodPointer);
 }
 
 } // namespace mod_settings::native

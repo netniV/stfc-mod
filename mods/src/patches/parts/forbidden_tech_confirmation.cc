@@ -16,6 +16,7 @@ constexpr int32_t ConfirmButtonResult = 1;
 
 const FieldInfo* on_selection_field = nullptr;
 bool             installed          = false;
+bool             attempted          = false;
 
 bool IsForbiddenTechConfirmation(const Il2CppDelegate* callback)
 {
@@ -32,7 +33,7 @@ bool IsForbiddenTechConfirmation(const Il2CppDelegate* callback)
 
 bool ConfirmForbiddenTechUpgrade(Il2CppDelegate* callback)
 {
-  if (!Config::Get().auto_confirm_ft_upgrade || !IsForbiddenTechConfirmation(callback)) {
+  if (!installed || !Config::Get().auto_confirm_ft_upgrade || !IsForbiddenTechConfirmation(callback)) {
     return false;
   }
 
@@ -78,8 +79,9 @@ bool ForbiddenTechControlsAvailable()
 
 void InstallForbiddenTechConfirmationHooks()
 {
-  if (installed)
+  if (attempted)
     return;
+  attempted = true;
   auto message_box_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.UI", "MessageBox");
   if (!message_box_helper.isValidHelper()) {
     ErrorMsg::MissingHelper("Digit.Client.UI", "MessageBox");
@@ -123,7 +125,10 @@ void InstallForbiddenTechConfirmationHooks()
     }
   }
 #endif
-  SPUD_STATIC_DETOUR(show->methodPointer, MessageBox_Show_Hook);
-  SPUD_STATIC_DETOUR(show_with_callback->methodPointer, MessageBox_ShowWithCallback_Hook);
+  if (!SPUD_STATIC_DETOUR(show->methodPointer, MessageBox_Show_Hook)
+      || !SPUD_STATIC_DETOUR(show_with_callback->methodPointer, MessageBox_ShowWithCallback_Hook)) {
+    spdlog::warn("Forbidden Tech confirmation unavailable: hook installation");
+    return;
+  }
   installed = true;
 }
