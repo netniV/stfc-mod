@@ -959,10 +959,11 @@ void InstallPages()
       if (!setting->SetChangeObserver(RefreshViews))
         throw std::runtime_error("settings observer ownership");
     }
-  SPUD_STATIC_DETOUR(m.bind->methodPointer, CategoryBindHook);
-  SPUD_STATIC_DETOUR(m.release->methodPointer, CategoryReleaseHook);
-  SPUD_STATIC_DETOUR(m.selected->methodPointer, PageSelectedHook);
-  SPUD_STATIC_DETOUR(m.destroyed->methodPointer, PageDestroyedHook);
+  if (!SPUD_STATIC_DETOUR(m.bind->methodPointer, CategoryBindHook)
+      || !SPUD_STATIC_DETOUR(m.release->methodPointer, CategoryReleaseHook)
+      || !SPUD_STATIC_DETOUR(m.selected->methodPointer, PageSelectedHook)
+      || !SPUD_STATIC_DETOUR(m.destroyed->methodPointer, PageDestroyedHook))
+    throw std::runtime_error("settings page hook installation");
   pagesActive = true;
   spdlog::info("[ModSettings] Native navigation installed: {} registered pages", pages.size());
 }
