@@ -95,12 +95,10 @@ compare-and-swap with arbitrary external editors: an external write can still
 race the final native replacement. File deletion is an I/O error, not permission
 to recreate the user's file from cached content.
 
-Runtime persistence currently requires the verified build261 Windows x64 quit
-method (RVA `0x43548c0`, native extent 411 bytes, 24-byte SPUD overwrite, complete
-initial instruction fingerprint checked at installation). macOS and unmatched
-clients keep the shortcut's existing session-only behavior and log that persistence
-is unavailable. The editor/storage fixtures run on all supported build platforms;
-they do not establish native game-hook compatibility.
+Runtime persistence supports Windows x64 clients with compatible Unity quit methods.
+The adapter resolves `Internal_ApplicationWantsToQuit()` and `Quit(int)` by their
+complete managed signatures, without pinning client addresses or instruction bytes.
+macOS and incompatible signatures retain session-only changes.
 
 An idle normal quit closes admission and passes the original vote through without
 replaying quit. When work is active, normal quit stops admission, drains accepted work, then resumes the game's quit
