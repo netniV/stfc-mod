@@ -94,7 +94,7 @@ hotkeys_extended = true
 # If you have the Kir'Shara artifact, should the queue be enabled by default?
 queue_enabled = true
 
-# Faster Queue Recovery: advance after an outstanding target disappears (Windows client 261 only).
+# Faster Queue Recovery: advance after an outstanding target disappears (Windows x64 only).
 faster_queue_recovery = false
 
 # If you prefer to use Scopely's hotkeys set this to true
