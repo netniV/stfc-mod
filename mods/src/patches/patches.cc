@@ -33,6 +33,7 @@ void InstallDailyFactionBulkClaimHooks();
 void InstallTestPatches();
 void InstallMiscPatches();
 void InstallMissionHudTweaksHooks();
+void InstallArtifactExchangeHooks();
 void InstallChatPatches();
 void InstallTempCrashFixes();
 void InstallSyncPatches();
@@ -137,6 +138,7 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
       {"TestPatches", {InstallTestPatches, &cfg.installTestPatches}},
       {"MiscPatches", {InstallMiscPatches, &cfg.installMiscPatches}},
       {"MissionHudTweaksHooks", {InstallMissionHudTweaksHooks, &cfg.installMissionHudTweaksHooks}},
+      {"ArtifactExchangeHooks", {InstallArtifactExchangeHooks, &cfg.hide_artifact_exchange_all}},
       {"ChatPatches", {InstallChatPatches, &cfg.installChatPatches}},
       {"SyncPatches", {InstallSyncPatches, &cfg.installSyncPatches}},
       {"ObjectTracker", {InstallObjectTrackers, &cfg.installObjectTracker}},

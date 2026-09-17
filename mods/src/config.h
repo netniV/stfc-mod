@@ -260,6 +260,7 @@ public:
   bool installTestPatches;
   bool installMiscPatches;
   bool installMissionHudTweaksHooks;
+  bool hide_artifact_exchange_all;
   bool installChatPatches;
   bool installSyncPatches;
   bool installGameVersionHook;

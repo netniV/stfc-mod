@@ -227,6 +227,7 @@ namespace Sync
 
 namespace UI
 {
+  constexpr bool hide_artifact_exchange_all = false;
   constexpr bool        always_skip_reveal_sequence = true;
   constexpr bool        arrow_keys_to_select_ship   = true;
   constexpr bool        auto_confirm_discovery      = true;

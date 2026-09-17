@@ -1111,6 +1111,8 @@ void Config::Load()
   this->mission_hud_buttons.emplace(
       "missions", get_mission_hud_visibility(config, parsed, "hud_missions", DCU::hud_missions, write_config));
   this->installMissionHudTweaksHooks = this->MissionHudTweaksEnabled();
+  this->hide_artifact_exchange_all = get_config_or_default(
+      config, parsed, "ui", "hide_artifact_exchange_all", DCU::hide_artifact_exchange_all, write_config);
 
   spdlog::debug("");
 

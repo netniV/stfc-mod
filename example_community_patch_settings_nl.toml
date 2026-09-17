@@ -632,6 +632,8 @@ zoom_reset = "="
 #  <[===================================================================]> 
 
 [ui]
+# Verberg "Alles inwisselen" voor artefactfragmenten; afzonderlijk inwisselen blijft beschikbaar. Herstart vereist.
+hide_artifact_exchange_all = false
 # Slaat de onthullig animatie van een kist altijd over en opent gewoon de kist
 always_skip_reveal_sequence = true
 auto_confirm_discovery = true
