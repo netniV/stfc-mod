@@ -11,8 +11,8 @@
 #if defined(_WIN32) && defined(_M_X64)
 #include "patches/screen_update_hook.h"
 #include <Windows.h>
-#include <cstring>
 #include <il2cpp/il2cpp_helper.h>
+#include <il2cpp/method_contract.h>
 #include <spud/detour.h>
 #endif
 #endif
@@ -119,23 +119,6 @@ void Update()
     request_quit(0);
 }
 
-#ifndef CONFIG_RUNTIME_TEST
-bool MatchesQuitMethod(const MethodInfo* method)
-{
-  // Verified build261 Windows x64: 411-byte native body vs SPUD's 24-byte
-  // overwrite. Pin complete initial instructions too; other builds stay session-only.
-  constexpr unsigned char bytes[]{0x48, 0x89, 0x5c, 0x24, 0x08, 0x56, 0x57, 0x41, 0x56, 0x48,
-                                  0x83, 0xec, 0x40, 0x80, 0x3d, 0xad, 0xd2, 0x8d, 0x01, 0x00,
-                                  0x75, 0x29, 0x48, 0x8d, 0x0d, 0x9b, 0xdf, 0x63, 0x01};
-  auto                    base = reinterpret_cast<std::uintptr_t>(GetModuleHandleW(L"GameAssembly.dll"));
-  if (!base || !method || reinterpret_cast<std::uintptr_t>(method->methodPointer) != base + 0x43548c0)
-    return false;
-  DWORD64     image_base = 0;
-  const auto* extent     = RtlLookupFunctionEntry(base + 0x43548c0, &image_base, nullptr);
-  return extent && image_base == base && extent->BeginAddress == 0x43548c0 && extent->EndAddress == 0x4354a5b
-         && std::memcmp(method->methodPointer, bytes, sizeof(bytes)) == 0;
-}
-#endif
 
 DWORD WINAPI FinishForceClose(void* handle)
 {
@@ -225,11 +208,13 @@ void Install()
   attempted = true;
   try {
     auto        helper = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "Application");
-    const auto* wants  = helper.GetMethodInfo("Internal_ApplicationWantsToQuit", 0);
-    const auto* quit   = helper.GetMethodInfo("Quit", 1);
-    auto        base   = reinterpret_cast<std::uintptr_t>(GetModuleHandleW(L"GameAssembly.dll"));
-    if (!MatchesQuitMethod(wants) || !quit || reinterpret_cast<std::uintptr_t>(quit->methodPointer) != base + 0x4351c00)
+    const auto* wants = method_contract::Resolve(helper.get_cls(), "Internal_ApplicationWantsToQuit", true,
+                                                  "System.Boolean", {});
+    const auto* quit = method_contract::Resolve(helper.get_cls(), "Quit", true, "System.Void", {"System.Int32"});
+    if (!wants || !quit) {
+      spdlog::warn("Runtime config persistence unavailable: incompatible Unity quit methods");
       return;
+    }
     request_quit = reinterpret_cast<void (*)(int)>(quit->methodPointer);
     available    = install_screen_manager_update_hook() && register_screen_manager_update_callback(Update)
                    && SPUD_STATIC_DETOUR(wants->methodPointer, WantsQuit);
