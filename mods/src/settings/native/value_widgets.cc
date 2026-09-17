@@ -670,8 +670,32 @@ void ChangeValue(auto original, Il2CppObject* widget, auto desired)
 }
 void ChangedHook(auto original, Il2CppObject* widget, bool desired)
 { ChangeValue(original, widget, desired); }
+// Core controls may already be active when an optional family's install fails.
+// Keep its retained detours native until every hook in that family is ready.
+void SelectionRefreshHook(auto original, Il2CppObject* widget)
+{
+  if (!selectionActive)
+    return original(widget);
+  RefreshHook(original, widget);
+}
+void SelectionChangedHook(auto original, Il2CppObject* widget, bool desired)
+{
+  if (!selectionActive)
+    return original(widget, desired);
+  ChangeValue(original, widget, desired);
+}
+void SliderRefreshHook(auto original, Il2CppObject* widget)
+{
+  if (!sliderActive)
+    return original(widget);
+  RefreshHook(original, widget);
+}
 void SliderChangedHook(auto original, Il2CppObject* widget, float desired)
-{ ChangeValue(original, widget, desired); }
+{
+  if (!sliderActive)
+    return original(widget, desired);
+  ChangeValue(original, widget, desired);
+}
 void SliderValueLabelHook(auto original, Il2CppObject* widget, float value)
 {
   if (OnUIThread() && sliderActive) {
@@ -870,8 +894,8 @@ void InstallChoiceAndSliderWidgets()
       for (auto* choice : page.Controls<ChoiceSetting>())
         if (!choice->state().SetChangeObserver(RefreshViews))
           throw std::runtime_error("selection observer ownership");
-    if (!SPUD_STATIC_DETOUR(selection.refresh->methodPointer, RefreshHook)
-        || !SPUD_STATIC_DETOUR(selection.changed->methodPointer, ChangedHook)
+    if (!SPUD_STATIC_DETOUR(selection.refresh->methodPointer, SelectionRefreshHook)
+        || !SPUD_STATIC_DETOUR(selection.changed->methodPointer, SelectionChangedHook)
         || !SPUD_STATIC_DETOUR(selection.release->methodPointer, ReleaseHook)
         || !SPUD_STATIC_DETOUR(transition->methodPointer, SelectionTransitionHook))
       throw std::runtime_error("selection hook installation");
@@ -921,7 +945,7 @@ void InstallChoiceAndSliderWidgets()
       for (auto* setting : page.Controls<SliderSetting>())
         if (!setting->state().SetChangeObserver(RefreshViews))
           throw std::runtime_error("slider observer ownership");
-    if (!SPUD_STATIC_DETOUR(slider.refresh->methodPointer, RefreshHook)
+    if (!SPUD_STATIC_DETOUR(slider.refresh->methodPointer, SliderRefreshHook)
         || !SPUD_STATIC_DETOUR(slider.changed->methodPointer, SliderChangedHook)
         || !SPUD_STATIC_DETOUR(slider.release->methodPointer, ReleaseHook)
         || !SPUD_STATIC_DETOUR(slider.valueLabel->methodPointer, SliderValueLabelHook))
