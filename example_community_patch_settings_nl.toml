@@ -543,6 +543,9 @@ show_stationexterior = "SHIFT-G"
 # Station Interieur
 show_stationinterior = "SHIFT-H"
 
+# Open je eigen Haven (vereist de Iconian Gateway)
+show_haven = "ALT-H"
+
 # Ga naar Stelsel
 show_system = "H"
 

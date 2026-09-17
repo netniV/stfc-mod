@@ -543,6 +543,9 @@ show_stationexterior = "SHIFT-G"
 # Внутренний вид станции
 show_stationinterior = "SHIFT-H"
 
+# Открыть свой Haven (требуются Иконианские врата)
+show_haven = "ALT-H"
+
 # Перейти к системе
 show_system = "H"
 

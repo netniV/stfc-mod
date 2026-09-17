@@ -543,6 +543,9 @@ show_stationexterior = "SHIFT-G"
 # Intérieur de la station
 show_stationinterior = "SHIFT-H"
 
+# Ouvrir votre Haven (nécessite la passerelle iconienne)
+show_haven = "ALT-H"
+
 # Aller dans le système
 show_system = "H"
 
