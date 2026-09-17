@@ -17,11 +17,11 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  XMAKE_VERSION: "3.1.0"
+  XMAKE_VERSION: "3.1.1"
   # Bump this when a dependency cache must be invalidated manually.
   XMAKE_CACHE_SCHEMA: "v4"
   # Narrow protobuf-only compiler-cache experiment.
-  PROTOBUF_SCCACHE_VERSION: "v0.17.0"
+  PROTOBUF_SCCACHE_VERSION: "v0.18.0"
   PROTOBUF_SCCACHE_SCHEMA: "v1"
   STFC_PROTOBUF_SCCACHE: "1"
   # Keep sccache local; actions/cache owns persistence explicitly.
@@ -323,7 +323,7 @@ jobs:
 
     runs-on: ${{ matrix.runner }}
     env:
-      MACOSX_DEPLOYMENT_TARGET: "13.5"
+      MACOSX_DEPLOYMENT_TARGET: "14.6"
       SWIFT_MODULE_CACHE_SCHEMA: "v1"
       SCCACHE_DIR: ${{ github.workspace }}/build/.protobuf-sccache
       SCCACHE_CACHE_SIZE: "1G"
@@ -739,18 +739,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-      
+
           APP="build/macosx/arm64/release/STFC Community Mod.app"
-      
+
           check_linkage() {
             local binary="$1"
             local deps
-      
+
             echo
             echo "==> $binary"
             deps="$(otool -L "$binary")"
             printf '%s\n' "$deps"
-      
+
             if printf '%s\n' "$deps" | grep -E \
               '/opt/homebrew/|/usr/local/(opt|Cellar)/|(^|/)libssl(\.[0-9]+)*\.dylib|(^|/)libcrypto(\.[0-9]+)*\.dylib|(^|/)libcurl(\.[0-9]+)*\.dylib'
             then
@@ -758,7 +758,7 @@ jobs:
               return 1
             fi
           }
-      
+
           check_linkage "$APP/Contents/MacOS/macOSLauncher"
           check_linkage "$APP/Contents/stfc-community-mod-loader"
           check_linkage "$APP/Contents/libstfc-community-mod.dylib"
