@@ -18,7 +18,8 @@ struct FleetArrivalTracker {
       epoch = observation_epoch;
       journey_observed = false;
     }
-    if (before == FleetArrivalPhase::Warping || after == FleetArrivalPhase::Charging
+    if (before == FleetArrivalPhase::Warping || before == FleetArrivalPhase::Charging
+        || after == FleetArrivalPhase::Charging
         || after == FleetArrivalPhase::Warping)
       journey_observed = true;
 

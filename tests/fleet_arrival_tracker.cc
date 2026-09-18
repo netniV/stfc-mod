@@ -45,5 +45,8 @@ int main()
   assert(!step(P::Other, P::Impulsing, true, 2, 11));
   // Baseline already in warp: its eventual normal arrival still fires.
   assert(step(P::Warping, P::Impulsing, true, 3, 12));
+  // Baseline in charging also establishes an in-flight journey, even if warp is skipped.
+  assert(step(P::Charging, P::Impulsing, true, 4, 13));
+  assert(!step(P::Charging, P::Impulsing, false, 5, 14));
   std::cout << "Fleet arrival regression cases passed\n";
 }
