@@ -94,6 +94,9 @@ hotkeys_extended = true
 # Als je de Kir'Shara artefect hebt, moet de wachtrij standaard ingeschakeld zijn?
 queue_enabled = true
 
+# Sneller doorgaan met de wachtrij als een doel verdwijnt (alleen Windows x64).
+faster_queue_recovery = false
+
 # Als je de Scopely sneltoetsen prefereerd over die van de mod, schakel dit dan aan
 use_scopely_hotkeys = false
 

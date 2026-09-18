@@ -934,6 +934,8 @@ void Config::Load()
   this->installPinnedShipSortHooks =
       get_config_or_default(config, parsed, "patches", "pinnedshiphooks", DCP::pinnedshiphooks, write_config);
   spdlog::debug("");
+  this->faster_queue_recovery = get_config_or_default(config, parsed, "control", "faster_queue_recovery",
+                                                     DCC::faster_queue_recovery, write_config);
   this->queue_enabled =
       get_config_or_default(config, parsed, "control", "queue_enabled", DCC::queue_enabled, write_config);
   this->hotkeys_enabled =
