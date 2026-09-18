@@ -14,6 +14,8 @@ struct Transition {
   Snapshot         before;
   Snapshot         after;
   FleetPlayerData* fleet = nullptr;
+  // Changes whenever the observer resets its baseline; consumers must discard journey history.
+  uint64_t observation_epoch = 0;
 };
 
 using TransitionCallback = void (*)(const Transition& transition);

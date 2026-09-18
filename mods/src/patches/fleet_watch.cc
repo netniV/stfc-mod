@@ -41,6 +41,7 @@ struct ObservedFleet {
 };
 
 std::array<ObservedFleet, kFleetSlotCount> s_slots{};
+uint64_t s_observation_epoch = 0;
 std::vector<fleet_watch::Subscription>     s_subscriptions;
 bool                                       s_observer_installed        = false;
 bool                                       s_seed_pending              = false;
@@ -110,6 +111,7 @@ bool needs_fast_poll(FleetState state)
 
 void reset_observation()
 {
+  ++s_observation_epoch;
   s_slots                     = {};
   s_seed_pending              = true;
   s_seed_has_observation      = false;
@@ -152,6 +154,7 @@ void dispatch_transition(int slot, FleetPlayerData* fleet, FleetState before, Fl
       .before = fleet_watch::Snapshot{slot, fleet->Id, before},
       .after  = fleet_watch::Snapshot{slot, fleet->Id, after},
       .fleet  = fleet,
+      .observation_epoch = s_observation_epoch,
   };
   CallbackScope callback_scope;
   for (const auto& subscription : s_subscriptions) {
