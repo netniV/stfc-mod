@@ -97,6 +97,11 @@ queue_enabled = true
 # Als je de Scopely sneltoetsen prefereerd over die van de mod, schakel dit dan aan
 use_scopely_hotkeys = false
 
+# Windows x64: "physical" behoudt toetsposities; "layout" volgt de actieve indeling.
+# Vereiste Shift wordt toegevoegd; tekens met Ctrl/AltGr worden niet ondersteund.
+# Wisselen werkt direct; laat ingedrukte toetsen los. Zie docs/keyboard-letter-layout.md.
+keyboard_layout_mode = "physical"
+
 # Subgroup: Options
 # -----------------
 
