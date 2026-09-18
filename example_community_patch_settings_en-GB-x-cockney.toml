@@ -7,7 +7,7 @@
 #  |    #***     #    #       #***         #   *   #**    #***    | 
 #  |                                                              | 
 #  +--------------------------------------------------------------+ 
-#   Knocked up on 2026-09-05T13:04:20.451Z
+#   Knocked up on 2026-09-17T11:10:54.322Z
 #   
 #   This configuration file was knocked up by https://modconfig.pages.dev
 #   and comes as-is. If the STFC Community Mod gives you any aggro
@@ -17,7 +17,7 @@
 #       Discord : https://discord.gg/PrpHgs7Vjs
 #       GitHub  : https://github.com/netniV/stfc-mod
 #   
-#   Today's configuration comes courtesy of the letter W and the number 1
+#   Today's configuration comes courtesy of the letter U and the number 8
 #   
 
 #  <[=======================================]> 
@@ -403,6 +403,9 @@ set_hotkeys_disabled = "CTRL-ALT-MINUS"
 # CTRL-ALT-=
 set_hotkeys_enabled = "CTRL-ALT-="
 
+# Show or hide shortcut hints
+toggle_shortcut_hints = "HOME"
+
 # Subgroup: Queue & Primary
 # -------------------------
 
@@ -457,6 +460,9 @@ show_artifacts = "SHIFT-I"
 # Show Away Team
 show_awayteam = "T"
 
+# Open the Battle Reports inbox
+show_battlelogs = "SHIFT-B"
+
 # Show Bookmarks
 show_bookmarks = "B"
 
@@ -496,6 +502,9 @@ show_galaxy_native = "CTRL-G"
 # Go to Gifts
 show_gifts = "/"
 
+# Open Haven
+show_haven = "ALT-H"
+
 # Go to Inventory
 show_inventory = "I"
 
@@ -520,22 +529,14 @@ show_scrapyard = "Y"
 # Go to Settings
 show_settings = "SHIFT-S"
 
-# Toggle on-screen shortcut hints (shows mod bindings where supported)
-# NONE disables mod hint hooks and label caching; bind a key to enable (restart required).
-toggle_shortcut_hints = "HOME"
-# Badge modifiers use AutoHotkey notation: ^ Ctrl, ! Alt, + Shift, # Win/Command
-
-# Go to Manage Ships
-show_ships = "N"
+# Open the Peace Shield selection popup
+show_shields = "CTRL-S"
 
 # Open the Shipyard Build Ship screen
 show_shipconstruction = "SHIFT-N"
 
-# Open the Peace Shield selection popup
-show_shields = "CTRL-S"
-
-# Open the Battle Reports inbox
-show_battlelogs = "SHIFT-B"
+# Go to Manage Ships
+show_ships = "N"
 
 # Station Exterior
 show_stationexterior = "SHIFT-G"
@@ -865,7 +866,7 @@ url = ""
 # -----------------
 
 # How long to keep cached items (ms)
-resolver_cache_ttl = "300"
+resolver_cache_ttl = 300
 
 # Should SSL Certificates be checked?
 verify_ssl = true

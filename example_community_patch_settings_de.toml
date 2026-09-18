@@ -7,7 +7,7 @@
 #  |    #***     #    #       #***         #   *   #**    #***    | 
 #  |                                                              | 
 #  +--------------------------------------------------------------+ 
-#   Erstellt am 2026-09-05T13:04:20.385Z
+#   Erstellt am 2026-09-17T11:10:54.237Z
 #   
 #   Diese Konfigurationsdatei wurde von https://modconfig.pages.dev erstellt
 #   und wird ohne Gewähr bereitgestellt. Bei Problemen mit dem STFC Community Mod,
@@ -17,7 +17,7 @@
 #       Discord : https://discord.gg/PrpHgs7Vjs
 #       GitHub  : https://github.com/netniV/stfc-mod
 #   
-#   Die heutige Konfigurationsdatei wird Ihnen präsentiert vom Buchstaben I und der Zahl 2
+#   Die heutige Konfigurationsdatei wird Ihnen präsentiert vom Buchstaben S und der Zahl 9
 #   
 
 #  <[=======================================]> 
@@ -403,6 +403,9 @@ set_hotkeys_disabled = "CTRL-ALT-MINUS"
 # STRG-ALT-=
 set_hotkeys_enabled = "CTRL-ALT-="
 
+# Tastenkürzel-Hinweise ein- oder ausblenden
+toggle_shortcut_hints = "HOME"
+
 # Subgroup: Warteschlange und Primäraktion
 # ----------------------------------------
 
@@ -457,6 +460,9 @@ show_artifacts = "SHIFT-I"
 # Außenteam anzeigen
 show_awayteam = "T"
 
+# Den Posteingang für Kampfberichte öffnen
+show_battlelogs = "SHIFT-B"
+
 # Lesezeichen anzeigen
 show_bookmarks = "B"
 
@@ -496,6 +502,9 @@ show_galaxy_native = "CTRL-G"
 # Zu den Geschenken
 show_gifts = "/"
 
+# Haven öffnen
+show_haven = "ALT-H"
+
 # Zum Inventar
 show_inventory = "I"
 
@@ -520,22 +529,14 @@ show_scrapyard = "Y"
 # Zu den Einstellungen
 show_settings = "SHIFT-S"
 
-# Bildschirmhinweise für Tastenkürzel umschalten (zeigt unterstützte Mod-Tastenkürzel)
-# NONE deaktiviert Mod-Hinweis-Hooks und den Textcache; zum Aktivieren eine Taste zuweisen (Neustart erforderlich).
-toggle_shortcut_hints = "HOME"
-# Hinweissymbole verwenden die AutoHotkey-Schreibweise: ^ Strg, ! Alt, + Umschalt, # Win/Befehl
-
-# Zur Schiffsverwaltung
-show_ships = "N"
+# Die Auswahl für Friedensschilde öffnen
+show_shields = "CTRL-S"
 
 # Den Bildschirm Schiff bauen der Werft öffnen
 show_shipconstruction = "SHIFT-N"
 
-# Die Auswahl für Friedensschilde öffnen
-show_shields = "CTRL-S"
-
-# Den Posteingang für Kampfberichte öffnen
-show_battlelogs = "SHIFT-B"
+# Zur Schiffsverwaltung
+show_ships = "N"
 
 # Stationsaußenansicht
 show_stationexterior = "SHIFT-G"
@@ -865,7 +866,7 @@ url = ""
 # ------------------
 
 # Speicherdauer zwischengespeicherter Einträge (ms)
-resolver_cache_ttl = "300"
+resolver_cache_ttl = 300
 
 # Sollen SSL-Zertifikate überprüft werden?
 verify_ssl = true

@@ -7,7 +7,7 @@
 #  |    #***     #    #       #***         #   *   #**    #***    | 
 #  |                                                              | 
 #  +--------------------------------------------------------------+ 
-#   Oprettet den 2026-09-05T13:04:20.428Z
+#   Oprettet den 2026-09-17T11:10:54.288Z
 #   
 #   Denne konfigurationsfil blev oprettet af https://modconfig.pages.dev
 #   og leveres, som den er. Hvis der er problemer med STFC Community Mod
@@ -17,7 +17,7 @@
 #       Discord : https://discord.gg/PrpHgs7Vjs
 #       GitHub  : https://github.com/netniV/stfc-mod
 #   
-#   Dagens konfigurationsfil præsenteres af bogstavet A og tallet 6
+#   Dagens konfigurationsfil præsenteres af bogstavet I og tallet 6
 #   
 
 #  <[=======================================]> 
@@ -403,6 +403,9 @@ set_hotkeys_disabled = "CTRL-ALT-MINUS"
 # CTRL-ALT-=
 set_hotkeys_enabled = "CTRL-ALT-="
 
+# Vis eller skjul genvejstip
+toggle_shortcut_hints = "HOME"
+
 # Subgroup: Queue & Primary
 # -------------------------
 
@@ -457,6 +460,9 @@ show_artifacts = "SHIFT-I"
 # Vis udehold
 show_awayteam = "T"
 
+# Åbn indbakken med kamprapporter
+show_battlelogs = "SHIFT-B"
+
 # Vis bogmærker
 show_bookmarks = "B"
 
@@ -496,6 +502,9 @@ show_galaxy_native = "CTRL-G"
 # Gå til gaver
 show_gifts = "/"
 
+# Åbn Haven
+show_haven = "ALT-H"
+
 # Gå til beholdning
 show_inventory = "I"
 
@@ -520,23 +529,14 @@ show_scrapyard = "Y"
 # Gå til indstillinger
 show_settings = "SHIFT-S"
 
-# Slå genvejstips på skærmen til/fra (viser mod-genveje, hvor de understøttes)
-# NONE deaktiverer mod-tiphooks og tekstcache; tildel en tast for at aktivere (kræver genstart).
-toggle_shortcut_hints = "HOME"
-
-# Symboler i mærker bruger AutoHotkey-notation: ^ Ctrl, ! Alt, + Shift, # Win/Command
-
-# Gå til administration af skibe
-show_ships = "N"
+# Åbn valget af fredsskjolde
+show_shields = "CTRL-S"
 
 # Åbn skibsværftets Byg skib-skærm
 show_shipconstruction = "SHIFT-N"
 
-# Åbn valget af fredsskjolde
-show_shields = "CTRL-S"
-
-# Åbn indbakken med kamprapporter
-show_battlelogs = "SHIFT-B"
+# Gå til administration af skibe
+show_ships = "N"
 
 # Stationens ydre
 show_stationexterior = "SHIFT-G"
@@ -866,7 +866,7 @@ url = ""
 # -----------------
 
 # Hvor længe cachede elementer skal bevares (ms)
-resolver_cache_ttl = "300"
+resolver_cache_ttl = 300
 
 # Skal SSL-certifikater kontrolleres?
 verify_ssl = true

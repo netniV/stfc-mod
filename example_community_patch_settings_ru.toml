@@ -7,7 +7,7 @@
 #  |    #***     #    #       #***         #   *   #**    #***    | 
 #  |                                                              | 
 #  +--------------------------------------------------------------+ 
-#   Создано 2026-09-05T13:04:20.420Z
+#   Создано 2026-09-17T11:10:54.278Z
 #   
 #   Этот файл конфигурации создан на https://modconfig.pages.dev
 #   и предоставляется как есть. Если возникли проблемы с STFC Community Mod,
@@ -17,7 +17,7 @@
 #       Discord : https://discord.gg/PrpHgs7Vjs
 #       GitHub  : https://github.com/netniV/stfc-mod
 #   
-#   Сегодняшний файл конфигурации представлен буквой G и числом 2
+#   Сегодняшний файл конфигурации представлен буквой X и числом 8
 #   
 
 #  <[=======================================]> 
@@ -403,6 +403,9 @@ set_hotkeys_disabled = "CTRL-ALT-MINUS"
 # CTRL-ALT-=
 set_hotkeys_enabled = "CTRL-ALT-="
 
+# Показать или скрыть подсказки горячих клавиш
+toggle_shortcut_hints = "HOME"
+
 # Subgroup: Queue & Primary
 # -------------------------
 
@@ -457,6 +460,9 @@ show_artifacts = "SHIFT-I"
 # Показать выездную команду
 show_awayteam = "T"
 
+# Открыть входящие боевые отчёты
+show_battlelogs = "SHIFT-B"
+
 # Показать закладки
 show_bookmarks = "B"
 
@@ -496,6 +502,9 @@ show_galaxy_native = "CTRL-G"
 # Перейти к подаркам
 show_gifts = "/"
 
+# Открыть Haven
+show_haven = "ALT-H"
+
 # Перейти к инвентарю
 show_inventory = "I"
 
@@ -520,22 +529,14 @@ show_scrapyard = "Y"
 # Перейти к настройкам
 show_settings = "SHIFT-S"
 
-# Показать или скрыть подсказки клавиш (показывает поддерживаемые сочетания мода)
-# NONE отключает хуки и кэш подсказок мода; назначьте клавишу для включения (требуется перезапуск).
-toggle_shortcut_hints = "HOME"
-# Модификаторы используют нотацию AutoHotkey: ^ Ctrl, ! Alt, + Shift, # Win/Command
-
-# Перейти к управлению кораблями
-show_ships = "N"
+# Открыть окно выбора мирного щита
+show_shields = "CTRL-S"
 
 # Открыть экран постройки корабля на верфи
 show_shipconstruction = "SHIFT-N"
 
-# Открыть окно выбора мирного щита
-show_shields = "CTRL-S"
-
-# Открыть входящие боевые отчёты
-show_battlelogs = "SHIFT-B"
+# Перейти к управлению кораблями
+show_ships = "N"
 
 # Внешний вид станции
 show_stationexterior = "SHIFT-G"
@@ -865,7 +866,7 @@ url = ""
 # -----------------
 
 # Срок хранения элементов в кэше (мс)
-resolver_cache_ttl = "300"
+resolver_cache_ttl = 300
 
 # Проверять SSL-сертификаты?
 verify_ssl = true
