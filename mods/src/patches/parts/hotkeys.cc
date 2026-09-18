@@ -20,6 +20,7 @@
 #include "prime/CanvasController.h"
 #include "prime/ChatManager.h"
 #include "prime/DeploymentManager.h"
+#include "patches/planned_system_warp.h"
 #include "prime/ElementSelectorViewController.h"
 #include "prime/FleetBarViewController.h"
 #include "prime/FleetLocalViewController.h"
@@ -1192,7 +1193,21 @@ void ExecuteSpaceAction(FleetBarViewController* fleet_bar)
       if (has_secondary) {
         star_node_object_viewer_widget->OnViewButtonActivation();
         return;
-      } else if (has_primary) {
+      }
+      auto* sections = Hub::get_SectionManager();
+      if (has_primary && sections && sections->CurrentSection == SectionID::Navigation_Galaxy) {
+        // A hidden galaxy popup can lose its destination. Use a matching planned course instead;
+        // never fall through to a hidden handler that substitutes the currently viewed galaxy.
+        auto* visibility = star_node_object_viewer_widget->_visibilityController;
+        auto* parent     = star_node_object_viewer_widget->Parent;
+        if (!visibility
+            || (visibility->_state != VisibilityState::Visible && visibility->_state != VisibilityState::Show)
+            || !parent || !parent->IsShowing) {
+          TryRequestPlannedSystemWarp(fleet, star_node_object_viewer_widget->Context);
+          return;
+        }
+      }
+      if (has_primary) {
         star_node_object_viewer_widget->InitiateWarp();
         return;
       }
@@ -1218,6 +1233,13 @@ void ExecuteSpaceAction(FleetBarViewController* fleet_bar)
           return;
         }
       } else {
+        // Limit destination recovery to galaxy warps; retain the existing in-system action path.
+        auto* sections = Hub::get_SectionManager();
+        if (sections && sections->CurrentSection == SectionID::Navigation_Galaxy
+            && !navigation_ui_controller->IsSetCourseVisible()) {
+          TryRequestPlannedSystemWarp(fleet, navigation_ui_controller->CanvasContext);
+          return;
+        }
         navigation_ui_controller->OnSetCourseButtonClick();
         return;
       }
