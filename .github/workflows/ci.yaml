@@ -196,6 +196,16 @@ jobs:
         shell: pwsh
         run: sccache --show-stats
 
+      - name: Test startup config saves
+        shell: pwsh
+        env:
+          PACKAGE_DIR: ${{ steps.xmake_cache_paths.outputs.package_dir }}
+        run: |
+          $header = Get-ChildItem -LiteralPath (Join-Path $env:PACKAGE_DIR 't/toml++') -Recurse -Filter toml.h |
+            Where-Object { $_.Directory.Name -eq 'toml++' } | Select-Object -First 1
+          if (-not $header) { throw 'Built toml++ package not found.' }
+          ./tests/run-config-save.ps1 -TomlInclude $header.Directory.Parent.FullName
+
       - name: Package
         shell: pwsh
         run: |
@@ -476,6 +486,16 @@ jobs:
       - name: Report protobuf compiler cache
         shell: bash
         run: sccache --show-stats
+
+      - name: Test startup config saves
+        shell: bash
+        env:
+          PACKAGE_DIR: ${{ steps.xmake_cache_paths.outputs.package_dir }}
+        run: |
+          set -euo pipefail
+          TOML_HEADER=$(find "$PACKAGE_DIR/t/toml++" -path '*/include/toml++/toml.h' -print -quit)
+          test -n "$TOML_HEADER"
+          bash tests/run-config-save.sh "$(dirname "$(dirname "$TOML_HEADER")")"
 
       - name: Report Swift module cache
         shell: bash
