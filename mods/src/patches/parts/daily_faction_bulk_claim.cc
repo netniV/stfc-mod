@@ -299,6 +299,15 @@ bool FactionMatches(const std::string& faction_name, const std::vector<std::stri
   return std::ranges::find(configured, AsciiStrToLower(faction_name)) != configured.end();
 }
 
+bool IsMainFactionDaily(const std::string& faction_name)
+{
+  if (faction_name.empty()) {
+    return false;
+  }
+  const auto lowered = AsciiStrToLower(faction_name);
+  return std::ranges::any_of(kFactionIconNames, [&](const auto& entry) { return lowered == entry.faction; });
+}
+
 std::string FactionNameOfTournament(Il2CppObject* tournament)
 {
   if (tournament == nullptr || tournament->klass == nullptr) {
@@ -364,15 +373,17 @@ void FilterClaimableDailiesByFaction(IList* list, const std::vector<std::string>
 
   int kept = 0;
   for (int32_t i = total - 1; i >= 0; --i) {
-    auto* tournament   = list->Get(i);
-    auto  faction_name = FactionNameOfTournament(tournament);
-    auto  matches      = FactionMatches(faction_name, configured);
+    auto* tournament    = list->Get(i);
+    auto  faction_name  = FactionNameOfTournament(tournament);
+    const bool is_main_faction_daily = IsMainFactionDaily(faction_name);
+    auto  matches       = FactionMatches(faction_name, configured);
 
     spdlog::debug("[DailyFactionBulkClaim]   [{}] faction: '{}' -> {}", i,
                  faction_name.empty() ? "<none>" : faction_name,
-                 faction_name.empty() ? "keep (not a faction daily)" : (matches ? "keep (claim)" : "remove (skip)"));
+                 !is_main_faction_daily ? "keep (not a main faction daily)"
+                                        : (matches ? "keep (claim)" : "remove (skip)"));
 
-    if (!faction_name.empty() && !matches) {
+    if (is_main_faction_daily && !matches) {
       list->RemoveAt(i);
     } else {
       ++kept;
