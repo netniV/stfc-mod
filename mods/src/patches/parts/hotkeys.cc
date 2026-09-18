@@ -30,6 +30,7 @@
 #include "prime/LanguageManager.h"
 #include "prime/NavigationInteractionUIViewController.h"
 #include "prime/NavigationSectionManager.h"
+#include "prime/PlanetaryBaseManager.h"
 #include "prime/PreScanTargetWidget.h"
 #include "prime/ScanEngageButtonsWidget.h"
 #include "prime/ScreenManager.h"
@@ -675,6 +676,8 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
         return ChangeNavigationSection(SectionID::Navigation_Galaxy);
       } else if (MapKey::IsDown(GameFunction::ShowStationInterior)) {
         return GotoSection(SectionID::Starbase_Interior);
+      } else if (MapKey::IsDown(GameFunction::ShowHaven)) {
+        return PlanetaryBaseManager::ViewOwnHaven();
       } else if (MapKey::IsDown(GameFunction::ShowSystem)) {
         return ChangeNavigationSection(SectionID::Navigation_System);
       } else if (MapKey::IsDown(GameFunction::ShowArtifacts)) {
