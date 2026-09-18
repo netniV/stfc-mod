@@ -7,7 +7,7 @@
 #  |    #***     #    #       #***         #   *   #**    #***    | 
 #  |                                                              | 
 #  +--------------------------------------------------------------+ 
-#   Gegenereerd op 2026-09-05T13:04:20.394Z
+#   Gegenereerd op 2026-09-17T11:10:54.248Z
 #   
 #   Dit configuratiebestand is gegenereerd door https://modconfig.pages.dev
 #   en wordt geleverd zoals het is. Meld problemen met de STFC Community Mod,
@@ -17,7 +17,7 @@
 #       Discord : https://discord.gg/PrpHgs7Vjs
 #       GitHub  : https://github.com/netniV/stfc-mod
 #   
-#   Het configuratiebestand van vandaag wordt u aangeboden door de letter Z en het getal 8
+#   Het configuratiebestand van vandaag wordt u aangeboden door de letter U en het getal 2
 #   
 
 #  <[=======================================]> 
@@ -403,6 +403,9 @@ set_hotkeys_disabled = "CTRL-ALT-MINUS"
 # CTRL-ALT-=
 set_hotkeys_enabled = "CTRL-ALT-="
 
+# Sneltoetstips tonen of verbergen
+toggle_shortcut_hints = "HOME"
+
 # Subgroup: Queue & Primary
 # -------------------------
 
@@ -457,6 +460,9 @@ show_artifacts = "SHIFT-I"
 # Toon Expeditieteam
 show_awayteam = "T"
 
+# Open het postvak met gevechtsrapporten
+show_battlelogs = "SHIFT-B"
+
 # Toon Bladwijzers
 show_bookmarks = "B"
 
@@ -496,6 +502,9 @@ show_galaxy_native = "CTRL-G"
 # Ga naar Cadeaus
 show_gifts = "/"
 
+# Open Haven
+show_haven = "ALT-H"
+
 # Ga naar Inventaris
 show_inventory = "I"
 
@@ -520,22 +529,14 @@ show_scrapyard = "Y"
 # Ga naar Instellingen
 show_settings = "SHIFT-S"
 
-# Schermtips voor sneltoetsen in- of uitschakelen (toont ondersteunde mod-sneltoetsen)
-# NONE schakelt mod-tip-hooks en tekstcache uit; wijs een toets toe om in te schakelen (herstart vereist).
-toggle_shortcut_hints = "HOME"
-# Modificatietoetsen gebruiken AutoHotkey-notatie: ^ Ctrl, ! Alt, + Shift, # Win/Command
-
-# Ga naar Scheepsmanagement
-show_ships = "N"
+# Open de selectie voor vredesschilden
+show_shields = "CTRL-S"
 
 # Open het scherm Schip bouwen van de scheepswerf
 show_shipconstruction = "SHIFT-N"
 
-# Open de selectie voor vredesschilden
-show_shields = "CTRL-S"
-
-# Open het postvak met gevechtsrapporten
-show_battlelogs = "SHIFT-B"
+# Ga naar Scheepsmanagement
+show_ships = "N"
 
 # Station Exterieur
 show_stationexterior = "SHIFT-G"
@@ -865,7 +866,7 @@ url = ""
 # -----------------
 
 # Hoelang je items gecaches wilt hebben (ms)
-resolver_cache_ttl = "300"
+resolver_cache_ttl = 300
 
 # Zouden SSL certificaten geverifieerd moeten worden?
 verify_ssl = true
