@@ -1110,7 +1110,8 @@ void Config::Load()
       "outposts", get_mission_hud_visibility(config, parsed, "hud_outposts", DCU::hud_outposts, write_config));
   this->mission_hud_buttons.emplace(
       "missions", get_mission_hud_visibility(config, parsed, "hud_missions", DCU::hud_missions, write_config));
-  this->installMissionHudTweaksHooks = this->MissionHudTweaksEnabled();
+  // Install at startup even with all Auto so settings can enable overrides live.
+  this->installMissionHudTweaksHooks = true;
 
   spdlog::debug("");
 

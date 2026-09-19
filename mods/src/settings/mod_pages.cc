@@ -44,7 +44,6 @@ void RegisterModPages()
       catalog.AddBoolean("community_mod.previews", PreviewSetting(option));
   }
   catalog.AddPage("community_mod.hud", "HUD Buttons", "community_mod.settings");
-  catalog.AddHeading("community_mod.hud", "community_mod.hud.restart", "Restart required");
   for (auto option : {MissionHudOption::Trials, MissionHudOption::FieldTraining,
                       MissionHudOption::Outposts, MissionHudOption::Missions}) {
     auto& setting = MissionHudSetting(option);

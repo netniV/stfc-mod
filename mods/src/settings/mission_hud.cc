@@ -1,5 +1,6 @@
 #include "mission_hud.h"
 #include "config.h"
+#include "patches/mission_hud.h"
 #include "patches/runtime_config.h"
 #include <array>
 
@@ -10,13 +11,12 @@ namespace
 ValueDefinition<int> Visibility(const char* name, const char* key, const char* label)
 {
   return {std::string("community_mod.hud.") + name, label,
-          [name] { return ValueReadResult<int>::Known(static_cast<int>(Config::Get().MissionHudButtonVisibility(name)), 1); },
+          [name] { return mission_hud::Available() ? ValueReadResult<int>::Known(static_cast<int>(Config::Get().MissionHudButtonVisibility(name)), 1) : ValueReadResult<int>{}; },
           [name, key](int value, std::uint64_t generation) {
-            if (generation != 1 || value < 0 || value > 2)
+            if (generation != 1 || !mission_hud::CanChange() || value < 0 || value > 2)
               return ApplyResult::Rejected;
-            // The HUD patch snapshots modes at startup. Store the next-launch
-            // preference here; do not install detours from a UI callback.
             Config::Get().mission_hud_buttons[std::string(name)] = static_cast<MissionHudVisibility>(value);
+            mission_hud::Refresh();
             constexpr const char* modes[]{"auto", "always", "never"};
             runtime_config::SaveSetting("ui", key, std::string(modes[value]));
             return ApplyResult::Applied;
