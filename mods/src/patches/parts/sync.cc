@@ -796,6 +796,9 @@ static std::mutex                           resource_states_alliance_mtx;
 static std::unordered_map<int64_t, int64_t> slot_states;
 static std::mutex                           slot_states_mtx;
 
+static std::unordered_map<int64_t, size_t> away_assignment_states;
+static std::mutex                          away_assignment_states_mtx;
+
 static eastl::ring_buffer<uint64_t> previously_sent_battlelogs;
 static std::mutex                   previously_sent_battlelogs_mtx;
 
@@ -1091,6 +1094,105 @@ static void ship_combat_log_data()
 
 namespace processors
 {
+
+// Builds the sync event for one away team assignment instance and appends it to `out_array` only if the
+// instance's observable state changed since the last time it was emitted. Lock is not held because the
+// caller already does (mirrors single_slot_locked()).
+static void away_assignment_event(const Digit::PrimeServer::Models::AwayAssignmentInstance& instance,
+                                  nlohmann::json& out_array)
+{
+  using json = nlohmann::json;
+  using trackers::away_assignment_states;
+
+  auto officer_ids = json::array();
+  for (const auto& officer_id : instance.officerids() | std::views::values) {
+    if (officer_id != 0) {
+      officer_ids.push_back(officer_id);
+    }
+  }
+
+  json event = {{"type", SyncConfig::Type::AwayAssignments},
+                {"aid", instance.id()},
+                {"template_id", instance.awayassignmenttemplateid()},
+                {"state", instance.state()},
+                {"officer_ids", officer_ids},
+                {"job_uuid", instance.jobuuid()},
+                {"duration", instance.parameters().duration()},
+                {"rarity", instance.rarity()}};
+
+  const auto state_value = static_cast<size_t>(std::hash<json>{}(event));
+
+  if (const auto& it = away_assignment_states.find(instance.id());
+      it == away_assignment_states.end() || it->second != state_value) {
+    away_assignment_states[instance.id()] = state_value;
+    out_array.push_back(std::move(event));
+  }
+}
+
+static void away_assignments_list(std::unique_ptr<std::string>&& bytes)
+{
+  using json = nlohmann::json;
+  static std::atomic_bool is_first_sync{true};
+
+  if (auto response = Digit::PrimeServer::Models::AwayAssignmentUserListResponse(); response.ParseFromString(*bytes)) {
+
+    http::logging::trace("PROCESS", "away assignments",
+                         STR_FORMAT("Processing {} away assignments", response.instances_size()));
+
+    std::unordered_set<int64_t> ids_in_response;
+    ids_in_response.reserve(static_cast<size_t>(response.instances_size()));
+    auto assignment_array = json::array();
+
+    {
+      std::scoped_lock lk(trackers::away_assignment_states_mtx);
+
+      for (const auto& instance : response.instances()) {
+        ids_in_response.insert(instance.id());
+        away_assignment_event(instance, assignment_array);
+      }
+
+      // Prune entries that are no longer present to prevent unbounded growth
+      for (auto it = trackers::away_assignment_states.begin(); it != trackers::away_assignment_states.end();) {
+        if (!ids_in_response.contains(it->first)) {
+          assignment_array.push_back({{"type", "collected_" + SyncConfig::Type::AwayAssignments}, {"aid", it->first}});
+          it = trackers::away_assignment_states.erase(it);
+        } else {
+          ++it;
+        }
+      }
+    }
+
+    if (!assignment_array.empty()) {
+      const bool first_sync = is_first_sync.exchange(false, std::memory_order_acq_rel);
+      workers::queue_data(SyncConfig::Type::AwayAssignments, assignment_array, first_sync);
+    }
+  } else {
+    spdlog::error("Failed to parse away assignments");
+  }
+}
+
+static void away_assignment_instance(std::unique_ptr<std::string>&& bytes)
+{
+  using json = nlohmann::json;
+
+  if (auto instance = Digit::PrimeServer::Models::AwayAssignmentInstance(); instance.ParseFromString(*bytes)) {
+
+    http::logging::trace("PROCESS", "away assignment instance",
+                         STR_FORMAT("Processing away assignment {}", instance.id()));
+
+    auto assignment_array = json::array();
+    {
+      std::scoped_lock lk(trackers::away_assignment_states_mtx);
+      away_assignment_event(instance, assignment_array);
+    }
+
+    if (!assignment_array.empty()) {
+      workers::queue_data(SyncConfig::Type::AwayAssignments, assignment_array);
+    }
+  } else {
+    spdlog::error("Failed to parse away assignment instance");
+  }
+}
 
 static void battle_result_headers(std::unique_ptr<std::string>&& bytes)
 {
@@ -2166,6 +2268,18 @@ static void HandleEntityGroup(EntityGroup* entity_group)
   const auto& sync_options = Config::Get().sync_options;
 
   switch (entity_group->Type_) {
+    // away assignments
+    case EntityGroup::Type::AwayAssignmentsList:
+      if (sync_options.away_assignments) {
+        submit_async(processors::away_assignments_list);
+      }
+      break;
+    case EntityGroup::Type::AwayAssignmentsInstance:
+      if (sync_options.away_assignments) {
+        submit_async(processors::away_assignment_instance);
+      }
+      break;
+
     // battlelogs
     case EntityGroup::Type::BattleResultHeaders:
       if (sync_options.battlelogs) {
