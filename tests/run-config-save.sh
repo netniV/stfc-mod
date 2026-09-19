@@ -19,3 +19,13 @@ clang++ -std=c++23 -I mods/src -I "$toml_include" \
 clang++ -std=c++23 -pthread -I mods/src -I "$toml_include" \
   tests/runtime_config_writer_test.cc -o "$test_root/worker-test"
 "$test_root/worker-test"
+
+# Compile the actual platform adapter, including Mac save admission and quit draining.
+clang++ -std=c++23 -pthread -I mods/src -I tests \
+  tests/runtime_config_test.cc -o "$test_root/adapter-test"
+"$test_root/adapter-test"
+
+clang++ -std=c++23 -pthread -I mods/src -I "$toml_include" \
+  tests/runtime_config_persistence_test.cc mods/src/runtime_config_writer.cc \
+  mods/src/toml_editor.cc mods/src/config_save.cc -o "$test_root/persistence-test"
+"$test_root/persistence-test" "$test_root/reload"
