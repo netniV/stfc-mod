@@ -1096,16 +1096,21 @@ namespace processors
 {
 
 // Builds the sync event for one away team assignment instance and appends it to `out_array` only if the
-// instance's observable state changed since the last time it was emitted. Lock is not held because the
-// caller already does (mirrors single_slot_locked()).
+// instance's observable state changed since the last time it was emitted. Caller must hold
+// trackers::away_assignment_states_mtx.
 static void away_assignment_event(const Digit::PrimeServer::Models::AwayAssignmentInstance& instance,
-                                  nlohmann::json& out_array)
+                                  nlohmann::json&                                           out_array)
 {
   using json = nlohmann::json;
   using trackers::away_assignment_states;
 
+  // Protobuf map iteration order is not guaranteed to match slot order, so sort by slot index
+  // before emitting officer_ids to keep the array (and therefore the de-dup hash) stable.
+  std::vector<std::pair<int64_t, int64_t>> officer_slots(instance.officerids().begin(), instance.officerids().end());
+  std::ranges::sort(officer_slots, {}, &std::pair<int64_t, int64_t>::first);
+
   auto officer_ids = json::array();
-  for (const auto& officer_id : instance.officerids() | std::views::values) {
+  for (const auto& [slot, officer_id] : officer_slots) {
     if (officer_id != 0) {
       officer_ids.push_back(officer_id);
     }
@@ -1168,29 +1173,6 @@ static void away_assignments_list(std::unique_ptr<std::string>&& bytes)
     }
   } else {
     spdlog::error("Failed to parse away assignments");
-  }
-}
-
-static void away_assignment_instance(std::unique_ptr<std::string>&& bytes)
-{
-  using json = nlohmann::json;
-
-  if (auto instance = Digit::PrimeServer::Models::AwayAssignmentInstance(); instance.ParseFromString(*bytes)) {
-
-    http::logging::trace("PROCESS", "away assignment instance",
-                         STR_FORMAT("Processing away assignment {}", instance.id()));
-
-    auto assignment_array = json::array();
-    {
-      std::scoped_lock lk(trackers::away_assignment_states_mtx);
-      away_assignment_event(instance, assignment_array);
-    }
-
-    if (!assignment_array.empty()) {
-      workers::queue_data(SyncConfig::Type::AwayAssignments, assignment_array);
-    }
-  } else {
-    spdlog::error("Failed to parse away assignment instance");
   }
 }
 
@@ -2292,11 +2274,6 @@ static void HandleEntityGroup(EntityGroup* entity_group)
     case EntityGroup::Type::AwayAssignmentsList:
       if (sync_options.away_assignments) {
         submit_async(processors::away_assignments_list);
-      }
-      break;
-    case EntityGroup::Type::AwayAssignmentsInstance:
-      if (sync_options.away_assignments) {
-        submit_async(processors::away_assignment_instance);
       }
       break;
 

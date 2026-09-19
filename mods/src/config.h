@@ -63,7 +63,7 @@ public:
 
 constexpr std::array SyncOptions{
     SyncConfig::Option{SyncConfig::Type::AwayAssignments, "away_assignment", "away_assignments",
-                        &SyncConfig::away_assignments},
+                       &SyncConfig::away_assignments},
     SyncConfig::Option{SyncConfig::Type::Battles, "battlelog", "battlelogs", &SyncConfig::battlelogs},
     SyncConfig::Option{SyncConfig::Type::Buffs, "buff", "buffs", &SyncConfig::buffs},
     SyncConfig::Option{SyncConfig::Type::Buildings, "module", "buildings", &SyncConfig::buildings},
