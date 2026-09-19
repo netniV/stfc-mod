@@ -29,3 +29,8 @@ clang++ -std=c++23 -pthread -I mods/src -I "$toml_include" \
   tests/runtime_config_persistence_test.cc mods/src/runtime_config_writer.cc \
   mods/src/toml_editor.cc mods/src/config_save.cc -o "$test_root/persistence-test"
 "$test_root/persistence-test" "$test_root/reload"
+
+clang++ -std=c++23 -pthread -I mods/src -I "$toml_include" \
+  tests/hud_settings_persistence_test.cc mods/src/runtime_config_writer.cc \
+  mods/src/toml_editor.cc mods/src/config_save.cc -o "$test_root/hud-test"
+"$test_root/hud-test" "$test_root/hud"
