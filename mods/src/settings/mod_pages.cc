@@ -1,4 +1,5 @@
 #include "mod_pages.h"
+#include "mission_hud.h"
 #include "camera_settings.h"
 #include "fleet_labels.h"
 #include "preview_settings.h"
@@ -42,6 +43,11 @@ void RegisterModPages()
                         PreviewOption::ArmadaCargo})
       catalog.AddBoolean("community_mod.previews", PreviewSetting(option));
   }
+  catalog.AddPage("community_mod.hud", "HUD Buttons", "community_mod.settings");
+  catalog.AddHeading("community_mod.hud", "community_mod.hud.restart", "Changes apply after restarting the game");
+  for (auto option : {MissionHudOption::Trials, MissionHudOption::FieldTraining,
+                      MissionHudOption::Outposts, MissionHudOption::Missions})
+    catalog.AddChoice("community_mod.hud", MissionHudSetting(option));
   catalog.AddPage("community_mod.labels", "Fleet Labels", "community_mod.settings");
   for (bool player : {true, false}) {
     catalog.AddHeading("community_mod.labels", player ? "community_mod.labels.player" : "community_mod.labels.other",
