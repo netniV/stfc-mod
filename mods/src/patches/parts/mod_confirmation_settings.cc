@@ -417,9 +417,9 @@ void Render(View& view, auto original, Il2CppObject* widget)
   // visibly truncated after "; tr" alongside the FC label. Keep these suffixes
   // short; recheck the full label at supported UI scales when changing wording.
   if (!view.state.value())
-    text += " â€” Reopen to retry";
+    text += " — Reopen to retry";
   else if (view.state.failed())
-    text += " â€” Retry";
+    text += " — Retry";
   Root  message(reinterpret_cast<Il2CppObject*>(il2cpp_string_new(text.c_str())));
   void* args[] = {message.get()};
   Call(label.get(), "OverrideLocalizedText", 1, args);
