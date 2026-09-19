@@ -1,5 +1,7 @@
 #pragma once
+#if _WIN32
 #include <Windows.h>
+#endif
 #include <atomic>
 #include <chrono>
 #include <cstdint>
@@ -27,7 +29,7 @@ struct RuntimeConfigWriter {
   bool     work = false, stopped = false, finished = false, cancelled = false;
   bool     block_cancel = false;
   unsigned submissions  = 0;
-  HANDLE   handle       = nullptr;
+  void*    handle       = nullptr;
   bool     HasWork() const
   { return work; }
   void RequestCancelPending()
@@ -39,7 +41,9 @@ struct RuntimeConfigWriter {
     if (cancel && block_cancel) {
       std::puts("pending cancellation requested");
       std::fflush(stdout);
+#if _WIN32
       Sleep(INFINITE); // Deadline must be independent of this stalled caller.
+#endif
     }
   }
   bool PollStopped() const

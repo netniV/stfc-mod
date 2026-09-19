@@ -15,7 +15,7 @@ void                             Reset()
   fixture   = {};
   writer    = &fixture;
   available = true;
-  owner     = GetCurrentThreadId();
+  owner     = CurrentThreadToken();
   forcing   = false;
   persistence_unavailable = false;
   reported_save_failure   = false;
@@ -47,6 +47,7 @@ int main(int argc, char** argv)
                         }) == 1);
   }
   Reset();
+#if _WIN32
   if (argc == 2) {
     const std::string_view mode(argv[1]);
     fixture.work         = mode != "idle";
@@ -57,6 +58,7 @@ int main(int argc, char** argv)
     Sleep(10000); // Parent kills this fixture if the independent deadline fails.
     return 9;
   }
+#endif
   unsigned         notices     = 0;
   static unsigned* noticeCount = &notices;
   assert(runtime_config::SetSaveStatusObserver([] { ++*noticeCount; }));

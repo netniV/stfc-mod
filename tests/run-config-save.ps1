@@ -76,6 +76,13 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Native adapter test compilation failed.' }
     & ./build/config-save-test/adapter-test.exe
     if ($LASTEXITCODE -ne 0) { throw 'Native adapter regression failed.' }
+    & clang++ --driver-mode=cl /std:c++latest /EHsc /MT /Imods/src "/I$TomlInclude" `
+        tests/runtime_config_persistence_test.cc mods/src/runtime_config_writer.cc `
+        mods/src/toml_editor.cc mods/src/config_save.cc `
+        /Febuild/config-save-test/persistence-test.exe /Fobuild/config-save-test/ -Wno-deprecated-literal-operator
+    if ($LASTEXITCODE -ne 0) { throw 'Persistence reload test compilation failed.' }
+    & ./build/config-save-test/persistence-test.exe (Join-Path $fixtureRoot 'reload')
+    if ($LASTEXITCODE -ne 0) { throw 'Persistence reload regression failed.' }
     foreach ($mode in @('idle', 'deadline', 'finished', 'missing-handle')) {
         $outputPath = Join-Path $fixtureRoot ('force-' + $mode + '.txt')
         $timer = [Diagnostics.Stopwatch]::StartNew()

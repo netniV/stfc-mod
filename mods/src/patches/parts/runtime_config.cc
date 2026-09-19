@@ -8,16 +8,19 @@
 #include "runtime_config_writer.h"
 #include <spdlog/spdlog.h>
 
-#if defined(_WIN32) && defined(_M_X64)
+#if (defined(_WIN32) && defined(_M_X64)) || defined(__APPLE__)
 #include "patches/screen_update_hook.h"
+#include "patches/native_hook_extent.h"
+#if _WIN32
 #include <Windows.h>
+#endif
 #include <il2cpp/il2cpp_helper.h>
 #include <il2cpp/method_contract.h>
 #include <spud/detour.h>
 #endif
 #endif
 
-#if defined(_WIN32) && defined(_M_X64)
+#if (defined(_WIN32) && defined(_M_X64)) || defined(__APPLE__)
 
 namespace
 {
@@ -25,7 +28,7 @@ namespace
 // than joining a worker from DLL teardown. No worker is started during Configure.
 config_edit::RuntimeConfigWriter* writer    = nullptr;
 bool                              available = false;
-std::atomic<DWORD>                owner{0};
+std::atomic<std::uintptr_t>       owner{0};
 std::atomic_bool                  forcing{false};
 std::mutex                        lifecycle;
 bool                              draining = false, stopped = false, resume = false;
@@ -35,6 +38,13 @@ void (*request_quit)(int)                    = nullptr;
 void (*save_status_changed)()                = nullptr;
 std::atomic_bool persistence_unavailable{false};
 bool             reported_save_failure = false;
+
+// Stable identity for the lifetime of the Unity owner thread on either platform.
+std::uintptr_t CurrentThreadToken()
+{
+  static thread_local char token;
+  return reinterpret_cast<std::uintptr_t>(&token);
+}
 
 void Report(std::string_view section, std::string_view key, config_edit::Outcome result)
 {
@@ -92,9 +102,9 @@ bool WantsQuit(auto original)
 
 void Update()
 {
-  DWORD unset = 0;
-  owner.compare_exchange_strong(unset, GetCurrentThreadId());
-  if (forcing || owner != GetCurrentThreadId() || quit_depth)
+  std::uintptr_t unset = 0;
+  owner.compare_exchange_strong(unset, CurrentThreadToken());
+  if (forcing || owner != CurrentThreadToken() || quit_depth)
     return;
   const bool failed = persistence_unavailable.load() || (writer && writer->HasFailures());
   if (failed != reported_save_failure) {
@@ -120,6 +130,7 @@ void Update()
 }
 
 
+#if _WIN32
 DWORD WINAPI FinishForceClose(void* handle)
 {
   WaitForSingleObject(handle, 500);
@@ -127,6 +138,7 @@ DWORD WINAPI FinishForceClose(void* handle)
   TerminateProcess(GetCurrentProcess(), 1);
   return 0;
 }
+#endif
 } // namespace
 #elif _WIN32
 #include <Windows.h>
@@ -136,7 +148,7 @@ namespace runtime_config
 {
 bool SetSaveStatusObserver(void (*observer)())
 {
-#if defined(_WIN32) && defined(_M_X64)
+#if (defined(_WIN32) && defined(_M_X64)) || defined(__APPLE__)
   if (save_status_changed && save_status_changed != observer)
     return false;
   // Status must also update if persistence/quit-hook validation failed, or no
@@ -152,7 +164,7 @@ bool SetSaveStatusObserver(void (*observer)())
 }
 bool HasSaveFailures() noexcept
 {
-#if defined(_WIN32) && defined(_M_X64)
+#if (defined(_WIN32) && defined(_M_X64)) || defined(__APPLE__)
   return persistence_unavailable.load() || (writer && writer->HasFailures());
 #else
   return false;
@@ -161,7 +173,7 @@ bool HasSaveFailures() noexcept
 #ifndef CONFIG_RUNTIME_TEST
 void Configure(const toml::table& loaded)
 {
-#if defined(_WIN32) && defined(_M_X64)
+#if (defined(_WIN32) && defined(_M_X64)) || defined(__APPLE__)
   if (writer)
     return;
   std::optional<config_edit::Value> initial;
@@ -201,7 +213,7 @@ void Configure(const toml::table& loaded)
 
 void Install()
 {
-#if defined(_WIN32) && defined(_M_X64)
+#if (defined(_WIN32) && defined(_M_X64)) || defined(__APPLE__)
   static bool attempted = false;
   if (attempted || !writer)
     return;
@@ -215,9 +227,16 @@ void Install()
       spdlog::warn("Runtime config persistence unavailable: incompatible Unity quit methods");
       return;
     }
+#if __APPLE__
+    if (!native_hooks::MacHookFits(method_contract::Pointer(wants))) {
+      spdlog::warn("Runtime config persistence unavailable: Mac quit hook validation failed");
+      return;
+    }
+#endif
     request_quit = reinterpret_cast<void (*)(int)>(quit->methodPointer);
     available    = install_screen_manager_update_hook() && register_screen_manager_update_callback(Update)
                    && SPUD_STATIC_DETOUR(wants->methodPointer, WantsQuit);
+    spdlog::info("Runtime config persistence ready={}", available);
   } catch (...) {
     available = false;
   }
@@ -229,8 +248,8 @@ void SaveSetting(const char* section, const char* key, config_edit::Value value,
                  std::chrono::milliseconds delay) noexcept
 {
   try {
-#if defined(_WIN32) && defined(_M_X64)
-    if (available && !forcing && owner == GetCurrentThreadId() && !quit_depth) {
+#if (defined(_WIN32) && defined(_M_X64)) || defined(__APPLE__)
+    if (available && !forcing && owner == CurrentThreadToken() && !quit_depth) {
       std::lock_guard lock(lifecycle);
       if (!draining) {
         if (writer->Submit(section, key, std::move(value), delay))
@@ -251,7 +270,7 @@ void SaveSetting(const char* section, const char* key, config_edit::Value value,
       spdlog::warn("{}.{} changed for this session; runtime persistence unavailable", section, key);
     }
   } catch (...) { /* Persistence must not interrupt the shortcut's live effect. */
-#if defined(_WIN32) && defined(_M_X64)
+#if (defined(_WIN32) && defined(_M_X64)) || defined(__APPLE__)
     persistence_unavailable.store(true);
 #endif
   }
@@ -265,7 +284,7 @@ void SaveWarpMode(const char* mode) noexcept
       return;
     SaveSetting("ui", "auto_confirm_instant_warp", value, {});
   } catch (...) { // Keep value construction inside the shortcut's failure boundary.
-#if defined(_WIN32) && defined(_M_X64)
+#if (defined(_WIN32) && defined(_M_X64)) || defined(__APPLE__)
     persistence_unavailable.store(true);
 #endif
   }
@@ -275,7 +294,7 @@ void SaveWarpMode(const char* mode) noexcept
 void ForceClose() noexcept
 {
 #if defined(_M_X64)
-  if (writer && owner == GetCurrentThreadId() && !quit_depth && writer->HasWork()) {
+  if (writer && owner == CurrentThreadToken() && !quit_depth && writer->HasWork()) {
     forcing = true;
     writer->RequestCancelPending();
     HANDLE duplicate = nullptr;

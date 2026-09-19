@@ -6,11 +6,11 @@
 #include "galaxy_policy.h"
 #include "config.h"
 #include "settings/galaxy_labels.h"
+#include "patches/native_hook_extent.h"
 
 // Galaxy label composition and zoom profiles. Native layout and visibility
-// bindings are validated against the supported Windows client before installation.
-#if defined(_WIN32) && defined(_M_X64)
-#include <Windows.h>
+// bindings are validated before installation; macOS also checks loaded native entries.
+#if (defined(_WIN32) && defined(_M_X64)) || defined(__APPLE__)
 #include <array>
 #include <cstring>
 #include <optional>
@@ -778,7 +778,8 @@ public:
     auto filter = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.Core.Systems", "GalaxyDataFilterSystem");
     auto world = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Navigation", "GameWorldManager");
     if (!star.isValidHelper() || !hud.isValidHelper() || !toggle.isValidHelper() || !director.isValidHelper()
-        || !zoom.isValidHelper() || !filter.isValidHelper() || !world.isValidHelper()) return;
+        || !zoom.isValidHelper() || !filter.isValidHelper() || !world.isValidHelper()
+        || !component.isValidHelper()) return;
     world_instance = il2cpp_class_get_method_from_name(il2cpp_class_get_parent(world.get_cls()), "get_Instance", 0);
     is_minor = world.GetMethodInfo("IsMinorNode");
     using method_contract::Resolve;
@@ -828,6 +829,32 @@ public:
     auto list = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.UI", "BaseListContainer");
     const auto* container = list.isValidHelper() ? il2cpp_class_get_field_from_name(list.get_cls(), "m_container") : nullptr;
     if (!container || container->offset != 0x28) return;
+#if __APPLE__
+    const auto instance = [](const FieldInfo* field) {
+      return field && field->type && !(field->type->attrs & FIELD_ATTRIBUTE_STATIC);
+    };
+    const auto reference = [&](const FieldInfo* field) {
+      auto* cls = instance(field) ? il2cpp_class_from_type(field->type) : nullptr;
+      return cls && !il2cpp_class_is_valuetype(cls);
+    };
+    const auto enum32 = [](const Il2CppType* type) {
+      auto* cls = type ? il2cpp_class_from_type(type) : nullptr;
+      const auto* base = cls && il2cpp_class_is_enum(cls) ? il2cpp_class_enum_basetype(cls) : nullptr;
+      return base && base->type == IL2CPP_TYPE_I4;
+    };
+    if (!instance(dirty) || dirty->type->type != IL2CPP_TYPE_BOOLEAN
+        || !instance(current) || !enum32(current->type)
+        || !instance(context) || context->type->type != IL2CPP_TYPE_VALUETYPE
+        || !reference(lod_field) || !reference(container)
+        || !mode_field || !(mode_field->type->attrs & FIELD_ATTRIBUTE_STATIC) || !enum32(mode_field->type)
+        || is_minor->flags & METHOD_ATTRIBUTE_STATIC || is_minor->parameters_count != 1
+        || !is_minor->parameters[0]->byref
+        || il2cpp_class_from_type(is_minor->parameters[0]) != il2cpp_class_from_type(context->type)
+        || !method_contract::Type(is_minor->return_type, "System.Boolean")) {
+      spdlog::warn("[GalaxyLabels] incompatible Mac field or helper layout");
+      return;
+    }
+#endif
     // The small selection callback requires native inspection when reviewing client
     // updates. Other bindings follow the normal IL2CPP resolution/SPUD hook path.
     if (!mode_field || !get_component || !star_type || !underlying || underlying->type != IL2CPP_TYPE_I4
@@ -839,7 +866,27 @@ public:
                                   {"_hostilesLevelText", 0x90}, {"_starName", 0x80}, {"_hostilesList", 0xf8}, {"_galacticAnomalyIcon", 0x1d0}}) {
       auto* info = il2cpp_class_get_field_from_name(star.get_cls(), field);
       if (!info || info->offset != offset) return;
+#if __APPLE__
+      if (!reference(info)) return;
+#endif
     }
+#if __APPLE__
+    // Do not install any member of the family until all exact loaded entries fit.
+    // The selection callback may be short; its full SPUD overwrite is still decoded.
+    const std::array targets{data, name, select, animation, zoom_changed, should_filter, bind, release};
+    for (std::size_t i = 0; i < targets.size(); ++i) {
+      if (!native_hooks::MacHookFits(targets[i], targets[i] == select ? 32 : 64)) {
+        spdlog::warn("[GalaxyLabels] Mac native hook validation failed at target {}", i);
+        return;
+      }
+      for (std::size_t j = 0; j < i; ++j) {
+        if (targets[i] == targets[j]) {
+          spdlog::warn("[GalaxyLabels] aliased Mac hook targets {} and {}", i, j);
+          return;
+        }
+      }
+    }
+#endif
     update_name = reinterpret_cast<decltype(update_name)>(name);
     const bool a = SPUD_STATIC_DETOUR(data, DataHook), b = SPUD_STATIC_DETOUR(name, NameHook);
     const bool c = SPUD_STATIC_DETOUR(select, SelectHook), d = SPUD_STATIC_DETOUR(animation, AnimationHook);
@@ -858,7 +905,7 @@ public:
 
 bool GalaxyLabelsRequested()
 {
-#if defined(_WIN32) && defined(_M_X64)
+#if (defined(_WIN32) && defined(_M_X64)) || defined(__APPLE__)
   // Shared zoom hooks must be installed even when both profiles start Native,
   // so settings can enable them during play. Native bindings are validated in Install.
   return Config::Get().installZoomHooks;
@@ -869,7 +916,7 @@ bool GalaxyLabelsRequested()
 
 int GalaxyLabelLOD(void* lod, int level)
 {
-#if defined(_WIN32) && defined(_M_X64)
+#if (defined(_WIN32) && defined(_M_X64)) || defined(__APPLE__)
   return GalaxyRuntime::Instance().Lod(lod, level);
 #else
   return level;
@@ -877,13 +924,13 @@ int GalaxyLabelLOD(void* lod, int level)
 }
 void GalaxyLabelFrame(void* zoom)
 {
-#if defined(_WIN32) && defined(_M_X64)
+#if (defined(_WIN32) && defined(_M_X64)) || defined(__APPLE__)
   GalaxyRuntime::Instance().Frame(zoom);
 #endif
 }
 void InstallGalaxyLabels()
 {
-#if defined(_WIN32) && defined(_M_X64)
+#if (defined(_WIN32) && defined(_M_X64)) || defined(__APPLE__)
   GalaxyRuntime::Instance().Install();
 #endif
 }
@@ -892,7 +939,7 @@ namespace mod_settings
 {
 bool GalaxyLabelControlsAvailable()
 {
-#if defined(_WIN32) && defined(_M_X64)
+#if (defined(_WIN32) && defined(_M_X64)) || defined(__APPLE__)
   return GalaxyRuntime::Instance().Available();
 #else
   return false;
@@ -900,7 +947,7 @@ bool GalaxyLabelControlsAvailable()
 }
 void RefreshGalaxyLabelControls()
 {
-#if defined(_WIN32) && defined(_M_X64)
+#if (defined(_WIN32) && defined(_M_X64)) || defined(__APPLE__)
   if (GalaxyRuntime::Instance().Available()) GalaxyRuntime::Instance().ApplySettings();
 #endif
 }

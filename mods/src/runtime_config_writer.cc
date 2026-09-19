@@ -177,7 +177,7 @@ bool RuntimeConfigWriter::PollStopped()
   if (WaitForSingleObject(worker_.native_handle(), 0) != WAIT_OBJECT_0)
     return false;
 #else
-  // The game adapter is Windows-only until native macOS quit integration is validated.
+  // The worker has completed its disk work and published its final state.
   if (!finished_.load())
     return false;
 #endif
