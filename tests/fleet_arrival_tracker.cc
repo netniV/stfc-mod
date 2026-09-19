@@ -1,4 +1,7 @@
 #include "patches/fleet_arrival_tracker.h"
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
 #include <cassert>
 #include <iostream>
 

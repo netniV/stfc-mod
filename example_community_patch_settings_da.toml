@@ -54,6 +54,7 @@ alert_fleet_started_mining = "none"
 alert_fleet_node_depleted = "none"
 alert_fleet_docked = "none"
 alert_fleet_repair_complete = "none"
+alert_fleet_miner_opc = "none"
 
 #  <[======================================================================================================]> 
 #                                                                                                             
