@@ -194,7 +194,8 @@ jobs:
 
       - name: Test fleet observation trackers
         run: |
-          xmake build -y miner-opc-tests fleet-arrival-tests
+          xmake build -y miner-opc-tests
+          xmake build -y fleet-arrival-tests
           xmake run miner-opc-tests
           xmake run fleet-arrival-tests
 
@@ -485,7 +486,8 @@ jobs:
 
       - name: Test fleet observation trackers
         run: |
-          xmake build -y miner-opc-tests fleet-arrival-tests
+          xmake build -y miner-opc-tests
+          xmake build -y fleet-arrival-tests
           xmake run miner-opc-tests
           xmake run fleet-arrival-tests
 
