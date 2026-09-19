@@ -1110,9 +1110,9 @@ void Config::Load()
       "outposts", get_mission_hud_visibility(config, parsed, "hud_outposts", DCU::hud_outposts, write_config));
   this->mission_hud_buttons.emplace(
       "missions", get_mission_hud_visibility(config, parsed, "hud_missions", DCU::hud_missions, write_config));
-  // The current native settings UI is Windows x64. Keep other platforms' opt-in
-  // hook installation until their live UI/native entry validation is available.
-#if defined(_WIN32) && defined(_M_X64)
+  // Install before native settings registration; Mac targets are preflighted
+  // as a complete family before any detour is installed.
+#if (defined(_WIN32) && defined(_M_X64)) || defined(__APPLE__)
   this->installMissionHudTweaksHooks = true;
 #else
   this->installMissionHudTweaksHooks = this->MissionHudTweaksEnabled();
