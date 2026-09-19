@@ -35,6 +35,37 @@ namespace
     }
     return result.empty() ? "NONE" : result;
   }
+  // Stored bindings keep the portable WIN- spelling that MapKey parses on every
+  // platform. Presentation aliases the whole '-'-separated group to CMD on
+  // macOS so labels match the physical keyboard; input and serialization are
+  // unchanged and "CMD" text is never written to the TOML configuration.
+  std::string DescribeToken(std::string_view token)
+  {
+#if defined(__APPLE__)
+    std::string display;
+    std::size_t start = 0;
+    while (start < token.size()) {
+      const auto end   = token.find('-', start);
+      const bool last  = end == std::string_view::npos;
+      const auto group = last ? token.substr(start) : token.substr(start, end - start);
+      if (group == "WIN")
+        display += "CMD";
+      else if (group == "LWIN")
+        display += "LCMD";
+      else if (group == "RWIN")
+        display += "RCMD";
+      else
+        display.append(group);
+      if (last)
+        break;
+      display += '-';
+      start = end + 1;
+    }
+    return display;
+#else
+    return std::string(token);
+#endif
+  }
   struct Editor {
     GameFunction                                function;
     ValueSetting<ShortcutList>                  state;
@@ -77,11 +108,14 @@ namespace
         })
     {
     }
-    ShortcutList Current()
-    {
-      auto snapshot = state.Observe();
-      return snapshot.state.value.value_or(ShortcutList{});
-    }
+  ShortcutList Current()
+  {
+    auto snapshot = state.Observe();
+    auto value    = snapshot.state.value.value_or(ShortcutList{});
+    for (auto& text : value)
+      text = DescribeToken(text);
+    return value;
+  }
   };
   std::vector<std::unique_ptr<Editor>> editors;
   Editor*                              recording      = nullptr;
@@ -96,7 +130,7 @@ namespace
   {
     const auto candidate = MapKey::Parse(token);
     if (keyboard_layout::DescribeChord(candidate.Key).key == KeyCode::None)
-      return {token + ": layout unavailable; check this binding"};
+      return {DescribeToken(token) + ": layout unavailable; check this binding"};
     std::vector<std::string> result;
     for (int i = 0; i < GameFunction::Max; ++i) {
       const auto action = static_cast<GameFunction>(i);
@@ -107,7 +141,7 @@ namespace
         overlap |= MapKey::MayOverlap(candidate, binding);
       if (!overlap)
         continue;
-      result.push_back(token + " may overlap: " + DescribeShortcut(action, MapKey::Definition(action).key).label);
+      result.push_back(DescribeToken(token) + " may overlap: " + DescribeShortcut(action, MapKey::Definition(action).key).label);
     }
     return result;
   }
@@ -161,8 +195,11 @@ namespace
         const auto isHeld = [&](KeyCode key) { return held[static_cast<int>(key)]; };
         const auto key =
             keyboard_layout::CaptureIdentity(*primary, isHeld(KeyCode::LeftShift) || isHeld(KeyCode::RightShift));
-        // New bindings use generic modifiers, matching ordinary TOML bindings.
+        // Generic modifiers for new bindings, matching ordinary TOML bindings.
         // Existing sided modifiers remain untouched unless that binding is replaced.
+        // macOS reports Command separately from the Windows keycode and a
+        // physical Command key may arrive through both; capture stores either
+        // as the generic WIN- modifier exactly once, keeping bindings portable.
         std::string token;
         if (isHeld(KeyCode::LeftControl) || isHeld(KeyCode::RightControl))
           token += "CTRL-";
@@ -170,7 +207,8 @@ namespace
           token += "ALT-";
         if (isHeld(KeyCode::LeftShift) || isHeld(KeyCode::RightShift))
           token += "SHIFT-";
-        if (isHeld(KeyCode::LeftWindows) || isHeld(KeyCode::RightWindows))
+        if (isHeld(KeyCode::LeftWindows) || isHeld(KeyCode::RightWindows)
+            || isHeld(KeyCode::LeftCommand) || isHeld(KeyCode::RightCommand))
           token += "WIN-";
         if (key == KeyCode::None || isHeld(KeyCode::AltGr)) {
           editor->status = "This key/layout is unavailable; record another";
@@ -180,10 +218,12 @@ namespace
           editor->overlaps.clear();
           if (result == ShortcutStage::Staged) {
             editor->overlaps = Overlaps(*editor, token);
-            editor->status   = editor->replacing.empty() ? "Add " + token : editor->replacing + " -> " + token;
+            editor->status   = editor->replacing.empty() ? "Add " + DescribeToken(token)
+                                                         : DescribeToken(editor->replacing) + " -> " + DescribeToken(token);
           } else {
-            editor->status = result == ShortcutStage::AlreadyBound ? "Already bound: " + token
-                                                                   : "Binding unavailable; reopen and try again";
+            editor->status = result == ShortcutStage::AlreadyBound
+                                 ? "Already bound: " + DescribeToken(token)
+                                 : "Binding unavailable; reopen and try again";
           }
         }
         recording = nullptr;
@@ -219,7 +259,7 @@ namespace
       const auto& bindings = MapKey::Bindings(editor.function);
       if (bindings.empty())
         return std::string{"Unbound"};
-      return bindings.front().GetParsedValues()
+      return DescribeToken(bindings.front().GetParsedValues())
              + (bindings.size() > 1 ? " +" + std::to_string(bindings.size() - 1) : "");
     });
     auto add = [&](const char* id, const char* label, auto read, auto invoke, std::function<std::size_t()> count = {}) {
@@ -304,7 +344,7 @@ namespace
     add(
         "default", "Restore default",
         [&editor](std::size_t) {
-          return P{"Default: " + MapKey::Definition(editor.function).defaultBinding, "Restore", "",
+          return P{"Default: " + DescribeToken(MapKey::Definition(editor.function).defaultBinding), "Restore", "",
                    !capture.active() && !editor.draft.pending()};
         },
         [&editor](std::size_t) {
@@ -325,7 +365,7 @@ namespace
           Cancel(editor);
           editor.draft.Begin();
           const auto result = editor.draft.Restore(defaults);
-          editor.status     = result == ShortcutStage::Staged         ? "Restore default: " + Join(defaults)
+          editor.status     = result == ShortcutStage::Staged         ? "Restore default: " + DescribeToken(Join(defaults))
                               : result == ShortcutStage::AlreadyBound ? "Already using default"
                                                                       : "Default unavailable; reopen settings";
           if (result == ShortcutStage::Staged)
@@ -358,7 +398,10 @@ void RegisterShortcutPages(PageCatalog& catalog)
 {
   if (!editors.empty() || !Config::Get().installHotkeyHooks || Config::Get().use_scopely_hotkeys)
     return;
-#if defined(_WIN32) && defined(_M_X64)
+// macOS ports the shared native settings adapter; capture stays in physical
+// keyboard mode and relies on the same runtime-resolved hooks as Windows.
+// Only Windows x64 resolves layout-dependent printable chords.
+#if (defined(_WIN32) && defined(_M_X64)) || defined(__APPLE__)
   // Capture must observe a focused release before returning keys to gameplay.
   // A missing query is not ordinary focus loss: never offer capture without it.
   isFocused = il2cpp_resolve_icall_typed<bool()>("UnityEngine.Application::get_isFocused()");

@@ -16,7 +16,7 @@ Game Screens opens inventory, artifacts and other panels; Previews & Cargo chang
 preview behavior; Interface Controls adjusts sizes, shortcut hints and search focus.
 Moving between map views and cycling instant warp belongs to Map & Travel. Explicit presentation
 metadata gives each action a human label without changing its config identity.
-It is available in the Windows native settings adapter
+It is available in the Windows and macOS native settings adapters
 when mod hotkeys are installed and Scopely hotkey mode is off. Only actions
 registered by the existing configuration loader are listed. Their original
 gameplay contexts and feature enablement still apply.
@@ -93,7 +93,10 @@ editor, capture ownership, Escape/focus/held-key cancellation, advisory conflict
 
 ## Capture and presentation limits
 
-New recordings use either-side Ctrl/Alt/Shift/Win modifiers. Existing sided
+New recordings use either-side Ctrl/Alt/Shift/Win modifiers. On macOS, Command
+is reported with separate keycodes and is captured as the generic WIN- modifier,
+so bindings stay readable on either platform; the macOS editor renders that
+modifier as CMD, while stored bindings keep the canonical WIN- spelling. Existing sided
 bindings and alternative ordering are retained until explicitly replaced. Escape
 is reserved for cancelling recording; existing Escape bindings remain readable.
 OS shortcuts can still be handled by the OS; this is not a global keyboard hook.
@@ -140,10 +143,14 @@ Refreshes run
 on settings actions and capture transitions; they do not add idle frame polling.
 An unchanged visible list is not rebound.
 
-The reused command-widget detours are Windows x64 only. On client build261 (GameAssembly SHA256
+The reused command-widget detours install only where runtime extent checks pass.
+On client build261 (GameAssembly SHA256
 487af4bb9c697c353be9714359a97dddcece5dab872622a6c498a27bbfc44f40),
 ButtonAndTextOptionWidget.SetWidgetData spans CFD5F0..CFD8A5 (693 bytes), and
 OnAboutToReleaseContext spans CFD430..CFD53F (271 bytes). Both were checked against
 the PE unwind table and disassembly; SPUD reserves 24 bytes. Runtime metadata and
-extent checks still gate installation. No additional ScreenManager detour is
+extent checks still gate installation on Windows; macOS resolves the same methods
+from runtime metadata and gates each install with the Mach-O extent check. Capture
+on macOS stays in physical keyboard mode; `keyboard_layout_mode = "layout"` remains
+Windows-only and reports `platform_unsupported` elsewhere. No additional ScreenManager detour is
 installed: recording uses its existing dispatcher and does no idle input scan.
