@@ -1416,6 +1416,10 @@ static void jobs(std::unique_ptr<std::string>&& bytes)
           const auto& scrap = job.scrapyardparams();
           job_params        = {{"psid", scrap.shipid()}, {"hull_id", scrap.hullid()}, {"level", scrap.level()}};
         } break;
+        case Digit::PrimeServer::Models::JOBTYPE_AWAYASSIGNMENT: {
+          const auto& away_assignment = job.awayassignmentparams();
+          job_params                  = {{"aid", away_assignment.awayassignmentinstanceid()}};
+        } break;
         default:
           continue;
       }
@@ -1534,10 +1538,24 @@ static void completed_missions(std::unique_ptr<std::string>&& bytes)
 static void officers(std::unique_ptr<std::string>&& bytes)
 {
   using json = nlohmann::json;
-  using trackers::types::RankLevelShardsState;
 
-  static std::unordered_map<uint64_t, RankLevelShardsState> officer_states;
-  static std::mutex                                         officer_states_mtx;
+  // Local to officers(): like RankLevelShardsState, plus the away assignment instance id so a
+  // change there alone (rank/level/shards unchanged) still re-emits the officer.
+  struct OfficerState {
+    int32_t rank                        = -1;
+    int32_t level                       = -1;
+    int32_t shard_count                 = -1;
+    int64_t away_assignment_instance_id = 0;
+
+    bool operator==(const OfficerState& other) const
+    {
+      return this->rank == other.rank && this->level == other.level && this->shard_count == other.shard_count
+             && this->away_assignment_instance_id == other.away_assignment_instance_id;
+    }
+  };
+
+  static std::unordered_map<uint64_t, OfficerState> officer_states;
+  static std::mutex                                 officer_states_mtx;
 
   if (auto response = Digit::PrimeServer::Models::OfficersResponse(); response.ParseFromString(*bytes)) {
 
@@ -1548,7 +1566,8 @@ static void officers(std::unique_ptr<std::string>&& bytes)
       std::scoped_lock lk(officer_states_mtx);
 
       for (const auto& officer : response.officers()) {
-        const RankLevelShardsState officer_state{officer.rankindex(), officer.level(), officer.shardcount()};
+        const OfficerState officer_state{officer.rankindex(), officer.level(), officer.shardcount(),
+                                         officer.awayassignmentinstanceid()};
 
         if (const auto& it = officer_states.find(officer.id());
             it == officer_states.end() || it->second != officer_state) {
@@ -1557,7 +1576,8 @@ static void officers(std::unique_ptr<std::string>&& bytes)
                                     {"oid", officer.id()},
                                     {"rank", officer.rankindex()},
                                     {"level", officer.level()},
-                                    {"shard_count", officer.shardcount()}});
+                                    {"shard_count", officer.shardcount()},
+                                    {"away_assignment_id", officer.awayassignmentinstanceid()}});
             }
       }
     }
