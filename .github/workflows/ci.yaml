@@ -192,6 +192,10 @@ jobs:
       - name: Build
         run: xmake build -y stfc-community-mod
 
+      - name: Test confirmation setting contracts
+        shell: pwsh
+        run: ./tests/run-confirmation-settings.ps1
+
       - name: Report compiler cache
         shell: pwsh
         run: sccache --show-stats
@@ -498,6 +502,9 @@ jobs:
           test -n "$TOML_HEADER"
           bash tests/run-config-save.sh "$(dirname "$(dirname "$TOML_HEADER")")"
           bash tests/run-settings.sh
+      - name: Test confirmation setting contracts
+        shell: bash
+        run: bash tests/run-confirmation-settings.sh
 
       - name: Test loaded Mach-O hook boundaries
         shell: bash
