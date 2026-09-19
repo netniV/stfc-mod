@@ -7,7 +7,7 @@
 #  |    #***     #    #       #***         #   *   #**    #***    | 
 #  |                                                              | 
 #  +--------------------------------------------------------------+ 
-#   Generado el 2026-08-27T22:28:37.107Z
+#   Generado el 2026-09-05T13:04:20.411Z
 #   
 #   Este archivo de configuración fue generado por https://modconfig.pages.dev
 #   y se proporciona tal cual. Si hay algún problema con el Mod Comunitario de STFC
@@ -17,7 +17,7 @@
 #       Discord : https://discord.gg/PrpHgs7Vjs
 #       GitHub  : https://github.com/netniV/stfc-mod
 #   
-#   El archivo de configuración de hoy está patrocinado por la letra H y el número 8
+#   El archivo de configuración de hoy está patrocinado por la letra Q y el número 8
 #   
 
 #  <[=======================================]> 
@@ -36,6 +36,15 @@ disabled_events = ""
 
 # Write audio event names to the trace log for troubleshooting
 trace_events = false
+
+# Optional generated notification cues; "none" disables an alert.
+# Available sounds: default, info, success, warning, alarm, arrival, soft, ping, repair
+# Requires patches.toastbannerhooks = true.
+alert_victory = "none"
+alert_defeat = "none"
+alert_armada_created = "none"
+alert_armada_battle_won = "none"
+alert_armada_battle_lost = "none"
 
 #  <[=====================================================]> 
 #                                                            
@@ -135,6 +144,29 @@ ui_scale_ship = 1.0
 
 # Especifica la escala de los visores de objetos de la interfaz; el valor predeterminado es 1,0
 ui_scale_viewer = 1.2
+
+# Subgroup: Fleet Labels
+# ----------------------
+
+# Label detail shown for non-player and unknown fleets in System View
+#   "native" - Use Scopely's Near/Middle/Far behaviour
+#   "expanded" - Always show long fleet labels
+#   "compact" - Always show compact fleet labels
+#   "threshold" - Switch from expanded to compact at the configured zoom threshold
+zoom_label_non_player_detail = "native"
+
+# Normalized zoom crossover used when non-player fleet label detail is "threshold"; 0 is always compact and 1 is always expanded
+zoom_label_non_player_threshold = 0.5
+
+# Label detail shown for player fleets in System View
+#   "native" - Use Scopely's Near/Middle/Far behaviour
+#   "expanded" - Always show long fleet labels
+#   "compact" - Always show compact fleet labels
+#   "threshold" - Switch from expanded to compact at the configured zoom threshold
+zoom_label_player_detail = "native"
+
+# Normalized zoom crossover used when player fleet label detail is "threshold"; 0 is always compact and 1 is always expanded
+zoom_label_player_threshold = 0.5
 
 # Subgroup: Keyboard
 # ------------------
@@ -455,6 +487,9 @@ show_daily = "Z"
 # Ir a eventos
 show_events = "SHIFT-E"
 
+# Go to Events (Native)
+show_events_native = "CTRL-E"
+
 # Ir a Exocomp
 show_exocomp = "X"
 
@@ -463,6 +498,9 @@ show_factions = "F"
 
 # Ir a la galaxia
 show_galaxy = "G"
+
+# Go to Galaxy (Native)
+show_galaxy_native = "CTRL-G"
 
 # Ir a regalos
 show_gifts = "/"
@@ -491,8 +529,22 @@ show_scrapyard = "Y"
 # Ir a ajustes
 show_settings = "SHIFT-S"
 
+# Alternar las indicaciones de atajos en pantalla (muestra los atajos compatibles del mod)
+# NONE desactiva los hooks y la caché de indicaciones del mod; asigna una tecla para activar (requiere reiniciar).
+toggle_shortcut_hints = "HOME"
+# Los modificadores usan la notación de AutoHotkey: ^ Ctrl, ! Alt, + Mayús, # Win/Comando
+
 # Ir a administrar barcos
 show_ships = "N"
+
+# Abrir la pantalla Construir nave del astillero
+show_shipconstruction = "SHIFT-N"
+
+# Abrir la selección de escudos de paz
+show_shields = "CTRL-S"
+
+# Abrir la bandeja de informes de batalla
+show_battlelogs = "SHIFT-B"
 
 # Exterior de la estación
 show_stationexterior = "SHIFT-G"
@@ -596,6 +648,9 @@ auto_open_bulk_claim_flyout = false
 # Impide que "Escape" pregunte si deseas salir del juego
 disable_escape_exit = true
 
+# Maximum gap in milliseconds between Escape presses that opens the exit prompt; 0 disables double-tap exit
+disable_escape_exit_timer = 0
+
 # ⚠️ EXPERIMENTAL: Impide que aparezca el primer anuncio emergente
 disable_first_popup = false
 
@@ -612,6 +667,9 @@ disable_toast_banners = false
 auto_confirm_ft_upgrade = false
 
 # Acción de curvatura instantánea que se confirmará automáticamente: ninguna, curvatura o salto
+#   "none" - Do not choose an action automatically; show the confirmation dialog
+#   "warp" - Automatically choose regular warp
+#   "jump" - Automatically choose instant jump
 auto_confirm_instant_warp = "none"
 
 # Comma-separated ship hull names for which the instant-warp popup is always shown, overriding all automatic actions
@@ -685,18 +743,33 @@ pinned_ships = ""
 # -------------
 
 # HUD visibility mode: auto, show, or hide
+#   "auto" - Use the game's default visibility behaviour
+#   "show" - Always show this HUD item
+#   "hide" - Always hide this HUD item
 hud_daily_goals = "auto"
 
 # HUD visibility mode: auto, show, or hide
+#   "auto" - Use the game's default visibility behaviour
+#   "show" - Always show this HUD item
+#   "hide" - Always hide this HUD item
 hud_field_training = "auto"
 
 # HUD visibility mode: auto, show, or hide
+#   "auto" - Use the game's default visibility behaviour
+#   "show" - Always show this HUD item
+#   "hide" - Always hide this HUD item
 hud_missions = "auto"
 
 # HUD visibility mode: auto, show, or hide
+#   "auto" - Use the game's default visibility behaviour
+#   "show" - Always show this HUD item
+#   "hide" - Always hide this HUD item
 hud_outposts = "auto"
 
 # HUD visibility mode: auto, show, or hide
+#   "auto" - Use the game's default visibility behaviour
+#   "show" - Always show this HUD item
+#   "hide" - Always hide this HUD item
 hud_q_trials = "auto"
 
 # Subgroup: Previews

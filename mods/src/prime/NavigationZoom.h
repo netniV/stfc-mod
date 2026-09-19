@@ -7,6 +7,7 @@
 
 #include "Camera.h"
 #include "NavigationPan.h"
+#include "ZoomLevels.h"
 
 enum class NodeDepth {
   Galaxy       = 1,
@@ -42,6 +43,8 @@ public:
   __declspec(property(get = __get__zoomtotal, put = __set__zoomtotal)) float _zoomtotal;
   __declspec(property(get = __get__minimum, put = __set__minimum)) float _minimum;
   __declspec(property(get = __get__maximum, put = __set__maximum)) float _maximum;
+  __declspec(property(get = __get__zoomLevel)) ZoomLevels _zoomLevel;
+  __declspec(property(get = __get_NormalizedZoom)) float NormalizedZoom;
   __declspec(property(get = __get__zoomDelta, put = __set__zoomDelta)) float _zoomDelta;
   __declspec(property(get = __get__viewRadius, put = __set__viewRadius)) float _viewRadius;
   __declspec(property(get = __get__lastZoomDelta, put = __set__lastZoomDelta)) float _lastZoomDelta;
@@ -132,6 +135,18 @@ public:
   {
     static auto field                           = get_class_helper().GetField("_maximum");
     *(float*)((ptrdiff_t)this + field.offset()) = delta;
+  }
+
+  ZoomLevels __get__zoomLevel()
+  {
+    static auto field = get_class_helper().GetField("_zoomLevel");
+    return *(ZoomLevels*)((ptrdiff_t)this + field.offset());
+  }
+
+  float __get_NormalizedZoom()
+  {
+    static auto field = get_class_helper().GetProperty("NormalizedZoom");
+    return *field.Get<float>(this);
   }
 
   float __get__actualDistance()

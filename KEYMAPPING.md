@@ -21,6 +21,18 @@ Value | Keys Required
 "ALT-LSHIFT-T" | (Left Or Right) Alt + Left Shift + T
 "Q" | Q (no Shift, Ctrl, etc)
 
+### Screen shortcuts
+
+These bindings can be changed in the `[shortcuts]` section of `community_patch_settings.toml`.
+
+| Setting | Default | Action |
+| --- | --- | --- |
+| `show_shipconstruction` | `SHIFT-N` | Open Ships / Ship Construction (Shipyard → Build Ship). |
+| `show_shields` | `CTRL-S` | Open the Peace Shield selection popup. |
+| `show_battlelogs` | `SHIFT-B` | Open the Battle Reports inbox. |
+
+`show_ships = "N"` continues to manage the selected ship. The shield shortcut opens the selection popup; activating a shield still requires choosing one.
+
 ### Modifiers
 
 Modifiers are not required, any specified must be used together:
