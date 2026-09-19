@@ -662,7 +662,7 @@ auto_confirm_ft_upgrade = false
 #   "none" - Do not choose an action automatically; show the confirmation dialog
 #   "warp" - Automatically choose regular warp
 #   "jump" - Automatically choose instant jump
-# The mode shortcut persists this value on verified Windows clients; otherwise session-only.
+# The mode shortcut persists this value on validated Windows x64 and macOS clients; otherwise session-only.
 # External edits are preserved; conflicts are logged. See docs/config-save.md.
 auto_confirm_instant_warp = "none"
 
