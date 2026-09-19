@@ -1,4 +1,4 @@
-#if defined(_WIN32) && defined(_M_X64)
+#if (defined(_WIN32) && defined(_M_X64)) || defined(__APPLE__)
 #include "page_navigation.h"
 #include "action_widgets.h"
 #include "patches/parts/fc_confirmation_reset.h"
@@ -7,6 +7,7 @@
 #include "settings/mod_pages.h"
 #include "settings/page_sections.h"
 #include "settings/native_boolean_callback.h"
+#include "timing.h"
 #include <cstdlib>
 #include <cstring>
 #include <spdlog/spdlog.h>
@@ -56,12 +57,19 @@ struct SectionPage {
 using SectionRefreshScope = PageSections::RefreshScope;
 void ClearSectionPage()
 {
-  sectionPage.page = nullptr;
+  timing::Flush();
+  const auto* leaving = std::exchange(sectionPage.page, nullptr);
   Free(sectionPage.controller);
   Free(sectionPage.context);
   sectionPage.sections.ExpandAll();
   sectionPage.shown.clear();
   sectionPage.conditional = false;
+  try {
+    if (leaving && leaving->leave)
+      leaving->leave();
+  } catch (...) {
+    Warn("settings page cleanup unavailable");
+  }
 }
 const PageCatalog::Heading* CollapsibleHeadingFor(Il2CppObject* context)
 {
@@ -84,6 +92,7 @@ bool Collapsed(const PageCatalog::Heading& heading)
 }
 void ShowSections(Il2CppObject* controller, Il2CppObject* context, const PageCatalog::Page& page, bool force = false)
 {
+  timing::Scope measurement(timing::Operation::ShowPage);
   SyncActionRows(controller, context, page);
   Root children(Call(context, "get_Children"));
   struct OrderedRow {
@@ -464,6 +473,7 @@ void AddPages(Il2CppObject* director, Il2CppObject* context)
 {
   if (!pagesActive || Pages().empty())
     return;
+  timing::Scope measurement(timing::Operation::BuildTree);
   Root root(Call(context, "get_RootOption"));
   Root children(Call(root.get(), "get_Children"));
   for (int i = 0, count = Count(children.get()); i < count; ++i)

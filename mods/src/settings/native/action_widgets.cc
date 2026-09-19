@@ -1,8 +1,9 @@
-#if defined(_WIN32) && defined(_M_X64)
+#if (defined(_WIN32) && defined(_M_X64)) || defined(__APPLE__)
 #include "action_widgets.h"
 #include "page_navigation.h"
 #include "row_style.h"
 #include "settings/native_boolean_callback.h"
+#include "timing.h"
 #include <deque>
 #include <spdlog/spdlog.h>
 #include <spud/detour.h>
@@ -157,6 +158,7 @@ void RefreshActions()
 {
   if (!OnUIThread() || !actionsActive || !PagesActive() || PageRefreshInProgress())
     return;
+  timing::Scope measurement(timing::Operation::RefreshActions);
   RefreshPageRows();
   RefreshPageSummaries();
   // Binding during a callback may append a deque slot. References stay valid;
@@ -193,8 +195,8 @@ void InvokeAction(Il2CppObject* token, const MethodInfo*)
       if (!widget.get() || !context.get() || Invoke(ActionMeta().getContext, widget.get()) != context.get()
           || ActionToken(context.get()) != token)
         return;
-      // EventSystem can submit a focused button with Enter/Space. The
-      // command's current availability is authoritative too.
+      // EventSystem can submit a focused button with Enter/Space while capture
+      // is active. The command's current availability is authoritative too.
       const bool enabled = action->Read(index).actionable();
       // A feature-owned reader may release/rebind its row. Keep that callback
       // from authorizing a different command or recursively invoking itself.
@@ -213,7 +215,7 @@ void ActionRefreshHook(auto original, Il2CppObject* widget)
     for (std::size_t i = 0, count = actionViews.size(); i < count; ++i) {
       auto& view = actionViews[i];
       if (Target(view.widget) == widget) {
-        // Pooling/refresh releases only this widget's presentation.
+        // Pooling/refresh only releases the widget. The page owns its editor.
         ClearAction(view);
       }
     }
@@ -386,7 +388,7 @@ void InstallActionWidgets()
           || !SPUD_STATIC_DETOUR(action.release->methodPointer, ActionReleaseHook))
         throw std::runtime_error("settings command hook installation");
       actionsActive = true;
-    } catch (const std::exception& error) {
+        } catch (const std::exception& error) {
       spdlog::warn("[ModSettings] Commands unavailable: {}", error.what());
     }
   }

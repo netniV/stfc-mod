@@ -499,6 +499,20 @@ jobs:
           bash tests/run-config-save.sh "$(dirname "$(dirname "$TOML_HEADER")")"
           bash tests/run-settings.sh
 
+      - name: Test loaded Mach-O hook boundaries
+        shell: bash
+        run: |
+          xmake build -y macos-hook-extent-tests
+          xmake run macos-hook-extent-tests
+
+      - name: Verify ARM64 debug core
+        if: ${{ matrix.arch == 'arm64' }}
+        shell: bash
+        run: |
+          xmake f -p macosx -a arm64 -m debug --target_minver=14.6 -y
+          xmake -y mods
+          xmake f -p macosx -a arm64 -m release --target_minver=14.6 -y
+
       - name: Report Swift module cache
         shell: bash
         run: |
