@@ -26,3 +26,5 @@ add_rules("mode.releasedbg")
 includes("xmake/rules/protobuf_sccache.lua")
 includes("xmake/rules/cxx_sccache.lua")
 includes("mods")
+
+includes("tests")

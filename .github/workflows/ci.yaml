@@ -196,6 +196,16 @@ jobs:
         shell: pwsh
         run: sccache --show-stats
 
+      - name: Test startup config saves
+        shell: pwsh
+        env:
+          PACKAGE_DIR: ${{ steps.xmake_cache_paths.outputs.package_dir }}
+        run: |
+          $header = Get-ChildItem -LiteralPath (Join-Path $env:PACKAGE_DIR 't/toml++') -Recurse -Filter toml.h |
+            Where-Object { $_.Directory.Name -eq 'toml++' } | Select-Object -First 1
+          if (-not $header) { throw 'Built toml++ package not found.' }
+          ./tests/run-config-save.ps1 -TomlInclude $header.Directory.Parent.FullName
+
       - name: Package
         shell: pwsh
         run: |
@@ -476,6 +486,30 @@ jobs:
       - name: Report protobuf compiler cache
         shell: bash
         run: sccache --show-stats
+
+      - name: Test startup config saves
+        shell: bash
+        env:
+          PACKAGE_DIR: ${{ steps.xmake_cache_paths.outputs.package_dir }}
+        run: |
+          set -euo pipefail
+          TOML_HEADER=$(find "$PACKAGE_DIR/t/toml++" -path '*/include/toml++/toml.h' -print -quit)
+          test -n "$TOML_HEADER"
+          bash tests/run-config-save.sh "$(dirname "$(dirname "$TOML_HEADER")")"
+
+      - name: Test loaded Mach-O hook boundaries
+        shell: bash
+        run: |
+          xmake build -y macos-hook-extent-tests
+          xmake run macos-hook-extent-tests
+
+      - name: Verify ARM64 debug core
+        if: ${{ matrix.arch == 'arm64' }}
+        shell: bash
+        run: |
+          xmake f -p macosx -a arm64 -m debug --target_minver=14.6 -y
+          xmake -y mods
+          xmake f -p macosx -a arm64 -m release --target_minver=14.6 -y
 
       - name: Report Swift module cache
         shell: bash
