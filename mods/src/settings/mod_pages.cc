@@ -44,10 +44,18 @@ void RegisterModPages()
       catalog.AddBoolean("community_mod.previews", PreviewSetting(option));
   }
   catalog.AddPage("community_mod.hud", "HUD Buttons", "community_mod.settings");
-  catalog.AddHeading("community_mod.hud", "community_mod.hud.restart", "Changes apply after restarting the game");
+  catalog.AddHeading("community_mod.hud", "community_mod.hud.restart", "Restart required");
   for (auto option : {MissionHudOption::Trials, MissionHudOption::FieldTraining,
-                      MissionHudOption::Outposts, MissionHudOption::Missions})
-    catalog.AddChoice("community_mod.hud", MissionHudSetting(option));
+                      MissionHudOption::Outposts, MissionHudOption::Missions}) {
+    auto& setting = MissionHudSetting(option);
+    catalog.AddHeading("community_mod.hud", setting.state().id() + ".section", setting.state().label(), true, {},
+                       [option] {
+                         auto& choice = MissionHudSetting(option);
+                         const auto state = choice.state().Observe().state;
+                         return state.known() ? choice.labels().at(*state.value) : std::string("Unavailable");
+                       });
+    catalog.AddChoice("community_mod.hud", setting);
+  }
   catalog.AddPage("community_mod.labels", "Fleet Labels", "community_mod.settings");
   for (bool player : {true, false}) {
     catalog.AddHeading("community_mod.labels", player ? "community_mod.labels.player" : "community_mod.labels.other",
