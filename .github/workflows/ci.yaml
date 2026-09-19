@@ -192,6 +192,10 @@ jobs:
       - name: Build
         run: xmake build -y stfc-community-mod
 
+      - name: Test confirmation setting contracts
+        shell: pwsh
+        run: ./tests/run-confirmation-settings.ps1
+
       - name: Report compiler cache
         shell: pwsh
         run: sccache --show-stats
@@ -476,6 +480,10 @@ jobs:
       - name: Report protobuf compiler cache
         shell: bash
         run: sccache --show-stats
+
+      - name: Test confirmation setting contracts
+        shell: bash
+        run: bash tests/run-confirmation-settings.sh
 
       - name: Test loaded Mach-O hook boundaries
         shell: bash

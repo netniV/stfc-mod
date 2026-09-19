@@ -157,6 +157,9 @@ struct View {
   bool                          overridden          = false;
   bool                          hidden              = false;
   bool                          rendering           = false;
+  bool                          binding             = false;
+  bool                          requesting          = false;
+  bool                          clearing            = false;
   bool                          preserveNextRefresh = false;
   BooleanView                   state{FleetCommanderConfirmationSetting()};
 };
@@ -194,6 +197,13 @@ void Restore(View& view)
 }
 void Clear(View& view)
 {
+  if (view.clearing)
+    return;
+  struct Scope {
+    View& view;
+    explicit Scope(View& view) : view(view) { view.clearing = true; }
+    ~Scope() { view.clearing = false; }
+  } scope(view);
   try {
     Restore(view);
   } catch (...) {
@@ -229,7 +239,7 @@ bool ChildOf(Il2CppObject* transform, Il2CppObject* parent)
 View& Track(Il2CppObject* widget, Il2CppObject* context)
 {
   for (auto& view : Views()) {
-    if (Target(view.widget))
+    if (Target(view.widget) || view.rendering || view.binding || view.requesting || view.clearing)
       continue;
     Clear(view);
     Root                         label(ReadField(widget, Meta().labelField));
@@ -270,7 +280,6 @@ View& Track(Il2CppObject* widget, Il2CppObject* context)
 }
 
 View* renderingView  = nullptr;
-View* requestingView = nullptr;
 bool  GetEnabled(Il2CppObject*, const MethodInfo*)
 {
   // Native bool signatures cannot express unknown. Only the owned render scope
@@ -391,6 +400,7 @@ void Render(View& view, auto original, Il2CppObject* widget)
 {
   if (view.rendering)
     return;
+  Root boundContext(Target(view.context));
   struct Scope {
     View&                       view;
     View*                       previous;
@@ -411,6 +421,8 @@ void Render(View& view, auto original, Il2CppObject* widget)
   } scope(view);
   Restore(view);
   original(widget);
+  if (Target(view.widget) != widget || Target(view.context) != boundContext.get())
+    return;
   Root        label(Target(view.label));
   std::string text = view.state.setting().label();
   // The native row has limited label width: "Change not applied; try again" was
@@ -467,7 +479,7 @@ void RefreshHook(auto original, Il2CppObject* widget)
     Root context(Invoke(Meta().getContext, widget));
     owned      = Owned(context.get());
     auto* view = Find(widget);
-    if (view && view->rendering)
+    if (view && (view->rendering || view->binding || view->clearing))
       return;
     if (view && Target(view->context) != context.get()) {
       Clear(*view);
@@ -479,8 +491,17 @@ void RefreshHook(auto original, Il2CppObject* widget)
     } else {
       if (!view)
         view = &Track(widget, context.get());
+      struct BindingScope {
+        View& view;
+        explicit BindingScope(View& view) : view(view) { view.binding = true; }
+        ~BindingScope() { view.binding = false; }
+      } binding(*view);
       if (!view->preserveNextRefresh)
         view->state.Bind();
+      if (Target(view->widget) != widget || Target(view->context) != context.get()) {
+        view->state.Unbind();
+        return;
+      }
       view->preserveNextRefresh = false;
       Render(*view, original, widget);
       return;
@@ -499,7 +520,7 @@ void RefreshViews()
   if (!OnThread())
     return;
   for (auto& view : Views()) {
-    if (&view == requestingView || view.rendering)
+    if (view.requesting || view.rendering || view.binding || view.clearing)
       continue;
     Root widget(Target(view.widget));
     if (!widget.get())
@@ -526,16 +547,19 @@ void ChangedHook(auto original, Il2CppObject* widget, bool desired)
     owned = Owned(context.get());
     if (owned) {
       auto* view = Find(widget);
-      if (!view || view->rendering || Target(view->context) != context.get())
+      if (!view || view->rendering || view->binding || view->requesting || view->clearing
+          || Target(view->context) != context.get())
         return;
       struct RequestScope {
-        View* previous = requestingView;
-        explicit RequestScope(View* view)
-        { requestingView = view; }
+        View& view;
+        explicit RequestScope(View* view) : view(*view)
+        { view->requesting = true; }
         ~RequestScope()
-        { requestingView = previous; }
+        { view.requesting = false; }
       } requestScope(view);
       auto result = view->state.Request(desired);
+      if (Target(view->widget) != widget || Target(view->context) != context.get())
+        return;
       if (result.outcome == Outcome::Suppressed || result.outcome == Outcome::Busy)
         return;
       // Refresh through the hook once, preserving the write result. A fresh Bind
@@ -659,7 +683,7 @@ void InstallModConfirmationSettings()
         || !SPUD_STATIC_DETOUR(m.addGeneral->methodPointer, AddGeneralHook))
       throw std::runtime_error("settings hook installation");
     active = true;
-    spdlog::info("[ModSettings] Native FC confirmation adapter installed (Windows x64)");
+    spdlog::info("[ModSettings] Native FC confirmation adapter installed");
   } catch (...) {
     Warn();
   }
