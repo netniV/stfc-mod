@@ -43,6 +43,7 @@ using ActiveSelfFn = bool (*)(void*);
 using RefreshFn = void (*)(void*);
 ObjectAliveFn g_alive = nullptr;
 ActiveSelfFn g_active_self = nullptr;
+ActiveSelfFn g_enabled = nullptr;
 RefreshFn g_refresh_achievements = nullptr;
 RefreshFn g_refresh_outposts = nullptr;
 bool g_available = false;
@@ -51,6 +52,7 @@ struct HudInstance {
   Il2CppGCHandle controller = nullptr;
   Il2CppGCHandle missions = nullptr;
   bool missions_default = true;
+  bool missions_overridden = false;
 };
 std::vector<HudInstance> g_instances;
 
@@ -61,9 +63,10 @@ void* ButtonObject(void* controller, const MissionHudButtonDefinition& button)
   auto* component = *reinterpret_cast<void**>(reinterpret_cast<char*>(controller) + button.field_offset);
   return Alive(component) ? g_get_game_object(component) : nullptr;
 }
-void Track(void* controller)
+bool Track(void* controller)
 {
-  if (g_refreshing || !Alive(controller)) return;
+  if (!Alive(controller)) return false;
+  if (g_refreshing) return true;
   for (auto it = g_instances.begin(); it != g_instances.end();) {
     auto* target = il2cpp_gchandle_get_target(it->controller);
     if (!Alive(target)) {
@@ -71,19 +74,36 @@ void Track(void* controller)
       if (it->missions) il2cpp_gchandle_free(it->missions);
       it = g_instances.erase(it);
     } else {
-      if (target == controller) return;
+      if (target == controller) {
+        auto* missions = ButtonObject(controller, g_button_definitions[3]);
+        if (!Alive(missions)) return false;
+        if (il2cpp_gchandle_get_target(it->missions) != missions) {
+          const auto replacement = il2cpp_gchandle_new_weakref(static_cast<Il2CppObject*>(missions), false);
+          if (!replacement) return false;
+          il2cpp_gchandle_free(it->missions);
+          it->missions = replacement;
+          it->missions_overridden = false;
+          it->missions_default = g_active_self(missions);
+        } else if (!it->missions_overridden) {
+          it->missions_default = g_active_self(missions);
+        }
+        return true;
+      }
       ++it;
     }
   }
   auto* missions = ButtonObject(controller, g_button_definitions[3]);
-  if (!Alive(missions)) return;
+  if (!Alive(missions)) return false;
   const auto owner = il2cpp_gchandle_new_weakref(static_cast<Il2CppObject*>(controller), false);
   const auto button = il2cpp_gchandle_new_weakref(static_cast<Il2CppObject*>(missions), false);
-  if (owner && button) g_instances.push_back({owner, button, g_active_self(missions)});
-  else {
+  if (owner && button) {
+    g_instances.push_back({owner, button, g_active_self(missions)});
+    return true;
+  } else {
     if (owner) il2cpp_gchandle_free(owner);
     if (button) il2cpp_gchandle_free(button);
   }
+  return false;
 }
 
 std::string_view to_string(MissionHudVisibility visibility)
@@ -162,7 +182,22 @@ void ApplyButtonVisibility(void* controller, const MissionHudButtonDefinition& b
 void ApplyConfiguredButtonVisibility(void* controller)
 {
   if (!g_available) return;
-  Track(controller);
+  if (!Track(controller)) return;
+  for (auto& instance : g_instances) {
+    if (il2cpp_gchandle_get_target(instance.controller) != controller) continue;
+    if (g_button_definitions[3].visibility == MissionHudVisibility::Auto) {
+      if (instance.missions_overridden) {
+        auto* missions = il2cpp_gchandle_get_target(instance.missions);
+        const bool baseline = instance.missions_default;
+        instance.missions_overridden = false;
+        if (Alive(missions) && ButtonObject(controller, g_button_definitions[3]) == missions
+            && g_active_self(missions) != baseline) g_set_active(missions, baseline);
+      }
+    } else {
+      instance.missions_overridden = true;
+    }
+    break;
+  }
   for (const auto* button : g_configured_buttons) {
     ApplyButtonVisibility(controller, *button);
   }
@@ -241,7 +276,9 @@ void InstallMissionHudTweaksHooks()
   auto object_helper = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "Object");
   g_alive = reinterpret_cast<ObjectAliveFn>(object_helper.GetMethod("op_Implicit", 1));
   g_active_self = reinterpret_cast<ActiveSelfFn>(game_object_helper.GetMethod("get_activeSelf", 0));
-  if (!g_alive || !g_active_self) {
+  auto behaviour_helper = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "Behaviour");
+  g_enabled = reinterpret_cast<ActiveSelfFn>(behaviour_helper.GetMethod("get_isActiveAndEnabled", 0));
+  if (!g_alive || !g_active_self || !g_enabled) {
     spdlog::error("MissionHudTweaks: Unity object lifetime/visibility methods missing");
     return;
   }
@@ -294,7 +331,7 @@ void Refresh()
   for (const auto& instance : g_instances) {
     auto current = [&]() -> void* {
       auto* target = il2cpp_gchandle_get_target(instance.controller);
-      return Alive(target) ? target : nullptr;
+      return Alive(target) && g_enabled(target) ? target : nullptr;
     };
     auto* controller = current();
     if (!controller) continue;
@@ -302,12 +339,7 @@ void Refresh()
     if (!(controller = current())) continue;
     g_refresh_outposts(controller);
     if (!(controller = current())) continue;
-    if (g_button_definitions[3].visibility == MissionHudVisibility::Auto) {
-      auto* missions = il2cpp_gchandle_get_target(instance.missions);
-      if (Alive(missions) && ButtonObject(controller, g_button_definitions[3]) == missions
-          && g_active_self(missions) != instance.missions_default)
-        g_set_active(missions, instance.missions_default);
-    }
+    ApplyConfiguredButtonVisibility(controller);
   }
 }
 } // namespace mission_hud

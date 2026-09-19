@@ -1110,8 +1110,13 @@ void Config::Load()
       "outposts", get_mission_hud_visibility(config, parsed, "hud_outposts", DCU::hud_outposts, write_config));
   this->mission_hud_buttons.emplace(
       "missions", get_mission_hud_visibility(config, parsed, "hud_missions", DCU::hud_missions, write_config));
-  // Install at startup even with all Auto so settings can enable overrides live.
+  // The current native settings UI is Windows x64. Keep other platforms' opt-in
+  // hook installation until their live UI/native entry validation is available.
+#if defined(_WIN32) && defined(_M_X64)
   this->installMissionHudTweaksHooks = true;
+#else
+  this->installMissionHudTweaksHooks = this->MissionHudTweaksEnabled();
+#endif
 
   spdlog::debug("");
 
