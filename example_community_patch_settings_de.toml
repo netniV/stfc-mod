@@ -802,6 +802,9 @@ show_station_cargo = true
 # Subgroup: Daten
 # ---------------
 
+# Außenteam-Einsatzdaten synchronisieren?
+away_assignments = true
+
 # Kampfberichte synchronisieren?
 battlelogs = true
 

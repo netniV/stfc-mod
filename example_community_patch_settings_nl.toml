@@ -802,6 +802,9 @@ show_station_cargo = true
 # Subgroup: Data
 # --------------
 
+# Wil je data van landingsteam-opdrachten syncen?
+away_assignments = true
+
 # Wil je Gevechtslogboeken syncen?
 battlelogs = true
 

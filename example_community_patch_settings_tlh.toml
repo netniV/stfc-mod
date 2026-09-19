@@ -802,6 +802,9 @@ show_station_cargo = true
 # Subgroup: Data
 # --------------
 
+# Do you want Daq  sync away team assignment De'?
+away_assignments = true
+
 # Do you want Daq  sync battlelogs?
 battlelogs = true
 
