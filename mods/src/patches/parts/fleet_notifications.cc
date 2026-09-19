@@ -2,6 +2,8 @@
 #include "patches/fleet_arrival_tracker.h"
 
 #include "config.h"
+#include "patches/native_hook_extent.h"
+#include "il2cpp/method_contract.h"
 #include "errormsg.h"
 #include "patches/fleet_opc_sample.h"
 #include "patches/fleet_watch.h"
@@ -302,7 +304,17 @@ bool install_node_depletion_hook()
     ErrorMsg::MissingHelper("HUD", "ToastFleetObserver");
     return false;
   }
+#if __APPLE__
+  const auto* metadata = method_contract::Resolve(helper.get_cls(), "HandleMiningDepleted", false,
+                                                   "System.Void", {"System.Int64"});
+  auto* method = method_contract::Pointer(metadata);
+  if (!native_hooks::MacHookFits(method)) {
+    spdlog::warn("[FleetNotifications] node-depletion hook rejected by Mac native validation");
+    return false;
+  }
+#else
   auto* method = helper.GetMethod("HandleMiningDepleted", 1);
+#endif
   if (!method) {
     ErrorMsg::MissingMethod("ToastFleetObserver", "HandleMiningDepleted");
     return false;
