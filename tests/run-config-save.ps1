@@ -71,6 +71,12 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Runtime writer test compilation failed.' }
     & ./build/config-save-test/worker-test.exe
     if ($LASTEXITCODE -ne 0) { throw 'Runtime writer regression failed.' }
+    & clang++ --driver-mode=cl /std:c++latest /EHsc /MT /Imods/src "/I$TomlInclude" `
+        tests/hud_settings_persistence_test.cc mods/src/runtime_config_writer.cc mods/src/toml_editor.cc mods/src/config_save.cc `
+        /Febuild/config-save-test/hud-test.exe /Fobuild/config-save-test/ -Wno-deprecated-literal-operator
+    if ($LASTEXITCODE -ne 0) { throw 'HUD persistence test compilation failed.' }
+    & ./build/config-save-test/hud-test.exe (Join-Path $fixtureRoot 'hud')
+    if ($LASTEXITCODE -ne 0) { throw 'HUD persistence regression failed.' }
     & clang++ --driver-mode=cl /std:c++latest /EHsc /MT /Itests `
         tests/runtime_config_test.cc /Febuild/config-save-test/adapter-test.exe /Fobuild/config-save-test/
     if ($LASTEXITCODE -ne 0) { throw 'Native adapter test compilation failed.' }
