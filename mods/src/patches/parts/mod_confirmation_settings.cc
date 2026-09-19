@@ -2,11 +2,13 @@
 #include "settings/boolean_view.h"
 #include "settings/mod_pages.h"
 
-// Native extents are checked against Windows unwind records. Other platforms
-// omit the native UI until equivalent hook evidence is available.
-#if defined(_WIN32) && defined(_M_X64)
+// Validate native entries against the loaded platform image before installing hooks.
+#if (defined(_WIN32) && defined(_M_X64)) || defined(__APPLE__)
 #include "settings/native_boolean_callback.h"
+#include "patches/native_hook_extent.h"
+#if _WIN32
 #include <Windows.h>
+#endif
 #include <array>
 #include <cstdlib>
 #include <cstring>
@@ -826,12 +828,16 @@ bool Extent(const MethodInfo* method)
 {
   if (!method || !method->methodPointer)
     return false;
+#if __APPLE__
+  return native_hooks::MacHookFits(reinterpret_cast<const void*>(method->methodPointer));
+#else
   DWORD64    base    = 0;
   const auto address = reinterpret_cast<DWORD64>(method->methodPointer);
   auto*      entry   = RtlLookupFunctionEntry(address, &base, nullptr);
   // Bundled x64 SPUD reserves 24 bytes; the 64-byte minimum and exact entry reject
-  // shared tiny accessors/thunks. Only Windows x64 is enabled by this adapter.
+  // shared tiny accessors/thunks. The Mac path separately decodes its full overwrite.
   return entry && base + entry->BeginAddress == address && entry->EndAddress - entry->BeginAddress >= 64;
+#endif
 }
 
 #ifdef _MODDBG
