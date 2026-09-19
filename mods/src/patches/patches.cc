@@ -48,6 +48,7 @@ void InstallDoubleClickAssignShipHooks();
 void InstallInstantWarpConfirmationHooks();
 void InstallForbiddenTechConfirmationHooks();
 void InstallAudioEventHooks();
+void InstallModConfirmationSettings();
 
 __int64 il2cpp_init_hook(auto original, const char* domain_name)
 {
@@ -76,6 +77,7 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
 
   spdlog::set_level(log_level);
   spdlog::flush_on(log_level);
+  spud::set_detour_diagnostic_handler([](const char* message) { spdlog::error("[Spud] {}", message); });
 
 #if VERSION_PATCH
   if constexpr (sizeof(VERSION_COMMIT_HASH) > 1) {
@@ -151,6 +153,7 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
       {"InstantWarpConfirm",   {InstallInstantWarpConfirmationHooks, &cfg.installInstantWarpConfirmationHooks}},
       {"ForbiddenTechConfirm", {InstallForbiddenTechConfirmationHooks, &cfg.auto_confirm_ft_upgrade}},
       {"AudioEvents",          {InstallAudioEventHooks,                 &cfg.installAudioEventHooks}},
+      {"ModConfirmationSettings", {InstallModConfirmationSettings, &cfg.installModConfirmationSettings}},
   };
   printf("il2cpp_init_hook(%s)\n", domain_name);
 
