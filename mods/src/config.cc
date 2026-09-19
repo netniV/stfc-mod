@@ -1369,10 +1369,8 @@ void Config::Load()
   spdlog::debug("Final fleet notification events: {}", fleet_events_string);
   parsed["ui"].as_table()->insert_or_assign("notify_fleet_events", fleet_events_string);
 
-#if _WIN32
+#if _WIN32 || __APPLE__
   this->installFleetNotificationHooks = (this->notify_fleet_events | this->audio_fleet_events) != 0;
-#elif __APPLE__
-  this->installFleetNotificationHooks = this->audio_fleet_events != 0;
 #else
   this->installFleetNotificationHooks = false;
 #endif

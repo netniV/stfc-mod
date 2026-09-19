@@ -3,7 +3,9 @@
 
 #include "config.h"
 #include "errormsg.h"
+#include "patches/fleet_opc_sample.h"
 #include "patches/fleet_watch.h"
+#include "patches/miner_opc_tracker.h"
 #include "patches/notification_service.h"
 #include "str_utils.h"
 
@@ -127,6 +129,26 @@ std::string fleet_subject(FleetPlayerData* fleet)
 {
   auto* hull = fleet ? fleet->Hull : nullptr;
   return hull && hull->Name ? normalize_name(to_string(hull->Name)) : "fleet";
+}
+
+std::array<MinerOpcTracker, kFleetSlotCount> s_miner_opc{};
+
+void observe_miner_opc(const fleet_watch::Snapshot& snapshot, FleetPlayerData* fleet, bool publish)
+{
+  if (!event_enabled(FleetNotificationKind::MinerOpc) || snapshot.slot < 0 || snapshot.slot >= kFleetSlotCount) {
+    return;
+  }
+  const bool mining = snapshot.state == FleetState::Mining;
+  const auto cargo  = mining ? read_fleet_opc_sample(fleet, snapshot.slot, snapshot.fleet_id, snapshot.state)
+                            : FleetOpcCargo{};
+  if (!s_miner_opc[snapshot.slot].Observe(snapshot.fleet_id, mining, cargo.known, cargo.opc, publish)) {
+    return;
+  }
+  spdlog::debug("[FleetNotifications] event=MinerOPC slot={} fleet={}", snapshot.slot, snapshot.fleet_id);
+  play_event_audio(FleetNotificationKind::MinerOpc);
+  if (notification_enabled(FleetNotificationKind::MinerOpc)) {
+    notification_emit("Miner Is OPC", "Your " + fleet_subject(fleet) + " is now over protected cargo.");
+  }
 }
 
 FleetArrivalPhase arrival_phase(FleetState state)
@@ -291,17 +313,19 @@ bool install_node_depletion_hook()
 
 void InstallFleetNotificationHooks()
 {
-#if _WIN32
+#if _WIN32 || __APPLE__
   s_enabled_notifications = Config::Get().notify_fleet_events;
 #endif
 #if _WIN32 || __APPLE__
   s_enabled_events = s_enabled_notifications | Config::Get().audio_fleet_events;
   notification_init();
 
-  constexpr auto transition_notifications =
+  // OPC uses the existing round-robin observations (~2.5s per slot); no additional mining poll or detour.
+  constexpr auto observed_events =
       kAllFleetNotifications & ~fleet_notification_bit(FleetNotificationKind::NodeDepleted);
-  if ((s_enabled_events & transition_notifications) != 0
-      && !fleet_watch::Subscribe({emit_transition, needs_enabled_fast_poll})) {
+  if ((s_enabled_events & observed_events) != 0
+      && !fleet_watch::Subscribe({emit_transition, needs_enabled_fast_poll,
+                                 event_enabled(FleetNotificationKind::MinerOpc) ? observe_miner_opc : nullptr})) {
     spdlog::warn("[FleetNotifications] Fleet Watch subscription failed");
   }
   if (event_enabled(FleetNotificationKind::NodeDepleted) && !install_node_depletion_hook()) {

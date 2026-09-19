@@ -211,6 +211,22 @@ void observe_fleet(FleetPlayerData* fleet, int requested_slot, bool publish)
     s_seed_last_change_ms     = now_ms;
     s_seed_finalize_candidate = false;
   }
+  {
+    CallbackScope               callback_scope;
+    const fleet_watch::Snapshot snapshot{slot, fleet_id, state};
+    for (const auto& subscription : s_subscriptions) {
+      if (!subscription.on_observation) {
+        continue;
+      }
+      try {
+        subscription.on_observation(snapshot, fleet, same_fleet && publish && !s_seed_pending);
+      } catch (const std::exception& error) {
+        spdlog::warn("[FleetWatch] observation callback failed: {}", error.what());
+      } catch (...) {
+        spdlog::warn("[FleetWatch] observation callback failed with an unknown exception");
+      }
+    }
+  }
   if (same_fleet && publish && !s_seed_pending && previous_state != state) {
     dispatch_transition(slot, fleet, previous_state, state);
   }

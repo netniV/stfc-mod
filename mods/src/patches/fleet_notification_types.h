@@ -12,6 +12,7 @@ enum class FleetNotificationKind : uint8_t {
   NodeDepleted,
   Docked,
   RepairComplete,
+  MinerOpc,
   Count,
 };
 
@@ -30,6 +31,7 @@ inline constexpr std::array kFleetNotificationCatalog{
     FleetNotificationCatalogEntry{FleetNotificationKind::NodeDepleted, "NodeDepleted", "alert_fleet_node_depleted"},
     FleetNotificationCatalogEntry{FleetNotificationKind::Docked, "Docked", "alert_fleet_docked"},
     FleetNotificationCatalogEntry{FleetNotificationKind::RepairComplete, "RepairComplete", "alert_fleet_repair_complete"},
+    FleetNotificationCatalogEntry{FleetNotificationKind::MinerOpc, "MinerOPC", "alert_fleet_miner_opc"},
 };
 
 static_assert(kFleetNotificationCatalog.size() == static_cast<std::size_t>(FleetNotificationKind::Count));
