@@ -1,7 +1,6 @@
 #if (defined(_WIN32) && defined(_M_X64)) || defined(__APPLE__)
 #include "page_navigation.h"
 #include "patches/parts/fc_confirmation_reset.h"
-#include "settings/forbidden_tech.h"
 #include "settings/native_boolean_callback.h"
 #include "value_widget_record.h"
 #include <cstdlib>
@@ -37,9 +36,6 @@ BooleanSetting* SettingFor(Il2CppObject* context)
   auto& fc = FleetCommanderConfirmationSetting();
   if (HasLabel(context, fc.id().c_str()))
     return &fc;
-  auto& ft = ForbiddenTechConfirmationSetting();
-  if (HasLabel(context, ft.id().c_str()))
-    return &ft;
   for (const auto& page : Pages())
     for (auto* setting : page.Controls<BooleanSetting>())
       if (HasLabel(context, setting->id().c_str()))
@@ -321,7 +317,6 @@ void AddRow(Il2CppObject* director, Il2CppObject* context)
   if (!category.get())
     throw std::runtime_error("settings confirmation category");
   AddBooleanRow(director, context, category.get(), FleetCommanderConfirmationSetting());
-  AddBooleanRow(director, context, category.get(), ForbiddenTechConfirmationSetting());
 }
 void Render(ValueWidget& view, auto original, Il2CppObject* widget)
 {
@@ -732,7 +727,6 @@ void Invalidate()
 {
   ClearSectionPage();
   InvalidateFleetCommanderConfirmationSession();
-  ForbiddenTechConfirmationSetting().InvalidateSession();
   for (const auto& page : Pages())
     for (auto* setting : page.Controls<SliderSetting>())
       setting->state().InvalidateSession();
@@ -985,8 +979,6 @@ bool InstallCoreValueWidgets()
       throw std::runtime_error("settings callback schema");
     uiThread = std::this_thread::get_id();
     if (!FleetCommanderConfirmationSetting().SetChangeObserver(RefreshViews))
-      throw std::runtime_error("settings observer ownership");
-    if (!ForbiddenTechConfirmationSetting().SetChangeObserver(RefreshViews))
       throw std::runtime_error("settings observer ownership");
     // A rejected target need not throw. Keep any installed hooks on their native
     // path until the complete adapter is ready; do not retry a partial install.
