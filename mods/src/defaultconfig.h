@@ -203,6 +203,7 @@ namespace Shortcuts
 
 namespace Sync
 {
+  constexpr bool        away_assignments   = true;
   constexpr bool        battlelogs         = true;
   constexpr bool        buffs              = true;
   constexpr bool        buildings          = true;
