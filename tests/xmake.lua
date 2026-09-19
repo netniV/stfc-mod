@@ -9,4 +9,3 @@ if is_plat("macosx") then
         set_policy("build.optimization.lto", false)
     end
 end
-
