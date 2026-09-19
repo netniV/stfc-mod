@@ -97,6 +97,11 @@ queue_enabled = true
 # Si vous préférez utiliser les raccourcis de Scopely mettez ça sur activer
 use_scopely_hotkeys = false
 
+# Windows x64 : "physical" conserve les positions ; "layout" suit la disposition active.
+# Maj nécessaire est ajouté ; les caractères nécessitant Ctrl/AltGr ne sont pas pris en charge.
+# Les changements sont appliqués en direct ; relâchez les touches. Voir docs/keyboard-letter-layout.md.
+keyboard_layout_mode = "physical"
+
 # Subgroup: Options
 # -----------------
 
@@ -158,6 +163,22 @@ zoom_label_player_detail = "native"
 
 # Normalized zoom crossover used when player fleet label detail is "threshold"; 0 is always compact and 1 is always expanded
 zoom_label_player_threshold = 0.5
+
+# Libellés galactiques : native, always, threshold. Always peut rallonger le chargement.
+# Systèmes majeurs/mineurs selon le jeu. Seuil : proche=0, loin=1.
+# 0 utilise les détails compacts ; 1 affiche toujours les détails ; égalité : détails.
+# Le mode compact conserve la vue lointaine native et certains noms majeurs.
+# Combiner Default, Hostiles, Mining et Hazards. Les valeurs par défaut préservent le comportement natif.
+# Windows x64 et macOS avec client validé ; disponible en versions release et debug.
+galaxy_multi_select = false
+galaxy_overlay_default = true
+galaxy_overlay_mining = false
+galaxy_overlay_hostiles = false
+galaxy_overlay_hazards = false
+galaxy_label_major_detail = "native"
+galaxy_label_major_threshold = 0.5
+galaxy_label_minor_detail = "native"
+galaxy_label_minor_threshold = 0.5
 
 # Subgroup: Keyboard
 # ------------------
@@ -662,6 +683,8 @@ auto_confirm_ft_upgrade = false
 #   "none" - Do not choose an action automatically; show the confirmation dialog
 #   "warp" - Automatically choose regular warp
 #   "jump" - Automatically choose instant jump
+# The mode shortcut persists this value on validated Windows x64 and macOS clients; otherwise session-only.
+# External edits are preserved; conflicts are logged. See docs/config-save.md.
 auto_confirm_instant_warp = "none"
 
 # Comma-separated ship hull names for which the instant-warp popup is always shown, overriding all automatic actions

@@ -25,6 +25,7 @@ namespace Control
   constexpr bool hotkeys_enabled     = true;
   constexpr bool hotkeys_extended    = true;
   constexpr bool use_scopely_hotkeys = false;
+  constexpr const char* keyboard_layout_mode = "physical";
   constexpr bool queue_enabled       = true;
   constexpr auto select_timer        = 500;
 } // namespace Control
@@ -37,6 +38,15 @@ namespace Graphics
   constexpr auto        zoom_label_player_threshold     = 0.5;
   constexpr const char* zoom_label_non_player_detail    = "native";
   constexpr auto        zoom_label_non_player_threshold = 0.5;
+  constexpr bool        galaxy_multi_select = false;
+  constexpr bool galaxy_overlay_default = true;
+  constexpr bool galaxy_overlay_mining = false;
+  constexpr bool galaxy_overlay_hostiles = false;
+  constexpr bool galaxy_overlay_hazards = false;
+  constexpr const char* galaxy_label_major_detail = "native";
+  constexpr const char* galaxy_label_minor_detail = "native";
+  constexpr auto        galaxy_label_major_threshold = 0.5;
+  constexpr auto        galaxy_label_minor_threshold = 0.5;
   constexpr auto        default_system_zoom         = 1750;
   constexpr bool        free_resize                 = true;
   constexpr auto        keyboard_zoom_speed         = 350;
