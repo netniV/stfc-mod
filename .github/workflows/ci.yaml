@@ -192,6 +192,13 @@ jobs:
       - name: Build
         run: xmake build -y stfc-community-mod
 
+      - name: Test fleet observation trackers
+        run: |
+          xmake build -y miner-opc-tests
+          xmake build -y fleet-arrival-tests
+          xmake run miner-opc-tests
+          xmake run fleet-arrival-tests
+
       - name: Report compiler cache
         shell: pwsh
         run: sccache --show-stats
@@ -476,6 +483,27 @@ jobs:
       - name: Report protobuf compiler cache
         shell: bash
         run: sccache --show-stats
+
+      - name: Test fleet observation trackers
+        run: |
+          xmake build -y miner-opc-tests
+          xmake build -y fleet-arrival-tests
+          xmake run miner-opc-tests
+          xmake run fleet-arrival-tests
+
+      - name: Test loaded Mach-O hook boundaries
+        shell: bash
+        run: |
+          xmake build -y macos-hook-extent-tests
+          xmake run macos-hook-extent-tests
+
+      - name: Verify ARM64 debug core
+        if: ${{ matrix.arch == 'arm64' }}
+        shell: bash
+        run: |
+          xmake f -p macosx -a arm64 -m debug --target_minver=14.6 -y
+          xmake -y mods
+          xmake f -p macosx -a arm64 -m release --target_minver=14.6 -y
 
       - name: Report Swift module cache
         shell: bash
