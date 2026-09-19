@@ -37,6 +37,25 @@ disabled_events = ""
 # Write audio event names to the trace log for troubleshooting
 trace_events = false
 
+# Optional generated notification cues; "none" disables an alert.
+# Available sounds: default, info, success, warning, alarm, arrival, soft, ping, repair
+# Requires patches.toastbannerhooks = true.
+alert_victory = "none"
+alert_defeat = "none"
+alert_armada_created = "none"
+alert_armada_battle_won = "none"
+alert_armada_battle_lost = "none"
+
+# Fleet cues are independent of desktop notifications and toastbannerhooks.
+# Use the sound names above; "none" disables a cue. Windows and macOS.
+alert_fleet_arrived_in_system = "none"
+alert_fleet_arrived_at_destination = "none"
+alert_fleet_started_mining = "none"
+alert_fleet_node_depleted = "none"
+alert_fleet_docked = "none"
+alert_fleet_repair_complete = "none"
+alert_fleet_miner_opc = "none"
+
 #  <[=======================================]> 
 #                                              
 #       ****            **     **              
@@ -637,6 +656,12 @@ auto_confirm_discovery = true
 # Open the bulk gift claim flyout automatically
 auto_open_bulk_claim_flyout = false
 
+# Windows/macOS: highlight deployed fleet-bar portraits in amber when cargo exceeds protected cargo
+highlight_opc_fleets = false
+
+# Windows/macOS: show estimated time to over-protected cargo below mining fleet status
+fleet_hud_opc_eta = false
+
 # Zorgt ervoor dat het gebruiken van "escape" het spel niet sluit
 disable_escape_exit = true
 
@@ -681,6 +706,10 @@ disabled_banner_types = ""
 
 # Specifies banner types that should trigger notifications (comma separated)
 notify_banner_types = ""
+
+# Fleet events that should trigger Windows/macOS notifications (comma separated, or "All")
+# Options: ArrivedInSystem, ArrivedAtDestination, StartedMining, NodeDepleted, Docked, RepairComplete, MinerOPC
+notify_fleet_events = ""
 
 # Subgroup: Chat
 # --------------
