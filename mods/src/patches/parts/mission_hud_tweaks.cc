@@ -26,11 +26,10 @@ struct MissionHudButtonDefinition {
 using ComponentGetGameObjectFn = void* (*)(void*);
 using GameObjectSetActiveFn    = void (*)(void*, bool);
 
-std::array<MissionHudButtonDefinition, 5> g_button_definitions{{
+std::array<MissionHudButtonDefinition, 4> g_button_definitions{{
     {"q_trials", "_challengesButton"},
     {"field_training", "_achievementsButton"},
     {"outposts", "_outpostsButton"},
-    {"daily_goals", "_dailyGoalsButton"},
     {"missions", "_missionsButton"},
 }};
 
@@ -115,15 +114,45 @@ void ApplyButtonVisibility(void* controller, const MissionHudButtonDefinition& b
 }
 } // namespace
 
-int32_t MissionsHudViewController_UpdateButtons_Hook(auto original, void* controller)
+// Visibility is now refreshed through several independent paths. Keep the game's
+// setup/notification work, then apply only explicitly configured overrides.
+void ApplyConfiguredButtonVisibility(void* controller)
 {
-  const auto result = original(controller);
-
   for (const auto* button : g_configured_buttons) {
     ApplyButtonVisibility(controller, *button);
   }
+}
 
-  return result;
+void MissionsHudViewController_OnEnable_Hook(auto original, void* controller)
+{
+  original(controller);
+  ApplyConfiguredButtonVisibility(controller);
+}
+
+void MissionsHudViewController_SetupAchievementsButton_Hook(auto original, void* controller)
+{
+  original(controller);
+  ApplyConfiguredButtonVisibility(controller);
+}
+
+void MissionsHudViewController_SetupChallengesButton_Hook(auto original, void* controller, bool replace_with_outposts)
+{
+  original(controller, replace_with_outposts);
+  ApplyConfiguredButtonVisibility(controller);
+}
+
+void MissionsHudViewController_SetupOutpostsButton_Hook(auto original, void* controller, bool show_outposts)
+{
+  original(controller, show_outposts);
+  ApplyConfiguredButtonVisibility(controller);
+}
+
+void MissionsHudViewController_HandleOutpostsAndChallengesHUD_Hook(auto original, void* controller)
+{
+  // In planetary view this method hides challenges directly, bypassing its setup
+  // method. Reapply after the whole operation, including the planetary branch.
+  original(controller);
+  ApplyConfiguredButtonVisibility(controller);
 }
 
 void InstallMissionHudTweaksHooks()
@@ -168,13 +197,30 @@ void InstallMissionHudTweaksHooks()
     return;
   }
 
-  auto update_buttons = controller_helper.GetMethod("UpdateButtons", 0);
-  if (!update_buttons) {
-    ErrorMsg::MissingMethod("MissionsHudViewController", "UpdateButtons");
+  // Resolve the complete surface before installing anything. Avoid the tiny
+  // planetary/outpost event wrappers: these substantive methods own the work.
+  auto on_enable = controller_helper.GetMethod("OnEnable", 0);
+  auto achievements = controller_helper.GetMethod("SetupAchievementsButton", 0);
+  auto challenges = controller_helper.GetMethod("SetupChallengesButton", 1);
+  auto outposts = controller_helper.GetMethod("SetupOutpostsButton", 1);
+  auto combined = controller_helper.GetMethod("HandleOutpostsAndChallengesHUD", 0);
+  if (!on_enable || !achievements || !challenges || !outposts || !combined) {
+    spdlog::error("MissionHudTweaks: current HUD lifecycle/setup methods are missing; overrides disabled");
     return;
   }
 
   spdlog::info("MissionHudTweaks: applying {}", ConfiguredButtonModes());
-  SPUD_STATIC_DETOUR(update_buttons, MissionsHudViewController_UpdateButtons_Hook);
-  spdlog::info("MissionHudTweaks: installed MissionsHudViewController.UpdateButtons hook");
+  const bool enabled = SPUD_STATIC_DETOUR(on_enable, MissionsHudViewController_OnEnable_Hook);
+  const bool achievement_hook = SPUD_STATIC_DETOUR(achievements, MissionsHudViewController_SetupAchievementsButton_Hook);
+  const bool challenge_hook = SPUD_STATIC_DETOUR(challenges, MissionsHudViewController_SetupChallengesButton_Hook);
+  const bool outpost_hook = SPUD_STATIC_DETOUR(outposts, MissionsHudViewController_SetupOutpostsButton_Hook);
+  const bool combined_hook = SPUD_STATIC_DETOUR(combined, MissionsHudViewController_HandleOutpostsAndChallengesHUD_Hook);
+  if (enabled && achievement_hook && challenge_hook && outpost_hook && combined_hook) {
+    spdlog::info("MissionHudTweaks: installed current HUD lifecycle/setup hooks");
+  } else {
+    // Successfully installed detours still call through, but must not partially
+    // enforce preferences when another refresh path could undo them.
+    g_configured_buttons.clear();
+    spdlog::error("MissionHudTweaks: hook installation incomplete; overrides disabled");
+  }
 }
