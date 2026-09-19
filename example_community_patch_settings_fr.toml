@@ -7,7 +7,7 @@
 #  |    #***     #    #       #***         #   *   #**    #***    | 
 #  |                                                              | 
 #  +--------------------------------------------------------------+ 
-#   Généré le 2026-08-27T22:28:37.099Z
+#   Généré le 2026-09-17T11:10:54.258Z
 #   
 #   Ce fichier de configuration a été généré par https://modconfig.pages.dev
 #   et est fourni tel quel. En cas de problème avec le STFC Community Mod,
@@ -17,7 +17,7 @@
 #       Discord : https://discord.gg/PrpHgs7Vjs
 #       GitHub  : https://github.com/netniV/stfc-mod
 #   
-#   Le fichier de configuration du jour vous est présenté par la lettre F et le nombre 2
+#   Le fichier de configuration du jour vous est présenté par la lettre A et le nombre 7
 #   
 
 #  <[=======================================]> 
@@ -135,6 +135,29 @@ ui_scale_ship = 1.0
 
 # Ceci spécifie le montant à mettre à l’échelle des visualiseurs d’objets de l’interface utilisateur, 1.0 étant la valeur par défaut
 ui_scale_viewer = 1.2
+
+# Subgroup: Fleet Labels
+# ----------------------
+
+# Label detail shown for non-player and unknown fleets in System View
+#   "native" - Use Scopely's Near/Middle/Far behaviour
+#   "expanded" - Always show long fleet labels
+#   "compact" - Always show compact fleet labels
+#   "threshold" - Switch from expanded to compact at the configured zoom threshold
+zoom_label_non_player_detail = "native"
+
+# Normalized zoom crossover used when non-player fleet label detail is "threshold"; 0 is always compact and 1 is always expanded
+zoom_label_non_player_threshold = 0.5
+
+# Label detail shown for player fleets in System View
+#   "native" - Use Scopely's Near/Middle/Far behaviour
+#   "expanded" - Always show long fleet labels
+#   "compact" - Always show compact fleet labels
+#   "threshold" - Switch from expanded to compact at the configured zoom threshold
+zoom_label_player_detail = "native"
+
+# Normalized zoom crossover used when player fleet label detail is "threshold"; 0 is always compact and 1 is always expanded
+zoom_label_player_threshold = 0.5
 
 # Subgroup: Keyboard
 # ------------------
@@ -380,6 +403,9 @@ set_hotkeys_disabled = "CTRL-ALT-MINUS"
 # CTRL-ALT-=
 set_hotkeys_enabled = "CTRL-ALT-="
 
+# Afficher ou masquer les indications de raccourcis
+toggle_shortcut_hints = "HOME"
+
 # Subgroup: Queue & Primary
 # -------------------------
 
@@ -434,6 +460,9 @@ show_artifacts = "SHIFT-I"
 # Afficher l'équipe de détachement
 show_awayteam = "T"
 
+# Ouvrir la boîte de réception des rapports de combat
+show_battlelogs = "SHIFT-B"
+
 # Afficher les favoris
 show_bookmarks = "B"
 
@@ -455,6 +484,9 @@ show_daily = "Z"
 # Aller aux événements
 show_events = "SHIFT-E"
 
+# Go to Events (Native)
+show_events_native = "CTRL-E"
+
 # Aller aux Exocomps
 show_exocomp = "X"
 
@@ -464,8 +496,14 @@ show_factions = "F"
 # Aller à la galaxie
 show_galaxy = "G"
 
+# Go to Galaxy (Native)
+show_galaxy_native = "CTRL-G"
+
 # Aller aux cadeaux
 show_gifts = "/"
+
+# Ouvrir Haven
+show_haven = "ALT-H"
 
 # Aller à l'inventaire
 show_inventory = "I"
@@ -490,6 +528,12 @@ show_scrapyard = "Y"
 
 # Aller aux paramètres
 show_settings = "SHIFT-S"
+
+# Ouvrir la sélection des boucliers de paix
+show_shields = "CTRL-S"
+
+# Ouvrir la construction de vaisseaux du chantier spatial
+show_shipconstruction = "SHIFT-N"
 
 # Aller aux vaisseaux
 show_ships = "N"
@@ -596,6 +640,9 @@ auto_open_bulk_claim_flyout = false
 # Empêcher "échap" de proposer de quitter le jeu
 disable_escape_exit = true
 
+# Maximum gap in milliseconds between Escape presses that opens the exit prompt; 0 disables double-tap exit
+disable_escape_exit_timer = 0
+
 # ⚠️ EXPÉRIMENTAL : Empêcher la première publicité pop-up d'apparaître
 disable_first_popup = false
 
@@ -612,6 +659,9 @@ disable_toast_banners = false
 auto_confirm_ft_upgrade = false
 
 # Action à confirmer automatiquement : none, warp ou jump
+#   "none" - Do not choose an action automatically; show the confirmation dialog
+#   "warp" - Automatically choose regular warp
+#   "jump" - Automatically choose instant jump
 auto_confirm_instant_warp = "none"
 
 # Comma-separated ship hull names for which the instant-warp popup is always shown, overriding all automatic actions
@@ -681,18 +731,33 @@ pinned_ships = ""
 # -------------
 
 # HUD visibility mode: auto, show, or hide
+#   "auto" - Use the game's default visibility behaviour
+#   "show" - Always show this HUD item
+#   "hide" - Always hide this HUD item
 hud_daily_goals = "auto"
 
 # HUD visibility mode: auto, show, or hide
+#   "auto" - Use the game's default visibility behaviour
+#   "show" - Always show this HUD item
+#   "hide" - Always hide this HUD item
 hud_field_training = "auto"
 
 # HUD visibility mode: auto, show, or hide
+#   "auto" - Use the game's default visibility behaviour
+#   "show" - Always show this HUD item
+#   "hide" - Always hide this HUD item
 hud_missions = "auto"
 
 # HUD visibility mode: auto, show, or hide
+#   "auto" - Use the game's default visibility behaviour
+#   "show" - Always show this HUD item
+#   "hide" - Always hide this HUD item
 hud_outposts = "auto"
 
 # HUD visibility mode: auto, show, or hide
+#   "auto" - Use the game's default visibility behaviour
+#   "show" - Always show this HUD item
+#   "hide" - Always hide this HUD item
 hud_q_trials = "auto"
 
 # Subgroup: Previews
@@ -801,7 +866,7 @@ url = ""
 # -----------------
 
 # Durée de conservation des éléments en cache (ms)
-resolver_cache_ttl = "300"
+resolver_cache_ttl = 300
 
 # Les certificats SSL doivent-ils être vérifiés ?
 verify_ssl = true
@@ -829,4 +894,3 @@ verify_ssl = true
 #  <[==========================================================================================================================================================================================]> 
 
 [sync.targets.spocksclub]
-

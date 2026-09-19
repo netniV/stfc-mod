@@ -8,6 +8,7 @@
 #include <prime/OrbitFrameProvider.h>
 #include <prime/TKTouch.h>
 
+#include <patches/key.h>
 #include <patches/mapkey.h>
 
 #include <spud/detour.h>
@@ -25,7 +26,7 @@ bool NavigationPan_LateUpdate_Hook(auto original, NavigationPan *_this)
 {
   auto d = _this->_lastDelta;
 
-  if (!Config::Get().disable_move_keys) {
+  if (!Config::Get().disable_move_keys && !Key::IsDirectionalInputClaimed()) {
     original(_this);
   }
 
