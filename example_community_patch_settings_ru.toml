@@ -802,6 +802,9 @@ show_station_cargo = true
 # Subgroup: Data
 # --------------
 
+# Синхронизировать данные заданий десантной группы?
+away_assignments = true
+
 # Синхронизировать журналы боёв?
 battlelogs = true
 

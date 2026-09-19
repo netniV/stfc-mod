@@ -802,6 +802,9 @@ show_station_cargo = true
 # Subgroup: Data
 # --------------
 
+# ¿Quieres sincronizar los datos de asignaciones de equipos de exploración?
+away_assignments = true
+
 # ¿Quieres sincronizar los registros de batalla?
 battlelogs = true
 

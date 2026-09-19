@@ -796,6 +796,9 @@ static std::mutex                           resource_states_alliance_mtx;
 static std::unordered_map<int64_t, int64_t> slot_states;
 static std::mutex                           slot_states_mtx;
 
+static std::unordered_map<int64_t, size_t> away_assignment_states;
+static std::mutex                          away_assignment_states_mtx;
+
 static eastl::ring_buffer<uint64_t> previously_sent_battlelogs;
 static std::mutex                   previously_sent_battlelogs_mtx;
 
@@ -1092,6 +1095,87 @@ static void ship_combat_log_data()
 namespace processors
 {
 
+// Builds the sync event for one away team assignment instance and appends it to `out_array` only if the
+// instance's observable state changed since the last time it was emitted. Caller must hold
+// trackers::away_assignment_states_mtx.
+static void away_assignment_event(const Digit::PrimeServer::Models::AwayAssignmentInstance& instance,
+                                  nlohmann::json&                                           out_array)
+{
+  using json = nlohmann::json;
+  using trackers::away_assignment_states;
+
+  // Protobuf map iteration order is not guaranteed to match slot order, so sort by slot index
+  // before emitting officer_ids to keep the array (and therefore the de-dup hash) stable.
+  std::vector<std::pair<int64_t, int64_t>> officer_slots(instance.officerids().begin(), instance.officerids().end());
+  std::ranges::sort(officer_slots, {}, &std::pair<int64_t, int64_t>::first);
+
+  auto officer_ids = json::array();
+  for (const auto& [slot, officer_id] : officer_slots) {
+    if (officer_id != 0) {
+      officer_ids.push_back(officer_id);
+    }
+  }
+
+  json event = {{"type", SyncConfig::Type::AwayAssignments},
+                {"aid", instance.id()},
+                {"template_id", instance.awayassignmenttemplateid()},
+                {"state", instance.state()},
+                {"officer_ids", officer_ids},
+                {"job_uuid", instance.jobuuid()},
+                {"duration", instance.parameters().duration()},
+                {"rarity", instance.rarity()}};
+
+  const auto state_value = static_cast<size_t>(std::hash<json>{}(event));
+
+  if (const auto& it = away_assignment_states.find(instance.id());
+      it == away_assignment_states.end() || it->second != state_value) {
+    away_assignment_states[instance.id()] = state_value;
+    out_array.push_back(std::move(event));
+  }
+}
+
+static void away_assignments_list(std::unique_ptr<std::string>&& bytes)
+{
+  using json = nlohmann::json;
+  static std::atomic_bool is_first_sync{true};
+
+  if (auto response = Digit::PrimeServer::Models::AwayAssignmentUserListResponse(); response.ParseFromString(*bytes)) {
+
+    http::logging::trace("PROCESS", "away assignments",
+                         STR_FORMAT("Processing {} away assignments", response.instances_size()));
+
+    std::unordered_set<int64_t> ids_in_response;
+    ids_in_response.reserve(static_cast<size_t>(response.instances_size()));
+    auto assignment_array = json::array();
+
+    {
+      std::scoped_lock lk(trackers::away_assignment_states_mtx);
+
+      for (const auto& instance : response.instances()) {
+        ids_in_response.insert(instance.id());
+        away_assignment_event(instance, assignment_array);
+      }
+
+      // Prune entries that are no longer present to prevent unbounded growth
+      for (auto it = trackers::away_assignment_states.begin(); it != trackers::away_assignment_states.end();) {
+        if (!ids_in_response.contains(it->first)) {
+          assignment_array.push_back({{"type", "collected_" + SyncConfig::Type::AwayAssignments}, {"aid", it->first}});
+          it = trackers::away_assignment_states.erase(it);
+        } else {
+          ++it;
+        }
+      }
+    }
+
+    if (!assignment_array.empty()) {
+      const bool first_sync = is_first_sync.exchange(false, std::memory_order_acq_rel);
+      workers::queue_data(SyncConfig::Type::AwayAssignments, assignment_array, first_sync);
+    }
+  } else {
+    spdlog::error("Failed to parse away assignments");
+  }
+}
+
 static void battle_result_headers(std::unique_ptr<std::string>&& bytes)
 {
   // TODO: Placeholder for future client support; currently unused by the game client.
@@ -1314,6 +1398,10 @@ static void jobs(std::unique_ptr<std::string>&& bytes)
           const auto& scrap = job.scrapyardparams();
           job_params        = {{"psid", scrap.shipid()}, {"hull_id", scrap.hullid()}, {"level", scrap.level()}};
         } break;
+        case Digit::PrimeServer::Models::JOBTYPE_AWAYASSIGNMENT: {
+          const auto& away_assignment = job.awayassignmentparams();
+          job_params                  = {{"aid", away_assignment.awayassignmentinstanceid()}};
+        } break;
         default:
           continue;
       }
@@ -1432,10 +1520,24 @@ static void completed_missions(std::unique_ptr<std::string>&& bytes)
 static void officers(std::unique_ptr<std::string>&& bytes)
 {
   using json = nlohmann::json;
-  using trackers::types::RankLevelShardsState;
 
-  static std::unordered_map<uint64_t, RankLevelShardsState> officer_states;
-  static std::mutex                                         officer_states_mtx;
+  // Local to officers(): like RankLevelShardsState, plus the away assignment instance id so a
+  // change there alone (rank/level/shards unchanged) still re-emits the officer.
+  struct OfficerState {
+    int32_t rank                        = -1;
+    int32_t level                       = -1;
+    int32_t shard_count                 = -1;
+    int64_t away_assignment_instance_id = 0;
+
+    bool operator==(const OfficerState& other) const
+    {
+      return this->rank == other.rank && this->level == other.level && this->shard_count == other.shard_count
+             && this->away_assignment_instance_id == other.away_assignment_instance_id;
+    }
+  };
+
+  static std::unordered_map<uint64_t, OfficerState> officer_states;
+  static std::mutex                                 officer_states_mtx;
 
   if (auto response = Digit::PrimeServer::Models::OfficersResponse(); response.ParseFromString(*bytes)) {
 
@@ -1446,7 +1548,8 @@ static void officers(std::unique_ptr<std::string>&& bytes)
       std::scoped_lock lk(officer_states_mtx);
 
       for (const auto& officer : response.officers()) {
-        const RankLevelShardsState officer_state{officer.rankindex(), officer.level(), officer.shardcount()};
+        const OfficerState officer_state{officer.rankindex(), officer.level(), officer.shardcount(),
+                                         officer.awayassignmentinstanceid()};
 
         if (const auto& it = officer_states.find(officer.id());
             it == officer_states.end() || it->second != officer_state) {
@@ -1455,7 +1558,8 @@ static void officers(std::unique_ptr<std::string>&& bytes)
                                     {"oid", officer.id()},
                                     {"rank", officer.rankindex()},
                                     {"level", officer.level()},
-                                    {"shard_count", officer.shardcount()}});
+                                    {"shard_count", officer.shardcount()},
+                                    {"away_assignment_id", officer.awayassignmentinstanceid()}});
             }
       }
     }
@@ -2166,6 +2270,13 @@ static void HandleEntityGroup(EntityGroup* entity_group)
   const auto& sync_options = Config::Get().sync_options;
 
   switch (entity_group->Type_) {
+    // away assignments
+    case EntityGroup::Type::AwayAssignmentsList:
+      if (sync_options.away_assignments) {
+        submit_async(processors::away_assignments_list);
+      }
+      break;
+
     // battlelogs
     case EntityGroup::Type::BattleResultHeaders:
       if (sync_options.battlelogs) {

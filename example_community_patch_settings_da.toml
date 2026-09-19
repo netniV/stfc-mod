@@ -802,6 +802,9 @@ show_station_cargo = true
 # Subgroup: Data
 # --------------
 
+# Vil du synkronisere landgangsholdsdata?
+away_assignments = true
+
 # Vil du synkronisere kamplogge?
 battlelogs = true
 
