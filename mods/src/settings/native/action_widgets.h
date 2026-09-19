@@ -1,6 +1,6 @@
 #pragma once
 
-#if defined(_WIN32) && defined(_M_X64)
+#if (defined(_WIN32) && defined(_M_X64)) || defined(__APPLE__)
 #include "interop.h"
 #include "settings/page_catalog.h"
 

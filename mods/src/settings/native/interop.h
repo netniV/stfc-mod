@@ -1,6 +1,6 @@
 #pragma once
 
-#if defined(_WIN32) && defined(_M_X64)
+#if (defined(_WIN32) && defined(_M_X64)) || defined(__APPLE__)
 #include <il2cpp-tabledefs.h>
 #include <il2cpp/il2cpp_helper.h>
 #include <stdexcept>

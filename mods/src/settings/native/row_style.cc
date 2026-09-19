@@ -1,4 +1,4 @@
-#if defined(_WIN32) && defined(_M_X64)
+#if (defined(_WIN32) && defined(_M_X64)) || defined(__APPLE__)
 #include "row_style.h"
 #include "prime/Vector3.h"
 #include "value_widget_record.h"

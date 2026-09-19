@@ -95,10 +95,13 @@ compare-and-swap with arbitrary external editors: an external write can still
 race the final native replacement. File deletion is an I/O error, not permission
 to recreate the user's file from cached content.
 
-Runtime persistence supports Windows x64 clients with compatible Unity quit methods.
+Runtime persistence supports Windows x64 and macOS clients with compatible Unity quit methods.
 The adapter resolves `Internal_ApplicationWantsToQuit()` and `Quit(int)` by their
 complete managed signatures, without pinning client addresses or instruction bytes.
-macOS and incompatible signatures retain session-only changes.
+On macOS the loaded quit method must also pass native extent/prologue validation.
+Incompatible bindings retain session-only changes with a save-failure notice.
+The adapter is idempotent, allowing native settings and keyboard consumers to
+request the same persistence lifecycle.
 
 An idle normal quit closes admission and passes the original vote through without
 replaying quit. When work is active, normal quit stops admission, drains accepted work, then resumes the game's quit
@@ -106,7 +109,7 @@ request after observing native worker termination. Save failures do not prevent
 exit. A genuine game veto is respected and is not retried automatically. If the
 game vetoes after draining, persistence remains stopped for that session;
 subsequent mode shortcuts still affect gameplay but are session-only. A stalled
-OS write can delay normal quit; F10 remains the escape path. With pending work,
+OS write can delay normal quit. On Windows, F10 remains the escape path. With pending work,
 F10 cancels queued requests and allows the active write up to 500 ms on an
 independent native thread before terminating. With no pending/active write it
 terminates immediately. No disk operation or wait runs in the key handler.
@@ -115,11 +118,12 @@ is no extra frame detour or per-frame logging. Hook controls have process lifeti
 hot unloading the mod is unsupported.
 
 The fixture runners also cover preserving edits, escaped values, conflicts,
-numeric encoding, per-key coalescing, debounce expiry/replacement, failed-save
-baselines, failure/recovery status, worker-start retry, draining and cancellation. They use isolated
-files and compile-time seams; no test switches or artificial delays ship in the mod.
-The Windows adapter fixture executes the production lifecycle functions with
-controlled worker/Unity boundaries. Separate child processes exercise real native
+per-key coalescing, quiet-period expiry/replacement, failed-save baselines,
+draining and cancellation. They use isolated files and compile-time seams;
+no test switches or injected test delays ship in the mod.
+The Windows and macOS adapter fixtures execute the production lifecycle functions with
+controlled worker/Unity boundaries. A disk/reload test also checks a pending 95%
+galaxy threshold survives orderly shutdown. Separate Windows child processes exercise real native
 force-close calls, including a stalled cancellation caller and the 500 ms wait.
 Its 5-second watchdog allows scheduling overhead; this is not a hard real-time
 deadline guarantee or evidence that the current game detour fired.

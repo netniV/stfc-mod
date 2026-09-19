@@ -1,4 +1,4 @@
-#if defined(_WIN32) && defined(_M_X64)
+#if (defined(_WIN32) && defined(_M_X64)) || defined(__APPLE__)
 #include "action_widgets.h"
 #include "page_navigation.h"
 #include "row_style.h"
