@@ -7,7 +7,7 @@
 #  |    #***     #    #       #***         #   *   #**    #***    | 
 #  |                                                              | 
 #  +--------------------------------------------------------------+ 
-#   Создано 2026-08-27T22:28:37.114Z
+#   Создано 2026-09-17T11:10:54.278Z
 #   
 #   Этот файл конфигурации создан на https://modconfig.pages.dev
 #   и предоставляется как есть. Если возникли проблемы с STFC Community Mod,
@@ -17,7 +17,7 @@
 #       Discord : https://discord.gg/PrpHgs7Vjs
 #       GitHub  : https://github.com/netniV/stfc-mod
 #   
-#   Сегодняшний файл конфигурации представлен буквой Y и числом 1
+#   Сегодняшний файл конфигурации представлен буквой X и числом 8
 #   
 
 #  <[=======================================]> 
@@ -36,6 +36,24 @@ disabled_events = ""
 
 # Write audio event names to the trace log for troubleshooting
 trace_events = false
+
+# Optional generated notification cues; "none" disables an alert.
+# Available sounds: default, info, success, warning, alarm, arrival, soft, ping, repair
+# Requires patches.toastbannerhooks = true.
+alert_victory = "none"
+alert_defeat = "none"
+alert_armada_created = "none"
+alert_armada_battle_won = "none"
+alert_armada_battle_lost = "none"
+
+# Fleet cues are independent of desktop notifications and toastbannerhooks.
+# Use the sound names above; "none" disables a cue. Windows and macOS.
+alert_fleet_arrived_in_system = "none"
+alert_fleet_arrived_at_destination = "none"
+alert_fleet_started_mining = "none"
+alert_fleet_node_depleted = "none"
+alert_fleet_docked = "none"
+alert_fleet_repair_complete = "none"
 
 #  <[============================================================]> 
 #                                                                   
@@ -135,6 +153,29 @@ ui_scale_ship = 1.0
 
 # Масштаб окон просмотра объектов интерфейса; по умолчанию 1,0
 ui_scale_viewer = 1.2
+
+# Subgroup: Fleet Labels
+# ----------------------
+
+# Label detail shown for non-player and unknown fleets in System View
+#   "native" - Use Scopely's Near/Middle/Far behaviour
+#   "expanded" - Always show long fleet labels
+#   "compact" - Always show compact fleet labels
+#   "threshold" - Switch from expanded to compact at the configured zoom threshold
+zoom_label_non_player_detail = "native"
+
+# Normalized zoom crossover used when non-player fleet label detail is "threshold"; 0 is always compact and 1 is always expanded
+zoom_label_non_player_threshold = 0.5
+
+# Label detail shown for player fleets in System View
+#   "native" - Use Scopely's Near/Middle/Far behaviour
+#   "expanded" - Always show long fleet labels
+#   "compact" - Always show compact fleet labels
+#   "threshold" - Switch from expanded to compact at the configured zoom threshold
+zoom_label_player_detail = "native"
+
+# Normalized zoom crossover used when player fleet label detail is "threshold"; 0 is always compact and 1 is always expanded
+zoom_label_player_threshold = 0.5
 
 # Subgroup: Keyboard
 # ------------------
@@ -380,6 +421,9 @@ set_hotkeys_disabled = "CTRL-ALT-MINUS"
 # CTRL-ALT-=
 set_hotkeys_enabled = "CTRL-ALT-="
 
+# Показать или скрыть подсказки горячих клавиш
+toggle_shortcut_hints = "HOME"
+
 # Subgroup: Queue & Primary
 # -------------------------
 
@@ -434,6 +478,9 @@ show_artifacts = "SHIFT-I"
 # Показать выездную команду
 show_awayteam = "T"
 
+# Открыть входящие боевые отчёты
+show_battlelogs = "SHIFT-B"
+
 # Показать закладки
 show_bookmarks = "B"
 
@@ -455,6 +502,9 @@ show_daily = "Z"
 # Перейти к событиям
 show_events = "SHIFT-E"
 
+# Go to Events (Native)
+show_events_native = "CTRL-E"
+
 # Перейти к экзокомпу
 show_exocomp = "X"
 
@@ -464,8 +514,14 @@ show_factions = "F"
 # Перейти к галактике
 show_galaxy = "G"
 
+# Go to Galaxy (Native)
+show_galaxy_native = "CTRL-G"
+
 # Перейти к подаркам
 show_gifts = "/"
+
+# Открыть Haven
+show_haven = "ALT-H"
 
 # Перейти к инвентарю
 show_inventory = "I"
@@ -490,6 +546,12 @@ show_scrapyard = "Y"
 
 # Перейти к настройкам
 show_settings = "SHIFT-S"
+
+# Открыть окно выбора мирного щита
+show_shields = "CTRL-S"
+
+# Открыть экран постройки корабля на верфи
+show_shipconstruction = "SHIFT-N"
 
 # Перейти к управлению кораблями
 show_ships = "N"
@@ -593,14 +655,17 @@ auto_confirm_discovery = true
 # Open the bulk gift claim flyout automatically
 auto_open_bulk_claim_flyout = false
 
-# Windows only: highlight deployed fleet-bar portraits in amber when cargo exceeds protected cargo
+# Windows/macOS: highlight deployed fleet-bar portraits in amber when cargo exceeds protected cargo
 highlight_opc_fleets = false
 
-# Windows only: show estimated time to over-protected cargo below mining fleet status
+# Windows/macOS: show estimated time to over-protected cargo below mining fleet status
 fleet_hud_opc_eta = false
 
 # Не показывать запрос выхода из игры при нажатии Escape
 disable_escape_exit = true
+
+# Maximum gap in milliseconds between Escape presses that opens the exit prompt; 0 disables double-tap exit
+disable_escape_exit_timer = 0
 
 # ⚠️ ЭКСПЕРИМЕНТАЛЬНО: Не показывать первое всплывающее рекламное окно
 disable_first_popup = false
@@ -618,6 +683,9 @@ disable_toast_banners = false
 auto_confirm_ft_upgrade = false
 
 # Автоматически подтверждаемое действие мгновенного варпа: нет, варп или прыжок
+#   "none" - Do not choose an action automatically; show the confirmation dialog
+#   "warp" - Automatically choose regular warp
+#   "jump" - Automatically choose instant jump
 auto_confirm_instant_warp = "none"
 
 # Comma-separated ship hull names for which the instant-warp popup is always shown, overriding all automatic actions
@@ -637,6 +705,10 @@ disabled_banner_types = ""
 
 # Specifies banner types that should trigger notifications (comma separated)
 notify_banner_types = ""
+
+# Fleet events that should trigger Windows/macOS notifications (comma separated, or "All")
+# Options: ArrivedInSystem, ArrivedAtDestination, StartedMining, NodeDepleted, Docked, RepairComplete, MinerOPC
+notify_fleet_events = ""
 
 # Subgroup: Chat
 # --------------
@@ -687,18 +759,33 @@ pinned_ships = ""
 # -------------
 
 # HUD visibility mode: auto, show, or hide
+#   "auto" - Use the game's default visibility behaviour
+#   "show" - Always show this HUD item
+#   "hide" - Always hide this HUD item
 hud_daily_goals = "auto"
 
 # HUD visibility mode: auto, show, or hide
+#   "auto" - Use the game's default visibility behaviour
+#   "show" - Always show this HUD item
+#   "hide" - Always hide this HUD item
 hud_field_training = "auto"
 
 # HUD visibility mode: auto, show, or hide
+#   "auto" - Use the game's default visibility behaviour
+#   "show" - Always show this HUD item
+#   "hide" - Always hide this HUD item
 hud_missions = "auto"
 
 # HUD visibility mode: auto, show, or hide
+#   "auto" - Use the game's default visibility behaviour
+#   "show" - Always show this HUD item
+#   "hide" - Always hide this HUD item
 hud_outposts = "auto"
 
 # HUD visibility mode: auto, show, or hide
+#   "auto" - Use the game's default visibility behaviour
+#   "show" - Always show this HUD item
+#   "hide" - Always hide this HUD item
 hud_q_trials = "auto"
 
 # Subgroup: Previews
@@ -807,7 +894,7 @@ url = ""
 # -----------------
 
 # Срок хранения элементов в кэше (мс)
-resolver_cache_ttl = "300"
+resolver_cache_ttl = 300
 
 # Проверять SSL-сертификаты?
 verify_ssl = true

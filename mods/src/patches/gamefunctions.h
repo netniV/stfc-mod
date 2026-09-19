@@ -38,14 +38,18 @@ enum GameFunction {
   ShowShips,
   ShowInventory,
   ShowStationInterior,
+  ShowHaven,
   ShoWStationExterior,
   ShowGalaxy,
+  NativeShortcutGalaxy,
   ShowSystem,
   ShowChat,
   ShowChatSide1,
   ShowChatSide2,
   ShowEvents,
+  NativeShortcutEvents,
   ShowSettings,
+  ToggleShortcutHints,
   ZoomPreset1,
   ZoomPreset2,
   ZoomPreset3,
@@ -96,6 +100,10 @@ enum GameFunction {
   Restart,
   Quit,
   FocusSearch,
+
+  ShowShipConstruction,
+  ShowShields,
+  ShowBattlelogs,
 
   // Automatic max value
   Max

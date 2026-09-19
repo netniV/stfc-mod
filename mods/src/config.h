@@ -8,6 +8,9 @@
 
 #include <toml++/toml.h>
 
+#include "patches/fleet_notification_types.h"
+#include "patches/notification_audio.h"
+
 #if _WIN32
 #include <Windows.h>
 #endif
@@ -116,6 +119,18 @@ enum class InstantWarpConfirmation {
   Jump,
 };
 
+enum class FleetLabelDetail {
+  Native,
+  Expanded,
+  Compact,
+  Threshold,
+};
+
+struct FleetLabelProfile {
+  FleetLabelDetail detail;
+  float            zoom_threshold;
+};
+
 // Part of UI Scale
 void ApplyUiShipScaleToLoadedShips(float old_multiplier, float new_multiplier);
 
@@ -140,6 +155,7 @@ public:
 
   [[nodiscard]] MissionHudVisibility MissionHudButtonVisibility(std::string_view button_name) const;
   [[nodiscard]] bool                 MissionHudTweaksEnabled() const;
+  [[nodiscard]] NotificationSound    NotificationSoundForToast(int toast_state) const;
 
   // Disallow copying/moving to enforce singleton
   Config(const Config&)            = delete;
@@ -153,6 +169,8 @@ public:
   float ui_scale_viewer;
   float zoom;
   float fr_scale;
+  FleetLabelProfile zoom_label_player;
+  FleetLabelProfile zoom_label_non_player;
   bool  allow_cursor;
   bool  free_resize;
   bool  adjust_scale_res;
@@ -182,6 +200,9 @@ public:
   bool             borderless_fullscreen;
   std::vector<int> disabled_banner_types;
   std::vector<int> notify_banner_types;
+  FleetNotificationMask notify_fleet_events = 0;
+  FleetNotificationMask audio_fleet_events = 0;
+  std::array<NotificationSound, kFleetNotificationCatalog.size()> alert_fleet_events{};
 
   int  extend_chest_purchase_max;
   int  extend_donation_max;
@@ -190,12 +211,18 @@ public:
   bool disable_preview_locate;
   bool disable_preview_recall;
   bool disable_escape_exit;
+  int  disable_escape_exit_timer;
   bool disable_galaxy_chat;
   bool disable_veil_chat;
   bool disable_first_popup;
   bool disable_toast_banners;
   bool trace_audio_events;
   std::vector<std::string> disabled_audio_events;
+  NotificationSound alert_victory            = NotificationSound::None;
+  NotificationSound alert_defeat             = NotificationSound::None;
+  NotificationSound alert_armada_created     = NotificationSound::None;
+  NotificationSound alert_armada_battle_won  = NotificationSound::None;
+  NotificationSound alert_armada_battle_lost = NotificationSound::None;
   bool auto_open_bulk_claim_flyout;
   bool highlight_opc_fleets;
   bool fleet_hud_opc_eta;
@@ -240,6 +267,7 @@ public:
   bool installZoomHooks;
   bool installBuffFixHooks;
   bool installToastBannerHooks;
+  bool installFleetNotificationHooks;
   bool installPanHooks;
   bool installHotkeyHooks;
   bool installFreeResizeHooks;

@@ -13,12 +13,14 @@
 #include "defaultconfig.h"
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstdio>
 #include <initializer_list>
 #include <iostream>
 #include <ranges>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace DCP  = DefaultConfig::Patches;
 namespace DCA  = DefaultConfig::Audio;
@@ -29,6 +31,26 @@ namespace DCBS = DefaultConfig::Buffs;
 namespace DCS  = DefaultConfig::Sync;
 namespace DCSC = DefaultConfig::SystemConfig;
 namespace DCSH = DefaultConfig::Shortcuts;
+
+namespace
+{
+struct ToastAudioAlertConfig {
+  int                       toast_state;
+  std::string_view          config_name;
+  std::string_view          default_sound;
+  NotificationSound Config::* config_member;
+};
+
+constexpr auto kToastAudioAlerts = std::to_array<ToastAudioAlertConfig>({
+    {ToastState::Victory, "alert_victory", DCA::alert_victory, &Config::alert_victory},
+    {ToastState::Defeat, "alert_defeat", DCA::alert_defeat, &Config::alert_defeat},
+    {ToastState::ArmadaCreated, "alert_armada_created", DCA::alert_armada_created, &Config::alert_armada_created},
+    {ToastState::ArmadaBattleWon, "alert_armada_battle_won", DCA::alert_armada_battle_won,
+     &Config::alert_armada_battle_won},
+    {ToastState::ArmadaBattleLost, "alert_armada_battle_lost", DCA::alert_armada_battle_lost,
+     &Config::alert_armada_battle_lost},
+});
+} // namespace
 
 static const eastl::tuple<const char*, int> bannerTypes[] = {
     {"All", ToastState::All},
@@ -124,6 +146,12 @@ Config& Config::Get()
 {
   static Config config;
   return config;
+}
+
+NotificationSound Config::NotificationSoundForToast(int toast_state) const
+{
+  const auto alert = std::ranges::find(kToastAudioAlerts, toast_state, &ToastAudioAlertConfig::toast_state);
+  return alert == kToastAudioAlerts.end() ? NotificationSound::None : this->*(alert->config_member);
 }
 
 MissionHudVisibility Config::MissionHudButtonVisibility(std::string_view button_name) const
@@ -328,6 +356,25 @@ T get_config_or_default(toml::table& config, toml::table& new_config, std::strin
   return (T)final_value;
 }
 
+NotificationSound get_notification_sound(toml::table& config, toml::table& new_config, std::string_view item,
+                                         std::string_view default_value, bool write_log)
+{
+  const auto value = get_config_or_default<std::string>(config, new_config, "audio", item,
+                                                         std::string(default_value), false);
+  auto sound = notification_sound_from_name(StripAsciiWhitespace(value));
+  if (!sound.has_value()) {
+    spdlog::warn("invalid config value audio.{}: '{}'; using {}", item, value, default_value);
+    sound = notification_sound_from_name(default_value);
+  }
+
+  const auto result = sound.value_or(NotificationSound::None);
+  new_config["audio"].as_table()->insert_or_assign(item, notification_sound_name(result));
+  if (write_log) {
+    spdlog::debug("config value audio.{} value: {}", item, notification_sound_name(result));
+  }
+  return result;
+}
+
 std::string_view to_string(MissionHudVisibility visibility)
 {
   switch (visibility) {
@@ -421,6 +468,79 @@ InstantWarpConfirmation get_auto_confirm_instant_warp(toml::table& config, toml:
   }
 
   return confirmation;
+}
+
+std::string_view to_string(FleetLabelDetail detail)
+{
+  switch (detail) {
+    case FleetLabelDetail::Expanded:
+      return "expanded";
+    case FleetLabelDetail::Compact:
+      return "compact";
+    case FleetLabelDetail::Threshold:
+      return "threshold";
+    case FleetLabelDetail::Native:
+    default:
+      return "native";
+  }
+}
+
+FleetLabelDetail parse_fleet_label_detail(std::string_view key, std::string_view value)
+{
+  const auto trimmed    = std::string(StripAsciiWhitespace(value));
+  const auto normalized = AsciiStrToUpper(trimmed);
+
+  if (normalized == "EXPANDED" || normalized == "ALWAYS") {
+    return FleetLabelDetail::Expanded;
+  }
+  if (normalized == "COMPACT" || normalized == "NEVER") {
+    return FleetLabelDetail::Compact;
+  }
+  if (normalized == "THRESHOLD" || normalized == "CUSTOM") {
+    return FleetLabelDetail::Threshold;
+  }
+  if (normalized == "NATIVE" || normalized == "AUTO" || normalized == "NONE" || normalized == "OFF"
+      || normalized.empty()) {
+    return FleetLabelDetail::Native;
+  }
+
+  spdlog::warn("invalid config value graphics.{}: '{}'; using native", key, value);
+  return FleetLabelDetail::Native;
+}
+
+FleetLabelDetail get_fleet_label_detail(toml::table& config, toml::table& new_config, std::string_view key,
+                                        std::string_view default_value, bool write_log)
+{
+  const auto value  = config["graphics"][key].value<std::string>().value_or(std::string(default_value));
+  const auto detail = parse_fleet_label_detail(key, value);
+
+  new_config.emplace<toml::table>("graphics", toml::table());
+  new_config["graphics"].as_table()->insert_or_assign(key, std::string(to_string(detail)));
+
+  if (write_log) {
+    spdlog::debug("config value graphics.{} value: {}", key, to_string(detail));
+  }
+
+  return detail;
+}
+
+float get_fleet_label_zoom_threshold(toml::table& config, toml::table& new_config, std::string_view key,
+                                     float default_value, bool write_log)
+{
+  auto threshold = config["graphics"][key].value<float>().value_or(default_value);
+  if (!std::isfinite(threshold) || threshold < 0.0f || threshold > 1.0f) {
+    spdlog::warn("invalid config value graphics.{}: {}; using {}", key, threshold, default_value);
+    threshold = default_value;
+  }
+
+  new_config.emplace<toml::table>("graphics", toml::table());
+  new_config["graphics"].as_table()->insert_or_assign(key, threshold);
+
+  if (write_log) {
+    spdlog::debug("config value graphics.{} value: {}", key, threshold);
+  }
+
+  return threshold;
 }
 
 void parse_ship_filter(std::string_view value, std::vector<std::string>& names, bool& match_all)
@@ -639,7 +759,7 @@ void parse_config_shortcut_value(toml::table& new_config, std::string_view item,
 
     if (mapKey.Key != KeyCode::None) {
       keyAdded = true;
-      MapKey::AddMappedKey(gameFunction, mapKey);
+      MapKey::AddMappedKey(gameFunction, std::move(mapKey));
     } else if (!wantedKey.empty()) {
       spdlog::warn("Invalid shortcut token [shortcuts].{} token='{}' value='{}'; ignoring token.",
                    shortcut_value.source_item, wantedKey, config_value);
@@ -881,8 +1001,16 @@ void Config::Load()
       get_config_or_default(config, parsed, "graphics", "ui_scale_ship", DCG::ui_scale_ship, write_config);
   this->ui_scale_viewer =
       get_config_or_default(config, parsed, "graphics", "ui_scale_viewer", DCG::ui_scale_viewer, write_config);
-  this->zoom        = get_config_or_default(config, parsed, "graphics", "zoom", DCG::zoom, write_config);
-  this->fr_scale    = get_config_or_default(config, parsed, "graphics", "fr_scale", DCG::fr_scale, write_config);
+  this->zoom               = get_config_or_default(config, parsed, "graphics", "zoom", DCG::zoom, write_config);
+  this->fr_scale           = get_config_or_default(config, parsed, "graphics", "fr_scale", DCG::fr_scale, write_config);
+  this->zoom_label_player.detail =
+      get_fleet_label_detail(config, parsed, "zoom_label_player_detail", DCG::zoom_label_player_detail, write_config);
+  this->zoom_label_player.zoom_threshold = get_fleet_label_zoom_threshold(
+      config, parsed, "zoom_label_player_threshold", DCG::zoom_label_player_threshold, write_config);
+  this->zoom_label_non_player.detail         = get_fleet_label_detail(config, parsed, "zoom_label_non_player_detail",
+                                                                      DCG::zoom_label_non_player_detail, write_config);
+  this->zoom_label_non_player.zoom_threshold = get_fleet_label_zoom_threshold(
+      config, parsed, "zoom_label_non_player_threshold", DCG::zoom_label_non_player_threshold, write_config);
   this->free_resize = get_config_or_default(config, parsed, "graphics", "free_resize", DCG::free_resize, write_config);
   this->allow_cursor =
       get_config_or_default(config, parsed, "graphics", "allow_cursor", DCG::allow_cursor, write_config);
@@ -929,6 +1057,8 @@ void Config::Load()
 
   this->disable_escape_exit =
       get_config_or_default(config, parsed, "ui", "disable_escape_exit", DCU::disable_escape_exit, write_config);
+  this->disable_escape_exit_timer =
+      get_config_or_default(config, parsed, "ui", "disable_escape_exit_timer", DCU::disable_escape_exit_timer, write_config);
   this->disable_preview_locate =
       get_config_or_default(config, parsed, "ui", "disable_preview_locate", DCU::disable_preview_locate, write_config);
   this->disable_preview_recall =
@@ -951,6 +1081,24 @@ void Config::Load()
     }
   }
   this->installAudioEventHooks = this->trace_audio_events || !this->disabled_audio_events.empty();
+  bool any_toast_audio_alert_configured = false;
+  for (const auto& alert : kToastAudioAlerts) {
+    const auto sound = get_notification_sound(config, parsed, alert.config_name, alert.default_sound, write_config);
+    this->*(alert.config_member) = sound;
+    any_toast_audio_alert_configured |= sound != NotificationSound::None;
+  }
+  if (!this->installToastBannerHooks && any_toast_audio_alert_configured) {
+    spdlog::warn("audio alerts require patches.toastbannerhooks = true");
+  }
+  this->audio_fleet_events = 0;
+  for (const auto& entry : kFleetNotificationCatalog) {
+    const auto sound = get_notification_sound(config, parsed, entry.audio_config_name,
+                                               DCA::alert_fleet_default, write_config);
+    this->alert_fleet_events[static_cast<std::size_t>(entry.kind)] = sound;
+    if (sound != NotificationSound::None) {
+      this->audio_fleet_events |= fleet_notification_bit(entry.kind);
+    }
+  }
   this->auto_open_bulk_claim_flyout = get_config_or_default(config, parsed, "ui", "auto_open_bulk_claim_flyout",
                                                              DCU::auto_open_bulk_claim_flyout, write_config);
   this->highlight_opc_fleets = get_config_or_default(config, parsed, "ui", "highlight_opc_fleets",
@@ -1190,6 +1338,48 @@ void Config::Load()
   spdlog::debug("Final notify banner types: {}", notifyString);
   parsed["ui"].as_table()->insert_or_assign("notify_banner_types", notifyString);
 
+  auto notify_fleet_events_str = get_config_or_default<std::string>(config, parsed, "ui", "notify_fleet_events",
+                                                                    DCU::notify_fleet_events, write_log);
+  this->notify_fleet_events = 0;
+  for (const auto& event : StrSplit(notify_fleet_events_str, ',')) {
+    const std::string trimmed{StripAsciiWhitespace(event)};
+    if (trimmed.empty()) {
+      continue;
+    }
+    const auto normalized = AsciiStrToUpper(trimmed);
+    if (normalized == "ALL") {
+      this->notify_fleet_events = kAllFleetNotifications;
+      break;
+    }
+    const auto match = std::ranges::find_if(kFleetNotificationCatalog, [&](const auto& entry) {
+      return normalized == AsciiStrToUpper(entry.config_name);
+    });
+    if (match == kFleetNotificationCatalog.end()) {
+      spdlog::warn("Unknown fleet notification event '{}'; ignoring it", trimmed);
+      continue;
+    }
+    this->notify_fleet_events |= fleet_notification_bit(match->kind);
+  }
+
+  std::string fleet_events_string;
+  for (const auto& entry : kFleetNotificationCatalog) {
+    if ((this->notify_fleet_events & fleet_notification_bit(entry.kind)) == 0) {
+      continue;
+    }
+    if (!fleet_events_string.empty()) {
+      fleet_events_string.append(", ");
+    }
+    fleet_events_string.append(entry.config_name);
+  }
+  spdlog::debug("Final fleet notification events: {}", fleet_events_string);
+  parsed["ui"].as_table()->insert_or_assign("notify_fleet_events", fleet_events_string);
+
+#if _WIN32 || __APPLE__
+  this->installFleetNotificationHooks = (this->notify_fleet_events | this->audio_fleet_events) != 0;
+#else
+  this->installFleetNotificationHooks = false;
+#endif
+
   spdlog::debug("");
 
   parse_config_shortcut(config, parsed, "move_left",  GameFunction::MoveLeft,  DCSH::move_left);
@@ -1231,6 +1421,8 @@ void Config::Load()
   parse_config_shortcut(config, parsed, "show_chatside1", GameFunction::ShowChatSide1, DCSH::show_chatside1);
   parse_config_shortcut(config, parsed, "show_chatside2", GameFunction::ShowChatSide2, DCSH::show_chatside2);
   parse_config_shortcut(config, parsed, "show_galaxy", GameFunction::ShowGalaxy, DCSH::show_galaxy);
+  parse_config_shortcut_aliases(config, parsed, "show_galaxy_native", GameFunction::NativeShortcutGalaxy,
+                                DCSH::show_galaxy_native, {"native_shortcut_galaxy"});
   parse_config_shortcut(config, parsed, "show_system", GameFunction::ShowSystem, DCSH::show_system);
   parse_config_shortcut(config, parsed, "zoom_preset1", GameFunction::ZoomPreset1, DCSH::zoom_preset1);
   parse_config_shortcut(config, parsed, "zoom_preset2", GameFunction::ZoomPreset2, DCSH::zoom_preset2);
@@ -1266,6 +1458,8 @@ void Config::Load()
   parse_config_shortcut(config, parsed, "show_commander", GameFunction::ShowCommander, DCSH::show_commander);
   parse_config_shortcut(config, parsed, "show_daily", GameFunction::ShowDaily, DCSH::show_daily);
   parse_config_shortcut(config, parsed, "show_events", GameFunction::ShowEvents, DCSH::show_events);
+  parse_config_shortcut_aliases(config, parsed, "show_events_native", GameFunction::NativeShortcutEvents,
+                                DCSH::show_events_native, {"native_shortcut_events"});
   parse_config_shortcut(config, parsed, "show_exocomp", GameFunction::ShowExoComp, DCSH::show_exocomp);
   parse_config_shortcut(config, parsed, "show_factions", GameFunction::ShowFactions, DCSH::show_factions);
   parse_config_shortcut(config, parsed, "show_inventory", GameFunction::ShowInventory, DCSH::show_inventory);
@@ -1273,14 +1467,20 @@ void Config::Load()
   parse_config_shortcut(config, parsed, "show_research", GameFunction::ShowResearch, DCSH::show_research);
   parse_config_shortcut(config, parsed, "show_scrapyard", GameFunction::ShowScrapYard, DCSH::show_scrapyard);
   parse_config_shortcut(config, parsed, "show_settings", GameFunction::ShowSettings, DCSH::show_settings);
+  parse_config_shortcut(config, parsed, "toggle_shortcut_hints", GameFunction::ToggleShortcutHints,
+                        DCSH::toggle_shortcut_hints);
   parse_config_shortcut(config, parsed, "show_officers", GameFunction::ShowOfficers, DCSH::show_officers);
   parse_config_shortcut(config, parsed, "show_qtrials", GameFunction::ShowQTrials, DCSH::show_qtrials);
   parse_config_shortcut(config, parsed, "show_refinery", GameFunction::ShowRefinery, DCSH::show_refinery);
   parse_config_shortcut(config, parsed, "show_ships", GameFunction::ShowShips, DCSH::show_ships);
+  parse_config_shortcut(config, parsed, "show_shipconstruction", GameFunction::ShowShipConstruction, DCSH::show_shipconstruction);
+  parse_config_shortcut(config, parsed, "show_shields", GameFunction::ShowShields, DCSH::show_shields);
+  parse_config_shortcut(config, parsed, "show_battlelogs", GameFunction::ShowBattlelogs, DCSH::show_battlelogs);
   parse_config_shortcut(config, parsed, "show_stationexterior", GameFunction::ShoWStationExterior,
                         DCSH::show_stationexterior);
   parse_config_shortcut(config, parsed, "show_stationinterior", GameFunction::ShowStationInterior,
                         DCSH::show_stationinterior);
+  parse_config_shortcut(config, parsed, "show_haven", GameFunction::ShowHaven, DCSH::show_haven);
   parse_config_shortcut(config, parsed, "toggle_queue", GameFunction::ToggleQueue, DCSH::toggle_queue);
   parse_config_shortcut(config, parsed, "toggle_instant_warp", GameFunction::ToggleAutoConfirmInstantWarp,
                         DCSH::toggle_instant_warp);

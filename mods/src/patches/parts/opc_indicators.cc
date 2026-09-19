@@ -1,5 +1,7 @@
 #include "config.h"
 #include "errormsg.h"
+#include "patches/fleet_opc_sample.h"
+#include "patches/native_hook_extent.h"
 
 #include <il2cpp-tabledefs.h>
 #include <il2cpp/il2cpp-functions.h>
@@ -19,6 +21,7 @@
 #include <limits>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace
 {
@@ -135,41 +138,19 @@ void clear_ui_retry(uint8_t& failure_count, int64_t& retry_at_ms)
   retry_at_ms   = 0;
 }
 
-bool read_opc(FleetPlayerData* fleet, bool& known)
-{
-  known             = false;
-  auto* cargo_hold  = fleet ? fleet->CargoHoldData : nullptr;
-  auto* unprotected = cargo_hold ? cargo_hold->UnprotectedCargoProgress : nullptr;
-  if (!unprotected) {
-    return false;
-  }
-
-  const auto current_value   = unprotected->CurrentValue;
-  const auto protected_limit = unprotected->MinValue;
-  if (!std::isfinite(current_value) || !std::isfinite(protected_limit)) {
-    return false;
-  }
-
-  known = true;
-  return cargo_is_opc(current_value, protected_limit);
-}
-
-FleetOpcStatus read_opc_status(FleetPlayerData* fleet)
+FleetOpcStatus read_opc_status(FleetPlayerData* fleet, int slot, uint64_t fleet_id, FleetState state)
 {
   FleetOpcStatus status;
-  if (!fleet || fleet->CurrentState != FleetState::Mining) {
+  if (!fleet || state != FleetState::Mining) {
     return status;
   }
 
-  status.mining     = true;
-  auto* cargo_hold  = fleet->CargoHoldData;
-  auto* unprotected = cargo_hold ? cargo_hold->UnprotectedCargoProgress : nullptr;
-  if (unprotected) {
-    status.current_cargo   = unprotected->CurrentValue;
-    status.protected_limit = unprotected->MinValue;
-    status.cargo_known     = std::isfinite(status.current_cargo) && std::isfinite(status.protected_limit);
-    status.opc             = status.cargo_known && cargo_is_opc(status.current_cargo, status.protected_limit);
-  }
+  status.mining          = true;
+  const auto cargo       = read_fleet_opc_sample(fleet, slot, fleet_id, state);
+  status.current_cargo   = cargo.current;
+  status.protected_limit = cargo.protected_limit;
+  status.cargo_known     = cargo.known;
+  status.opc             = cargo.opc;
 
   auto* mining_data      = fleet->MiningData;
   status.rate_per_second = mining_data ? mining_data->MiningSpeed : 0.0;
@@ -613,23 +594,25 @@ void update_opc_highlight(Transform* body_transform, FleetPlayerData* fleet)
   }
 
   auto* highlight = find_opc_highlight(body_transform);
-  if (!fleet || fleet->Index < 0 || fleet->Index >= kFleetSlotCount) {
+  const auto slot = fleet ? fleet->Index : -1;
+  if (!fleet || slot < 0 || slot >= kFleetSlotCount) {
     if (highlight) {
       highlight->SetActive(false);
     }
     return;
   }
 
-  const auto slot = fleet->Index;
+  const auto fleet_id = fleet->Id;
   // The address is an identity token only; retaining it never implies that the Unity object is still live.
   const auto anchor_id = reinterpret_cast<uintptr_t>(body_transform);
-  if (s_opc_highlight_retry_fleet_ids[slot] != fleet->Id || s_opc_highlight_retry_anchor_ids[slot] != anchor_id) {
-    s_opc_highlight_retry_fleet_ids[slot]  = fleet->Id;
+  if (s_opc_highlight_retry_fleet_ids[slot] != fleet_id || s_opc_highlight_retry_anchor_ids[slot] != anchor_id) {
+    s_opc_highlight_retry_fleet_ids[slot]  = fleet_id;
     s_opc_highlight_retry_anchor_ids[slot] = anchor_id;
     clear_ui_retry(s_opc_highlight_setup_failures[slot], s_opc_highlight_retry_at_ms[slot]);
   }
-  bool       known = false;
-  const bool show  = fleet->HasShip && is_deployed(fleet->CurrentState) && read_opc(fleet, known);
+  const auto state = fleet->CurrentState;
+  const bool show  = fleet->HasShip && is_deployed(state)
+                     && read_fleet_opc_sample(fleet, slot, fleet_id, state).opc;
   if (!show) {
     clear_ui_retry(s_opc_highlight_setup_failures[slot], s_opc_highlight_retry_at_ms[slot]);
     if (highlight) {
@@ -1202,7 +1185,7 @@ void update_opc_eta_label(void* ui_component, FleetPlayerData* fleet, Transform*
   auto       card_display = render.computed_card_display;
   auto       safe_on_node = render.computed_safe;
   if (refresh_due) {
-    const auto status = read_opc_status(fleet);
+    const auto status = read_opc_status(fleet, slot, render.fleet_id, fleet_state);
     display           = Config::Get().fleet_hud_opc_eta ? format_opc_eta(status) : std::string{};
     card_display      = display.empty() ? std::string{} : format_opc_card_display(status);
     safe_on_node      = status.safe_on_node;
@@ -1347,11 +1330,16 @@ FleetPlayerData* fleet_local_view_fleet(void* self)
 void FleetStateWidget_SetWidgetData_Hook(auto original, void* self)
 {
   original(self);
-  update_opc_eta_label(self, fleet_state_widget_context(self));
+  if (s_eta_enabled)
+    update_opc_eta_label(self, fleet_state_widget_context(self));
 }
 
 void FleetStateWidget_ClearWidgetData_Hook(auto original, void* self)
 {
+  if (!s_eta_enabled) {
+    original(self);
+    return;
+  }
   auto*      fleet        = fleet_state_widget_context(self);
   auto*      label_anchor = fleet_state_widget_label_anchor(self);
   const auto slot         = fleet ? fleet->Index : -1;
@@ -1371,11 +1359,16 @@ void FleetStateWidget_ClearWidgetData_Hook(auto original, void* self)
 void FleetbarFlagWidget_SetWidgetData_Hook(auto original, void* self)
 {
   original(self);
-  update_opc_highlight(opc_anchor_from_fleetbar_flag(self), fleetbar_flag_widget_context(self));
+  if (s_highlight_enabled)
+    update_opc_highlight(opc_anchor_from_fleetbar_flag(self), fleetbar_flag_widget_context(self));
 }
 
 void FleetbarFlagWidget_ClearWidgetData_Hook(auto original, void* self)
 {
+  if (!s_highlight_enabled) {
+    original(self);
+    return;
+  }
   auto*      fleet  = fleetbar_flag_widget_context(self);
   auto*      anchor = opc_anchor_from_fleetbar_flag(self);
   const auto slot   = fleet ? fleet->Index : -1;
@@ -1414,6 +1407,7 @@ void FleetLocalViewController_OnCurrentCargoReactiveEvent_Hook(auto original, vo
   original(self, dirty_flags);
   auto* tile_transform = component_transform(self);
   auto* fleet          = fleet_local_view_fleet(self);
+  invalidate_fleet_opc_sample(fleet ? fleet->Index : -1);
   if (s_highlight_enabled) {
     update_opc_highlight(opc_anchor_from_tile(tile_transform), fleet);
   }
@@ -1428,9 +1422,9 @@ void InstallOpcIndicatorHooks()
 {
   const bool use_opc_highlight = Config::Get().highlight_opc_fleets;
   const bool use_opc_eta       = Config::Get().fleet_hud_opc_eta;
-#if !defined(_WIN32)
+#if !defined(_WIN32) && !defined(__APPLE__)
   if (use_opc_highlight || use_opc_eta) {
-    spdlog::warn("[OpcIndicators] disabled: native hook validation is currently Windows-only");
+    spdlog::warn("[OpcIndicators] disabled: unsupported platform");
   }
   return;
 #endif
@@ -1493,18 +1487,43 @@ void InstallOpcIndicatorHooks()
     }
   }
 
-  s_eta_enabled       = use_opc_eta && local_ready && state_set && state_clear;
-  s_highlight_enabled = use_opc_highlight && local_ready && flag_set && flag_clear;
-  if (s_eta_enabled) {
-    SPUD_STATIC_DETOUR(state_clear->methodPointer, FleetStateWidget_ClearWidgetData_Hook);
-    SPUD_STATIC_DETOUR(state_set->methodPointer, FleetStateWidget_SetWidgetData_Hook);
+#if __APPLE__
+  // Preflight every requested target before installing any detour. Mach-O
+  // prologue validation also rejects an existing detour trampoline.
+  std::vector<const MethodInfo*> targets{bind_data_context, cargo_updated};
+  if (use_opc_eta) { targets.push_back(state_set); targets.push_back(state_clear); }
+  if (use_opc_highlight) { targets.push_back(flag_set); targets.push_back(flag_clear); }
+  for (size_t i = 0; i < targets.size(); ++i) {
+    if (!targets[i] || !native_hooks::MacHookFits(reinterpret_cast<const void*>(targets[i]->methodPointer))) {
+      spdlog::warn("[OpcIndicators] disabled: Mac hook extent/prologue validation failed");
+      return;
+    }
+    for (size_t j = 0; j < i; ++j)
+      if (targets[i]->methodPointer == targets[j]->methodPointer) {
+        spdlog::warn("[OpcIndicators] disabled: shared native hook target");
+        return;
+      }
   }
-  if (s_highlight_enabled) {
-    SPUD_STATIC_DETOUR(flag_clear->methodPointer, FleetbarFlagWidget_ClearWidgetData_Hook);
-    SPUD_STATIC_DETOUR(flag_set->methodPointer, FleetbarFlagWidget_SetWidgetData_Hook);
+#endif
+
+  const bool eta_ready = use_opc_eta && local_ready && state_set && state_clear;
+  const bool highlight_ready = use_opc_highlight && local_ready && flag_set && flag_clear;
+  bool installed = true;
+  if (eta_ready) {
+    installed = SPUD_STATIC_DETOUR(state_clear->methodPointer, FleetStateWidget_ClearWidgetData_Hook)
+                && SPUD_STATIC_DETOUR(state_set->methodPointer, FleetStateWidget_SetWidgetData_Hook);
   }
-  if (s_eta_enabled || s_highlight_enabled) {
-    SPUD_STATIC_DETOUR(bind_data_context->methodPointer, FleetLocalViewController_BindDataContext_Hook);
-    SPUD_STATIC_DETOUR(cargo_updated->methodPointer, FleetLocalViewController_OnCurrentCargoReactiveEvent_Hook);
+  if (installed && highlight_ready) {
+    installed = SPUD_STATIC_DETOUR(flag_clear->methodPointer, FleetbarFlagWidget_ClearWidgetData_Hook)
+                && SPUD_STATIC_DETOUR(flag_set->methodPointer, FleetbarFlagWidget_SetWidgetData_Hook);
   }
+  if (installed && (eta_ready || highlight_ready)) {
+    installed = SPUD_STATIC_DETOUR(bind_data_context->methodPointer, FleetLocalViewController_BindDataContext_Hook)
+                && SPUD_STATIC_DETOUR(cargo_updated->methodPointer, FleetLocalViewController_OnCurrentCargoReactiveEvent_Hook);
+  }
+  // Partial installations stay on the original path; never retry them on macOS.
+  s_eta_enabled = installed && eta_ready;
+  s_highlight_enabled = installed && highlight_ready;
+  if (!installed)
+    spdlog::warn("[OpcIndicators] disabled: native hook installation failed");
 }
