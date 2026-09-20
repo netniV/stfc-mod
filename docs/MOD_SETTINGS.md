@@ -1,6 +1,6 @@
 # Mod settings: current architecture and behavior
 
-This is the current contract for the expanded Windows x64 settings UI. The
+This is the current contract for the expanded Windows x64 and macOS settings UI. The
 [foundation notes](MOD_SETTINGS_FOUNDATION.md) describe the first FC-only slice;
 their prototype counts and proposed budgets are historical, not current limits.
 
@@ -97,7 +97,8 @@ the log. Failure notices never create otherwise-empty groups.
 
 There is no new polling hook, save worker or global localization hook.
 Platform guards and native method extent checks remain part of installation;
-macOS builds do not install these native UI hooks.
+macOS installs the same settings adapter behind its Mach-O extent gates, while
+Windows-only layout resolution keeps shortcut capture physical there.
 
 ## Measurement, validation and follow-up
 
