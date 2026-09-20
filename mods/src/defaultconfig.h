@@ -31,6 +31,7 @@ namespace Control
 
 namespace Graphics
 {
+  constexpr bool        galactic_anomaly_timer       = false;
   constexpr bool        borderless_fullscreen       = true;
   constexpr bool        allow_cursor                = true;
   constexpr const char* zoom_label_player_detail        = "native";

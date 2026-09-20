@@ -114,6 +114,9 @@ enable_experimental = false
 #  <[=========================================================================================================================================]> 
 
 [graphics]
+# Verbleibende Zeit der galaktischen Anomalie unter dem Systemnamen anzeigen.
+galactic_anomaly_timer = false
+
 
 # Subgroup: Anzeige
 # -----------------
