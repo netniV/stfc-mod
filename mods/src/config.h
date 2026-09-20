@@ -45,13 +45,13 @@ public:
   bool verify_ssl = true;
   bool battlelogs = false;
   bool buffs      = false;
-  bool buildings  = false;
-  bool haven      = false;
+  bool buildings  = true;
+  bool haven      = true;
   bool inventory  = false;
   bool jobs       = false;
   bool missions   = false;
   bool officer    = false;
-  bool research   = false;
+  bool research   = true;
   bool resources  = false;
   bool ships      = false;
   bool slots      = false;
