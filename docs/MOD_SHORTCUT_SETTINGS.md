@@ -93,10 +93,11 @@ editor, capture ownership, Escape/focus/held-key cancellation, advisory conflict
 
 ## Capture and presentation limits
 
-New recordings use either-side Ctrl/Alt/Shift/Win modifiers. On macOS, Command
-is reported with separate keycodes and is captured as the generic WIN- modifier,
-so bindings stay readable on either platform; the macOS editor renders that
-modifier as CMD, while stored bindings keep the canonical WIN- spelling. Existing sided
+New recordings use either-side Ctrl/Alt/Shift/Win/Command modifiers. Command
+is stored and displayed as `CMD-`, matching the existing parser and gameplay
+input checks; Windows keys retain `WIN-`. When input reports both families for
+a Command press, capture prefers `CMD-` without requiring a duplicate Windows
+event. Existing sided
 bindings and alternative ordering are retained until explicitly replaced. Escape
 is reserved for cancelling recording; existing Escape bindings remain readable.
 OS shortcuts can still be handled by the OS; this is not a global keyboard hook.

@@ -4,6 +4,7 @@
 #include "patches/keyboard_layout_mapping.h"
 #include "patches/mapkey.h"
 #include "settings/shortcut_draft.h"
+#include "settings/shortcut_capture.h"
 
 #include <cstdlib>
 #include <iostream>
@@ -36,6 +37,8 @@ KeyCode Key::Parse(std::string_view key)
       {"LCTRL", KeyCode::LeftControl},
       {"RCTRL", KeyCode::RightControl},
       {"EQUAL", KeyCode::Equals},
+      {"LCOM", KeyCode::LeftCommand},
+      {"RCOM", KeyCode::RightCommand},
   };
   for (const auto& [token, code] : tokens) {
     if (key == token)
@@ -46,7 +49,8 @@ KeyCode Key::Parse(std::string_view key)
 bool Key::IsModifier(KeyCode key)
 {
   return key == KeyCode::LeftShift || key == KeyCode::RightShift || key == KeyCode::LeftControl
-         || key == KeyCode::RightControl;
+         || key == KeyCode::RightControl || key == KeyCode::LeftCommand || key == KeyCode::RightCommand
+         || key == KeyCode::LeftWindows || key == KeyCode::RightWindows;
 }
 bool Key::Pressed(KeyCode key) { return pressed[static_cast<int>(key)]; }
 bool Key::Down(KeyCode key) { return down[static_cast<int>(key)]; }
@@ -127,6 +131,67 @@ void CheckDuplicate(const char* existing, const char* recorded, bool duplicate)
   Check(writes == 0 && live == ShortcutList{existing}, "Recording changed live bindings");
   Check(draft.Apply() == (duplicate ? Outcome::Suppressed : Outcome::AppliedVerified), "Wrong duplicate apply result");
   Check(writes == (duplicate ? 0 : 1) && live.size() == (duplicate ? 1 : 2), "Duplicate escaped to writer");
+}
+
+// Exercise production capture serialization, draft application, parser and
+// dispatch with injected physical input. Reload is modeled by reparsing saved
+// text, not by a filesystem or a running Unity client.
+void CheckCapturedCommand()
+{
+  using namespace mod_settings;
+  constexpr auto action = GameFunction::ShowGalaxy;
+  for (auto command : {KeyCode::LeftCommand, KeyCode::RightCommand}) {
+    for (bool dualReported : {false, true}) {
+      pressed.fill(false);
+      down.fill(false);
+      ShortcutCapture capture;
+      capture.Begin();
+      capture.Tick(pressed, down, true, Key::IsModifier);
+      pressed[static_cast<int>(command)] = down[static_cast<int>(command)] = true;
+      pressed[static_cast<int>(KeyCode::LeftWindows)] = dualReported;
+      pressed[static_cast<int>(KeyCode::G)] = down[static_cast<int>(KeyCode::G)] = true;
+      Check(capture.Tick(pressed, down, true, Key::IsModifier) == KeyCode::G,
+            "Command must be a modifier, not an ambiguous primary key");
+      const auto token = CaptureModifierPrefix(Key::Pressed) + "G";
+      Check(token == "CMD-G", "Command capture lost its native modifier identity");
+      ShortcutList saved;
+      ValueSetting<ShortcutList> owner({"shortcuts.command_test", "Test",
+          [&] { return ValueReadResult<ShortcutList>::Known(saved, 1); },
+          [&](ShortcutList value, std::uint64_t) {
+            if (!MapKey::ReplaceBindings(action, {MapKey::Parse(value.at(0))}))
+              return ApplyResult::Rejected;
+            saved = std::move(value);
+            return ApplyResult::Applied;
+          }});
+      ShortcutDraft draft(owner);
+      draft.Begin();
+      Check(draft.Stage(0, token) == ShortcutStage::Staged && draft.Apply() == Outcome::AppliedVerified,
+            "Recorded Command binding must apply");
+      pressed[static_cast<int>(KeyCode::LeftWindows)] = false;
+      Check(MapKey::IsDown(action) && MapKey::IsPressed(action), "Recorded Command-only input must dispatch");
+      Check(MapKey::ReplaceBindings(action, {}), "Clear before simulated config reload");
+      Check(MapKey::ReplaceBindings(action, {MapKey::Parse(saved.at(0))}) && MapKey::IsDown(action),
+            "Saved Command binding must dispatch after reparsing");
+      CheckDuplicate("CMD-G", token.c_str(), true);
+      CheckDuplicate("APPLE-G", token.c_str(), true);
+      CheckDuplicate("LCOM-G", token.c_str(), false);
+      CheckDuplicate("RCOM-G", token.c_str(), false);
+      CheckDuplicate("WIN-G", token.c_str(), false);
+      pressed[static_cast<int>(command)] = false;
+      pressed[static_cast<int>(KeyCode::LeftWindows)] = true;
+      Check(!MapKey::IsDown(action), "Command binding must not silently become a Windows binding");
+    }
+  }
+  for (auto windows : {KeyCode::LeftWindows, KeyCode::RightWindows}) {
+    pressed.fill(false);
+    pressed[static_cast<int>(windows)] = true;
+    const auto token = CaptureModifierPrefix(Key::Pressed) + "G";
+    Check(token == "WIN-G" && MapKey::HasCorrectModifiers(MapKey::Parse(token)),
+          "Windows-only recording must retain Windows dispatch");
+  }
+  pressed.fill(false);
+  down.fill(false);
+  Check(MapKey::ReplaceBindings(action, {}), "Clean fixture bindings");
 }
 
 int main()
@@ -310,5 +375,6 @@ int main()
   layout_enabled = true;
   CheckDuplicate("/", "SHIFT-7", false);
   layout_enabled = false;
+  CheckCapturedCommand();
   std::cout << "Shortcut hint cache tests passed\n";
 }

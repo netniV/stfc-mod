@@ -1,10 +1,31 @@
 #pragma once
 #include <array>
 #include <optional>
+#include <string>
 #include <prime/KeyCode.h>
 
 namespace mod_settings
 {
+// Preserve the modifier families understood by MapKey. Command and Windows
+// have distinct Unity keycodes; if a Command press is also reported as Windows,
+// prefer Command so the binding does not require the duplicate event later.
+template <typename Held>
+std::string CaptureModifierPrefix(Held held)
+{
+  std::string token;
+  if (held(KeyCode::LeftControl) || held(KeyCode::RightControl))
+    token += "CTRL-";
+  if (held(KeyCode::LeftAlt) || held(KeyCode::RightAlt))
+    token += "ALT-";
+  if (held(KeyCode::LeftShift) || held(KeyCode::RightShift))
+    token += "SHIFT-";
+  if (held(KeyCode::LeftCommand) || held(KeyCode::RightCommand))
+    token += "CMD-";
+  else if (held(KeyCode::LeftWindows) || held(KeyCode::RightWindows))
+    token += "WIN-";
+  return token;
+}
+
 // Pure input ownership state. The runtime samples supported physical keys only
 // while active. A click or hold that opened capture cannot become its result.
 class ShortcutCapture
