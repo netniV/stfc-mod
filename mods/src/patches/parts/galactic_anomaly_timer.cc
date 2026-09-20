@@ -137,7 +137,7 @@ struct Root {
   }
 };
 
-Root navigation, panel, label;
+Root navigation, panel, label, anomalyManager;
 
 void Clear()
 {
@@ -150,6 +150,7 @@ void Clear()
   label.reset();
   panel.reset();
   navigation.reset();
+  anomalyManager.reset();
 }
 
 Il2CppObject* Find(Il2CppClass* type)
@@ -190,6 +191,60 @@ Il2CppObject* NewObject(const char* name, Il2CppObject* parent, Root& root)
   return transform;
 }
 
+Il2CppObject* GraphicSprite(Il2CppObject* image)
+{
+  // ImageSelector applies localized artwork through overrideSprite.
+  auto* sprite = Get(image, "get_overrideSprite");
+  return sprite ? sprite : Get(image, "get_sprite");
+}
+
+Il2CppObject* NativeBackgroundSprite(Il2CppObject* nav)
+{
+  auto*         button     = Field(nav, "_galacticAnomaliesButtonWidget");
+  auto*         parent     = Get(Get(button, "get_transform"), "get_parent");
+  void*         args[]     = {il2cpp_string_new("ShortcutKeybindHint/Background")};
+  Il2CppObject* background = nullptr;
+  if (!parent || !Invoke(Method(parent->klass, "Find", 1), parent, args, &background))
+    return nullptr;
+  static auto* image = Class("UnityEngine.UI", "UnityEngine.UI", "Image");
+  return GraphicSprite(Component(background, image));
+}
+
+void Slice(Il2CppObject* image, Il2CppObject* sprite)
+{
+  if (!image || !sprite)
+    return;
+  int   sliced       = 1;
+  float spritePixels = 100;
+  if (!Value(sprite, "get_pixelsPerUnit", spritePixels) || spritePixels <= 0)
+    return;
+  float multiplier = 100 / spritePixels;
+  Set(image, "set_type", &sliced);
+  Set(image, "set_pixelsPerUnitMultiplier", &multiplier);
+}
+
+Il2CppObject* Decoration(const char* name, Il2CppObject* parent, Vector2 size, Vector2 position, Color color,
+                         Il2CppObject* sprite = nullptr)
+{
+  Root         object;
+  auto*        transform  = NewObject(name, parent, object);
+  static auto* imageClass = Class("UnityEngine.UI", "UnityEngine.UI", "Image");
+  auto*        image =
+      object.get() ? WithType(TypeMethod(object.get()->klass, "AddComponent"), object.get(), imageClass) : nullptr;
+  bool no = false, yes = true;
+  bool ok = transform && image && Rect(transform, {0.5f, 0.5f}, {0.5f, 0.5f}, size, position)
+            && Set(image, "set_color", &color) && Set(image, "set_raycastTarget", &no);
+  if (sprite)
+    ok = ok && Set(image, "set_sprite", sprite);
+  ok = ok && Set(object.get(), "SetActive", &yes);
+  if (!ok && Alive(object.get())) {
+    void* args[] = {object.get()};
+    Invoke(Method(UnityObject(), "Destroy", 1), nullptr, args);
+  }
+  object.reset();
+  return ok ? image : nullptr;
+}
+
 bool Create(Il2CppObject* nav)
 {
   // Keep the native system-name font, but place the timer under the upper-right
@@ -215,21 +270,32 @@ bool Create(Il2CppObject* nav)
     return false;
 
   auto* transform = NewObject("CommunityMod_AnomalyTimer", parent, panel);
-  if (!transform || !Rect(transform, {0.5f, 0}, {0.5f, 1}, {160, 30}, {0, -40}))
+  if (!transform || !Rect(transform, {0.5f, 0}, {0.5f, 1}, {198, 38}, {0, -40}))
     return false;
   static auto* image      = Class("UnityEngine.UI", "UnityEngine.UI", "Image");
   auto*        background = WithType(TypeMethod(panel.get()->klass, "AddComponent"), panel.get(), image);
-  Color        bg{0.06f, 0.10f, 0.14f, 0.85f};
+  Color        border{0.64f, 0.34f, 0.46f, 0.85f};
   bool         no = false;
-  if (!background || !Set(background, "set_color", &bg) || !Set(background, "set_raycastTarget", &no))
+  if (!background || !Set(background, "set_color", &border) || !Set(background, "set_raycastTarget", &no))
     return false;
+  // Use the existing native key-hint silhouette for both layers, with a narrow
+  // inset creating the border. A missing sprite still yields a visible frame.
+  auto* rounded = NativeBackgroundSprite(nav);
+  if (rounded) {
+    Set(background, "set_sprite", rounded);
+    Slice(background, rounded);
+  }
+  auto* fill = Decoration("AnomalyFill", transform, {194, 34}, {0, 0}, {0.06f, 0.10f, 0.14f, 0.96f}, rounded);
+  if (!fill)
+    return false;
+  Slice(fill, rounded);
 
   Root  textObject;
   auto* textTransform = NewObject("Countdown", transform, textObject);
   auto* text =
       WithType(TypeMethod(textObject.get() ? textObject.get()->klass : nullptr, "AddComponent"), textObject.get(), tmp);
   label.reset(text);
-  bool  ok        = textTransform && text && Rect(textTransform, {0.5f, 0.5f}, {0.5f, 0.5f}, {152, 28}, {0, 0});
+  bool  ok        = textTransform && text && Rect(textTransform, {0.5f, 0.5f}, {0.5f, 0.5f}, {190, 28}, {0, 0});
   float fontSize  = 22;
   int   alignment = 0x202; // TMP: Center (514).
   Color color{0.95f, 0.83f, 0.89f, 1};
@@ -268,12 +334,16 @@ void Update()
   std::int64_t ticks = 0;
   if (Alive(nav) && Value(nav, "get_isActiveAndEnabled", show) && show && Value(nav, "CanShowGalacticAnomaly", show)
       && show) {
-    auto*         address      = Get(Get(nav, "get_CanvasContext"), "get_ViewingAddress");
-    std::int64_t  system       = -1;
-    static auto*  managerClass = Class("Assembly-CSharp", "Digit.Prime.GalacticAnomalies", "GalacticAnomaliesManager");
-    auto*         manager      = Find(managerClass);
-    Il2CppObject* anomaly      = nullptr;
-    void*         args[]       = {&system};
+    auto*        address      = Get(Get(nav, "get_CanvasContext"), "get_ViewingAddress");
+    std::int64_t system       = -1;
+    static auto* managerClass = Class("Assembly-CSharp", "Digit.Prime.GalacticAnomalies", "GalacticAnomaliesManager");
+    // Cache the Unity object, not its timer data. Unity's liveness check detects
+    // destruction even while the managed wrapper is retained by our GC handle.
+    if (!Alive(anomalyManager.get()))
+      anomalyManager.reset(Find(managerClass));
+    auto*         manager = anomalyManager.get();
+    Il2CppObject* anomaly = nullptr;
+    void*         args[]  = {&system};
     show = manager && Value(address, "get_System", system) && system > 0
            && Invoke(Method(managerClass, "GetSystemGalacticAnomalies", 1), manager, args, &anomaly)
            && Value(anomaly, "get_IsActive", show) && show
