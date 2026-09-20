@@ -1125,7 +1125,7 @@ static void away_assignment_event(const Digit::PrimeServer::Models::AwayAssignme
                 {"duration", instance.parameters().duration()},
                 {"rarity", instance.rarity()}};
 
-  const auto state_value = static_cast<size_t>(std::hash<json>{}(event));
+  const auto state_value = std::hash<json>{}(event);
 
   if (const auto& it = away_assignment_states.find(instance.id());
       it == away_assignment_states.end() || it->second != state_value) {
@@ -1173,6 +1173,29 @@ static void away_assignments_list(std::unique_ptr<std::string>&& bytes)
     }
   } else {
     spdlog::error("Failed to parse away assignments");
+  }
+}
+
+static void away_assignment_instance(std::unique_ptr<std::string>&& bytes)
+{
+  using json = nlohmann::json;
+
+  if (auto instance = Digit::PrimeServer::Models::AwayAssignmentInstance(); instance.ParseFromString(*bytes)) {
+
+    http::logging::trace("PROCESS", "away assignment instance",
+                         STR_FORMAT("Processing away assignment {}", instance.id()));
+
+    auto assignment_array = json::array();
+    {
+      std::scoped_lock lk(trackers::away_assignment_states_mtx);
+      away_assignment_event(instance, assignment_array);
+    }
+
+    if (!assignment_array.empty()) {
+      workers::queue_data(SyncConfig::Type::AwayAssignments, assignment_array);
+    }
+  } else {
+    spdlog::error("Failed to parse away assignment instance");
   }
 }
 
@@ -1520,24 +1543,10 @@ static void completed_missions(std::unique_ptr<std::string>&& bytes)
 static void officers(std::unique_ptr<std::string>&& bytes)
 {
   using json = nlohmann::json;
+  using trackers::types::RankLevelShardsState;
 
-  // Local to officers(): like RankLevelShardsState, plus the away assignment instance id so a
-  // change there alone (rank/level/shards unchanged) still re-emits the officer.
-  struct OfficerState {
-    int32_t rank                        = -1;
-    int32_t level                       = -1;
-    int32_t shard_count                 = -1;
-    int64_t away_assignment_instance_id = 0;
-
-    bool operator==(const OfficerState& other) const
-    {
-      return this->rank == other.rank && this->level == other.level && this->shard_count == other.shard_count
-             && this->away_assignment_instance_id == other.away_assignment_instance_id;
-    }
-  };
-
-  static std::unordered_map<uint64_t, OfficerState> officer_states;
-  static std::mutex                                 officer_states_mtx;
+  static std::unordered_map<uint64_t, RankLevelShardsState> officer_states;
+  static std::mutex                                         officer_states_mtx;
 
   if (auto response = Digit::PrimeServer::Models::OfficersResponse(); response.ParseFromString(*bytes)) {
 
@@ -1548,8 +1557,7 @@ static void officers(std::unique_ptr<std::string>&& bytes)
       std::scoped_lock lk(officer_states_mtx);
 
       for (const auto& officer : response.officers()) {
-        const OfficerState officer_state{officer.rankindex(), officer.level(), officer.shardcount(),
-                                         officer.awayassignmentinstanceid()};
+        const RankLevelShardsState officer_state{officer.rankindex(), officer.level(), officer.shardcount()};
 
         if (const auto& it = officer_states.find(officer.id());
             it == officer_states.end() || it->second != officer_state) {
@@ -1558,8 +1566,7 @@ static void officers(std::unique_ptr<std::string>&& bytes)
                                     {"oid", officer.id()},
                                     {"rank", officer.rankindex()},
                                     {"level", officer.level()},
-                                    {"shard_count", officer.shardcount()},
-                                    {"away_assignment_id", officer.awayassignmentinstanceid()}});
+                                    {"shard_count", officer.shardcount()}});
             }
       }
     }
@@ -2274,6 +2281,11 @@ static void HandleEntityGroup(EntityGroup* entity_group)
     case EntityGroup::Type::AwayAssignmentsList:
       if (sync_options.away_assignments) {
         submit_async(processors::away_assignments_list);
+      }
+      break;
+    case EntityGroup::Type::AwayAssignmentsInstance:
+      if (sync_options.away_assignments) {
+        submit_async(processors::away_assignment_instance);
       }
       break;
 
