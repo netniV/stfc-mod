@@ -121,8 +121,7 @@ inline std::string GameDisplayName(FleetPlayerData* ship)
   if (exc) return {};
 
   if (auto* str = resolved.localise(ctx, false, 0); str != nullptr) {
-    auto* chars = il2cpp_string_chars(str);
-    return std::string(chars, chars + il2cpp_string_length(str));
+    return to_string(str);
   }
   return {};
 }
