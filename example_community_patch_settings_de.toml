@@ -114,7 +114,7 @@ enable_experimental = false
 #  <[=========================================================================================================================================]> 
 
 [graphics]
-# Verbleibende Zeit der galaktischen Anomalie unter dem Systemnamen anzeigen.
+# Verbleibende Zeit der galaktischen Anomalie unter Helfen / Starten / Abholen anzeigen.
 galactic_anomaly_timer = false
 
 

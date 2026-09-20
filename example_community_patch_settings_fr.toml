@@ -114,7 +114,7 @@ enable_experimental = false
 #  <[=======================================================================================================================================================]> 
 
 [graphics]
-# Afficher le temps restant de l’anomalie galactique sous le nom du système.
+# Afficher le temps restant de l’anomalie galactique sous les boutons Aider / Participer / Récupérer.
 galactic_anomaly_timer = false
 
 

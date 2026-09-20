@@ -192,8 +192,9 @@ Il2CppObject* NewObject(const char* name, Il2CppObject* parent, Root& root)
 
 bool Create(Il2CppObject* nav)
 {
-  // Use the actual system-name label as the anchor and font source. A second line
-  // avoids moving bookmarks, clipping long names, or altering native layout/animations.
+  // Keep the native system-name font, but place the timer under the upper-right
+  // Help All / Engage / Claim drawer. Parenting to the drawer follows its scale
+  // and visibility without changing any native button positions.
   auto* names = Field(Field(nav, "_factionInformationHelper"), "_systemName");
   int   count = 0;
   if (!Value(names, "get_Count", count) || count < 1)
@@ -203,15 +204,18 @@ bool Create(Il2CppObject* nav)
   Il2CppObject* name   = nullptr;
   if (!Invoke(Method(names->klass, "get_Item", 1), names, args, &name) || !Alive(name))
     return false;
-  auto*        parent = Get(name, "get_transform");
-  static auto* tmp    = Class("Unity.TextMeshPro", "TMPro", "TextMeshProUGUI");
-  auto*        source = Component(name, tmp);
-  auto*        font   = Get(source, "get_font");
+  static auto* drawerClass = Class("Assembly-CSharp", "Digit.Prime.HUD", "HudAllianceAndNewsViewController");
+  auto*        drawer      = Find(drawerClass);
+  auto*        chest       = Get(Field(drawer, "_chestPromotion"), "get_transform");
+  auto*        parent      = Get(chest, "get_parent");
+  static auto* tmp         = Class("Unity.TextMeshPro", "TMPro", "TextMeshProUGUI");
+  auto*        source      = Component(name, tmp);
+  auto*        font        = Get(source, "get_font");
   if (!parent || !font)
     return false;
 
   auto* transform = NewObject("CommunityMod_AnomalyTimer", parent, panel);
-  if (!transform || !Rect(transform, {1, 0}, {1, 1}, {160, 30}, {0, -5}))
+  if (!transform || !Rect(transform, {0.5f, 0}, {0.5f, 1}, {160, 30}, {0, -40}))
     return false;
   static auto* image      = Class("UnityEngine.UI", "UnityEngine.UI", "Image");
   auto*        background = WithType(TypeMethod(panel.get()->klass, "AddComponent"), panel.get(), image);
@@ -309,6 +313,6 @@ void InstallGalacticAnomalyTimer()
 {
   if (install_screen_manager_update_hook()) {
     register_screen_manager_update_callback(Update);
-    spdlog::info("Galactic anomaly countdown enabled (below system name)");
+    spdlog::info("Galactic anomaly countdown enabled (below Help All / Engage / Claim)");
   }
 }

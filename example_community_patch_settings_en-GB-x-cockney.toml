@@ -114,7 +114,7 @@ enable_experimental = false
 #  <[=============================================================================================================]> 
 
 [graphics]
-# Show the remaining Galactic Anomaly time below the system name.
+# Show the remaining Galactic Anomaly time below Help All / Engage / Claim.
 galactic_anomaly_timer = false
 
 
