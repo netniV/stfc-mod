@@ -49,6 +49,14 @@ target("macOSLauncher")
 
     -- Generate Info.plist from template during configuration
     on_config(function (target)
+        -- xmake invokes swift-frontend directly, bypassing the swiftc driver that
+        -- normally injects macro plugin search paths. Xcode 26+ SDKs implement
+        -- SwiftUI property wrappers (@State etc.) as external macros, so point the
+        -- frontend at the platform's macro plugins explicitly.
+        local sdk_platform = os.iorun("xcrun --show-sdk-platform-path"):trim()
+        target:add("scflags", "-external-plugin-path",
+            sdk_platform .. "/Developer/usr/lib/swift/host/plugins#" .. sdk_platform .. "/Developer/usr/bin/swift-plugin-server")
+
         local version_file = path.join(os.scriptdir(), "../mods/src/version.h")
         if not os.isfile(version_file) then
             -- GitHub Actions warning
@@ -88,29 +96,6 @@ target("macOSLauncher")
             print("Generated Info.plist with version: " .. version)
         else
             print("::warning file=" .. info_plist_template .. "::Info.plist.template not found, skipping generation")
-        end
-
-        -- xmake invokes swift-frontend directly, so it does not get the Swift
-        -- driver's default external macro plugin search paths. SwiftUI property
-        -- macros (e.g. @State since the Xcode 27 SDK) require libSwiftUIMacros
-        -- to be discoverable; re-add what `swiftc` derives from the active SDK.
-        local sdk_output = os.iorun("xcrun --show-sdk-path")
-        local sdkpath    = sdk_output and sdk_output:trim() or ""
-        if sdkpath ~= "" and os.isdir(sdkpath) then
-            local devdir        = path.join(sdkpath, "..", "..")
-            local plugins       = path.join(devdir, "usr", "lib", "swift", "host", "plugins")
-            local plugins_user  = path.join(devdir, "usr", "local", "lib", "swift", "host", "plugins")
-            local plugin_server = path.join(devdir, "usr", "bin", "swift-plugin-server")
-            -- Older SDKs treat @State etc. as built-ins without libSwiftUIMacros;
-            -- skip the flags entirely on those so pre-macro toolchains don't
-            -- gain a flag they may not understand.
-            if os.isdir(plugins) and os.isfile(path.join(plugins, "libSwiftUIMacros.dylib")) then
-                target:add("scflags", "-external-plugin-path", plugins .. "#" .. plugin_server, {force = true})
-                if os.isdir(plugins_user) then
-                    target:add("scflags", "-external-plugin-path",
-                               plugins_user .. "#" .. plugin_server, {force = true})
-                end
-            end
         end
     end)
 
