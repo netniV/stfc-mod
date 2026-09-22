@@ -1,3 +1,4 @@
+#include <il2cpp/runtime.h>
 #include "config.h"
 #include "errormsg.h"
 #include "patches/fleet_opc_sample.h"
@@ -252,9 +253,8 @@ Il2CppObject* invoke(const MethodInfo* method, void* target, void** args, const 
     return nullptr;
   }
 
-  Il2CppException* exception = nullptr;
-  auto*            result    = il2cpp_runtime_invoke(method, target, args, &exception);
-  if (exception) {
+  Il2CppObject* result = nullptr;
+  if (!Il2CppRuntime::TryInvoke(method, target, args, &result)) {
     spdlog::warn("[OpcIndicators] {} failed", operation);
     return nullptr;
   }
@@ -267,9 +267,7 @@ bool invoke_void(const MethodInfo* method, void* target, void** args, const char
     return false;
   }
 
-  Il2CppException* exception = nullptr;
-  il2cpp_runtime_invoke(method, target, args, &exception);
-  if (exception) {
+  if (!Il2CppRuntime::TryInvoke(method, target, args)) {
     spdlog::warn("[OpcIndicators] {} failed", operation);
     return false;
   }
