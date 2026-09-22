@@ -37,3 +37,14 @@ target("il2cpp-runtime-tests")
     if is_plat("windows") then
         add_linkdirs("mods/src/il2cpp")
     end
+
+target("il2cpp-class-lookup-tests")
+    set_kind("binary")
+    set_default(false)
+    add_files("tests/il2cpp_class_lookup.cc")
+    add_includedirs("mods/src")
+    add_packages("libil2cpp", "eastl")
+    set_exceptions("cxx")
+    if is_plat("windows") then
+        add_linkdirs("mods/src/il2cpp")
+    end
