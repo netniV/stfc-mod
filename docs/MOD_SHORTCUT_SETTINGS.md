@@ -53,25 +53,33 @@ to choose a range or control.
 
 ## Behavior contract
 
-- Each binding has its own Change button, followed by Add shortcut. There is no
-  selected-binding cursor. More options starts collapsed and holds
-  the explicit Remove buttons and Restore default. Recording reveals its status and Cancel; a valid
-  draft reveals Apply and any overlap warning. Inactive controls leave no gaps.
-- Edit one action and one binding at a time. Preserve its other alternatives.
+- Each binding has its own Change button, followed by Add shortcut, explicit
+  Remove buttons and Restore default last. There is no More options dropdown or
+  page-level Apply step. Inactive controls leave no gaps.
+- Change and Add open a popup with the current binding, a captured draft,
+  scrollable overlap warnings, Cancel, Record again and Confirm (or Use anyway).
+  Edit one action and one binding at a time; preserve its other alternatives.
 - Adding or replacing with a binding already on that action shows `Already bound`
-  and leaves Apply disabled, without publishing or saving. Compare parsed key and
-  modifier groups, ignoring modifier order, repeated groups and alias spelling;
-  generic and sided modifiers remain distinct. Existing duplicate entries can be
-  removed explicitly with Remove and Apply; opening a page never cleans up TOML.
-- Capture is a draft. Apply publishes the complete action list once; Cancel and
-  Escape do not change live bindings or enqueue a save. Removing a binding is an
-  explicit action; removing the last one stores the existing `NONE` spelling.
-- Show overlapping bindings as a warning and allow keeping both after explicit
-  Apply. Never silently remove another action's binding. Existing contextual
-  overlaps and modifier matching continue to work as before.
-- Capture owns keyboard input until the captured/cancelled keys are released.
-  The initiating click and previously held keys cannot become a binding or leak
-  into gameplay. Leaving the editor or losing focus cancels capture.
+  and leaves Confirm disabled, without publishing or saving. Compare parsed key
+  and modifier groups, ignoring modifier order, repeated groups and alias spelling;
+  generic and sided modifiers remain distinct. Opening a page never cleans up TOML.
+- Capture is a draft. Confirm publishes the complete action list once; Cancel,
+  Escape, leaving the page and losing focus discard the draft without saving.
+  Escape closes only the popup, without also navigating back through settings.
+- Remove saves immediately, including existing duplicate entries. Removing the
+  last binding stores `NONE`. Restore immediately replaces the complete list with
+  its registered defaults and is hidden only when that complete list already matches.
+- Successful Remove/Restore shows an amber notice at the top with Undo. Undo
+  restores the exact previous list, including ordering and duplicates, then quietly
+  clears the notice. Only the latest change is undoable, until another edit or page
+  departure; Undo refuses to overwrite a newer binding list.
+- Overlaps are advisory: Use anyway keeps both actions' bindings. Never silently
+  remove another action's binding. Confirm rechecks warnings before publication.
+- Capture and the popup own keyboard input through key release. The initiating
+  click and previously held keys cannot become a binding or leak into gameplay.
+  Native settings Back polling and EventSystem keyboard navigation are suspended
+  while the popup owns input; mouse buttons remain usable. Their prior states are
+  restored after dismissal and release.
 - Store canonical `[shortcuts]` identities, not labels. Keep existing aliases
   readable; a new canonical edit takes precedence without deleting an alias.
 - Replacing an action prepares the complete list and its shortcut hint first,
@@ -89,7 +97,8 @@ to choose a range or control.
 First verify atomic action replacement, alternative preservation, fresh hints and
 invalid/unbound behavior in the existing MapKey fixture. Then exercise the native
 editor, capture ownership, Escape/focus/held-key cancellation, advisory conflicts,
-  live dispatch, reopen and restart persistence on an identified artifact.
+live dispatch, immediate Remove/Restore, Undo, reopen and restart persistence on an
+identified artifact. Exercise Enter capture separately from Enter confirmation.
 
 ## Capture and presentation limits
 
@@ -99,7 +108,9 @@ input checks; Windows keys retain `WIN-`. When input reports both families for
 a Command press, capture prefers `CMD-` without requiring a duplicate Windows
 event. Existing sided
 bindings and alternative ordering are retained until explicitly replaced. Escape
-is reserved for cancelling recording; existing Escape bindings remain readable.
+is reserved for cancelling the popup; existing Escape bindings remain readable.
+Enter and keypad Enter can be recorded. Once a preview is ready, a fresh Enter
+press confirms it; the press captured as a binding cannot also confirm that draft.
 OS shortcuts can still be handled by the OS; this is not a global keyboard hook.
 Layout capture supports the same character set as the existing mapper and rejects
 ambiguous/unavailable characters rather than storing the wrong physical key.
@@ -110,11 +121,11 @@ rules can match together. Bare `I` rejects modifiers, so it does not overlap
 can both match while Ctrl+Shift+I is held. Layout-required Shift and sided modifiers
 are included. Contexts may still make an overlap intentional; this does not audit
 Scopely or OS shortcuts. Gameplay dispatch rules remain unchanged.
-An overlap changes the draft's button to `Apply anyway`; its warning remains
-visible after applying, until the next edit or page departure.
-For multiple overlaps, Next cycles through every affected action with an index
-and total. Restore default uses the registered config definition, stages the
-whole action and follows the same explicit Apply, conflict and Cancel flow.
+Warnings appear together in the popup's scrollable area and change Confirm to
+`Use anyway`. They disappear when the popup closes. Enter and keypad Enter also
+warn that game dialogs may confirm, and about direct ship assignment when that
+feature is enabled. These direct handlers are outside configurable MapKey overlap
+checks; the warnings do not claim a complete audit of native or OS shortcuts.
 Force close client is identified as such. Native shortcut variants explain that
 they invoke the game's own shortcut behavior rather than direct screen navigation.
 
@@ -140,8 +151,9 @@ It rejects further UI additions before publishing. Existing longer TOML lists
 stay live and saved in full: the UI explains that it shows the first 60, permits
 replacement/removal, and exposes subsequent bindings as earlier ones are removed.
 Opening an oversized list never rewrites it or removes unrelated settings pages.
-Refreshes run
-on settings actions and capture transitions; they do not add idle frame polling.
+Row refreshes run on settings actions and capture transitions. The popup uses the
+existing frame dispatcher for focus, lifetime and confirmation checks only while
+open, plus navigation restoration after dismissal; it does no idle key scan.
 An unchanged visible list is not rebound.
 
 The reused command-widget detours install only where runtime extent checks pass.
