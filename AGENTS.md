@@ -15,7 +15,7 @@ This project uses **XMake** (not CMake). All build configuration is in `xmake.lu
 ```bash
 # Configure and build (command line)
 xmake                              # Build default target
-xmake f -p macosx -a arm64 -m debug --target_minver=13.5   # Configure for macOS ARM debug
+xmake f -p macosx -a arm64 -m debug --target_minver=14.6   # Configure for macOS ARM debug
 xmake f -p windows -m release         # Configure for Windows release
 
 # Generate Visual Studio solution
@@ -40,7 +40,7 @@ Delete the `build/` folder to reset. Also delete `.vs/` for a full Visual Studio
 
 - Keep changes scoped. Do not stage unrelated dirty files or generated artifacts unless the user explicitly asks.
 - Before finishing C++ or patch work, run `git diff --check` and the narrowest relevant xmake build.
-- For macOS core mod changes, use `xmake f -p macosx -a arm64 -m debug --target_minver=13.5 -y && xmake -y mods`.
+- For macOS core mod changes, use `xmake f -p macosx -a arm64 -m debug --target_minver=14.5 -y && xmake -y mods`.
 - Review the final diff for risky hooks, platform guards, config default mismatches, and missing example config updates.
 - If a subtree such as `macos-launcher/` needs specialized guidance, prefer a nested `AGENTS.md` near that code instead of overloading this root file.
 
