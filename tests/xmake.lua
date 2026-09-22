@@ -7,5 +7,8 @@ do
     add_packages("libil2cpp", "eastl", "spdlog", "simdutf")
     if is_plat("windows") then
         add_linkdirs("../mods/src/il2cpp")
+    elseif is_plat("macosx") then
+        -- FleetPlayerData exposes the same MS property extensions as the mod target.
+        add_cxflags("-fms-extensions")
     end
 end
