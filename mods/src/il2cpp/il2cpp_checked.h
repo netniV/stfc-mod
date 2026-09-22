@@ -1,6 +1,6 @@
 #pragma once
 
-#include "il2cpp_helper.h"
+#include "runtime.h"
 #include <functional>
 #include <il2cpp-tabledefs.h>
 
@@ -30,18 +30,18 @@ inline Il2CppObject* Invoke(Il2CppObject* object, const char* name, int count = 
         || (argument && !il2cpp_class_is_assignable_from(expected, argument->klass)))
       throw std::runtime_error("reference argument contract changed");
   }
-  Il2CppException* exception = nullptr;
-  auto*            result    = il2cpp_runtime_invoke(method, object, args, &exception);
-  if (exception)
+  Il2CppObject* result = nullptr;
+  if (!Il2CppRuntime::TryInvoke(method, object, args, &result))
     throw std::runtime_error("managed invocation failed");
   return result;
 }
 
 inline bool Boolean(Il2CppObject* result)
 {
-  if (!result || !result->klass || il2cpp_class_get_type(result->klass)->type != IL2CPP_TYPE_BOOLEAN)
+  bool value = false;
+  if (!Il2CppRuntime::TryBoolean(result, value))
     throw std::runtime_error("expected Boolean");
-  return *static_cast<bool*>(il2cpp_object_unbox(result));
+  return value;
 }
 
 inline FieldInfo* Field(Il2CppObject* object, const char* name, const char* expected)
