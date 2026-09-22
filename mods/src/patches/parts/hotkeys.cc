@@ -39,11 +39,13 @@
 #include "prime/ScanEngageButtonsWidget.h"
 #include "prime/ScreenManager.h"
 #include "prime/SelectableList.h"
+#include "prime/ShipManagementViewController.h"
 #include "prime/ShortcutsManager.h"
 
 #include "patches/key.h"
 #include "patches/mapkey.h"
 #include "patches/parts/daily_faction_bulk_claim.h"
+#include "patches/parts/double_click_assign_ship.h"
 #include "patches/parts/focus_search.h"
 #include "str_utils.h"
 
@@ -435,6 +437,59 @@ bool MoveShipSelectionInDock(bool goLeft)
   return acted;
 }
 
+bool MoveDockInManagementView(bool goLeft)
+{
+  if (!Config::Get().arrow_keys_to_select_ship) {
+    return false;
+  }
+
+  auto* section_manager = Hub::get_SectionManager();
+  if (!section_manager || section_manager->CurrentSection != SectionID::ShipManagement_Details) {
+    return false;
+  }
+
+  bool acted = false;
+  for (auto controller : ObjectFinder<ShipManagementViewController>::GetAll()) {
+    if (!controller || !controller->isActiveAndEnabled) {
+      continue;
+    }
+
+    auto canvas = GetCanvasControllerFromComponent(controller);
+    if (!canvas || !canvas->Visible()) {
+      spdlog::trace("MoveDockInManagementView({}) - controller={} not visible", (int)goLeft, (void*)controller);
+      continue;
+    }
+
+    auto* context = controller->Context();
+    if (!context) {
+      spdlog::trace("MoveDockInManagementView({}) - controller={} has no context", (int)goLeft,
+                    (void*)controller);
+      continue;
+    }
+
+    const int32_t count   = context->ListCount();
+    const int32_t current = context->CurrentIndex();
+    if (count <= 1 || current < 0) {
+      spdlog::trace("MoveDockInManagementView({}) - context={} index={} count={}", (int)goLeft, (void*)context,
+                    current, count);
+      continue;
+    }
+
+    const auto next = current + (goLeft ? -1 : 1);
+    if (next < 0 || next >= count) {
+      spdlog::trace("MoveDockInManagementView({}) - no further dock (index={} count={})", (int)goLeft, current, count);
+      continue;
+    }
+
+    spdlog::debug("MoveDockInManagementView({}) - switching dock {} -> {}", (int)goLeft, current, next);
+    context->SetLastMovementWasToIncrement(!goLeft);
+    context->SetCurrentIndex(next);
+    acted = true;
+  }
+
+  return acted;
+}
+
 void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
 {
   dispatch_screen_manager_update_callbacks();
@@ -465,6 +520,11 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
     spdlog::warn("Setting hotkeys to ENABLED");
     return;
   }
+
+  // Per-frame driver - must run every frame, before the hotkey-mode
+  // early-returns below (it must also run in Scopely-hotkey mode and
+  // while hotkeys are toggled off).
+  AssignShipEnterKeyUpdate();
 
   if (Config::Get().use_scopely_hotkeys && Config::Get().hotkeys_enabled) {
     return original(_this);
@@ -625,14 +685,16 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
       }
 
       if (MapKey::IsDown(GameFunction::MoveLeft)) {
-        auto const result = MoveShipSelectionInDock(true) || MoveArtifactCanvas(true) || MoveOfficerCanvas(true);
+        auto const result = MoveDockInManagementView(true) || MoveShipSelectionInDock(true) || MoveArtifactCanvas(true)
+                            || MoveOfficerCanvas(true);
         if (result) {
           return;
         }
       }
 
       if (MapKey::IsDown(GameFunction::MoveRight)) {
-        auto const result = MoveShipSelectionInDock(false) || MoveArtifactCanvas(false) || MoveOfficerCanvas(false);
+        auto const result = MoveDockInManagementView(false) || MoveShipSelectionInDock(false)
+                            || MoveArtifactCanvas(false) || MoveOfficerCanvas(false);
         if (result) {
           return;
         }
