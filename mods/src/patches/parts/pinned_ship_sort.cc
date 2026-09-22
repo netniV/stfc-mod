@@ -59,22 +59,20 @@ bool InitializeState()
 }
 
 struct ShipEntry {
-  void*                                 item;
-  std::vector<std::vector<std::string>> match_words; // word-sequences from HullSpec.Name and HullSpec.IdStr
-  int64_t                               level;
-  std::string                           debug_name;  // raw HullSpec.Name, for diagnostics
-  std::string                           debug_idstr; // raw HullSpec.IdStr, for diagnostics
+  void*         item;
+  std::vector<std::string> match_words; // words from the game's own display name
+  int64_t       level;
 };
 
 ShipEntry BuildShipEntry(void* item)
 {
-  ShipEntry entry{item, {}, 0, {}, {}};
+  ShipEntry entry{item, {}, 0};
 
   auto* ship = reinterpret_cast<FleetPlayerData*>(item);
   if (!ship) return entry;
 
   entry.level       = ship->Level;
-  entry.match_words = ShipNameMatch::CandidateWords(ship, &entry.debug_name, &entry.debug_idstr);
+  entry.match_words = ShipNameMatch::DisplayWords(ship);
   return entry;
 }
 
@@ -125,8 +123,6 @@ void ReorderPinnedShips(void* list)
     if (exc) item = nullptr;
 
     auto entry = BuildShipEntry(item);
-    spdlog::debug("[PinnedShipSort] idle ship: name='{}' idstr='{}' level={}", entry.debug_name,
-                 entry.debug_idstr, entry.level);
     ships.push_back(std::move(entry));
   }
 
@@ -144,7 +140,7 @@ void ReorderPinnedShips(void* list)
     int64_t best_level = -1;
     for (int32_t i = 0; i < count; ++i) {
       if (ranks[i] != kUnpinnedRank) continue; // already claimed by an earlier pinned_ships entry
-      if (!ShipNameMatch::MatchesAny(ships[i].match_words, pinned_words[p])) continue;
+      if (!ShipNameMatch::MatchesDisplay(ships[i].match_words, pinned_words[p])) continue;
       if (ships[i].level > best_level) {
         best_level = ships[i].level;
         best_index = i;
@@ -155,8 +151,8 @@ void ReorderPinnedShips(void* list)
       ranks[best_index] = kPinnedRank;
       any_pinned        = true;
     } else {
-      spdlog::warn("[PinnedShipSort] pinned_ships entry '{}' matched no idle ship (check the debug log above "
-                   "for each ship's actual name/idstr)",
+      spdlog::warn("[PinnedShipSort] pinned_ships entry '{}' matched no idle ship (entries match the "
+                   "game's own display name for a ship that is idle in its dock)",
                    cfg.pinned_ships[p]);
     }
   }

@@ -2,7 +2,7 @@
 
 #if (defined(_WIN32) && defined(_M_X64)) || defined(__APPLE__)
 #include <il2cpp-tabledefs.h>
-#include <il2cpp/il2cpp_helper.h>
+#include <il2cpp/runtime.h>
 #include <stdexcept>
 
 namespace mod_settings::native
@@ -28,9 +28,9 @@ struct Root {
 
 // Shared native boundary helpers. No setting state, views or hook installation.
 void          Warn(const char* reason = "native control unavailable");
-bool          Type(const Il2CppType* type, int expected);
-bool          Instance(const MethodInfo* method, int count, int result);
-bool          Reference(const Il2CppType* type);
+using Il2CppRuntime::Type;
+using Il2CppRuntime::Instance;
+using Il2CppRuntime::Reference;
 FieldInfo*    Field(Il2CppClass* cls, const char* name);
 Il2CppObject* ReadField(Il2CppObject* object, FieldInfo* field);
 Il2CppObject* Invoke(const MethodInfo* method, Il2CppObject* object, void** args = nullptr);
