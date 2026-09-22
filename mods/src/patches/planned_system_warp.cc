@@ -1,3 +1,4 @@
+#include <il2cpp/runtime.h>
 #include "planned_system_warp.h"
 #include "errormsg.h"
 
@@ -81,9 +82,8 @@ Il2CppObject* ReadMember(void* object, const char* name, bool field = false)
   if (!IsInstanceMethod(getter, 0)) {
     return nullptr;
   }
-  Il2CppException* exception = nullptr;
-  auto*            result    = il2cpp_runtime_invoke(getter, instance, nullptr, &exception);
-  return exception ? nullptr : result;
+  Il2CppObject* result = nullptr;
+  return Il2CppRuntime::TryInvoke(getter, instance, nullptr, &result) ? result : nullptr;
 }
 
 template <typename T> std::optional<T> ReadValue(void* object, const char* name, bool field = false)
