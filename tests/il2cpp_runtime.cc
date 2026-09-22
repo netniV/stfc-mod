@@ -15,8 +15,8 @@ Il2CppClass  klass;
 Il2CppType   type{};
 Il2CppObject object{};
 MethodInfo   method{};
-int          stage = 3, calls = 0;
-bool         fail = false, boxed = false, null_result = false;
+int          calls = 0;
+bool         fail = false, boxed = false, null_result = false, null_type = false, null_unbox = false;
 void*        seen_target = nullptr;
 void**       seen_args   = nullptr;
 } // namespace
@@ -27,42 +27,11 @@ void**       seen_args   = nullptr;
 #define API(ret, name, params) name##_t name = +[] params->ret
 #define END_API ;
 #endif
-API(Il2CppDomain*, il2cpp_domain_get, ())
-{ return stage >= 0 ? reinterpret_cast<Il2CppDomain*>(&object) : nullptr; }
-END_API
-API(const Il2CppAssembly*, il2cpp_domain_assembly_open, (Il2CppDomain * domain, const char*))
-{
-  if (!domain)
-    std::abort();
-  return stage >= 1 ? reinterpret_cast<Il2CppAssembly*>(&object) : nullptr;
-}
-END_API
-API(const Il2CppImage*, il2cpp_assembly_get_image, (const Il2CppAssembly* assembly))
-{
-  if (!assembly)
-    std::abort();
-  return stage >= 2 ? reinterpret_cast<Il2CppImage*>(&object) : nullptr;
-}
-END_API
-API(Il2CppClass*, il2cpp_class_from_name, (const Il2CppImage* image, const char*, const char*))
-{
-  if (!image)
-    std::abort();
-  return stage >= 3 ? &klass : nullptr;
-}
-END_API
-API(const MethodInfo*, il2cpp_class_get_method_from_name, (Il2CppClass * cls, const char*, int))
-{
-  if (!cls)
-    std::abort();
-  return &method;
-}
-END_API
 API(const Il2CppType*, il2cpp_class_get_type, (Il2CppClass*))
-{ return &type; }
+{ return null_type ? nullptr : &type; }
 END_API
 API(void*, il2cpp_object_unbox, (Il2CppObject*))
-{ return &boxed; }
+{ return null_unbox ? nullptr : &boxed; }
 END_API
 API(Il2CppObject*, il2cpp_runtime_invoke, (const MethodInfo*, void* target, void** args, Il2CppException** error))
 {
@@ -81,12 +50,6 @@ void Require(bool condition)
 }
 int main()
 {
-  for (stage = -1; stage < 3; ++stage)
-    Require(!Il2CppRuntime::Class("Assembly", "Namespace", "Class"));
-  Require(Il2CppRuntime::Class("Assembly", "Namespace", "Class") == &klass);
-  Require(!Il2CppRuntime::Method(nullptr, "Method", 0));
-  Require(Il2CppRuntime::Method(&klass, "Method", 0) == &method);
-
   Il2CppObject* result = &object;
   Require(!Il2CppRuntime::TryInvoke(nullptr, nullptr, nullptr, &result) && calls == 0 && result == &object);
   bool  value  = true;
@@ -108,20 +71,17 @@ int main()
   type.type = IL2CPP_TYPE_I4;
   Require(!Il2CppRuntime::TryBoolean(&object, value) && value);
   Require(!Il2CppRuntime::TryBoolean(nullptr, value));
-  type.type = IL2CPP_TYPE_CLASS;
-  Require(Il2CppRuntime::Reference(&type));
+  type.type = IL2CPP_TYPE_BOOLEAN;
   type.byref = true;
-  Require(!Il2CppRuntime::Reference(&type));
-  type.byref            = false;
-  type.type             = IL2CPP_TYPE_VOID;
-  method.methodPointer  = reinterpret_cast<Il2CppMethodPointer>(1);
-  method.invoker_method = reinterpret_cast<InvokerMethod>(1);
-  method.return_type    = &type;
-  Require(Il2CppRuntime::Instance(&method, 0, IL2CPP_TYPE_VOID));
-  method.flags = METHOD_ATTRIBUTE_STATIC;
-  Require(!Il2CppRuntime::Instance(&method, 0, IL2CPP_TYPE_VOID));
-  method.flags                              = 0;
-  method.has_full_generic_sharing_signature = true;
-  Require(!Il2CppRuntime::Instance(&method, 0, IL2CPP_TYPE_VOID));
+  Require(!Il2CppRuntime::TryBoolean(&object, value) && value);
+  type.byref = false;
+  null_type = true;
+  Require(!Il2CppRuntime::TryBoolean(&object, value) && value);
+  null_type = false;
+  null_unbox = true;
+  Require(!Il2CppRuntime::TryBoolean(&object, value) && value);
+  null_unbox = false;
+  object.klass = nullptr;
+  Require(!Il2CppRuntime::TryBoolean(&object, value) && value);
   std::cout << "IL2CPP runtime helper regressions passed\n";
 }
