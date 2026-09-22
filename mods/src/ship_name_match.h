@@ -120,7 +120,7 @@ inline std::string GameDisplayName(FleetPlayerData* ship)
   il2cpp_runtime_invoke(resolved.ctor, ctx, ctor_args, &exc);
   if (exc) return {};
 
-  if (auto* str = resolved.localise(ctx, false, 0); str != nullptr) {
+  if (const auto* str = resolved.localise(ctx, false, 0); str != nullptr) {
     return to_string(str);
   }
   return {};
