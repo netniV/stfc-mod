@@ -48,11 +48,11 @@ void CoursePromptPopupViewController_AboutToShow_Hook(auto original, CoursePromp
 
 InstantWarpConfirmation ResolveInstantWarpConfirmation(FleetPlayerData* fleet)
 {
-  const auto& cfg        = Config::Get();
-  const auto  candidates = ShipNameMatch::CandidateWords(fleet);
-  const auto  matches    = [&candidates](const std::vector<std::string>& names, bool all) {
-    return all || (!candidates.empty() && std::ranges::any_of(names, [&](const auto& configured) {
-             return ShipNameMatch::MatchesAny(candidates, ShipNameMatch::SplitWords(configured));
+  const auto& cfg           = Config::Get();
+  const auto  display_words = ShipNameMatch::DisplayWords(fleet);
+  const auto  matches       = [&display_words](const std::vector<std::string>& names, bool all) {
+    return all || (!display_words.empty() && std::ranges::any_of(names, [&](const auto& configured) {
+             return ShipNameMatch::MatchesDisplay(display_words, ShipNameMatch::SplitWords(configured));
            }));
   };
   if (matches(cfg.instant_warp_always_ask, cfg.instant_warp_always_ask_all))

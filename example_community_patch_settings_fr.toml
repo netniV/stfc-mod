@@ -286,6 +286,8 @@ zoomhooks = true
 
 [shortcuts]
 
+# Utilisez "" ou "NONE" pour désactiver un raccourci. Les valeurs absentes ou invalides utilisent la touche par défaut.
+
 # Subgroup: Cargo & Locate
 # ------------------------
 
