@@ -189,6 +189,13 @@ jobs:
         shell: pwsh
         run: sccache --zero-stats
 
+      - name: Test IL2CPP runtime helpers
+        run: |
+          xmake build -y il2cpp-runtime-tests
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          xmake run il2cpp-runtime-tests
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Build
         run: xmake build -y stfc-community-mod
 
@@ -468,6 +475,11 @@ jobs:
       - name: Reset protobuf compiler cache stats
         shell: bash
         run: sccache --zero-stats
+
+      - name: Test IL2CPP runtime helpers
+        run: |
+          xmake build -y il2cpp-runtime-tests
+          xmake run il2cpp-runtime-tests
 
       - name: Build
         # -D keeps the existing XMake compiler-cache diagnostics too.
