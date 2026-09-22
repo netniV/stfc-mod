@@ -33,6 +33,7 @@ public:
   static bool        RawPressed(KeyCode key);
   static bool        RawDown(KeyCode key);
   inline static bool shortcutCaptureActive = false; // Game thread only.
+  inline static bool shortcutPopupActive = false; // Includes preview, not just capture.
   static std::string Token(KeyCode key);
 
   static void ClaimDirectionalInput(KeyCode key);

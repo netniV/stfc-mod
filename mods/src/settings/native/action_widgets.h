@@ -8,6 +8,8 @@ namespace mod_settings::native
 {
 using ActionRow = std::pair<ActionSetting*, std::size_t>;
 bool      ActionsActive();
+// Valid only during a synchronous action invocation; never retain this pointer.
+Il2CppObject* InvokingActionWidget();
 void      RefreshActions();
 ActionRow ActionFor(Il2CppObject* context);
 void      AddActionRow(Il2CppObject* director, Il2CppObject* context, Il2CppObject* parent, ActionSetting& action,

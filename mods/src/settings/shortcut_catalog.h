@@ -11,8 +11,8 @@
 
 namespace mod_settings
 {
-// Change + Remove per binding, four singleton rows, More options, Restore,
-// optional action explanation and the shared save notice.
+// Change + Remove per binding, Add, status/Undo, Restore, optional explanation
+// and save notice. Retain the established binding limit with three spare slots.
 // Oversized player-authored lists stay live; the editor presents their prefix.
 inline constexpr std::size_t ShortcutFixedRowLimit       = 8;
 inline constexpr std::size_t ShortcutBindingDisplayLimit = (PageCatalog::NativeChildLimit - ShortcutFixedRowLimit) / 2;

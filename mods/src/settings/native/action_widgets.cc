@@ -4,6 +4,7 @@
 #include "row_style.h"
 #include "settings/native_boolean_callback.h"
 #include "settings/shortcut_settings.h"
+#include "settings/shortcut_popup.h"
 #include "timing.h"
 #include <deque>
 #include <spdlog/spdlog.h>
@@ -16,7 +17,10 @@ namespace
   NativeCallback<void>          actionCallback;
   NativeCallback<Il2CppString*> actionGetter;
   bool                          actionsActive = false;
+  Il2CppObject*                 invokingWidget = nullptr;
 } // namespace
+Il2CppObject* InvokingActionWidget()
+{ return invokingWidget; }
 bool ActionsActive()
 { return actionsActive; }
 struct ActionMetadata {
@@ -203,7 +207,14 @@ void InvokeAction(Il2CppObject* token, const MethodInfo*)
       // from authorizing a different command or recursively invoking itself.
       if (enabled && view.action == action && view.index == index && Target(view.context) == context.get()
           && Target(view.token) == token && Invoke(ActionMeta().getContext, widget.get()) == context.get())
+      {
+        struct Invocation {
+          Il2CppObject* previous;
+          explicit Invocation(Il2CppObject* widget) : previous(invokingWidget) { invokingWidget = widget; }
+          ~Invocation() { invokingWidget = previous; }
+        } invocation(widget.get());
         action->invoke(index);
+      }
       return;
     }
   } catch (...) {
@@ -389,6 +400,7 @@ void InstallActionWidgets()
           || !SPUD_STATIC_DETOUR(action.release->methodPointer, ActionReleaseHook))
         throw std::runtime_error("settings command hook installation");
       actionsActive = true;
+      InstallShortcutPopup();
       SetShortcutPresentationObserver(RefreshActions);
     } catch (const std::exception& error) {
       spdlog::warn("[ModSettings] Commands unavailable: {}", error.what());

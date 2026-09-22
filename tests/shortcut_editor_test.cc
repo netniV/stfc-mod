@@ -1,6 +1,8 @@
 #include "settings/shortcut_capture.h"
 #include "settings/shortcut_catalog.h"
 #include "settings/shortcut_draft.h"
+#include "settings/shortcut_undo.h"
+#include "settings/shortcut_popup_keys.h"
 #include <cstdlib>
 #include <iostream>
 
@@ -156,7 +158,112 @@ int main()
   draft.Begin();
   Check(draft.Restore({}) == ShortcutStage::AlreadyBound && !draft.pending(),
         "restoring an already active default is a no-op");
+  ShortcutUndo removal(owner);
+  live = {"LCTRL-G", "F8", "LCTRL-G"};
+  const auto beforeRemoval = writes;
+  Check(removal.Remove(1) == Outcome::AppliedVerified && writes == beforeRemoval + 1
+            && live == ShortcutList{"LCTRL-G", "LCTRL-G"} && removal.available() && removal.message() == "Removed F8",
+        "Remove writes immediately without a pending Apply and offers the removed key for Undo");
+  Check(removal.Undo() == Outcome::AppliedVerified && writes == beforeRemoval + 2
+            && live == ShortcutList{"LCTRL-G", "F8", "LCTRL-G"} && !removal.available(),
+        "Undo writes immediately and restores ordering, sided modifiers and existing duplicates exactly");
+  Check(removal.Undo() == Outcome::Suppressed && writes == beforeRemoval + 2,
+        "repeated Undo cannot write again");
+  live = {"F8"};
+  Check(removal.Remove(0) == Outcome::AppliedVerified && live.empty()
+            && removal.Undo() == Outcome::AppliedVerified && live == ShortcutList{"F8"},
+        "removing the last binding makes the action unbound and remains undoable");
+  removal.Remove(0);
+  live = {"F9"};
+  const auto beforeStaleUndo = writes;
+  Check(removal.Undo() == Outcome::Conflict && live == ShortcutList{"F9"} && writes == beforeStaleUndo
+            && !removal.available(),
+        "stale Undo cannot overwrite a newer binding or persist it");
+  live = {"F7", "F8", "F9"};
+  removal.Remove(0);
+  removal.Remove(0);
+  Check(removal.message() == "Removed F8" && removal.Undo() == Outcome::AppliedVerified
+            && live == ShortcutList{"F8", "F9"},
+        "Undo belongs to the most recent removal only");
+  Check(removal.Remove(99) == Outcome::Rejected && !removal.available(),
+        "invalid removal cannot offer Undo");
+  removal.Remove(0);
+  removal.Clear();
+  const auto afterClear = writes;
+  Check(removal.Undo() == Outcome::Suppressed && writes == afterClear,
+        "leaving the editor or starting another edit clears Undo without changing bindings");
+  live = {"LEFT", "N"};
+  const auto beforeDefault = writes;
+  Check(removal.Restore({"LEFT"}) == Outcome::AppliedVerified && live == ShortcutList{"LEFT"}
+            && writes == beforeDefault + 1 && removal.message() == "Restored defaults" && removal.available(),
+        "Restore replaces the complete list and persists immediately, without pending Apply");
+  Check(removal.Undo() == Outcome::AppliedVerified && live == ShortcutList{"LEFT", "N"}
+            && writes == beforeDefault + 2,
+        "Undo default restoration immediately restores every previous alternative");
+  Check(removal.Restore({}) == Outcome::AppliedVerified && live.empty()
+            && removal.Undo() == Outcome::AppliedVerified && live == ShortcutList{"LEFT", "N"},
+        "NONE defaults apply immediately and can be undone");
+  const auto beforeNoopRestore = writes;
+  Check(removal.Restore(live) == Outcome::Unchanged && writes == beforeNoopRestore && !removal.available(),
+        "restoring an already matching default neither writes nor advertises Undo");
+  removal.Restore({"LEFT"});
+  live = {"RIGHT"};
+  const auto beforeRestoreConflict = writes;
+  Check(removal.Undo() == Outcome::Conflict && live == ShortcutList{"RIGHT"} && writes == beforeRestoreConflict,
+        "Undo restoration cannot overwrite a subsequent edit");
+  {
+    ShortcutList oversized(limit + 2, "F8");
+    ShortcutUndo* activeRemoval = nullptr;
+    bool reject = false;
+    ValueSetting<ShortcutList> boundedOwner({"shortcuts.large", "Large",
+        [&] { return ValueReadResult<ShortcutList>::Known(oversized, 1); },
+        [&](ShortcutList value, std::uint64_t) {
+          if (reject || (!ShortcutCountFitsEdit(oversized.size(), value.size())
+                         && !(activeRemoval && activeRemoval->Restoring(value))))
+            return ApplyResult::Rejected;
+          oversized = std::move(value);
+          return ApplyResult::Applied;
+        }});
+    ShortcutUndo largeRemoval(boundedOwner);
+    activeRemoval = &largeRemoval;
+    Check(largeRemoval.Remove(0) == Outcome::AppliedVerified && oversized.size() == limit + 1
+              && largeRemoval.Undo() == Outcome::AppliedVerified && oversized.size() == limit + 2,
+          "oversized TOML lists permit an exact removal undo");
+    auto addition = oversized;
+    addition.push_back("F9");
+    Check(boundedOwner.SetFromUser(addition, boundedOwner.Observe()).outcome == Outcome::Rejected,
+          "Undo does not grant ordinary additions permission to exceed the row budget");
+    Check(largeRemoval.Restore({"LEFT"}) == Outcome::AppliedVerified
+              && largeRemoval.Undo() == Outcome::AppliedVerified && oversized.size() == limit + 2,
+          "Undo default restoration can recover the original oversized player list");
+    reject = true;
+    Check(largeRemoval.Remove(0) == Outcome::Rejected && !largeRemoval.available()
+              && oversized.size() == limit + 2,
+          "failed removal cannot offer success or Undo");
+    Check(largeRemoval.Restore({"LEFT"}) == Outcome::Rejected && !largeRemoval.available()
+              && oversized.size() == limit + 2,
+          "failed restoration cannot offer success or Undo");
+  }
   ShortcutCapture       capture;
+  ShortcutPopupKeys popupKeys;
+  Check(popupKeys.Tick(false, true, true, false) == ShortcutPopupKey::None,
+        "Enter during recording cannot confirm");
+  Check(popupKeys.Tick(true, true, true, false) == ShortcutPopupKey::None,
+        "captured Enter cannot confirm itself when the preview becomes ready");
+  Check(popupKeys.Tick(true, false, false, false) == ShortcutPopupKey::None
+            && popupKeys.Tick(true, true, true, false) == ShortcutPopupKey::Confirm,
+        "after release a fresh Enter confirms a ready preview");
+  Check(popupKeys.Tick(true, true, false, false) == ShortcutPopupKey::None,
+        "holding Enter cannot repeat confirmation");
+  popupKeys.Tick(true, false, false, false);
+  Check(popupKeys.Tick(true, true, true, true) == ShortcutPopupKey::Cancel,
+        "Escape takes priority over simultaneous confirmation");
+  Check(popupKeys.Tick(false, false, false, true) == ShortcutPopupKey::Cancel,
+        "Escape cancels even when confirmation is unavailable");
+  popupKeys.Tick(true, false, false, false);
+  popupKeys.Tick(false, false, false, false);
+  Check(popupKeys.Tick(true, true, true, false) == ShortcutPopupKey::None,
+        "Record again resets confirmation readiness");
   ShortcutCapture::Keys held{}, down{};
   auto                  modifier = [](KeyCode key) { return key == KeyCode::LeftControl; };
   auto                  tick     = [&] { return capture.Tick(held, down, true, modifier); };
@@ -208,6 +315,19 @@ int main()
   held = {};
   tick();
   Check(!capture.active(), "a focused release ends the cancellation drain");
+  // The popup can close while capture is idle (preview/confirmation). Its
+  // closing input must be drained just like a captured chord.
+  capture.Begin();
+  capture.Cancel();
+  held[(int)KeyCode::Return] = true;
+  down = held;
+  Check(!tick() && capture.active(), "closing preview retains the submit key");
+  held = {};
+  down = {};
+  Check(!capture.Tick(held, down, false, modifier) && capture.active(),
+        "closing preview cannot release ownership on an unfocused sample");
+  tick();
+  Check(!capture.active(), "closing preview releases ownership after focused key release");
   capture.Begin();
   tick();
   held[(int)KeyCode::I] = held[(int)KeyCode::G] = true;

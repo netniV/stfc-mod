@@ -9,6 +9,8 @@
 #include "shortcut_capture.h"
 #include "shortcut_catalog.h"
 #include "shortcut_draft.h"
+#include "shortcut_popup.h"
+#include "shortcut_undo.h"
 #include "str_utils.h"
 #include <algorithm>
 #include <il2cpp/il2cpp_helper.h>
@@ -39,9 +41,9 @@ namespace
     GameFunction                                function;
     ValueSetting<ShortcutList>                  state;
     ShortcutDraft                               draft;
+    ShortcutUndo                                undo;
     std::string                                 status, replacing;
     std::vector<std::string>                    overlaps;
-    std::size_t                                 overlapIndex = 0;
     std::vector<std::unique_ptr<ActionSetting>> rows;
     Editor(GameFunction action, const std::string& label)
         : function(action)
@@ -52,12 +54,13 @@ namespace
                      list.push_back(binding.GetParsedValues());
                    return ValueReadResult<ShortcutList>::Known(std::move(list), 1);
                  },
-                 [action](ShortcutList list, std::uint64_t generation) {
+                 [this, action](ShortcutList list, std::uint64_t generation) {
                    if (generation != 1)
                      return ApplyResult::Rejected;
                    // Existing oversized lists may be reduced/rebound, but a UI
                    // addition must fit before either publication or persistence.
-                   if (!ShortcutCountFitsEdit(MapKey::Bindings(action).size(), list.size()))
+                   if (!ShortcutCountFitsEdit(MapKey::Bindings(action).size(), list.size())
+                       && !undo.Restoring(list))
                      return ApplyResult::Rejected;
                    std::vector<MapKey> bindings;
                    for (const auto& text : list) {
@@ -75,6 +78,7 @@ namespace
         , draft(state, [](const auto& first, const auto& second) {
           return MapKey::SameBinding(MapKey::Parse(first), MapKey::Parse(second));
         })
+        , undo(state)
     {
     }
     ShortcutList Current()
@@ -89,6 +93,7 @@ namespace
   ShortcutCapture                      capture;
   std::vector<KeyCode>                 sampledKeys;
   bool (*isFocused)() = nullptr;
+  Editor* popupEditor = nullptr;
 
   // Compare the dispatcher's modifier rules as well as the physical key.
   // Contexts may still make an overlap intentional; warn without removing either.
@@ -98,6 +103,12 @@ namespace
     if (keyboard_layout::DescribeChord(candidate.Key).key == KeyCode::None)
       return {token + ": layout unavailable; check this binding"};
     std::vector<std::string> result;
+    // These direct Enter handlers are outside the configurable MapKey bindings.
+    if (candidate.Key == KeyCode::Return || candidate.Key == KeyCode::KeypadEnter) {
+      result.push_back(token + " may also confirm game dialogs.");
+      if (Config::Get().double_click_to_assign_ship)
+        result.push_back(token + " also assigns the selected ship while the ship selection screen is open.");
+    }
     for (int i = 0; i < GameFunction::Max; ++i) {
       const auto action = static_cast<GameFunction>(i);
       if (action == editor.function)
@@ -112,22 +123,30 @@ namespace
     return result;
   }
 
-  void Cancel(Editor& editor)
+  void Cancel(Editor& editor, bool closePopup = true)
   {
+    if (closePopup && popupEditor == &editor) {
+      popupEditor = nullptr;
+      native::CloseShortcutPopup();
+      // Closing from preview still owns Escape/Enter/the mouse through release.
+      capture.Begin();
+      capture.Cancel();
+      Key::shortcutCaptureActive = true;
+    }
     if (recording == &editor) {
       recording = nullptr;
       capture.Cancel();
     }
     editor.draft.Cancel();
+    editor.undo.Clear();
     editor.overlaps.clear();
-    editor.overlapIndex = 0;
     editor.status.clear();
   }
-  void Begin(Editor& editor, std::size_t index)
+  void Begin(Editor& editor, std::size_t index, bool keepPopup = false)
   {
     if (capture.active())
       return;
-    Cancel(editor);
+    Cancel(editor, !keepPopup);
     editor.draft.Begin();
     const auto list = editor.Current();
     if (index > list.size() || (index == list.size() && list.size() >= ShortcutBindingDisplayLimit))
@@ -138,6 +157,53 @@ namespace
     capture.Begin();
     Key::shortcutCaptureActive = true;
     editor.status              = "Release keys, then press a shortcut. Esc cancels.";
+  }
+  void OpenEditor(Editor& editor, std::size_t index)
+  {
+    Begin(editor, index);
+    if (recording != &editor)
+      return;
+    popupEditor = &editor;
+    const bool opened = native::OpenShortcutPopup({
+        [&editor, index] {
+          ShortcutPopupPresentation view;
+          view.title = editor.state.label();
+          view.current = editor.replacing.empty() ? "Unbound" : editor.replacing;
+          if (editor.draft.desired() && index < editor.draft.desired()->size())
+            view.proposed = editor.draft.desired()->at(index);
+          view.status = editor.status;
+          for (const auto& warning : editor.overlaps)
+            view.status += "\n<color=#FFC66D>" + warning + "</color>";
+          view.confirmLabel = editor.overlaps.empty() ? "Confirm" : "Use anyway";
+          view.canConfirm = editor.draft.pending() && !capture.active();
+          view.canRecord = !capture.active();
+          return view;
+        },
+        [&editor, index] {
+          if (!editor.draft.pending() || capture.active())
+            return;
+          auto overlaps = Overlaps(editor, editor.draft.desired()->at(index));
+          if (overlaps != editor.overlaps) {
+            editor.overlaps = std::move(overlaps);
+            editor.status = "Shortcut usage changed. Check the warnings and confirm again.";
+            return;
+          }
+          const auto outcome = editor.draft.Apply();
+          if (outcome == Outcome::AppliedVerified || outcome == Outcome::Unchanged) {
+            Cancel(editor);
+            spdlog::info("[Shortcuts] Popup binding applied: {}", editor.state.id());
+          } else {
+            editor.status = "Binding changed; cancel and reopen to try again.";
+          }
+          Notify();
+        },
+        [&editor, index] { Begin(editor, index, true); },
+        [&editor] { Cancel(editor); Notify(); }});
+    if (!opened) {
+      popupEditor = nullptr;
+      Cancel(editor);
+      editor.status = "Popup unavailable; no binding changed.";
+    }
   }
   void UpdateCapture()
   {
@@ -155,7 +221,6 @@ namespace
       const auto primary  = capture.Tick(held, down, hasFocus, Key::IsModifier);
       if (editor && cancel) {
         Cancel(*editor);
-        editor->status = "Recording cancelled";
         Notify();
       } else if (editor && primary) {
         const auto isHeld = [&](KeyCode key) { return held[static_cast<int>(key)]; };
@@ -230,6 +295,23 @@ namespace
       editor.rows.push_back(std::move(row));
     };
     using P = ActionSetting::Presentation;
+    add(
+        "status", "Shortcut status",
+        [&editor](std::size_t) {
+          if (popupEditor == &editor)
+            return P{"", "", "", false, false};
+          if (editor.undo.available())
+            return P{"<color=#FFC66D>" + editor.undo.message() + "</color>", "Undo", "", !capture.active()};
+          return P{editor.status, "", "", false, !editor.status.empty()};
+        },
+        [&editor](std::size_t) {
+          if (editor.undo.available()) {
+            const auto result = editor.undo.Undo();
+            editor.status = result == Outcome::AppliedVerified ? ""
+                            : result == Outcome::Conflict ? "Bindings changed; undo cancelled."
+                                                          : "Could not verify undo; check current bindings.";
+          }
+        });
     const auto help = ShortcutExplanation(editor.function);
     if (!help.empty())
       add(
@@ -240,9 +322,10 @@ namespace
         "binding", "Shortcut",
         [&editor](std::size_t index) {
           const auto list = editor.Current();
-          return P{list.at(index), "Change", "", !capture.active() && !editor.draft.pending()};
+          return P{list.at(index), "Change", "",
+                   popupEditor != &editor && !capture.active() && !editor.draft.pending()};
         },
-        [&editor](std::size_t index) { Begin(editor, index); }, count);
+        [&editor](std::size_t index) { OpenEditor(editor, index); }, count);
     add(
         "add", "Add shortcut",
         [&editor](std::size_t) {
@@ -253,96 +336,56 @@ namespace
           if (size == ShortcutBindingDisplayLimit)
             return P{"Remove a shortcut before adding another", "", "", false};
           return P{size == 0 ? "No shortcut assigned" : "Add shortcut", "Record", "",
-                   !capture.active() && !editor.draft.pending()};
+                   popupEditor != &editor && !capture.active() && !editor.draft.pending()};
         },
-        [&editor](std::size_t) { Begin(editor, editor.Current().size()); });
-    add(
-        "apply", "Pending change",
-        [&editor](std::size_t) {
-          const auto button = !editor.draft.pending() ? "" : editor.overlaps.empty() ? "Apply" : "Apply anyway";
-          return P{editor.status, button, "", editor.draft.pending() && !capture.active(), !editor.status.empty()};
-        },
-        [&editor](std::size_t) {
-          const auto result = editor.draft.Apply();
-          editor.status     = result == Outcome::AppliedVerified || result == Outcome::Unchanged
-                                  ? "Applied"
-                                  : "Binding changed; reopen and try again";
-          // Keep the applied binding's warning visible. Clearing it on Apply
-          // made a real overlap easy to miss after the button was pressed.
-          if (result != Outcome::AppliedVerified && result != Outcome::Unchanged)
-            editor.overlaps.clear();
-        });
-    add(
-        "overlaps", "Overlap information",
-        [&editor](std::size_t) {
-          if (editor.overlaps.empty())
-            return P{"", "", "", false, false};
-          const auto count = editor.overlaps.size();
-          const auto text  = editor.overlaps.at(editor.overlapIndex % count);
-          const auto position =
-              count > 1 ? " (" + std::to_string(editor.overlapIndex % count + 1) + "/" + std::to_string(count) + ")"
-                        : "";
-          return P{"<color=#FFC66D>" + text + position + "</color>", count > 1 ? "Next" : "", "", true};
-        },
-        [&editor](std::size_t) {
-          if (!editor.overlaps.empty())
-            editor.overlapIndex = (editor.overlapIndex + 1) % editor.overlaps.size();
-        });
-    add(
-        "cancel", "Discard pending change",
-        [&editor](std::size_t) {
-          return P{"Discard change", "Cancel", "", true, editor.draft.pending() || recording == &editor};
-        },
-        [&editor](std::size_t) { Cancel(editor); });
-    catalog.AddHeading(editor.state.id(), editor.state.id() + ".more", "More options", true);
-    add(
-        "default", "Restore default",
-        [&editor](std::size_t) {
-          return P{"Default: " + MapKey::Definition(editor.function).defaultBinding, "Restore", "",
-                   !capture.active() && !editor.draft.pending()};
-        },
-        [&editor](std::size_t) {
-          // Use the same definition and token parser as config loading. Never
-          // infer a default from the current live binding or rewrite other actions.
-          const auto&  definition = MapKey::Definition(editor.function).defaultBinding;
-          ShortcutList defaults;
-          if (AsciiStrToUpper(StripAsciiWhitespace(definition)) != "NONE") {
-            for (const auto& token : StrSplit(definition, '|')) {
-              const auto parsed = MapKey::Parse(token);
-              if (parsed.Key == KeyCode::None) {
-                editor.status = "Default unavailable; edit TOML";
-                return;
-              }
-              defaults.push_back(parsed.GetParsedValues());
-            }
-          }
-          Cancel(editor);
-          editor.draft.Begin();
-          const auto result = editor.draft.Restore(defaults);
-          editor.status     = result == ShortcutStage::Staged         ? "Restore default: " + Join(defaults)
-                              : result == ShortcutStage::AlreadyBound ? "Already using default"
-                                                                      : "Default unavailable; reopen settings";
-          if (result == ShortcutStage::Staged)
-            for (const auto& token : defaults) {
-              auto overlaps = Overlaps(editor, token);
-              editor.overlaps.insert(editor.overlaps.end(), overlaps.begin(), overlaps.end());
-            }
-        });
+        [&editor](std::size_t) { OpenEditor(editor, editor.Current().size()); });
     add(
         "remove", "Remove shortcut",
         [&editor](std::size_t index) {
-          return P{editor.Current().at(index), "Remove", "", !capture.active() && !editor.draft.pending()};
+          return P{editor.Current().at(index), "Remove", "", !capture.active() && !editor.draft.pending(),
+                   popupEditor != &editor};
         },
         [&editor](std::size_t index) {
           const auto list = editor.Current();
           if (index >= list.size())
             return;
           Cancel(editor);
-          editor.draft.Begin();
-          editor.draft.Stage(index, {});
-          editor.status = "Remove " + list[index];
+          const auto result = editor.undo.Remove(index);
+          editor.status = result == Outcome::AppliedVerified ? "Removed " + list[index]
+                                                             : "Could not verify removal; check current bindings.";
         },
         count);
+    // Parse the same canonical defaults for visibility and restoration. An extra
+    // alternative still makes Restore useful, even if the default is present.
+    const auto defaults = [&editor]() -> std::optional<ShortcutList> {
+      const auto& definition = MapKey::Definition(editor.function).defaultBinding;
+      ShortcutList result;
+      if (AsciiStrToUpper(StripAsciiWhitespace(definition)) != "NONE") {
+        for (const auto& token : StrSplit(definition, '|')) {
+          const auto parsed = MapKey::Parse(token);
+          if (parsed.Key == KeyCode::None)
+            return std::nullopt;
+          result.push_back(parsed.GetParsedValues());
+        }
+      }
+      return result;
+    }();
+    add(
+        "default", "Restore default",
+        [&editor, defaults](std::size_t) {
+          return P{"Default: " + MapKey::Definition(editor.function).defaultBinding, "Restore", "",
+                   defaults.has_value() && !capture.active() && !editor.draft.pending(),
+                   popupEditor != &editor && (!defaults || editor.Current() != *defaults)};
+        },
+        [&editor, defaults](std::size_t) {
+          if (!defaults)
+            return;
+          Cancel(editor);
+          const auto result = editor.undo.Restore(*defaults);
+          editor.status = result == Outcome::AppliedVerified ? "Restored defaults"
+                          : result == Outcome::Unchanged ? "Already using defaults"
+                                                         : "Could not verify restore; check current bindings.";
+        });
   }
 } // namespace
 
