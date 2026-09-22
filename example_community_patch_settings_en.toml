@@ -286,6 +286,8 @@ zoomhooks = true
 
 [shortcuts]
 
+# Use "" or "NONE" to disable a shortcut. Omitted or invalid values use the default binding.
+
 # Subgroup: Cargo & Locate
 # ------------------------
 

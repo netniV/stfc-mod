@@ -1,5 +1,6 @@
 #if (defined(_WIN32) && defined(_M_X64)) || defined(__APPLE__)
 #include "interop.h"
+#include <il2cpp/runtime.h>
 #include "settings/page_catalog.h"
 #include "settings/windows_hook_extent.h"
 #include "patches/native_hook_extent.h"
@@ -19,19 +20,6 @@ void Warn(const char* reason)
     spdlog::warn("[ModSettings] {}", reason);
   }
 }
-bool Type(const Il2CppType* type, int expected)
-{ return type && !type->byref && type->type == expected; }
-bool Instance(const MethodInfo* method, int count, int result)
-{
-  return method && method->methodPointer && method->invoker_method && !(method->flags & METHOD_ATTRIBUTE_STATIC)
-         && method->parameters_count == count && Type(method->return_type, result)
-         && !method->has_full_generic_sharing_signature;
-}
-bool Reference(const Il2CppType* type)
-{
-  return Type(type, IL2CPP_TYPE_CLASS) || Type(type, IL2CPP_TYPE_GENERICINST) || Type(type, IL2CPP_TYPE_OBJECT)
-         || Type(type, IL2CPP_TYPE_STRING);
-}
 FieldInfo* Field(Il2CppClass* cls, const char* name)
 {
   auto* field = cls ? il2cpp_class_get_field_from_name(cls, name) : nullptr;
@@ -50,20 +38,20 @@ Il2CppObject* Invoke(const MethodInfo* method, Il2CppObject* object, void** args
 {
   if (!method || !object)
     throw std::runtime_error("settings invocation");
-  Il2CppException* error  = nullptr;
-  auto*            result = il2cpp_runtime_invoke(method, object, args, &error);
-  if (error)
+  Il2CppObject* result = nullptr;
+  if (!Il2CppRuntime::TryInvoke(method, object, args, &result))
     throw std::runtime_error("settings managed exception");
   return result;
 }
 // Bounded discovery helpers used only while opening a page or binding a row.
 Il2CppObject* Call(Il2CppObject* object, const char* name, int count, void** args)
-{ return Invoke(object ? il2cpp_class_get_method_from_name(object->klass, name, count) : nullptr, object, args); }
+{ return Invoke(object ? Il2CppRuntime::Method(object->klass, name, count) : nullptr, object, args); }
 bool Boolean(Il2CppObject* boxed)
 {
-  if (!boxed || !Type(il2cpp_class_get_type(boxed->klass), IL2CPP_TYPE_BOOLEAN))
+  bool value = false;
+  if (!Il2CppRuntime::TryBoolean(boxed, value))
     throw std::runtime_error("settings boolean result");
-  return *static_cast<bool*>(il2cpp_object_unbox(boxed));
+  return value;
 }
 bool Equals(Il2CppObject* value, const char* ascii)
 {
