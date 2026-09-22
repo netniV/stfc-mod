@@ -196,6 +196,13 @@ jobs:
           xmake run il2cpp-runtime-tests
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Test IL2CPP class lookup
+        run: |
+          xmake build -y il2cpp-class-lookup-tests
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          xmake run il2cpp-class-lookup-tests
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Build
         run: xmake build -y stfc-community-mod
 
@@ -480,6 +487,11 @@ jobs:
         run: |
           xmake build -y il2cpp-runtime-tests
           xmake run il2cpp-runtime-tests
+
+      - name: Test IL2CPP class lookup
+        run: |
+          xmake build -y il2cpp-class-lookup-tests
+          xmake run il2cpp-class-lookup-tests
 
       - name: Build
         # -D keeps the existing XMake compiler-cache diagnostics too.
