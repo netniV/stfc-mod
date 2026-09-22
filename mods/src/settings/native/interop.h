@@ -28,9 +28,9 @@ struct Root {
 
 // Shared native boundary helpers. No setting state, views or hook installation.
 void          Warn(const char* reason = "native control unavailable");
-using Il2CppRuntime::Type;
-using Il2CppRuntime::Instance;
-using Il2CppRuntime::Reference;
+bool          Type(const Il2CppType* type, int expected);
+bool          Instance(const MethodInfo* method, int count, int result);
+bool          Reference(const Il2CppType* type);
 FieldInfo*    Field(Il2CppClass* cls, const char* name);
 Il2CppObject* ReadField(Il2CppObject* object, FieldInfo* field);
 Il2CppObject* Invoke(const MethodInfo* method, Il2CppObject* object, void** args = nullptr);
