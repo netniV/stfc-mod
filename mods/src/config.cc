@@ -694,16 +694,11 @@ void parse_config_shortcut_value(toml::table& new_config, std::string_view item,
   auto valueTrimmed = StripTrailingAsciiWhitespace(config_value);
   auto valueLowered = AsciiStrToUpper(valueTrimmed);
 
-  if (valueLowered == "NONE") {
+  // An explicit empty string disables the binding, just like NONE. Missing or
+  // invalid settings still fall back to their defaults.
+  if (valueTrimmed.empty() || valueLowered == "NONE") {
     set_shortcut_noop(sectionTable, sourceTable, item, sourceLabel);
     return;
-  }
-
-  if (valueTrimmed.empty()) {
-    spdlog::error("Empty shortcut value [shortcuts].{}; using default for [shortcuts].{}.", shortcut_value.source_item,
-                  item);
-    return parse_config_shortcut_value(new_config, item, gameFunction, default_value,
-                                       {std::string(default_value), std::string(item), false, true});
   }
 
   auto wantedKeys   = StrSplit(valueLowered, '|');

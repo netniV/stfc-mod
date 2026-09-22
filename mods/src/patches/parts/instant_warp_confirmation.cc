@@ -34,14 +34,17 @@ void CoursePromptPopupViewController_AboutToShow_Hook(auto original, CoursePromp
     fleet = course->PlayerFleet;
   }
 
+  const auto  display_words = ShipNameMatch::DisplayWords(fleet);
   std::string hull_name;
-  const auto  candidates = ShipNameMatch::CandidateWords(fleet, &hull_name);
+  if (fleet != nullptr) {
+    hull_name = ShipNameMatch::GameDisplayName(fleet);
+  }
 
-  const auto matches = [&candidates](const std::vector<std::string>& names, bool all) -> bool {
+  const auto matches = [&display_words](const std::vector<std::string>& names, bool all) -> bool {
     if (all) return true;
-    if (candidates.empty()) return false;
+    if (display_words.empty()) return false;
     return std::ranges::any_of(names, [&](const auto& configured) {
-      return ShipNameMatch::MatchesAny(candidates, ShipNameMatch::SplitWords(configured));
+      return ShipNameMatch::MatchesDisplay(display_words, ShipNameMatch::SplitWords(configured));
     });
   };
 
