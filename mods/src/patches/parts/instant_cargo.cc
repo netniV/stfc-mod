@@ -13,7 +13,7 @@ FieldInfo *  textField{}, *contextField{}, *identifierField{}, *snapField{};
 Il2CppClass* cargoDataClass{};
 bool         textReady{};
 // Windows client 263: SetWidgetData RVA 0x118b4b0, native extent 7731 bytes.
-// SPUD relocates these 24 complete instruction bytes. Keep other builds on native behavior
+// The verified SPUD relocation window spans 25 complete instruction bytes. Keep other builds on native behavior
 // until their hook fit is verified; metadata compatibility alone does not establish it.
 constexpr unsigned char kWindow[] = {0x40, 0x55, 0x53, 0x48, 0x8d, 0x6c, 0x24, 0xb1, 0x48, 0x81, 0xec, 0xf8, 0x00,
                                      0x00, 0x00, 0x80, 0x3d, 0x6f, 0x4e, 0xd0, 0x04, 0x00, 0x48, 0x8b, 0xd9};
