@@ -286,6 +286,8 @@ zoomhooks = true
 
 [shortcuts]
 
+# Mit "" oder "NONE" wird ein Tastenkürzel deaktiviert. Fehlende oder ungültige Werte verwenden die Standardbelegung.
+
 # Subgroup: Fracht und Orten
 # --------------------------
 

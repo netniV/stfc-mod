@@ -286,6 +286,8 @@ zoomhooks = true
 
 [shortcuts]
 
+# Gebruik "" of "NONE" om een sneltoets uit te schakelen. Ontbrekende of ongeldige waarden gebruiken de standaardtoets.
+
 # Subgroup: Cargo & Locate
 # ------------------------
 
