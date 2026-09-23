@@ -267,6 +267,7 @@ panhooks = true
 # Fastgør konfigurerede skibe forrest i flådestyringsdokken
 pinnedshiphooks = true
 syncpatches = true
+systemviewhooks = true
 tempcrashfixes = true
 testpatches = true
 toastbannerhooks = true

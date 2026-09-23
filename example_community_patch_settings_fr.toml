@@ -267,6 +267,7 @@ panhooks = true
 # Place les vaisseaux configurés en tête du quai de gestion de flotte
 pinnedshiphooks = true
 syncpatches = true
+systemviewhooks = true
 tempcrashfixes = true
 testpatches = true
 toastbannerhooks = true

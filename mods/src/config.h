@@ -296,4 +296,6 @@ public:
 
   // Fleet management dock ship sort: pin configured ships to the front
   bool installPinnedShipSortHooks;
+
+  bool installSystemViewHooks;
 };

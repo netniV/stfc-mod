@@ -267,6 +267,7 @@ panhooks = true
 # Zet geconfigureerde schepen vooraan in het vlootbeheerdok
 pinnedshiphooks = true
 syncpatches = true
+systemviewhooks = true
 tempcrashfixes = true
 testpatches = true
 toastbannerhooks = true
