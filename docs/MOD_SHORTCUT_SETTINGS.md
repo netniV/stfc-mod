@@ -1,7 +1,7 @@
 # Mod shortcut editor
 
 See [current settings architecture](MOD_SETTINGS.md) for common ownership,
-navigation, failure notices and measurement contracts.
+navigation and failure-notice contracts.
 
 This editor builds on the native settings controls and keyboard-layout foundations.
 It reuses the existing MapKey parser, binding list, layout mapper and TOML writer.
