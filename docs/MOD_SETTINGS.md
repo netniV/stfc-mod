@@ -91,9 +91,7 @@ Run `tests/run-settings.ps1`, `tests/run-config-save.ps1` and the Windows build.
 Fixtures cover guarded values, range preservation, conditional sections, command
 identities, writer failures and shutdown. Native checks separately cover Back,
 folding, conditional rows, notice layout and pooled stock-row restoration.
-Source observations and their limits are recorded in [the delivery notes](MOD_SETTINGS_POLISH.md).
 
-Shortcut editing, automatic action discovery and optional settings timing scopes
-follow in a separate PR. Numeric input boxes and a real client restart command
+Shortcut editing and automatic action discovery follow in a separate PR. Numeric input boxes and a real client restart command
 remain later work. Neither generic TOML editing nor exposing every config key is
 implied by this catalog.
