@@ -732,34 +732,29 @@ pinned_ships = ""
 # Subgroup: HUD
 # -------------
 
-# HUD visibility mode: auto, show, or hide
-#   "auto" - Use the game's default visibility behaviour
-#   "show" - Always show this HUD item
-#   "hide" - Always hide this HUD item
-hud_daily_goals = "auto"
 
-# HUD visibility mode: auto, show, or hide
+# HUD visibility mode: auto, always, or never
 #   "auto" - Use the game's default visibility behaviour
-#   "show" - Always show this HUD item
-#   "hide" - Always hide this HUD item
+#   "always" - Always show this HUD item
+#   "never" - Always hide this HUD item
 hud_field_training = "auto"
 
-# HUD visibility mode: auto, show, or hide
+# HUD visibility mode: auto, always, or never
 #   "auto" - Use the game's default visibility behaviour
-#   "show" - Always show this HUD item
-#   "hide" - Always hide this HUD item
+#   "always" - Always show this HUD item
+#   "never" - Always hide this HUD item
 hud_missions = "auto"
 
-# HUD visibility mode: auto, show, or hide
+# HUD visibility mode: auto, always, or never
 #   "auto" - Use the game's default visibility behaviour
-#   "show" - Always show this HUD item
-#   "hide" - Always hide this HUD item
+#   "always" - Always show this HUD item
+#   "never" - Always hide this HUD item
 hud_outposts = "auto"
 
-# HUD visibility mode: auto, show, or hide
+# HUD visibility mode: auto, always, or never
 #   "auto" - Use the game's default visibility behaviour
-#   "show" - Always show this HUD item
-#   "hide" - Always hide this HUD item
+#   "always" - Always show this HUD item
+#   "never" - Always hide this HUD item
 hud_q_trials = "auto"
 
 # Subgroup: Vorschauen
