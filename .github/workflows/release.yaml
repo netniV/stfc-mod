@@ -5,55 +5,180 @@ on:
     tags:
       - "v*" # v0.6.1 or v0.6.1.alpha.9
 
-permissions:
-  contents: write
-  actions: read
+permissions: {}
 
 jobs:
-  create-release:
-    name: Create Release
+  resolve-build:
     runs-on: ubuntu-24.04
-
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      build_run_id: ${{ steps.build.outputs.build_run_id }}
+      signing_enabled: ${{ steps.build.outputs.signing_enabled }}
     steps:
-      # Find a successful Build workflow for this exact commit.
-      #
-      # Release intentionally reuses the artifacts from CI rather than
-      # rebuilding Windows/macOS from the tag.
-      - name: Find successful Build
-        id: check_build
+      - name: Select successful build of the tagged commit
+        id: build
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SOURCE_SHA: ${{ github.sha }}
+          SIGNING_ENABLED: ${{ vars.WINDOWS_SIGNING_ENABLED }}
         run: |
           set -euo pipefail
-
-          echo "Checking for successful Build workflow for commit ${{ github.sha }}..."
-
-          build_run_id="$(
-            gh api \
-              -H "Accept: application/vnd.github+json" \
-              "/repos/${{ github.repository }}/actions/runs?head_sha=${{ github.sha }}&status=success&per_page=100" \
-              --jq '.workflow_runs[] | select(.name == "Build") | .id' \
-              | head -n 1
-          )"
-
-          if [[ -z "$build_run_id" ]]; then
-            echo "::error::No successful Build workflow found for commit ${{ github.sha }}."
+          case "$SIGNING_ENABLED" in
+            true|false) ;;
+            '') SIGNING_ENABLED=false ;;
+            *) echo '::error::WINDOWS_SIGNING_ENABLED must be true, false, or unset'; exit 1 ;;
+          esac
+          # Resolve once so signing and publication consume the same build.
+          runs=$(gh api "repos/$GH_REPO/actions/runs?head_sha=$SOURCE_SHA&status=success&per_page=100")
+          build_run_id=$(jq -r --arg enabled "$SIGNING_ENABLED" --arg sha "$SOURCE_SHA" --arg repo "$GH_REPO" '
+            [.workflow_runs[] | select(.name == "Build") |
+              select($enabled != "true" or
+                (.head_sha == $sha and .event == "push" and
+                 (.head_branch == "main" or .head_branch == "dev") and
+                 .path == ".github/workflows/ci.yaml" and .status == "completed" and
+                 .conclusion == "success" and .repository.full_name == $repo))]
+            | first | .id // empty' <<< "$runs")
+          if [[ ! "$build_run_id" =~ ^[1-9][0-9]*$ ]]; then
+            echo "::error::No eligible successful Build for $SOURCE_SHA (signing=$SIGNING_ENABLED)"
             exit 1
           fi
-
-          echo "Found successful Build run ID: $build_run_id"
           echo "build_run_id=$build_run_id" >> "$GITHUB_OUTPUT"
+          echo "signing_enabled=$SIGNING_ENABLED" >> "$GITHUB_OUTPUT"
 
+  sign-windows:
+    needs: resolve-build
+    if: needs.resolve-build.outputs.signing_enabled == 'true'
+    runs-on: windows-2022
+    timeout-minutes: 15
+    environment: windows-release
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v8.0.1
+        with:
+          name: stfc-community-mod
+          path: payload
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ needs.resolve-build.outputs.build_run_id }}
+
+      - name: Verify exact Windows build identity before signing
+        shell: pwsh
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+          BUILD_RUN_ID: ${{ needs.resolve-build.outputs.build_run_id }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $files = @(Get-ChildItem payload -Recurse -Force -File)
+          if ($files.Count -ne 1 -or $files[0].FullName -ne (Join-Path $PWD 'payload/version.dll')) {
+            throw 'Expected exactly one version.dll from the selected CI build.'
+          }
+          $comments = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($files[0].FullName).Comments
+          $prefix = "stfc-identity-v1;distribution=netniv.stfc-community-mod;source=git:$env:SOURCE_SHA;base=$env:SOURCE_SHA;build=github:$($env:BUILD_RUN_ID):"
+          $pattern = '^' + [regex]::Escape($prefix) + '[1-9][0-9]*:windows;mode=release;channel=ci$'
+          if ($comments -cnotmatch $pattern) { throw 'DLL source/build identity does not match the selected release build.' }
+          "UNSIGNED_SHA256=$((Get-FileHash $files[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant())" >> $env:GITHUB_ENV
+
+      - name: Azure login with existing release identity
+        uses: azure/login@f5d393ae46f8fde4be8b75f32e3fc50e654ad0ca # v3
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Sign release DLL
+        uses: azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2
+        with:
+          endpoint: ${{ vars.AZURE_TRUSTED_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ vars.AZURE_CODE_SIGNING_ACCOUNT_NAME }}
+          certificate-profile-name: ${{ vars.AZURE_CERTIFICATE_PROFILE_NAME }}
+          files: ${{ github.workspace }}\payload\version.dll
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+          description: STFC Community Mod
+          description-url: ${{ github.server_url }}/${{ github.repository }}
+
+      - name: Verify timestamped publisher signature
+        shell: pwsh
+        env:
+          EXPECTED_PUBLISHER: ${{ vars.WIN_PUBLISHER_NAME }}
+          BUILD_RUN_ID: ${{ needs.resolve-build.outputs.build_run_id }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $sig = Get-AuthenticodeSignature -LiteralPath payload/version.dll
+          if ($sig.Status -ne 'Valid' -or -not $sig.TimeStamperCertificate) {
+            throw 'A valid, timestamped Authenticode signature is required.'
+          }
+          $cert = $sig.SignerCertificate
+          $publisher = $cert.GetNameInfo([System.Security.Cryptography.X509Certificates.X509NameType]::SimpleName, $false)
+          if (-not $env:EXPECTED_PUBLISHER -or $publisher -cne $env:EXPECTED_PUBLISHER) {
+            throw "Unexpected signing publisher '$publisher'."
+          }
+          $rsa = [System.Security.Cryptography.X509Certificates.RSACertificateExtensions]::GetRSAPublicKey($cert)
+          if (-not $rsa -or $rsa.KeySize -gt 4096 -or $rsa.KeySize -lt 2048) {
+            throw 'Expected an RSA code-signing certificate supported by Smart App Control.'
+          }
+          # Use the typed extension to require the Azure Public Trust marker.
+          $oids = @($cert.Extensions | Where-Object { $_ -is [System.Security.Cryptography.X509Certificates.X509EnhancedKeyUsageExtension] } |
+            ForEach-Object { $_.EnhancedKeyUsages | ForEach-Object Value })
+          if ('1.3.6.1.4.1.311.97.1.0' -notin $oids -or '1.3.6.1.5.5.7.3.3' -notin $oids) {
+            throw 'Expected Azure Public Trust code-signing certificate EKUs.'
+          }
+          $rsa.Dispose()
+          [ordered]@{
+            repository = $env:GITHUB_REPOSITORY
+            sourceCommit = $env:GITHUB_SHA
+            buildRunId = $env:BUILD_RUN_ID
+            unsignedSha256 = $env:UNSIGNED_SHA256
+            signedSha256 = (Get-FileHash payload/version.dll -Algorithm SHA256).Hash.ToLowerInvariant()
+            signer = $publisher
+            certificateThumbprint = $cert.Thumbprint
+            signingRunUrl = "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
+          } | ConvertTo-Json | Set-Content payload/provenance.json -Encoding utf8NoBOM
+
+      - uses: actions/upload-artifact@v7.0.1
+        with:
+          name: signed-windows-release
+          path: payload/
+          if-no-files-found: error
+          retention-days: 30
+
+  create-release:
+    name: Create Release
+    needs: [resolve-build, sign-windows]
+    if: >-
+      !cancelled() && needs.resolve-build.result == 'success' &&
+      ((needs.resolve-build.outputs.signing_enabled == 'true' && needs.sign-windows.result == 'success') ||
+       (needs.resolve-build.outputs.signing_enabled == 'false' && needs.sign-windows.result == 'skipped'))
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      actions: read
+    steps:
       # Download only release-facing CI artifacts.
       - name: Download Windows build
+        if: needs.resolve-build.outputs.signing_enabled != 'true'
         uses: actions/download-artifact@v8
         with:
           name: stfc-community-mod
           path: stfc-community-mod
           github-token: ${{ github.token }}
           repository: ${{ github.repository }}
-          run-id: ${{ steps.check_build.outputs.build_run_id }}
+          run-id: ${{ needs.resolve-build.outputs.build_run_id }}
+
+      - name: Download signed Windows build
+        if: needs.resolve-build.outputs.signing_enabled == 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: signed-windows-release
+          path: stfc-community-mod
 
       - name: Download macOS universal archive
         uses: actions/download-artifact@v8
@@ -62,7 +187,7 @@ jobs:
           path: stfc-community-mod-macos-universal
           github-token: ${{ github.token }}
           repository: ${{ github.repository }}
-          run-id: ${{ steps.check_build.outputs.build_run_id }}
+          run-id: ${{ needs.resolve-build.outputs.build_run_id }}
 
       - name: Download macOS installer
         uses: actions/download-artifact@v8
@@ -71,7 +196,7 @@ jobs:
           path: stfc-community-mod-installer
           github-token: ${{ github.token }}
           repository: ${{ github.repository }}
-          run-id: ${{ steps.check_build.outputs.build_run_id }}
+          run-id: ${{ needs.resolve-build.outputs.build_run_id }}
 
       - name: Validate Build artifacts
         shell: bash
@@ -159,3 +284,4 @@ jobs:
             stfc-community-mod-macos-universal/stfc-community-mod-macos-universal.tar.zst
             stfc-community-mod-macos-universal/stfc-community-mod-macos-universal.tar.zst.sha256
             stfc-community-mod-installer/stfc-community-mod-installer.dmg
+            ${{ needs.resolve-build.outputs.signing_enabled == 'true' && 'stfc-community-mod/provenance.json' || '' }}
