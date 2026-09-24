@@ -45,14 +45,11 @@ selection rows tracked by the mod. It does not run through an Update hook.
 
 Client SHA256:
 `487af4bb9c697c353be9714359a97dddcece5dab872622a6c498a27bbfc44f40`.
-The native UI remains omitted on other platforms; Windows hook evidence is not
-proof of macOS hook fit. Runtime checks must verify release/drag-out behavior,
+These measurements cover Windows build261 only and are not proof of macOS
+hook fit; the Mac adapter uses separate loaded-image native checks. Runtime checks must verify release/drag-out behavior,
 shortcut readback, selected checkmarks, and restoration of pooled native widgets.
 
-## Collapsible section follow-up
-
-The user accepted the appearance candidate `ac006f5f`; its cleanup correction is
-preserved in `65dede72`. Collapsing sections is a separate follow-up to that baseline.
+## Collapsible section binding
 
 Read-only build261 disassembly of `GameSettingsViewController.OnCategorySelected`
 (`0xD067E0`) shows it sets `SettingsContext.SelectedOption`, retrieves the selected
@@ -69,17 +66,13 @@ restores its native rotation and background color before pooling. Runtime eviden
 must still verify independent folding, both sections closed, Back/reopen, arrow
 orientation, and restoration of ordinary category rows.
 
-The first section candidate (`464362a0`) rendered correctly but did not fold:
-the adapter incorrectly looked up `SetContext`, which this widget does not have.
-Builds and catalog tests did not exercise native method resolution. The current
-dump identifies the call as `Widget.BindDataContext(IDataContextProvider, object)`,
+The widget does not have `SetContext`. Build261 metadata identifies the bind call as `Widget.BindDataContext(IDataContextProvider, object)`,
 virtual slot 35. The native caller's vtable offset `0x368` matches slot 35 for
 this client. Resolve that slot from the non-generic Widget schema through
 `il2cpp_object_get_virtual_method`; a name/count-only lookup would be ambiguous
 with the typed `Widget<IList>.BindDataContext` overload (slot 39).
 
-The user confirmed expand/collapse works on `8e3a166b` and requested both sections
-start collapsed. The next revision initializes visit-local collapsed headings and
-applies the same filtered bind after native page selection. Initial folding and
-Back/reopen defaults require their own runtime check; the previous result proves
-the click path, not the new entry behavior.
+Sections start collapsed for each visit and apply the same filtered bind after
+native page selection. Runtime checks must cover initial folding, independent
+section clicks and Back/reopen defaults; metadata and fixtures cannot establish
+native presentation behavior.

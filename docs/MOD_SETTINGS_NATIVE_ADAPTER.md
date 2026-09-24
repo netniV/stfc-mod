@@ -1,6 +1,6 @@
 # Native settings adapter
 
-The Windows x64 adapter owns native contexts, hook installation and temporary
+The Windows x64 and macOS adapter owns native contexts, hook installation and temporary
 presentation. Feature adapters own live values and persistence.
 
 ## File ownership
@@ -32,8 +32,8 @@ installed by exactly one module. XMake's existing `src/**.cc` rule builds them.
 - Feature-owned page-departure callbacks cancel editor visits. Row recycling
   only releases presentation; it must not discard drafts during scrolling.
 - Startup metadata/extent checks, overlap checks, activation gates and install
-  order are preserved. Native support remains Windows x64; other platforms retain
-  the no-op entry point.
+  order are preserved. Native support covers Windows x64 and macOS, with
+  platform-specific native extent checks. Other platforms retain the no-op entry point.
 - Disabled slider wording belongs to the feature. Fleet Labels supplies
   `Select Threshold`; other controls do not inherit that instruction. See
   [the current state contract](MOD_SETTINGS.md).

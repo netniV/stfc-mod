@@ -98,7 +98,8 @@ the log. Failure notices never create otherwise-empty groups.
 There is no new polling hook, save worker or global localization hook.
 Platform guards and native method extent checks remain part of installation;
 macOS installs the same settings adapter behind its Mach-O extent gates, while
-Windows-only layout resolution keeps shortcut capture physical there.
+layout-aware capture is Windows-only and macOS uses physical keys.
+Platform builds alone do not establish runtime compatibility.
 
 ## Validation and follow-up
 
