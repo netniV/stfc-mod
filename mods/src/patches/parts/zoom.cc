@@ -5,6 +5,7 @@
 #include "settings/windows_hook_extent.h"
 #include "patches/native_hook_extent.h"
 #include <il2cpp/method_contract.h>
+#include "galaxy_labels.h"
 
 #include <patches/mapkey.h>
 
@@ -27,9 +28,9 @@
 namespace
 {
 bool keyboard_zoom_hook_installed = false;
-bool fleet_lod_hook_installed = false;
+bool galaxy_lod_hook_installed = false;
 #if __APPLE__
-bool fleet_zoom_hooks_validated = false;
+bool galaxy_zoom_hooks_validated = false;
 #endif
 std::unordered_map<NavigationLOD *, NavigationFleetWidget *> fleet_label_widgets;
 bool                                                         fleet_label_hooks_installed         = false;
@@ -450,6 +451,7 @@ void NavigationZoom_Update_Hook(auto original, NavigationZoom *_this)
   original(_this);
 
   EnsureSystemZoomRange(_this);
+  GalaxyLabelFrame(_this);
   if (fleet_label_hooks_installed && _this->_depth == NodeDepth::SolarSystem) {
     BeginFleetLabelSystemState(_this);
     const auto state_was_valid   = system_zoom_state_valid;
@@ -471,7 +473,7 @@ void NavigationLOD_UpdateLOD_Hook(auto original, NavigationLOD *_this, ZoomLevel
 {
   const auto *profile         = FleetLabelProfileFor(_this);
   const auto  effective_level = profile != nullptr ? FleetLabelZoomLevel(level, *profile)
-                                                  : level;
+                                                  : static_cast<ZoomLevels>(GalaxyLabelLOD(_this, static_cast<int>(level)));
   if (profile != nullptr || effective_level != level) {
     _this->SetTargetLevel(effective_level);
   }
@@ -631,6 +633,14 @@ void *PlanetViewUtils_get_FlatRenderable_Hook(auto original, PlanetViewUtils *_t
 bool mod_settings::KeyboardZoomControlAvailable()
 { return keyboard_zoom_hook_installed; }
 
+bool GalaxyLabelZoomHooksReady()
+{
+#if __APPLE__
+  if (!galaxy_zoom_hooks_validated) return false;
+#endif
+  return galaxy_lod_hook_installed && keyboard_zoom_hook_installed;
+}
+
 void InstallZoomHooks()
 {
   auto  navigation_zoom_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Navigation", "NavigationZoom");
@@ -642,29 +652,32 @@ void InstallZoomHooks()
   auto *normalized_zoom_property = navigation_zoom_class != nullptr
                                        ? il2cpp_class_get_property_from_name(navigation_zoom_class, "NormalizedZoom")
                                        : nullptr;
-  bool  enable_labels            = FleetLabelProfilesEnabled();
+  bool  enable_labels            = FleetLabelProfilesEnabled() || GalaxyLabelsRequested();
   bool fleet_widget_hooks_ready = false;
 #if __APPLE__
-  // Validate the shared LOD and per-frame hooks before installing fleet callbacks.
-  auto fleet_lod = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Navigation", "NavigationLOD");
-  const auto* fleet_lod_method = method_contract::Resolve(
-      fleet_lod.get_cls(), "UpdateLOD", false, "System.Void", {"Digit.Prime.Navigation.ZoomLevels"});
-  const auto* fleet_update = method_contract::Resolve(
+  // Galaxy composition needs the shared LOD and zoom hooks, not the fleet-only
+  // pooled-widget hooks. Verify their untouched entries before either owner
+  // installs them, and reuse the one LOD detour below.
+  enable_labels = FleetLabelProfilesEnabled();
+  auto galaxy_lod = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Navigation", "NavigationLOD");
+  const auto* galaxy_lod_method = method_contract::Resolve(
+      galaxy_lod.get_cls(), "UpdateLOD", false, "System.Void", {"Digit.Prime.Navigation.ZoomLevels"});
+  const auto* galaxy_update = method_contract::Resolve(
       navigation_zoom_class, "Update", false, "System.Void", {});
-  auto* fleet_target = fleet_lod.get_cls()
-      ? il2cpp_class_get_field_from_name(fleet_lod.get_cls(), "<TargetLevel>k__BackingField") : nullptr;
-  auto* target_class = fleet_target ? il2cpp_class_from_type(fleet_target->type) : nullptr;
+  auto* galaxy_target = galaxy_lod.get_cls()
+      ? il2cpp_class_get_field_from_name(galaxy_lod.get_cls(), "<TargetLevel>k__BackingField") : nullptr;
+  auto* target_class = galaxy_target ? il2cpp_class_from_type(galaxy_target->type) : nullptr;
   const auto* target_type = target_class && il2cpp_class_is_enum(target_class)
       ? il2cpp_class_enum_basetype(target_class) : nullptr;
-  fleet_zoom_hooks_validated = fleet_lod_method && fleet_update
-      && fleet_target && !(fleet_target->type->attrs & FIELD_ATTRIBUTE_STATIC)
+  galaxy_zoom_hooks_validated = GalaxyLabelsRequested() && galaxy_lod_method && galaxy_update
+      && galaxy_target && !(galaxy_target->type->attrs & FIELD_ATTRIBUTE_STATIC)
       && target_type && target_type->type == IL2CPP_TYPE_I4
       && zoom_level_field && !(zoom_level_field->type->attrs & FIELD_ATTRIBUTE_STATIC)
       && method_contract::Type(zoom_level_field->type, "Digit.Prime.Navigation.ZoomLevels")
       && normalized_zoom_property
       && method_contract::Resolve(navigation_zoom_class, "get_NormalizedZoom", false, "System.Single", {})
-      && native_hooks::MacHookFits(method_contract::Pointer(fleet_lod_method))
-      && native_hooks::MacHookFits(method_contract::Pointer(fleet_update));
+      && native_hooks::MacHookFits(method_contract::Pointer(galaxy_lod_method))
+      && native_hooks::MacHookFits(method_contract::Pointer(galaxy_update));
 #endif
 #if (defined(_WIN32) && defined(_M_X64)) || defined(__APPLE__)
   // Install once so native settings can switch away from Native during play.
@@ -684,7 +697,7 @@ void InstallZoomHooks()
     auto ptr_on_about_to_release_context =
         fleet_widget_helper.isValidHelper() ? fleet_widget_helper.GetMethod("OnAboutToReleaseContext") : nullptr;
 #if __APPLE__
-    ptr_update_lod = method_contract::Pointer(fleet_lod_method);
+    ptr_update_lod = method_contract::Pointer(galaxy_lod_method);
     ptr_on_enable = method_contract::Pointer(method_contract::Resolve(
         fleet_widget_helper.get_cls(), "OnEnable", false, "System.Void", {}));
     ptr_on_disable = method_contract::Pointer(method_contract::Resolve(
@@ -766,7 +779,7 @@ void InstallZoomHooks()
         && fleet_type_getter != nullptr && navigation_zoom_helper.isValidHelper() && ptr_update != nullptr
         && zoom_level_field != nullptr && normalized_zoom_property != nullptr;
 #if __APPLE__
-    fleet_label_dependencies_valid = fleet_label_dependencies_valid && fleet_zoom_hooks_validated
+    fleet_label_dependencies_valid = fleet_label_dependencies_valid && galaxy_zoom_hooks_validated
         && !(lod_field->type->attrs & FIELD_ATTRIBUTE_STATIC)
         && il2cpp_class_from_type(lod_field->type) == lod_class
         && !(context_field->type->attrs & FIELD_ATTRIBUTE_STATIC)
@@ -788,17 +801,23 @@ void InstallZoomHooks()
     }
 #endif
     if (fleet_label_dependencies_valid) {
-      fleet_lod_hook_installed = SPUD_STATIC_DETOUR(ptr_update_lod, NavigationLOD_UpdateLOD_Hook);
+      galaxy_lod_hook_installed = SPUD_STATIC_DETOUR(ptr_update_lod, NavigationLOD_UpdateLOD_Hook);
       const bool enabled = SPUD_STATIC_DETOUR(ptr_on_enable, NavigationFleetWidget_OnEnable_Hook);
       const bool disabled = SPUD_STATIC_DETOUR(ptr_on_disable, NavigationFleetWidget_OnDisable_Hook);
       const bool bound = SPUD_STATIC_DETOUR(ptr_on_did_bind_context, NavigationFleetWidget_OnDidBindContext_Hook);
       const bool released = SPUD_STATIC_DETOUR(ptr_on_about_to_release_context, NavigationFleetWidget_OnAboutToReleaseContext_Hook);
-      fleet_widget_hooks_ready = fleet_lod_hook_installed && enabled && disabled && bound && released;
+      fleet_widget_hooks_ready = galaxy_lod_hook_installed && enabled && disabled && bound && released;
     } else {
       spdlog::error("Fleet label detail hooks were not installed; using native fleet labels");
     }
   }
 
+#if __APPLE__
+  if (galaxy_zoom_hooks_validated && !galaxy_lod_hook_installed)
+    galaxy_lod_hook_installed = SPUD_STATIC_DETOUR(method_contract::Pointer(galaxy_lod_method), NavigationLOD_UpdateLOD_Hook);
+  if (GalaxyLabelsRequested() && !galaxy_zoom_hooks_validated)
+    spdlog::warn("[GalaxyLabels] Mac shared zoom/LOD validation failed; using native galaxy labels");
+#endif
 
   {
     auto pv_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Navigation", "PlanetViewUtils");

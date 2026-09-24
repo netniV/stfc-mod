@@ -27,6 +27,7 @@ reference. Moving a page does not rename stored keys or change defaults.
 | --- | --- | --- |
 | Camera | Keyboard zoom speed, pan glide | `[graphics]` |
 | Fleet Labels | Collapsible Player and Non-player profiles | `[graphics]` |
+| Galaxy Labels | Overlay multi-select and separate Major/Minor label profiles | `[graphics]` |
 | Map & Travel | Instant warp mode, shared with its shortcut | `[ui]` |
 | Previews & Cargo | Preview shortcuts and automatic cargo previews | `[ui]` |
 
@@ -69,6 +70,16 @@ aggregate status without taking the writer lock; native UI work happens only
 when it changes, on the game thread. Opening settings never retries or writes.
 F10's 500 ms best effort force close and the ordinary quit/drain path are
 unchanged. See [persistence contracts](config-save.md).
+
+## Galaxy labels
+
+Enable multi-select to combine Default, Hostiles, Mining and Hazards overlays.
+The Default overlay is retained when no overlay is selected. Major and minor
+systems have independent Native, Always and Threshold label-detail profiles.
+Threshold uses normalized zoom: zero keeps compact labels and one keeps labels
+expanded; equality expands. Compact detail retains the game's Far presentation.
+Always-expanded labels may increase loading time. Changes apply live and persist
+through the shared settings writer. Defaults preserve native behavior.
 
 ## Native views
 

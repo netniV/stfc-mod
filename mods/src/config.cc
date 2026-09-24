@@ -499,6 +499,28 @@ float get_fleet_label_zoom_threshold(toml::table& config, toml::table& new_confi
   return threshold;
 }
 
+galaxy_controls::ZoomMode get_galaxy_label_detail(toml::table& config, toml::table& parsed,
+                                                  std::string_view key, std::string_view fallback, bool write_log)
+{
+  const auto value = config["graphics"][key].value<std::string>().value_or(std::string(fallback));
+  const auto normalized = AsciiStrToUpper(StripAsciiWhitespace(value));
+  auto mode = galaxy_controls::ZoomMode::Native;
+  std::string name = "native";
+  if (normalized == "ALWAYS") {
+    mode = galaxy_controls::ZoomMode::Always;
+    name = "always";
+  } else if (normalized == "THRESHOLD") {
+    mode = galaxy_controls::ZoomMode::Threshold;
+    name = "threshold";
+  } else if (normalized != "NATIVE") {
+    spdlog::warn("invalid config value graphics.{}: '{}'; using native", key, value);
+  }
+  parsed.emplace<toml::table>("graphics", toml::table());
+  parsed["graphics"].as_table()->insert_or_assign(key, name);
+  if (write_log) spdlog::debug("config value graphics.{} value: {}", key, name);
+  return mode;
+}
+
 void parse_ship_filter(std::string_view value, std::vector<std::string>& names, bool& match_all)
 {
   names.clear();
@@ -962,6 +984,26 @@ void Config::Load()
                                                                       DCG::zoom_label_non_player_detail, write_config);
   this->zoom_label_non_player.zoom_threshold = get_fleet_label_zoom_threshold(
       config, parsed, "zoom_label_non_player_threshold", DCG::zoom_label_non_player_threshold, write_config);
+  this->galaxy_multi_select = get_config_or_default(
+      config, parsed, "graphics", "galaxy_multi_select", DCG::galaxy_multi_select, write_config);
+  this->galaxy_overlays[0] = get_config_or_default(
+      config, parsed, "graphics", "galaxy_overlay_default", DCG::galaxy_overlay_default, write_config);
+  this->galaxy_overlays[1] = get_config_or_default(
+      config, parsed, "graphics", "galaxy_overlay_mining", DCG::galaxy_overlay_mining, write_config);
+  this->galaxy_overlays[2] = get_config_or_default(
+      config, parsed, "graphics", "galaxy_overlay_hostiles", DCG::galaxy_overlay_hostiles, write_config);
+  this->galaxy_overlays[3] = get_config_or_default(
+      config, parsed, "graphics", "galaxy_overlay_hazards", DCG::galaxy_overlay_hazards, write_config);
+  if (std::none_of(galaxy_overlays.begin(), galaxy_overlays.end(), [](bool value) { return value; }))
+    galaxy_overlays[0] = true; // Keep the accepted Default fallback.
+  this->galaxy_label_major.mode = get_galaxy_label_detail(
+      config, parsed, "galaxy_label_major_detail", DCG::galaxy_label_major_detail, write_config);
+  this->galaxy_label_major.threshold = get_fleet_label_zoom_threshold(
+      config, parsed, "galaxy_label_major_threshold", DCG::galaxy_label_major_threshold, write_config);
+  this->galaxy_label_minor.mode = get_galaxy_label_detail(
+      config, parsed, "galaxy_label_minor_detail", DCG::galaxy_label_minor_detail, write_config);
+  this->galaxy_label_minor.threshold = get_fleet_label_zoom_threshold(
+      config, parsed, "galaxy_label_minor_threshold", DCG::galaxy_label_minor_threshold, write_config);
   this->free_resize = get_config_or_default(config, parsed, "graphics", "free_resize", DCG::free_resize, write_config);
   this->allow_cursor =
       get_config_or_default(config, parsed, "graphics", "allow_cursor", DCG::allow_cursor, write_config);
