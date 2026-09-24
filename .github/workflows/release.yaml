@@ -5,46 +5,131 @@ on:
     tags:
       - "v*" # v0.6.1 or v0.6.1.alpha.9
 
-permissions:
-  contents: write
-  actions: read
+permissions: {}
 
 jobs:
-  create-release:
-    name: Create Release
+  resolve-build:
     runs-on: ubuntu-24.04
-
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      build_run_id: ${{ steps.build.outputs.build_run_id }}
+      signing_enabled: ${{ steps.build.outputs.signing_enabled }}
     steps:
-      # Find a successful Build workflow for this exact commit.
-      #
-      # Release intentionally reuses the artifacts from CI rather than
-      # rebuilding Windows/macOS from the tag.
-      - name: Find successful Build
-        id: check_build
+      - name: Select successful build of the tagged commit
+        id: build
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SOURCE_SHA: ${{ github.sha }}
+          SIGNING_ENABLED: ${{ vars.MACOS_SIGNING_ENABLED }}
         run: |
           set -euo pipefail
-
-          echo "Checking for successful Build workflow for commit ${{ github.sha }}..."
-
-          build_run_id="$(
-            gh api \
-              -H "Accept: application/vnd.github+json" \
-              "/repos/${{ github.repository }}/actions/runs?head_sha=${{ github.sha }}&status=success&per_page=100" \
-              --jq '.workflow_runs[] | select(.name == "Build") | .id' \
-              | head -n 1
-          )"
-
-          if [[ -z "$build_run_id" ]]; then
-            echo "::error::No successful Build workflow found for commit ${{ github.sha }}."
+          case "$SIGNING_ENABLED" in
+            true|false) ;;
+            '') SIGNING_ENABLED=false ;;
+            *) echo '::error::MACOS_SIGNING_ENABLED must be true, false, or unset'; exit 1 ;;
+          esac
+          # Resolve once so signing and publication consume the same build.
+          runs=$(gh api "repos/$GH_REPO/actions/runs?head_sha=$SOURCE_SHA&status=success&per_page=100")
+          build_run_id=$(jq -r --arg enabled "$SIGNING_ENABLED" --arg sha "$SOURCE_SHA" --arg repo "$GH_REPO" '
+            [.workflow_runs[] | select(.name == "Build") |
+              select($enabled != "true" or
+                (.head_sha == $sha and .event == "push" and
+                 (.head_branch == "main" or .head_branch == "dev") and
+                 .path == ".github/workflows/ci.yaml" and .status == "completed" and
+                 .conclusion == "success" and .repository.full_name == $repo))]
+            | first | .id // empty' <<< "$runs")
+          if [[ ! "$build_run_id" =~ ^[1-9][0-9]*$ ]]; then
+            echo "::error::No eligible successful Build for $SOURCE_SHA (signing=$SIGNING_ENABLED)"
             exit 1
           fi
-
-          echo "Found successful Build run ID: $build_run_id"
           echo "build_run_id=$build_run_id" >> "$GITHUB_OUTPUT"
+          echo "signing_enabled=$SIGNING_ENABLED" >> "$GITHUB_OUTPUT"
 
+  sign-macos:
+    needs: resolve-build
+    if: needs.resolve-build.outputs.signing_enabled == 'true'
+    runs-on: macos-26
+    timeout-minutes: 60
+    environment: macos-release
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Download exact build installer
+        uses: actions/download-artifact@v8.0.1
+        with:
+          name: stfc-community-mod-installer
+          path: unsigned-macos
+          github-token: ${{ github.token }}
+          run-id: ${{ needs.resolve-build.outputs.build_run_id }}
+
+      - name: Sign, notarize and package
+        shell: bash
+        env:
+          MACOS_CERTIFICATE_P12_BASE64: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_ID: ${{ vars.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+          MACOS_SIGNING_IDENTITY: ${{ vars.MACOS_SIGNING_IDENTITY }}
+          BUILD_RUN_ID: ${{ needs.resolve-build.outputs.build_run_id }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: bash scripts/sign-macos-release.sh
+
+      - name: Remove temporary signing keychain
+        if: always()
+        shell: bash
+        run: |
+          if [[ -f "$RUNNER_TEMP/stfc-signing.keychain-db" ]]; then
+            security delete-keychain "$RUNNER_TEMP/stfc-signing.keychain-db"
+          fi
+
+      - name: Upload notarization evidence
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: macos-notarization-evidence
+          path: macos-notarization-evidence/
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Retain exact submitted payloads for delayed notarization
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: macos-notarization-payloads
+          path: macos-notarization-payloads/
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Upload signed macOS release
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: signed-macos-release
+          path: signed-macos/
+          if-no-files-found: error
+          retention-days: 30
+
+  create-release:
+    name: Create Release
+    needs: [resolve-build, sign-macos]
+    if: >-
+      !cancelled() && needs.resolve-build.result == 'success' &&
+      ((needs.resolve-build.outputs.signing_enabled == 'true' && needs.sign-macos.result == 'success') ||
+       (needs.resolve-build.outputs.signing_enabled == 'false' && needs.sign-macos.result == 'skipped'))
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      actions: read
+    steps:
       # Download only release-facing CI artifacts.
       - name: Download Windows build
         uses: actions/download-artifact@v8
@@ -53,25 +138,44 @@ jobs:
           path: stfc-community-mod
           github-token: ${{ github.token }}
           repository: ${{ github.repository }}
-          run-id: ${{ steps.check_build.outputs.build_run_id }}
+          run-id: ${{ needs.resolve-build.outputs.build_run_id }}
 
       - name: Download macOS universal archive
+        if: needs.resolve-build.outputs.signing_enabled != 'true'
         uses: actions/download-artifact@v8
         with:
           name: stfc-community-mod-macos-universal
           path: stfc-community-mod-macos-universal
           github-token: ${{ github.token }}
           repository: ${{ github.repository }}
-          run-id: ${{ steps.check_build.outputs.build_run_id }}
+          run-id: ${{ needs.resolve-build.outputs.build_run_id }}
 
       - name: Download macOS installer
+        if: needs.resolve-build.outputs.signing_enabled != 'true'
         uses: actions/download-artifact@v8
         with:
           name: stfc-community-mod-installer
           path: stfc-community-mod-installer
           github-token: ${{ github.token }}
           repository: ${{ github.repository }}
-          run-id: ${{ steps.check_build.outputs.build_run_id }}
+          run-id: ${{ needs.resolve-build.outputs.build_run_id }}
+
+      - name: Download signed macOS release
+        if: needs.resolve-build.outputs.signing_enabled == 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: signed-macos-release
+          path: signed-macos
+
+      - name: Use signed macOS artifacts
+        if: needs.resolve-build.outputs.signing_enabled == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p stfc-community-mod-macos-universal stfc-community-mod-installer
+          cp signed-macos/stfc-community-mod-macos-universal.tar.zst* stfc-community-mod-macos-universal/
+          cp signed-macos/stfc-community-mod-installer.dmg stfc-community-mod-installer/
+          test -f signed-macos/macos-provenance.json
 
       - name: Validate Build artifacts
         shell: bash
@@ -159,3 +263,4 @@ jobs:
             stfc-community-mod-macos-universal/stfc-community-mod-macos-universal.tar.zst
             stfc-community-mod-macos-universal/stfc-community-mod-macos-universal.tar.zst.sha256
             stfc-community-mod-installer/stfc-community-mod-installer.dmg
+            ${{ needs.resolve-build.outputs.signing_enabled == 'true' && 'signed-macos/macos-provenance.json' || '' }}
