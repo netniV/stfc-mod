@@ -2,6 +2,7 @@
 #include "patches/screen_update_hook.h"
 
 #include <il2cpp/il2cpp_helper.h>
+#include <il2cpp-tabledefs.h>
 #include <spdlog/spdlog.h>
 
 #include <chrono>
@@ -19,15 +20,27 @@ struct Color {
   float r, g, b, a;
 };
 
+// Keep optional timer metadata lookups local so this feature can stand alone.
 Il2CppClass* Class(const char* assembly, const char* ns, const char* name)
 {
-  auto* a     = il2cpp_domain_assembly_open(il2cpp_domain_get(), assembly);
-  auto* image = a ? il2cpp_assembly_get_image(a) : nullptr;
+  auto* domain = il2cpp_domain_get();
+  auto* a      = domain ? il2cpp_domain_assembly_open(domain, assembly) : nullptr;
+  auto* image  = a ? il2cpp_assembly_get_image(a) : nullptr;
   return image ? il2cpp_class_from_name(image, ns, name) : nullptr;
 }
 
-const MethodInfo* Method(Il2CppClass* cls, const char* name, int count)
-{ return cls ? il2cpp_class_get_method_from_name(cls, name, count) : nullptr; }
+bool TryInvoke(const MethodInfo* method, void* target, void** args, Il2CppObject** result = nullptr)
+{
+  if (!method)
+    return false;
+  Il2CppException* exception = nullptr;
+  auto*            value     = il2cpp_runtime_invoke(method, target, args, &exception);
+  if (exception)
+    return false;
+  if (result)
+    *result = value;
+  return true;
+}
 
 // Unity has Type/string and generic overloads with the same argument count.
 const MethodInfo* TypeMethod(Il2CppClass* cls, const char* name)
@@ -48,24 +61,11 @@ const MethodInfo* TypeMethod(Il2CppClass* cls, const char* name)
   return nullptr;
 }
 
-bool Invoke(const MethodInfo* method, void* target, void** args, Il2CppObject** result = nullptr)
-{
-  if (!method)
-    return false;
-  Il2CppException* exception = nullptr;
-  auto*            value     = il2cpp_runtime_invoke(method, target, args, &exception);
-  if (exception)
-    return false;
-  if (result)
-    *result = value;
-  return true;
-}
-
 Il2CppObject* Get(Il2CppObject* object, const char* name)
 {
   Il2CppObject* result = nullptr;
   if (object)
-    Invoke(Method(object->klass, name, 0), object, nullptr, &result);
+    TryInvoke(IL2CppClassHelper(object->klass).GetMethodInfo(name, 0), object, nullptr, &result);
   return result;
 }
 
@@ -83,7 +83,7 @@ template <typename T> bool Value(Il2CppObject* object, const char* name, T& valu
 bool Set(Il2CppObject* object, const char* name, void* value)
 {
   void* args[] = {value};
-  return object && Invoke(Method(object->klass, name, 1), object, args);
+  return object && TryInvoke(IL2CppClassHelper(object->klass).GetMethodInfo(name, 1), object, args);
 }
 
 Il2CppObject* Field(Il2CppObject* object, const char* name)
@@ -105,7 +105,7 @@ Il2CppObject* WithType(const MethodInfo* method, Il2CppObject* target, Il2CppCla
     return nullptr;
   void*         args[] = {il2cpp_type_get_object(il2cpp_class_get_type(type))};
   Il2CppObject* result = nullptr;
-  Invoke(method, target, args, &result);
+  TryInvoke(method, target, args, &result);
   return result;
 }
 
@@ -121,8 +121,14 @@ bool Alive(Il2CppObject* object)
     return false;
   void*         args[] = {object};
   Il2CppObject* result = nullptr;
-  static auto*  method = Method(UnityObject(), "op_Implicit", 1);
-  return Invoke(method, nullptr, args, &result) && result && *static_cast<bool*>(il2cpp_object_unbox(result));
+  static auto*  method = IL2CppClassHelper(UnityObject()).GetMethodInfo("op_Implicit", 1);
+  if (!TryInvoke(method, nullptr, args, &result) || !result || !result->klass)
+    return false;
+  const auto* type = il2cpp_class_get_type(result->klass);
+  if (!type || type->byref || type->type != IL2CPP_TYPE_BOOLEAN)
+    return false;
+  auto* alive = static_cast<bool*>(il2cpp_object_unbox(result));
+  return alive && *alive;
 }
 
 struct Root {
@@ -145,7 +151,7 @@ void Clear()
     bool active = false;
     Set(panel.get(), "SetActive", &active);
     void* args[] = {panel.get()};
-    Invoke(Method(UnityObject(), "Destroy", 1), nullptr, args);
+    TryInvoke(IL2CppClassHelper(UnityObject()).GetMethodInfo("Destroy", 1), nullptr, args);
   }
   label.reset();
   panel.reset();
@@ -178,7 +184,7 @@ Il2CppObject* NewObject(const char* name, Il2CppObject* parent, Root& root)
   auto* object = il2cpp_object_new(go);
   root.reset(object);
   void* args[] = {il2cpp_string_new(name)};
-  if (!Invoke(Method(go, ".ctor", 1), object, args))
+  if (!TryInvoke(IL2CppClassHelper(go).GetMethodInfo(".ctor", 1), object, args))
     return nullptr;
   bool active = false;
   if (!Set(object, "SetActive", &active))
@@ -186,7 +192,7 @@ Il2CppObject* NewObject(const char* name, Il2CppObject* parent, Root& root)
   auto* transform          = WithType(TypeMethod(go, "AddComponent"), object, rt);
   bool  worldPositionStays = false;
   void* parentArgs[]       = {parent, &worldPositionStays};
-  if (!transform || !Invoke(Method(transform->klass, "SetParent", 2), transform, parentArgs))
+  if (!transform || !TryInvoke(IL2CppClassHelper(transform->klass).GetMethodInfo("SetParent", 2), transform, parentArgs))
     return nullptr;
   return transform;
 }
@@ -204,7 +210,7 @@ Il2CppObject* NativeBackgroundSprite(Il2CppObject* nav)
   auto*         parent     = Get(Get(button, "get_transform"), "get_parent");
   void*         args[]     = {il2cpp_string_new("ShortcutKeybindHint/Background")};
   Il2CppObject* background = nullptr;
-  if (!parent || !Invoke(Method(parent->klass, "Find", 1), parent, args, &background))
+  if (!parent || !TryInvoke(IL2CppClassHelper(parent->klass).GetMethodInfo("Find", 1), parent, args, &background))
     return nullptr;
   static auto* image = Class("UnityEngine.UI", "UnityEngine.UI", "Image");
   return GraphicSprite(Component(background, image));
@@ -239,7 +245,7 @@ Il2CppObject* Decoration(const char* name, Il2CppObject* parent, Vector2 size, V
   ok = ok && Set(object.get(), "SetActive", &yes);
   if (!ok && Alive(object.get())) {
     void* args[] = {object.get()};
-    Invoke(Method(UnityObject(), "Destroy", 1), nullptr, args);
+    TryInvoke(IL2CppClassHelper(UnityObject()).GetMethodInfo("Destroy", 1), nullptr, args);
   }
   object.reset();
   return ok ? image : nullptr;
@@ -257,7 +263,7 @@ bool Create(Il2CppObject* nav)
   int           index  = 0;
   void*         args[] = {&index};
   Il2CppObject* name   = nullptr;
-  if (!Invoke(Method(names->klass, "get_Item", 1), names, args, &name) || !Alive(name))
+  if (!TryInvoke(IL2CppClassHelper(names->klass).GetMethodInfo("get_Item", 1), names, args, &name) || !Alive(name))
     return false;
   static auto* drawerClass = Class("Assembly-CSharp", "Digit.Prime.HUD", "HudAllianceAndNewsViewController");
   auto*        drawer      = Find(drawerClass);
@@ -306,7 +312,7 @@ bool Create(Il2CppObject* nav)
   ok       = ok && Set(textObject.get(), "SetActive", &yes);
   if (!ok && Alive(textObject.get())) {
     void* destroyArgs[] = {textObject.get()};
-    Invoke(Method(UnityObject(), "Destroy", 1), nullptr, destroyArgs);
+    TryInvoke(IL2CppClassHelper(UnityObject()).GetMethodInfo("Destroy", 1), nullptr, destroyArgs);
   }
   textObject.reset(); // The parent hierarchy now owns this child.
   return ok;
@@ -345,7 +351,7 @@ void Update()
     Il2CppObject* anomaly = nullptr;
     void*         args[]  = {&system};
     show = manager && Value(address, "get_System", system) && system > 0
-           && Invoke(Method(managerClass, "GetSystemGalacticAnomalies", 1), manager, args, &anomaly)
+           && TryInvoke(IL2CppClassHelper(managerClass).GetMethodInfo("GetSystemGalacticAnomalies", 1), manager, args, &anomaly)
            && Value(anomaly, "get_IsActive", show) && show
            && Value(Get(anomaly, "get_EndTimeTimerDataContext"), "get_RemainingTime", ticks) && ticks > 0;
   } else {
