@@ -1,4 +1,5 @@
 #include "config.h"
+#include "config_save.h"
 #include "file.h"
 #include "patches/mapkey.h"
 #include "prime/KeyCode.h"
@@ -93,10 +94,10 @@ Config::Config()
 
 void Config::Save(const toml::table& config, const std::string_view filename, bool apply_warning)
 {
-  std::ofstream config_file;
+  std::ostringstream config_file;
 
   auto config_path = File::MakePath(filename, true);
-  config_file.open(config_path);
+  config_file.exceptions(std::ios::badbit | std::ios::failbit);
 
   if (apply_warning) {
     char defaultFile[255], configFile[255];
@@ -118,8 +119,7 @@ void Config::Save(const toml::table& config, const std::string_view filename, bo
     config_file << "#######################################################################\n\n";
   }
 
-  config_file << config;
-  config_file.close();
+  SaveConfigDocument(config, std::filesystem::path(config_path), config_file.str());
 }
 
 Config& Config::Get()
@@ -1415,7 +1415,11 @@ void Config::Load()
     message << "Creating " << File::Config() << " (default config file)";
     spdlog::warn(message.str());
 
-    Config::Save(parsed, File::Config(), false);
+    try {
+      Config::Save(parsed, File::Config(), false);
+    } catch (const std::exception& error) {
+      spdlog::error("Could not save default config: {}", error.what());
+    }
   }
 
   message.str("");
@@ -1430,7 +1434,11 @@ void Config::Load()
     std::filesystem::remove(FILE_DEF_PARSED);
   }
 
-  Config::Save(parsed, File::Vars());
+  try {
+    Config::Save(parsed, File::Vars());
+  } catch (const std::exception& error) {
+    spdlog::error("Could not save runtime config: {}", error.what());
+  }
 
   std::cout << "\n\n-----------------------------\n\n"
             << parsed << "\n\n-----------------------------\nVersion "
