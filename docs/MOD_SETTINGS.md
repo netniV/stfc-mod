@@ -1,6 +1,6 @@
 # Mod settings: current architecture and behavior
 
-This is the current contract for the expanded Windows x64 settings UI. The
+This is the current contract for the expanded Windows x64 and macOS settings UI. The
 [foundation notes](MOD_SETTINGS_FOUNDATION.md) describe the first FC-only slice;
 their prototype counts and proposed budgets are historical, not current limits.
 
@@ -94,7 +94,8 @@ the log. Failure notices never create otherwise-empty groups.
 
 There is no new polling hook, save worker, timer or global localization hook.
 Platform guards and native method extent checks remain part of installation;
-macOS builds do not install these native UI hooks.
+macOS uses its loaded-image Mach-O extent checks before installing the native UI hooks.
+Platform builds alone do not establish runtime compatibility.
 
 ## Validation and follow-up
 
@@ -103,6 +104,6 @@ Fixtures cover guarded values, range preservation, conditional sections, command
 identities, writer failures and shutdown. Native checks separately cover Back,
 folding, conditional rows, notice layout and pooled stock-row restoration.
 
-Shortcut editing and automatic action discovery follow in a separate PR. Numeric input boxes and a real client restart command
-remain later work. Neither generic TOML editing nor exposing every config key is
+Shortcut editing and automatic action discovery follow in a separate PR.
+Numeric input boxes and a real client restart command remain later work. Neither generic TOML editing nor exposing every config key is
 implied by this catalog.
