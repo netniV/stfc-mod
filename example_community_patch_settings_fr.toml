@@ -804,6 +804,9 @@ show_station_cargo = true
 # Subgroup: Data
 # --------------
 
+# Voulez-vous synchroniser les données des missions d'équipe d'intervention ?
+away_assignments = true
+
 # Voulez-vous synchroniser les journaux de combat ?
 battlelogs = true
 

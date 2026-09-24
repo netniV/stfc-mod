@@ -16,6 +16,7 @@ class SyncConfig
 {
 public:
   enum class Type {
+    AwayAssignments,
     Battles,
     Buffs,
     Buildings,
@@ -42,26 +43,29 @@ public:
 
   std::string proxy;
 
-  bool verify_ssl = true;
-  bool battlelogs = false;
-  bool buffs      = false;
-  bool buildings  = true;
-  bool haven      = true;
-  bool inventory  = false;
-  bool jobs       = false;
-  bool missions   = false;
-  bool officer    = false;
-  bool research   = true;
-  bool resources  = false;
-  bool ships      = false;
-  bool slots      = false;
-  bool tech       = false;
-  bool traits     = false;
+  bool verify_ssl       = true;
+  bool away_assignments = false;
+  bool battlelogs       = false;
+  bool buffs            = false;
+  bool buildings        = true;
+  bool haven            = true;
+  bool inventory        = false;
+  bool jobs             = false;
+  bool missions         = false;
+  bool officer          = false;
+  bool research         = true;
+  bool resources        = false;
+  bool ships            = false;
+  bool slots            = false;
+  bool tech             = false;
+  bool traits           = false;
 
   [[nodiscard]] bool enabled(Type type) const;
 };
 
 constexpr std::array SyncOptions{
+    SyncConfig::Option{SyncConfig::Type::AwayAssignments, "away_assignment", "away_assignments",
+                       &SyncConfig::away_assignments},
     SyncConfig::Option{SyncConfig::Type::Battles, "battlelog", "battlelogs", &SyncConfig::battlelogs},
     SyncConfig::Option{SyncConfig::Type::Buffs, "buff", "buffs", &SyncConfig::buffs},
     SyncConfig::Option{SyncConfig::Type::Buildings, "module", "buildings", &SyncConfig::buildings},

@@ -804,6 +804,9 @@ show_station_cargo = true
 # Subgroup: Data
 # --------------
 
+# Do you want to sync away team assignment data?
+away_assignments = true
+
 # Do you want to sync battlelogs?
 battlelogs = true
 
