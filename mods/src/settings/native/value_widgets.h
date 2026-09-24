@@ -63,12 +63,6 @@ bool ValueWidgetsBusy();
 void RefreshViews();
 void InstallChoiceAndSliderWidgets();
 bool InstallCoreValueWidgets(); // True only for this first successful installation.
-#ifdef _MODDBG
-bool ReentryProbeEnabled();
-void ExerciseReadReentry();
-void ExerciseNestedWrite();
-void RebindOuterWrite();
-#endif
 } // namespace mod_settings::native
 
 #endif

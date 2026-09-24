@@ -66,24 +66,6 @@ rows on one page; headings use the existing scoped text records. There is no
 per-frame allocation or registry rescan to grow that storage. Heading-only pages
 are pruned as empty.
 
-For a temporary Windows debug navigation fixture, launch with
-`STFC_MOD_SETTINGS_NAV_TEST=1`. It builds Mod Settings > Infrastructure Test >
-Nested Group and mirrors the existing FC setting owner. It does not create a
-second preference. A separate Infrastructure test toggle holds only an in-memory
-fixture value, proving that multiple rows use different owners. Leave the FC
-switch alone when checking labels, nesting and Back; it writes the real FC
-preference if intentionally clicked. The synthetic toggle writes no file. The
-environment option is absent from release builds and defaults off. Remove it and
-restart to return to the production groups. No data is cleared.
-For the read-callback lifecycle check, additionally set
-`STFC_MOD_SETTINGS_NAV_REENTRY_TEST=1`. The synthetic reader once releases its
-own bookkeeping and rebinds the same native widget. A bounded PASS/FAIL log checks
-that the in-flight slot is not reused. This probe does not run for real settings.
-That option also adds a second synthetic toggle. Changing the Infrastructure test
-toggle once invokes the second setter, which releases and rebinds the first row
-while both requests are active. A separate nested-write PASS/FAIL log verifies
-that the outer request's slot stays protected. Revisit afterward to check readback.
-
 Persistence stays with explicit feature adapters. A live mod change and its
 asynchronous save result are distinct; page construction never calls the TOML
 writer. The writer registers the mode, fleet-label and FT keys and keeps pending

@@ -7,7 +7,6 @@
 #include "settings/mod_pages.h"
 #include "settings/page_sections.h"
 #include "settings/native_boolean_callback.h"
-#include "timing.h"
 #include <cstdlib>
 #include <cstring>
 #include <spdlog/spdlog.h>
@@ -57,7 +56,6 @@ struct SectionPage {
 using SectionRefreshScope = PageSections::RefreshScope;
 void ClearSectionPage()
 {
-  timing::Flush();
   const auto* leaving = std::exchange(sectionPage.page, nullptr);
   Free(sectionPage.controller);
   Free(sectionPage.context);
@@ -92,7 +90,6 @@ bool Collapsed(const PageCatalog::Heading& heading)
 }
 void ShowSections(Il2CppObject* controller, Il2CppObject* context, const PageCatalog::Page& page, bool force = false)
 {
-  timing::Scope measurement(timing::Operation::ShowPage);
   SyncActionRows(controller, context, page);
   Root children(Call(context, "get_Children"));
   struct OrderedRow {
@@ -473,7 +470,6 @@ void AddPages(Il2CppObject* director, Il2CppObject* context)
 {
   if (!pagesActive || Pages().empty())
     return;
-  timing::Scope measurement(timing::Operation::BuildTree);
   Root root(Call(context, "get_RootOption"));
   Root children(Call(root.get(), "get_Children"));
   for (int i = 0, count = Count(children.get()); i < count; ++i)
@@ -542,43 +538,6 @@ void AddPages(Il2CppObject* director, Il2CppObject* context)
 void InstallPages()
 {
   RegisterModPages();
-#ifdef _MODDBG
-  // Temporary opt-in navigation fixture; no real mod feature placement is chosen.
-  // It mirrors the existing FC owner so rebuilds never introduce a second value.
-  if (const auto* probe = std::getenv("STFC_MOD_SETTINGS_NAV_TEST"); probe && std::strcmp(probe, "1") == 0) {
-    auto& catalog = ModPages();
-    catalog.AddPage("community_mod.test", "Infrastructure Test", "community_mod.settings");
-    catalog.AddPage("community_mod.test.nested", "Nested Group", "community_mod.test");
-    catalog.AddBoolean("community_mod.test.nested", FleetCommanderConfirmationSetting());
-    static bool           value = false;
-    static BooleanSetting fixture({"community_mod.test.enabled", "[MOD] Infrastructure test toggle",
-                                   [] {
-                                     ExerciseReadReentry();
-                                     return ReadResult::Known(value, 1);
-                                   },
-                                   [](bool desired, std::uint64_t generation) {
-                                     if (generation != 1)
-                                       return ApplyResult::Rejected;
-                                     ExerciseNestedWrite();
-                                     value = desired;
-                                     return ApplyResult::Applied;
-                                   }});
-    catalog.AddBoolean("community_mod.test.nested", fixture);
-    if (ReentryProbeEnabled()) {
-      static bool           nestedValue = false;
-      static BooleanSetting nestedFixture({"community_mod.test.nested_write", "[MOD] Nested write test toggle",
-                                           [] { return ReadResult::Known(nestedValue, 1); },
-                                           [](bool desired, std::uint64_t generation) {
-                                             if (generation != 1)
-                                               return ApplyResult::Rejected;
-                                             RebindOuterWrite();
-                                             nestedValue = desired;
-                                             return ApplyResult::Applied;
-                                           }});
-      catalog.AddBoolean("community_mod.test.nested", nestedFixture);
-    }
-  }
-#endif
   pagePlan = ModPages().Build();
   // Add after empty-page pruning so a notice never creates an otherwise empty group.
   static ActionSetting saveNotice{saveNoticeId, "Save notice",
