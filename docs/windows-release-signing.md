@@ -7,11 +7,12 @@ Normal builds and pull requests never receive signing access.
 
 ## Enable
 
-1. Set up an Azure Artifact Signing account with a **Public Trust** certificate
-   profile and a publisher identity controlled by the release maintainer.
+1. Use an Azure Artifact Signing account with a **Public Trust** certificate
+   profile. The account can belong to the maintainer or to an account owner
+   who explicitly authorizes signing upstream releases under their identity.
 2. Create a `windows-release` GitHub environment. Restrict it to release tags
    (`v*`) and require a trusted release reviewer.
-3. Configure an Azure identity with a GitHub OIDC federated credential for
+3. The account owner configures a dedicated Azure identity with a GitHub OIDC federated credential for
    `repo:OWNER/REPOSITORY:environment:windows-release`, audience
    `api://AzureADTokenExchange`, issuer `https://token.actions.githubusercontent.com`.
    Grant **Artifact Signing Certificate Profile Signer** on the intended
@@ -38,6 +39,12 @@ Review changes to credentialed workflows and reassess environment/Azure access
 when release maintainers change. The profile role permits signing other code
 too; it is not a restriction to this particular DLL.
 
+For delegated signing, use a separate upstream certificate profile and OIDC
+identity instead of sharing the account owner's downstream release identity.
+The account owner can remove the upstream identity's role assignment or
+federated credential to stop future access independently. The repository
+maintainer does not need the owner's Azure login or subscription-wide access.
+
 ## Release behavior
 
 The signing job downloads the exact selected CI DLL and checks its embedded
@@ -52,6 +59,6 @@ and signed hashes, signer and certificate thumbprint.
 
 Missing configuration, signing or verification failure stops the release;
 it never silently falls back to unsigned files when signing is enabled.
-Configure and validate the maintainer's own identity before enabling routine
+Configure and validate the authorized signing identity before enabling routine
 signed releases. A valid signature does not guarantee immediate SmartScreen
 reputation for every new download.
