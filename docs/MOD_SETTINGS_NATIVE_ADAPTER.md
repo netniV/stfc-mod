@@ -50,5 +50,5 @@ previous implementation, including original-call behavior and installation order
 Native smoke checks cover confirmation rows, folding/Back, choices, slider labels,
 conditional cargo rows and notice appearance/recovery. Builds and fixtures do
 not establish native pooling behavior or macOS hook compatibility.
-Shortcut-specific checks and opt-in timing limits are in the
+Shortcut-specific checks are in the
 [current contract](MOD_SETTINGS.md) and [editor guide](MOD_SHORTCUT_SETTINGS.md).

@@ -100,26 +100,16 @@ Platform guards and native method extent checks remain part of installation;
 macOS installs the same settings adapter behind its Mach-O extent gates, while
 Windows-only layout resolution keeps shortcut capture physical there.
 
-## Measurement, validation and follow-up
-
-In `_MODDBG` builds, `STFC_MOD_SETTINGS_TIMING=1` enables timing at existing
-tree construction, page binding and action refresh boundaries. Counts, mean and
-maximum milliseconds accumulate until page departure, then log as
-`[SettingsTiming]`. No values or bindings are logged. These scopes add no hook
-or frame callback and compile out of ordinary release builds. Durations include
-nested native work; they are neither additive nor whole-frame measurements.
-Measure before adding caches: binding-list reads remain authoritative copies.
+## Validation and follow-up
 
 Run `tests/run-settings.ps1`, `tests/run-config-save.ps1` and the Windows build.
 Fixtures cover guarded values, range preservation, conditional sections, command
 identities, writer failures and shutdown. Native checks separately cover Back,
 folding, conditional rows, notice layout and pooled stock-row restoration.
-Source observations and their limits are recorded in [the delivery notes](MOD_SETTINGS_POLISH.md).
 
 Run the keyboard layout, chord and dispatch XMake fixtures for input changes.
 Native editor checks include scrolling/folding, Back, held-key focus changes,
 overlap inspection, live dispatch and restart persistence on an identified build.
-See [shortcut port evidence](MOD_SHORTCUT_SETTINGS_PORT.md).
 
 Numeric input boxes and a real client restart command
 remain later work. Neither generic TOML editing nor exposing every config key is

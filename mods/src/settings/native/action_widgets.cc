@@ -5,7 +5,6 @@
 #include "settings/native_boolean_callback.h"
 #include "settings/shortcut_settings.h"
 #include "settings/shortcut_popup.h"
-#include "timing.h"
 #include <deque>
 #include <spdlog/spdlog.h>
 #include <spud/detour.h>
@@ -163,7 +162,6 @@ void RefreshActions()
 {
   if (!OnUIThread() || !actionsActive || !PagesActive() || PageRefreshInProgress())
     return;
-  timing::Scope measurement(timing::Operation::RefreshActions);
   RefreshPageRows();
   RefreshPageSummaries();
   // Binding during a callback may append a deque slot. References stay valid;
