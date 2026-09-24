@@ -632,6 +632,8 @@ zoom_reset = "="
 #  <[===================================================================]> 
 
 [ui]
+# Masque "Tout échanger" pour les fragments d’artefacts ; les échanges individuels restent disponibles. Redémarrage requis.
+hide_artifact_exchange_all = false
 # Ignorer l'animation d'ouverture des coffres et les ouvrir directement
 always_skip_reveal_sequence = true
 auto_confirm_discovery = true

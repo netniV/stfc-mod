@@ -632,6 +632,8 @@ zoom_reset = "="
 #  <[==================================================================================================================================]> 
 
 [ui]
+# Blendet "Alle umtauschen" bei Artefaktfragmenten aus; einzelne Tauschvorgänge bleiben verfügbar. Neustart erforderlich.
+hide_artifact_exchange_all = false
 # Überspringt die Animation und öffnet die Boxen direkt
 always_skip_reveal_sequence = true
 auto_confirm_discovery = true

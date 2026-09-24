@@ -630,6 +630,8 @@ zoom_reset = "="
 #  <[=================================================================================]> 
 
 [ui]
+# Hide artifact shards "Exchange All"; individual exchanges remain available. Requires restart.
+hide_artifact_exchange_all = false
 # Spring animationen ved åbning af kasser over, og åbn blot kasserne
 always_skip_reveal_sequence = true
 auto_confirm_discovery = true
