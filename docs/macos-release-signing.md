@@ -10,7 +10,9 @@ Normal builds and pull requests never receive signing credentials.
 1. Create a `macos-release` environment. Restrict it to release tags (`v*`)
    and require a trusted release reviewer before exposing credentials.
 2. Add the environment secrets and variables below, using a Developer ID
-   Application identity controlled by the release maintainer.
+   Application identity whose account owner explicitly authorizes these
+   releases. The repository maintainer does not need a separate Apple
+   Developer membership when an existing account owner delegates signing.
 3. Set the **repository** variable `MACOS_SIGNING_ENABLED=true`.
 4. Tag a commit with a successful `Build` push run from `main` or `dev`.
    Approve the signing deployment when requested.
@@ -33,8 +35,17 @@ Environment variables:
 
 The signing identity and Apple credential are not restricted to one app by
 Apple. Keep them in the protected environment, review changes to credentialed
-workflows, and reassess access when release maintainers change. Do not reuse
-another distributor's signing credentials.
+workflows, and reassess access when release maintainers change.
+
+For delegated signing, the account owner should create a separate upstream
+certificate with a new private key and a dedicated app-specific password,
+keeping downstream credentials separate. Releases still carry that owner's
+Apple identity. The password is not restricted to that certificate or app,
+and revoking it does not revoke the private key's signing ability. People
+who can change an authorized workflow can use or extract its secrets.
+Developer ID certificate revocation requires contacting Apple and can prevent
+installation of releases signed with it; it is not a routine access toggle.
+See Apple's [revocation guidance](https://developer.apple.com/help/account/reference/revoking-privileges).
 
 ## Release behavior
 
