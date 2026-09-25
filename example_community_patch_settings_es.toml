@@ -356,16 +356,16 @@ select_ship8 = "8"
 # ----------------------
 
 # ⚠️ EXPERIMENTAL: Se desplaza hacia abajo por la pantalla
-move_down = "S"
+move_down = "S|DOWN"
 
 # ⚠️ EXPERIMENTAL: Se desplaza hacia la izquierda por la pantalla
-move_left = "LEFT"
+move_left = "A|LEFT"
 
 # ⚠️ EXPERIMENTAL: Se desplaza hacia la derecha por la pantalla
-move_right = "RIGHT"
+move_right = "D|RIGHT"
 
 # ⚠️ EXPERIMENTAL: Se desplaza hacia arriba por la pantalla
-move_up = "W"
+move_up = "W|UP"
 
 # ⚠️ EXPERIMENTAL: Muestra la pantalla de marcador->búsqueda
 show_lookup = "L"

@@ -358,16 +358,16 @@ select_ship8 = "8"
 # ----------------------
 
 # ⚠️ EXPERIMENTAL: Moves down the screen
-move_down = "S"
+move_down = "S|DOWN"
 
 # ⚠️ EXPERIMENTAL: Moves left the screen
-move_left = "LEFT"
+move_left = "A|LEFT"
 
 # ⚠️ EXPERIMENTAL: Moves right the screen
-move_right = "RIGHT"
+move_right = "D|RIGHT"
 
 # ⚠️ EXPERIMENTAL: Moves up the screen
-move_up = "W"
+move_up = "W|UP"
 
 # ⚠️ EXPERIMENTAL: Shows the bookmark->lookup screen
 show_lookup = "L"
