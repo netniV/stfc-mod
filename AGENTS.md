@@ -1,6 +1,6 @@
 # AGENTS.md
 
-This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
+This file provides guidance to AI coding agents working with code in this repository.
 
 ## Project Overview
 
@@ -40,7 +40,7 @@ Delete the `build/` folder to reset. Also delete `.vs/` for a full Visual Studio
 
 - Keep changes scoped. Do not stage unrelated dirty files or generated artifacts unless the user explicitly asks.
 - Before finishing C++ or patch work, run `git diff --check` and the narrowest relevant xmake build.
-- For macOS core mod changes, use `xmake f -p macosx -a arm64 -m debug --target_minver=14.5 -y && xmake -y mods`.
+- For macOS core mod changes, use `xmake f -p macosx -a arm64 -m debug --target_minver=14.6 -y && xmake -y mods`.
 - Review the final diff for risky hooks, platform guards, config default mismatches, and missing example config updates.
 - If a subtree such as `macos-launcher/` needs specialized guidance, prefer a nested `AGENTS.md` near that code instead of overloading this root file.
 
@@ -94,7 +94,7 @@ static auto method = class_helper.GetMethodInfo("MethodName");
 
 **Adding a new patch** — Create a `.cc` file in `mods/src/patches/parts/`, write an `InstallXxxHooks()` function, declare it in `patches.cc`, add a `bool installXxx` to `Config`, and register in the `patches[]` array in `patches.cc`. Patch toggles are only read from TOML in `_MODDBG` builds, so update both the `_MODDBG` config parsing path and the non-`_MODDBG` release defaults in `config.cc`.
 
-**Config** — User settings are in TOML files. The `Config` singleton (`Config::Get()`) is loaded once during `il2cpp_init_hook`. Add new settings to `config.h`, add defaults in `defaultconfig.h`, and load them in `config.cc`. For user-facing settings, update every localized example (`example_community_patch_settings_en.toml`, `example_community_patch_settings_de.toml`, `example_community_patch_settings_fr.toml`, and `example_community_patch_settings_nl.toml`) unless the setting is intentionally internal. The unsuffixed `example_community_patch_settings.toml` is only a pointer to these localized examples.
+**Config** — User settings are in TOML files. The `Config` singleton (`Config::Get()`) is loaded once during `il2cpp_init_hook`. Add new settings to `config.h`, add defaults in `defaultconfig.h`, and load them in `config.cc`. For user-facing settings, update every localized example (`example_community_patch_settings_<locale>.toml` — all of them, kept in sync key-for-key) unless the setting is intentionally internal. The unsuffixed `example_community_patch_settings.toml` is only a pointer to these localized examples.
 
 ### Dependencies (via xmake packages)
 
