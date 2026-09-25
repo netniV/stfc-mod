@@ -356,16 +356,16 @@ select_ship8 = "8"
 # ----------------------
 
 # ⚠️ ngong: Moves bIng  HaSta
-move_down = "S"
+move_down = "S|DOWN"
 
 # ⚠️ ngong: Moves poS  HaSta
-move_left = "LEFT"
+move_left = "A|LEFT"
 
 # ⚠️ ngong: Moves nIH  HaSta
-move_right = "RIGHT"
+move_right = "D|RIGHT"
 
 # ⚠️ ngong: Moves Dung  HaSta
-move_up = "W"
+move_up = "W|UP"
 
 # ⚠️ ngong: Shows  bookmark->lookup HaSta
 show_lookup = "L"

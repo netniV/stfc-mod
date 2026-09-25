@@ -356,16 +356,16 @@ select_ship8 = "8"
 # ----------------------
 
 # ⚠️ EKSPERIMENTELT: Flytter ned på skærmen
-move_down = "S"
+move_down = "S|DOWN"
 
 # ⚠️ EKSPERIMENTELT: Flytter til venstre på skærmen
-move_left = "LEFT"
+move_left = "A|LEFT"
 
 # ⚠️ EKSPERIMENTELT: Flytter til højre på skærmen
-move_right = "RIGHT"
+move_right = "D|RIGHT"
 
 # ⚠️ EKSPERIMENTELT: Flytter op på skærmen
-move_up = "W"
+move_up = "W|UP"
 
 # ⚠️ EKSPERIMENTELT: Viser skærmen bogmærke->opslag
 show_lookup = "L"

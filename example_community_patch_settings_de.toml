@@ -358,16 +358,16 @@ select_ship8 = "8"
 # -----------------------
 
 # ⚠️ EXPERIMENTELL: Bewegt den Bildschirm nach unten
-move_down = "S"
+move_down = "S|DOWN"
 
 # ⚠️ EXPERIMENTELL: Bewegt den Bildschirm nach links
-move_left = "LEFT"
+move_left = "A|LEFT"
 
 # ⚠️ EXPERIMENTELL: Bewegt den Bildschirm nach rechts
-move_right = "RIGHT"
+move_right = "D|RIGHT"
 
 # ⚠️ EXPERIMENTELL: Bewegt den Bildschirm nach oben
-move_up = "W"
+move_up = "W|UP"
 
 # ⚠️ EXPERIMENTELL: Zeigt den Lesezeichen-Suchbildschirm an
 show_lookup = "L"

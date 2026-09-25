@@ -358,16 +358,16 @@ select_ship8 = "8"
 # ----------------------
 
 # ⚠️ EXPÉRIMENTAL : Fait défiler l'écran vers le bas
-move_down = "S"
+move_down = "S|DOWN"
 
 # ⚠️ EXPÉRIMENTAL : Fait défiler l'écran vers la gauche
-move_left = "LEFT"
+move_left = "A|LEFT"
 
 # ⚠️ EXPÉRIMENTAL : Fait défiler l'écran vers la droite
-move_right = "RIGHT"
+move_right = "D|RIGHT"
 
 # ⚠️ EXPÉRIMENTAL : Fait défiler l'écran vers le haut
-move_up = "W"
+move_up = "W|UP"
 
 # ⚠️ EXPÉRIMENTAL : Affiche l'écran de recherche des signets
 show_lookup = "L"
