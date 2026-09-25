@@ -8,6 +8,7 @@
 #include <iostream>
 
 static std::array<bool, static_cast<int>(KeyCode::Max)> held{};
+static KeyCode claimed = KeyCode::None;
 
 KeyCode Key::Parse(std::string_view key)
 {
@@ -22,13 +23,13 @@ KeyCode Key::Parse(std::string_view key)
 }
 bool Key::IsModifier(KeyCode) { return false; }
 bool Key::Pressed(KeyCode key) { return held[static_cast<int>(key)]; }
-bool Key::Down(KeyCode) { return false; }
+bool Key::Down(KeyCode key) { return Key::Pressed(key); }
 bool Key::IsModified() {
   for (auto key : {KeyCode::LeftControl, KeyCode::RightControl, KeyCode::LeftShift, KeyCode::LeftAlt, KeyCode::LeftCommand})
     if (Key::Pressed(key)) return true;
   return false;
 }
-void Key::ClaimDirectionalInput(KeyCode) {}
+void Key::ClaimDirectionalInput(KeyCode key) { claimed = key; }
 
 void Check(bool condition, const char* message)
 {
@@ -95,6 +96,18 @@ int main()
       remaining.remove_prefix(end + 1);
     }
   }
+  // A modified movement binding must not claim its own direction. Non-movement
+  // actions still claim it, preserving the existing hold-until-release guard.
+  MapKey::AddMappedKey(GameFunction::MoveDown, MapKey::Parse("CTRL-DOWN"));
+  held[static_cast<int>(KeyCode::LeftControl)] = true;
+  held[static_cast<int>(KeyCode::DownArrow)] = true;
+  claimed = KeyCode::None;
+  Check(MapKey::IsDown(GameFunction::MoveDown) && MapKey::IsPressed(GameFunction::MoveDown),
+        "Explicit movement chord did not match");
+  Check(claimed == KeyCode::None, "Movement claimed and blocked itself");
+  MapKey::AddMappedKey(toggle, MapKey::Parse("CTRL-DOWN"));
+  Check(MapKey::IsDown(toggle) && claimed == KeyCode::DownArrow, "Other chord lost directional ownership");
+  held.fill(false);
   std::cout << "Shortcut hint and movement binding tests passed\n";
 
 }

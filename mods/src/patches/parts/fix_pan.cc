@@ -47,10 +47,9 @@ bool NavigationPan_LateUpdate_Hook(auto original, NavigationPan* _this)
   static auto GetTouchCount  = il2cpp_resolve_icall_typed<int()>("UnityEngine.Input::get_touchCount()");
 
   const auto& config = Config::Get();
-  if (!config.disable_move_keys && config.hotkeys_enabled) {
+  if (!config.disable_move_keys && config.hotkeys_enabled && !Key::IsDirectionalInputClaimed()) {
     if (config.use_scopely_hotkeys || !config.installHotkeyHooks) {
-      if (!Key::IsDirectionalInputClaimed())
-        original(_this);
+      original(_this);
     } else if (!_this->BlockPan() && !_this->_trackingPOI && !GetMouseButton(0) && GetTouchCount() == 0
                && KeyboardPanAllowed()) {
       // Opposite bindings cancel; normalize diagonals like the native 2D composite.
