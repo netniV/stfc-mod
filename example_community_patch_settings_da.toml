@@ -249,6 +249,7 @@ zoom = 5000.0
 # Aktivér rettelserne til forstærkninger
 bufffixhooks = true
 cargoformathooks = true
+instantcargocounterhooks = true
 chatpatches = true
 
 # Aktivér massekrav pr. fraktion for daglige mål
@@ -765,6 +766,10 @@ hud_q_trials = "auto"
 
 # Decimal places used for abbreviated cargo values
 cargo_significant_decimals = 2
+
+# Vis last/kapacitet med det samme uden optaelling. Genstart efter aendringer.
+# Kun Windows-klient 263; andre versioner bevarer normal adfaerd.
+instant_cargo_counter = true
 
 # Stop lokalisering, når forhåndsvisninger af skibe eller knudepunkter vises
 disable_preview_locate = false

@@ -249,6 +249,7 @@ zoom = 5000.0
 # Включить исправления усилений
 bufffixhooks = true
 cargoformathooks = true
+instantcargocounterhooks = true
 chatpatches = true
 
 # Включает массовое получение наград по отдельным фракциям в ежедневных целях
@@ -765,6 +766,10 @@ hud_q_trials = "auto"
 
 # Decimal places used for abbreviated cargo values
 cargo_significant_decimals = 2
+
+# Показывать груз/вместимость сразу, без анимации счётчика. После изменения перезапустите игру.
+# Только клиент Windows 263; остальные версии сохраняют обычное поведение.
+instant_cargo_counter = true
 
 # Отключить поиск при отображении предпросмотра корабля или узла
 disable_preview_locate = false
