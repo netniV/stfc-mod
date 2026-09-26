@@ -807,8 +807,8 @@ void InstallChoiceAndSliderWidgets()
       throw std::runtime_error("selection transition signature");
     const std::array targets{selection.refresh, selection.changed, selection.release, transition};
     for (std::size_t i = 0; i < targets.size(); ++i) {
-      if (!Instance(targets[i], i == 3 ? 2 : i == 1 ? 1 : 0, IL2CPP_TYPE_VOID) || !Extent(targets[i]))
-        throw std::runtime_error("selection hook metadata/extent");
+      if (!Instance(targets[i], i == 3 ? 2 : i == 1 ? 1 : 0, IL2CPP_TYPE_VOID))
+        throw std::runtime_error("selection hook metadata");
       if (i == 1 && !Type(targets[i]->parameters[0], IL2CPP_TYPE_BOOLEAN))
         throw std::runtime_error("selection changed signature");
       for (std::size_t j = 0; j < i; ++j)
@@ -854,8 +854,8 @@ void InstallChoiceAndSliderWidgets()
     const std::array targets{slider.refresh, slider.changed, slider.release, slider.valueLabel};
     for (std::size_t i = 0; i < targets.size(); ++i) {
       const bool takesValue = i == 1 || i == 3;
-      if (!Instance(targets[i], takesValue ? 1 : 0, IL2CPP_TYPE_VOID) || !Extent(targets[i]))
-        throw std::runtime_error("slider hook metadata/extent");
+      if (!Instance(targets[i], takesValue ? 1 : 0, IL2CPP_TYPE_VOID))
+        throw std::runtime_error("slider hook metadata");
       if (takesValue && !Type(targets[i]->parameters[0], IL2CPP_TYPE_R4))
         throw std::runtime_error("slider changed signature");
       for (std::size_t j = 0; j < i; ++j)
@@ -892,8 +892,8 @@ bool InstallCoreValueWidgets()
     auto&            m = ToggleMeta();
     const std::array hooks{m.addGeneral, m.refresh, m.changed, m.release, m.reload, m.session, m.load};
     for (std::size_t i = 0; i < hooks.size(); ++i) {
-      if (!Instance(hooks[i], i == 0 || i == 2 ? 1 : 0, IL2CPP_TYPE_VOID) || !Extent(hooks[i]))
-        throw std::runtime_error("settings hook metadata/extent");
+      if (!Instance(hooks[i], i == 0 || i == 2 ? 1 : 0, IL2CPP_TYPE_VOID))
+        throw std::runtime_error("settings hook metadata");
       for (std::size_t j = 0; j < i; ++j)
         if (hooks[i]->methodPointer == hooks[j]->methodPointer)
           throw std::runtime_error("settings shared hook");

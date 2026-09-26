@@ -360,7 +360,7 @@ void InstallActionWidgets()
       // and OnAboutToReleaseContext CFD430..CFD53F (271), vs SPUD's 24 bytes.
       // Metadata resolves current addresses; unwind checks still gate each load.
       for (auto* target : {action.refresh, action.release}) {
-        if (!Instance(target, 0, IL2CPP_TYPE_VOID) || !Extent(target)
+        if (!Instance(target, 0, IL2CPP_TYPE_VOID)
             || action.refresh->methodPointer == action.release->methodPointer)
           throw std::runtime_error("settings command hook extent");
         for (auto* existing :

@@ -558,8 +558,8 @@ void InstallPages()
   auto&            m = PageMeta();
   const std::array hooks{m.bind, m.release, m.selected, m.destroyed};
   for (std::size_t i = 0; i < hooks.size(); ++i) {
-    if (!Instance(hooks[i], i == 2 ? 1 : 0, IL2CPP_TYPE_VOID) || !Extent(hooks[i]))
-      throw std::runtime_error("settings page hook metadata/extent");
+    if (!Instance(hooks[i], i == 2 ? 1 : 0, IL2CPP_TYPE_VOID))
+      throw std::runtime_error("settings page hook metadata");
     for (std::size_t j = 0; j < i; ++j)
       if (hooks[i]->methodPointer == hooks[j]->methodPointer)
         throw std::runtime_error("settings page shared hook");
@@ -591,9 +591,9 @@ void InstallPages()
       throw std::runtime_error("heading callback schema");
     const std::array targets{heading.refresh, heading.clear};
     for (auto* target : targets) {
-      if (!Instance(target, 0, IL2CPP_TYPE_VOID) || !Extent(target)
+      if (!Instance(target, 0, IL2CPP_TYPE_VOID)
           || targets[0]->methodPointer == targets[1]->methodPointer)
-        throw std::runtime_error("heading hook metadata/extent");
+        throw std::runtime_error("heading hook metadata");
       const auto& core = ToggleMeta();
       for (auto* existing : {core.refresh, core.changed, core.release, core.addGeneral, core.reload, core.session,
                              core.load, m.bind, m.release, m.selected, m.destroyed})

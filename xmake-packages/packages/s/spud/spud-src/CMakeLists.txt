@@ -215,7 +215,6 @@ target_sources(
         "src/detour/x86_64/relocators.cc"
         "src/detour/x86_64/relocators.h"
         "src/detour/detour.cc"
-        "src/detour/prologue.cc"
         "src/detour/detour_impl.h"
         "src/detour/fwd.h"
         "src/detour/target_registry.cc"
