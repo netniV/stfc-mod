@@ -3,6 +3,7 @@
 #include "errormsg.h"
 
 #include "BattleTargetData.h"
+#include "CargoHoldData.h"
 #include "HullSpec.h"
 #include "RecallRequirement.h"
 #include "CanRepairRequirement.h"
@@ -44,6 +45,7 @@ public:
   __declspec(property(get = __get_PreviousState)) FleetState PreviousState;
   __declspec(property(get = __get_Id)) uint64_t Id;
   __declspec(property(get = __get_Hull)) HullSpec* Hull;
+  __declspec(property(get = __get_CargoHoldData)) ::CargoHoldData* CargoHoldData;
   __declspec(property(get = __get_Address)) void* Address;
   __declspec(property(get = __get_Level)) int64_t Level;
   __declspec(property(get = __get_HasShip)) bool HasShip;
@@ -61,6 +63,11 @@ public:
   {
     static auto field = get_class_helper().GetProperty("Hull");
     return field.GetRaw<HullSpec>(this);
+  }
+  ::CargoHoldData* __get_CargoHoldData()
+  {
+    static auto property = get_class_helper().GetProperty("CargoHoldData");
+    return property.GetRaw<struct CargoHoldData>(this);
   }
   void* __get_Address()
   {

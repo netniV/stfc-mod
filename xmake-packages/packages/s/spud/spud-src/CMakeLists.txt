@@ -217,6 +217,8 @@ target_sources(
         "src/detour/detour.cc"
         "src/detour/detour_impl.h"
         "src/detour/fwd.h"
+        "src/detour/target_registry.cc"
+        "src/detour/target_registry.h"
         "src/detour/remapper.cc"
         "src/detour/remapper.h"
         "src/memory/protection.cc"
@@ -238,7 +240,7 @@ if(NOT SPUD_NO_INSTALL)
     )
 endif()
 if(SPUD_BUILD_TESTS)
-    set(TEST_SRCS "tests/signature.cc")
+    set(TEST_SRCS "tests/detour_registry.cc")
     file(
         GLOB_RECURSE TEST_DETOUR_SHARED_SRCS
         tests/detour/shared/*.cc
@@ -306,35 +308,35 @@ if(SPUD_BUILD_TESTS)
     add_executable(
         "spud.test"
         ${TEST_SRCS}
-        "tests/test_util.h"
-        "tests/signature.cc"
     )
-    target_include_directories("spud.test" PRIVATE "tests")
+    target_include_directories("spud.test" PRIVATE "tests" "src")
     target_link_libraries(
         "spud.test"
         PRIVATE "Catch2" "Catch2::Catch2WithMain" "spud"
     )
     add_dependencies("spud.test" "Catch2" "spud")
-    add_executable("spud.benchmark" ${BENCHMARK_SRCS})
-    target_include_directories("spud.benchmark" PRIVATE "benchmark")
-    if(SPUD_COMPARE_LIBS)
-        target_link_libraries(
-            "spud.benchmark"
-            PRIVATE
-                "Catch2"
-                "Catch2::Catch2WithMain"
-                "spud"
-                "lime"
-                "minhook"
-                "PolyHook2"
-        )
-    else()
-        target_link_libraries(
-            "spud.benchmark"
-            PRIVATE "Catch2" "Catch2::Catch2WithMain" "spud"
-        )
+    if(BENCHMARK_SRCS)
+        add_executable("spud.benchmark" ${BENCHMARK_SRCS})
+        target_include_directories("spud.benchmark" PRIVATE "benchmark")
+        if(SPUD_COMPARE_LIBS)
+            target_link_libraries(
+                "spud.benchmark"
+                PRIVATE
+                    "Catch2"
+                    "Catch2::Catch2WithMain"
+                    "spud"
+                    "lime"
+                    "minhook"
+                    "PolyHook2"
+            )
+        else()
+            target_link_libraries(
+                "spud.benchmark"
+                PRIVATE "Catch2" "Catch2::Catch2WithMain" "spud"
+            )
+        endif()
+        add_dependencies("spud.benchmark" "Catch2" "spud")
+        add_test(NAME spud.benchmark COMMAND spud.benchmark)
     endif()
-    add_dependencies("spud.benchmark" "Catch2" "spud")
     add_test(NAME spud.test COMMAND spud.test)
-    add_test(NAME spud.benchmark COMMAND spud.benchmark)
 endif()
