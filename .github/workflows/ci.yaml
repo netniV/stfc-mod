@@ -477,6 +477,14 @@ jobs:
         shell: bash
         run: sccache --show-stats
 
+      - name: Verify ARM64 debug core
+        if: ${{ matrix.arch == 'arm64' }}
+        shell: bash
+        run: |
+          xmake f -p macosx -a arm64 -m debug --target_minver=14.6 -y
+          xmake -y mods
+          xmake f -p macosx -a arm64 -m release --target_minver=14.6 -y
+
       - name: Report Swift module cache
         shell: bash
         run: |
