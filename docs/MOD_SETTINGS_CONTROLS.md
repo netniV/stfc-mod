@@ -126,8 +126,8 @@ This is Windows evidence, not proof of macOS hook fit or native widget behavior.
 
 ## Camera and previews
 
-Keyboard zoom speed offers 0â€“1000 in steps of 25 with whole-number labels. Pan
-glide offers 0â€“0.99 in steps of 0.01; it retains the existing pan formula. These
+Keyboard zoom speed offers 0–1000 in steps of 25 with whole-number labels. Pan
+glide offers 0–0.99 in steps of 0.01; it retains the existing pan formula. These
 are UI editing ranges, not new TOML constraints. Out-of-range loaded values are
 preserved and explained rather than clamped. The shared slider path controls
 display precision without writing a loaded value.
