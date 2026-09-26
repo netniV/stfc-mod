@@ -32,6 +32,26 @@ namespace DCS  = DefaultConfig::Sync;
 namespace DCSC = DefaultConfig::SystemConfig;
 namespace DCSH = DefaultConfig::Shortcuts;
 
+namespace
+{
+struct ToastAudioAlertConfig {
+  int                       toast_state;
+  std::string_view          config_name;
+  std::string_view          default_sound;
+  NotificationSound Config::* config_member;
+};
+
+constexpr auto kToastAudioAlerts = std::to_array<ToastAudioAlertConfig>({
+    {ToastState::Victory, "alert_victory", DCA::alert_victory, &Config::alert_victory},
+    {ToastState::Defeat, "alert_defeat", DCA::alert_defeat, &Config::alert_defeat},
+    {ToastState::ArmadaCreated, "alert_armada_created", DCA::alert_armada_created, &Config::alert_armada_created},
+    {ToastState::ArmadaBattleWon, "alert_armada_battle_won", DCA::alert_armada_battle_won,
+     &Config::alert_armada_battle_won},
+    {ToastState::ArmadaBattleLost, "alert_armada_battle_lost", DCA::alert_armada_battle_lost,
+     &Config::alert_armada_battle_lost},
+});
+} // namespace
+
 static const eastl::tuple<const char*, int> bannerTypes[] = {
     {"All", ToastState::All},
     {"Standard", ToastState::Standard},
@@ -126,6 +146,12 @@ Config& Config::Get()
 {
   static Config config;
   return config;
+}
+
+NotificationSound Config::NotificationSoundForToast(int toast_state) const
+{
+  const auto alert = std::ranges::find(kToastAudioAlerts, toast_state, &ToastAudioAlertConfig::toast_state);
+  return alert == kToastAudioAlerts.end() ? NotificationSound::None : this->*(alert->config_member);
 }
 
 MissionHudVisibility Config::MissionHudButtonVisibility(std::string_view button_name) const
@@ -328,6 +354,25 @@ T get_config_or_default(toml::table& config, toml::table& new_config, std::strin
   }
 
   return (T)final_value;
+}
+
+NotificationSound get_notification_sound(toml::table& config, toml::table& new_config, std::string_view item,
+                                         std::string_view default_value, bool write_log)
+{
+  const auto value = get_config_or_default<std::string>(config, new_config, "audio", item,
+                                                         std::string(default_value), false);
+  auto sound = notification_sound_from_name(StripAsciiWhitespace(value));
+  if (!sound.has_value()) {
+    spdlog::warn("invalid config value audio.{}: '{}'; using {}", item, value, default_value);
+    sound = notification_sound_from_name(default_value);
+  }
+
+  const auto result = sound.value_or(NotificationSound::None);
+  new_config["audio"].as_table()->insert_or_assign(item, notification_sound_name(result));
+  if (write_log) {
+    spdlog::debug("config value audio.{} value: {}", item, notification_sound_name(result));
+  }
+  return result;
 }
 
 std::string_view to_string(MissionHudVisibility visibility)
@@ -1031,8 +1076,31 @@ void Config::Load()
     }
   }
   this->installAudioEventHooks = this->trace_audio_events || !this->disabled_audio_events.empty();
+  bool any_toast_audio_alert_configured = false;
+  for (const auto& alert : kToastAudioAlerts) {
+    const auto sound = get_notification_sound(config, parsed, alert.config_name, alert.default_sound, write_config);
+    this->*(alert.config_member) = sound;
+    any_toast_audio_alert_configured |= sound != NotificationSound::None;
+  }
+  if (!this->installToastBannerHooks && any_toast_audio_alert_configured) {
+    spdlog::warn("audio alerts require patches.toastbannerhooks = true");
+  }
+  this->audio_fleet_events = 0;
+  for (const auto& entry : kFleetNotificationCatalog) {
+    const auto sound = get_notification_sound(config, parsed, entry.audio_config_name,
+                                               DCA::alert_fleet_default, write_config);
+    this->alert_fleet_events[static_cast<std::size_t>(entry.kind)] = sound;
+    if (sound != NotificationSound::None) {
+      this->audio_fleet_events |= fleet_notification_bit(entry.kind);
+    }
+  }
   this->auto_open_bulk_claim_flyout = get_config_or_default(config, parsed, "ui", "auto_open_bulk_claim_flyout",
                                                              DCU::auto_open_bulk_claim_flyout, write_config);
+  this->highlight_opc_fleets = get_config_or_default(config, parsed, "ui", "highlight_opc_fleets",
+                                                      DCU::highlight_opc_fleets, write_config);
+  this->fleet_hud_opc_eta = get_config_or_default(config, parsed, "ui", "fleet_hud_opc_eta",
+                                                   DCU::fleet_hud_opc_eta, write_config);
+  this->installOpcIndicatorHooks = this->highlight_opc_fleets || this->fleet_hud_opc_eta;
 
   read_daily_bulk_claim_factions(config, parsed, this->daily_bulk_claim_factions, DCU::daily_bulk_claim_factions,
                                  write_config);
@@ -1264,6 +1332,48 @@ void Config::Load()
 
   spdlog::debug("Final notify banner types: {}", notifyString);
   parsed["ui"].as_table()->insert_or_assign("notify_banner_types", notifyString);
+
+  auto notify_fleet_events_str = get_config_or_default<std::string>(config, parsed, "ui", "notify_fleet_events",
+                                                                    DCU::notify_fleet_events, write_log);
+  this->notify_fleet_events = 0;
+  for (const auto& event : StrSplit(notify_fleet_events_str, ',')) {
+    const std::string trimmed{StripAsciiWhitespace(event)};
+    if (trimmed.empty()) {
+      continue;
+    }
+    const auto normalized = AsciiStrToUpper(trimmed);
+    if (normalized == "ALL") {
+      this->notify_fleet_events = kAllFleetNotifications;
+      break;
+    }
+    const auto match = std::ranges::find_if(kFleetNotificationCatalog, [&](const auto& entry) {
+      return normalized == AsciiStrToUpper(entry.config_name);
+    });
+    if (match == kFleetNotificationCatalog.end()) {
+      spdlog::warn("Unknown fleet notification event '{}'; ignoring it", trimmed);
+      continue;
+    }
+    this->notify_fleet_events |= fleet_notification_bit(match->kind);
+  }
+
+  std::string fleet_events_string;
+  for (const auto& entry : kFleetNotificationCatalog) {
+    if ((this->notify_fleet_events & fleet_notification_bit(entry.kind)) == 0) {
+      continue;
+    }
+    if (!fleet_events_string.empty()) {
+      fleet_events_string.append(", ");
+    }
+    fleet_events_string.append(entry.config_name);
+  }
+  spdlog::debug("Final fleet notification events: {}", fleet_events_string);
+  parsed["ui"].as_table()->insert_or_assign("notify_fleet_events", fleet_events_string);
+
+#if _WIN32 || __APPLE__
+  this->installFleetNotificationHooks = (this->notify_fleet_events | this->audio_fleet_events) != 0;
+#else
+  this->installFleetNotificationHooks = false;
+#endif
 
   spdlog::debug("");
 
