@@ -2,7 +2,6 @@
 #include "config.h"
 #include "errormsg.h"
 #include "patches/fleet_opc_sample.h"
-#include "patches/native_hook_extent.h"
 
 #include <il2cpp-tabledefs.h>
 #include <il2cpp/il2cpp-functions.h>
@@ -1486,14 +1485,13 @@ void InstallOpcIndicatorHooks()
   }
 
 #if __APPLE__
-  // Preflight every requested target before installing any detour. Mach-O
-  // prologue validation also rejects an existing detour trampoline.
+  // Resolve distinct targets before installing the requested hooks.
   std::vector<const MethodInfo*> targets{bind_data_context, cargo_updated};
   if (use_opc_eta) { targets.push_back(state_set); targets.push_back(state_clear); }
   if (use_opc_highlight) { targets.push_back(flag_set); targets.push_back(flag_clear); }
   for (size_t i = 0; i < targets.size(); ++i) {
-    if (!targets[i] || !native_hooks::MacHookFits(reinterpret_cast<const void*>(targets[i]->methodPointer))) {
-      spdlog::warn("[OpcIndicators] disabled: Mac hook extent/prologue validation failed");
+    if (!targets[i] || !targets[i]->methodPointer) {
+      spdlog::warn("[OpcIndicators] disabled: missing Mac hook target");
       return;
     }
     for (size_t j = 0; j < i; ++j)
