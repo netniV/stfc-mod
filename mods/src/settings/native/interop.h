@@ -44,7 +44,6 @@ Il2CppObject* MakeDelegate(Il2CppClass* cls, Il2CppObject* director, const Metho
 int           Count(Il2CppObject* list);
 Il2CppObject* Item(Il2CppObject* list, int index);
 bool          HasLabel(Il2CppObject* row, const char* id);
-bool          Extent(const MethodInfo* method);
 } // namespace mod_settings::native
 
 #endif

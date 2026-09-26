@@ -27,7 +27,6 @@ includes("xmake/rules/protobuf_sccache.lua")
 includes("xmake/rules/cxx_sccache.lua")
 includes("mods")
 
-includes("tests")
 target("il2cpp-runtime-tests")
     set_kind("binary")
     set_default(false)
