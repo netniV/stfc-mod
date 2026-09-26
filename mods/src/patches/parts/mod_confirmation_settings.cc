@@ -1,13 +1,8 @@
 #include "fc_confirmation_reset.h"
 #include "settings/boolean_view.h"
 
-// Validate native entries against the loaded platform image before installing hooks.
 #if (defined(_WIN32) && defined(_M_X64)) || defined(__APPLE__)
 #include "settings/native_boolean_callback.h"
-#include "patches/native_hook_extent.h"
-#if _WIN32
-#include <Windows.h>
-#endif
 #include <array>
 #include <cstring>
 #include <il2cpp/runtime.h>
@@ -624,21 +619,6 @@ void SessionHook(auto original, Il2CppObject* owner)
 { SessionBoundary(original, owner); }
 void LoadHook(auto original, Il2CppObject* owner)
 { SessionBoundary(original, owner); }
-bool Extent(const MethodInfo* method)
-{
-  if (!method || !method->methodPointer)
-    return false;
-#if __APPLE__
-  return native_hooks::MacHookFits(reinterpret_cast<const void*>(method->methodPointer));
-#else
-  DWORD64    base    = 0;
-  const auto address = reinterpret_cast<DWORD64>(method->methodPointer);
-  auto*      entry   = RtlLookupFunctionEntry(address, &base, nullptr);
-  // Bundled x64 SPUD reserves 24 bytes; the 64-byte minimum and exact entry reject
-  // shared tiny accessors/thunks. The Mac path separately decodes its full overwrite.
-  return entry && base + entry->BeginAddress == address && entry->EndAddress - entry->BeginAddress >= 64;
-#endif
-}
 } // namespace
 
 void InstallModConfirmationSettings()
@@ -650,8 +630,8 @@ void InstallModConfirmationSettings()
     auto&            m = Meta();
     const std::array hooks{m.addGeneral, m.refresh, m.changed, m.release, m.reload, m.session, m.load};
     for (std::size_t i = 0; i < hooks.size(); ++i) {
-      if (!Instance(hooks[i], i == 0 || i == 2 ? 1 : 0, IL2CPP_TYPE_VOID) || !Extent(hooks[i]))
-        throw std::runtime_error("settings hook metadata/extent");
+      if (!Instance(hooks[i], i == 0 || i == 2 ? 1 : 0, IL2CPP_TYPE_VOID))
+        throw std::runtime_error("settings hook metadata");
       for (std::size_t j = 0; j < i; ++j)
         if (hooks[i]->methodPointer == hooks[j]->methodPointer)
           throw std::runtime_error("settings shared hook");
