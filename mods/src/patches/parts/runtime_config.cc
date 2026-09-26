@@ -10,7 +10,6 @@
 
 #if (defined(_WIN32) && defined(_M_X64)) || defined(__APPLE__)
 #include "patches/screen_update_hook.h"
-#include "patches/native_hook_extent.h"
 #if _WIN32
 #include <Windows.h>
 #endif
@@ -227,12 +226,6 @@ void Install()
       spdlog::warn("Runtime config persistence unavailable: incompatible Unity quit methods");
       return;
     }
-#if __APPLE__
-    if (!native_hooks::MacHookFits(method_contract::Pointer(wants))) {
-      spdlog::warn("Runtime config persistence unavailable: Mac quit hook validation failed");
-      return;
-    }
-#endif
     request_quit = reinterpret_cast<void (*)(int)>(quit->methodPointer);
     available    = install_screen_manager_update_hook() && register_screen_manager_update_callback(Update)
                    && SPUD_STATIC_DETOUR(wants->methodPointer, WantsQuit);
