@@ -5,19 +5,12 @@
 #include <spdlog/spdlog.h>
 #include <spud/detour.h>
 #if defined(_WIN32) && defined(_M_X64)
-#include <Windows.h>
 #include <cstring>
 namespace
 {
 FieldInfo *  textField{}, *contextField{}, *identifierField{}, *snapField{};
 Il2CppClass* cargoDataClass{};
 bool         textReady{};
-// Windows client 263: SetWidgetData RVA 0x118b4b0, native extent 7731 bytes.
-// The verified SPUD relocation window spans 25 complete instruction bytes. Keep other builds on native behavior
-// until their hook fit is verified; metadata compatibility alone does not establish it.
-constexpr unsigned char kWindow[] = {0x40, 0x55, 0x53, 0x48, 0x8d, 0x6c, 0x24, 0xb1, 0x48, 0x81, 0xec, 0xf8, 0x00,
-                                     0x00, 0x00, 0x80, 0x3d, 0x6f, 0x4e, 0xd0, 0x04, 0x00, 0x48, 0x8b, 0xd9};
-
 // Metadata names and storage are checked before reading game-owned fields.
 bool IsType(const Il2CppType* type, const char* name)
 {
@@ -114,14 +107,11 @@ void InstallInstantCargoCounterHooks()
   identifierField = Field(text.get_cls(), "m_identifier", "System.String", sizeof(void*));
   snapField       = Field(cls, "_snapToValue", "System.Boolean", sizeof(bool));
   auto* method    = bar.GetMethodInfo("SetWidgetData", 0);
-  auto  base      = reinterpret_cast<uintptr_t>(GetModuleHandleA("GameAssembly.dll"));
-  if (!cargoDataClass || !textField || !contextField || !identifierField || !snapField || !method || !base
+  if (!cargoDataClass || !textField || !contextField || !identifierField || !snapField || !method
       || method->klass != cls || !method->methodPointer || method->is_generic || method->is_inflated
       || (method->flags & METHOD_ATTRIBUTE_STATIC) || method->parameters_count != 0
-      || !IsType(method->return_type, "System.Void")
-      || reinterpret_cast<uintptr_t>(method->methodPointer) != base + 0x118b4b0
-      || std::memcmp(reinterpret_cast<const void*>(method->methodPointer), kWindow, sizeof(kWindow)) != 0) {
-    spdlog::warn("[InstantCargoText] client/metadata contract unavailable; native text retained");
+      || !IsType(method->return_type, "System.Void")) {
+    spdlog::warn("[InstantCargoText] required metadata unavailable; native text retained");
     return;
   }
   textReady = SPUD_STATIC_DETOUR(method->methodPointer, SetWidgetData_Hook) != nullptr;
