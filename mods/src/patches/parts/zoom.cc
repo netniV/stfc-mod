@@ -654,7 +654,7 @@ void InstallZoomHooks()
   bool fleet_widget_hooks_ready = false;
 #if __APPLE__
   // Galaxy composition needs the shared LOD and zoom hooks, not the fleet-only
-  // pooled-widget hooks. Verify their untouched entries before either owner
+  // pooled-widget hooks. Resolve their managed contracts before either owner
   // installs them, and reuse the one LOD detour below.
   enable_labels = FleetLabelProfilesEnabled();
   auto galaxy_lod = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Navigation", "NavigationLOD");
