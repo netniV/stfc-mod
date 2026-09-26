@@ -1,4 +1,6 @@
 #include "config.h"
+#include "config_save.h"
+#include "patches/runtime_config.h"
 #include "file.h"
 #include "patches/mapkey.h"
 #include "prime/KeyCode.h"
@@ -93,10 +95,10 @@ Config::Config()
 
 void Config::Save(const toml::table& config, const std::string_view filename, bool apply_warning)
 {
-  std::ofstream config_file;
+  std::ostringstream config_file;
 
   auto config_path = File::MakePath(filename, true);
-  config_file.open(config_path);
+  config_file.exceptions(std::ios::badbit | std::ios::failbit);
 
   if (apply_warning) {
     char defaultFile[255], configFile[255];
@@ -118,8 +120,7 @@ void Config::Save(const toml::table& config, const std::string_view filename, bo
     config_file << "#######################################################################\n\n";
   }
 
-  config_file << config;
-  config_file.close();
+  SaveConfigDocument(config, std::filesystem::path(config_path), config_file.str());
 }
 
 Config& Config::Get()
@@ -496,6 +497,28 @@ float get_fleet_label_zoom_threshold(toml::table& config, toml::table& new_confi
   }
 
   return threshold;
+}
+
+galaxy_controls::ZoomMode get_galaxy_label_detail(toml::table& config, toml::table& parsed,
+                                                  std::string_view key, std::string_view fallback, bool write_log)
+{
+  const auto value = config["graphics"][key].value<std::string>().value_or(std::string(fallback));
+  const auto normalized = AsciiStrToUpper(StripAsciiWhitespace(value));
+  auto mode = galaxy_controls::ZoomMode::Native;
+  std::string name = "native";
+  if (normalized == "ALWAYS") {
+    mode = galaxy_controls::ZoomMode::Always;
+    name = "always";
+  } else if (normalized == "THRESHOLD") {
+    mode = galaxy_controls::ZoomMode::Threshold;
+    name = "threshold";
+  } else if (normalized != "NATIVE") {
+    spdlog::warn("invalid config value graphics.{}: '{}'; using native", key, value);
+  }
+  parsed.emplace<toml::table>("graphics", toml::table());
+  parsed["graphics"].as_table()->insert_or_assign(key, name);
+  if (write_log) spdlog::debug("config value graphics.{} value: {}", key, name);
+  return mode;
 }
 
 void parse_ship_filter(std::string_view value, std::vector<std::string>& names, bool& match_all)
@@ -961,6 +984,26 @@ void Config::Load()
                                                                       DCG::zoom_label_non_player_detail, write_config);
   this->zoom_label_non_player.zoom_threshold = get_fleet_label_zoom_threshold(
       config, parsed, "zoom_label_non_player_threshold", DCG::zoom_label_non_player_threshold, write_config);
+  this->galaxy_multi_select = get_config_or_default(
+      config, parsed, "graphics", "galaxy_multi_select", DCG::galaxy_multi_select, write_config);
+  this->galaxy_overlays[0] = get_config_or_default(
+      config, parsed, "graphics", "galaxy_overlay_default", DCG::galaxy_overlay_default, write_config);
+  this->galaxy_overlays[1] = get_config_or_default(
+      config, parsed, "graphics", "galaxy_overlay_mining", DCG::galaxy_overlay_mining, write_config);
+  this->galaxy_overlays[2] = get_config_or_default(
+      config, parsed, "graphics", "galaxy_overlay_hostiles", DCG::galaxy_overlay_hostiles, write_config);
+  this->galaxy_overlays[3] = get_config_or_default(
+      config, parsed, "graphics", "galaxy_overlay_hazards", DCG::galaxy_overlay_hazards, write_config);
+  if (std::none_of(galaxy_overlays.begin(), galaxy_overlays.end(), [](bool value) { return value; }))
+    galaxy_overlays[0] = true; // Keep the accepted Default fallback.
+  this->galaxy_label_major.mode = get_galaxy_label_detail(
+      config, parsed, "galaxy_label_major_detail", DCG::galaxy_label_major_detail, write_config);
+  this->galaxy_label_major.threshold = get_fleet_label_zoom_threshold(
+      config, parsed, "galaxy_label_major_threshold", DCG::galaxy_label_major_threshold, write_config);
+  this->galaxy_label_minor.mode = get_galaxy_label_detail(
+      config, parsed, "galaxy_label_minor_detail", DCG::galaxy_label_minor_detail, write_config);
+  this->galaxy_label_minor.threshold = get_fleet_label_zoom_threshold(
+      config, parsed, "galaxy_label_minor_threshold", DCG::galaxy_label_minor_threshold, write_config);
   this->free_resize = get_config_or_default(config, parsed, "graphics", "free_resize", DCG::free_resize, write_config);
   this->allow_cursor =
       get_config_or_default(config, parsed, "graphics", "allow_cursor", DCG::allow_cursor, write_config);
@@ -1042,6 +1085,8 @@ void Config::Load()
   this->auto_confirm_instant_warp =
       get_auto_confirm_instant_warp(config, parsed, DCU::auto_confirm_instant_warp, write_config);
   this->installInstantWarpConfirmationHooks = true;
+  // Internal installation switch; UI availability is checked by the native adapter.
+  this->installNativeSettings = true;
   read_instant_warp_filter(config, parsed, "instant_warp_auto_jump", this->instant_warp_auto_jump,
                            this->instant_warp_auto_jump_all, DCU::instant_warp_auto_jump, write_config);
   read_instant_warp_filter(config, parsed, "instant_warp_auto_warp", this->instant_warp_auto_warp,
@@ -1415,8 +1460,15 @@ void Config::Load()
     message << "Creating " << File::Config() << " (default config file)";
     spdlog::warn(message.str());
 
-    Config::Save(parsed, File::Config(), false);
+    try {
+      Config::Save(parsed, File::Config(), false);
+      config = parsed; // First runtime comparison must match the file just created.
+    } catch (const std::exception& error) {
+      spdlog::error("Could not save default config: {}", error.what());
+    }
   }
+
+  runtime_config::Configure(config);
 
   message.str("");
   message << "Creating " << File::Vars() << " (final config file)";
@@ -1430,7 +1482,11 @@ void Config::Load()
     std::filesystem::remove(FILE_DEF_PARSED);
   }
 
-  Config::Save(parsed, File::Vars());
+  try {
+    Config::Save(parsed, File::Vars());
+  } catch (const std::exception& error) {
+    spdlog::error("Could not save runtime config: {}", error.what());
+  }
 
   std::cout << "\n\n-----------------------------\n\n"
             << parsed << "\n\n-----------------------------\nVersion "

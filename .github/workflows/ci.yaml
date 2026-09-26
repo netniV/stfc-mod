@@ -189,12 +189,41 @@ jobs:
         shell: pwsh
         run: sccache --zero-stats
 
+      - name: Test IL2CPP runtime helpers
+        run: |
+          xmake build -y il2cpp-runtime-tests
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          xmake run il2cpp-runtime-tests
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Test IL2CPP class lookup
+        run: |
+          xmake build -y il2cpp-class-lookup-tests
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          xmake run il2cpp-class-lookup-tests
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Build
         run: xmake build -y stfc-community-mod
+
+      - name: Test confirmation setting contracts
+        shell: pwsh
+        run: ./tests/run-confirmation-settings.ps1
 
       - name: Report compiler cache
         shell: pwsh
         run: sccache --show-stats
+
+      - name: Test startup config saves
+        shell: pwsh
+        env:
+          PACKAGE_DIR: ${{ steps.xmake_cache_paths.outputs.package_dir }}
+        run: |
+          $header = Get-ChildItem -LiteralPath (Join-Path $env:PACKAGE_DIR 't/toml++') -Recurse -Filter toml.h |
+            Where-Object { $_.Directory.Name -eq 'toml++' } | Select-Object -First 1
+          if (-not $header) { throw 'Built toml++ package not found.' }
+          ./tests/run-config-save.ps1 -TomlInclude $header.Directory.Parent.FullName
+          ./tests/run-settings.ps1
 
       - name: Package
         shell: pwsh
@@ -469,6 +498,16 @@ jobs:
         shell: bash
         run: sccache --zero-stats
 
+      - name: Test IL2CPP runtime helpers
+        run: |
+          xmake build -y il2cpp-runtime-tests
+          xmake run il2cpp-runtime-tests
+
+      - name: Test IL2CPP class lookup
+        run: |
+          xmake build -y il2cpp-class-lookup-tests
+          xmake run il2cpp-class-lookup-tests
+
       - name: Build
         # -D keeps the existing XMake compiler-cache diagnostics too.
         run: xmake -y -D
@@ -476,6 +515,28 @@ jobs:
       - name: Report protobuf compiler cache
         shell: bash
         run: sccache --show-stats
+
+      - name: Test startup config saves
+        shell: bash
+        env:
+          PACKAGE_DIR: ${{ steps.xmake_cache_paths.outputs.package_dir }}
+        run: |
+          set -euo pipefail
+          TOML_HEADER=$(find "$PACKAGE_DIR/t/toml++" -path '*/include/toml++/toml.h' -print -quit)
+          test -n "$TOML_HEADER"
+          bash tests/run-config-save.sh "$(dirname "$(dirname "$TOML_HEADER")")"
+          bash tests/run-settings.sh
+      - name: Test confirmation setting contracts
+        shell: bash
+        run: bash tests/run-confirmation-settings.sh
+
+      - name: Verify ARM64 debug core
+        if: ${{ matrix.arch == 'arm64' }}
+        shell: bash
+        run: |
+          xmake f -p macosx -a arm64 -m debug --target_minver=14.6 -y
+          xmake -y mods
+          xmake f -p macosx -a arm64 -m release --target_minver=14.6 -y
 
       - name: Report Swift module cache
         shell: bash
