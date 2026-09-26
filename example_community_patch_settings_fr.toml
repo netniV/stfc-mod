@@ -664,6 +664,8 @@ auto_confirm_ft_upgrade = false
 #   "none" - Do not choose an action automatically; show the confirmation dialog
 #   "warp" - Automatically choose regular warp
 #   "jump" - Automatically choose instant jump
+# The mode shortcut persists this value on validated Windows x64 and macOS clients; otherwise session-only.
+# External edits are preserved; conflicts are logged. See docs/config-save.md.
 auto_confirm_instant_warp = "none"
 
 # Comma-separated ship hull names for which the instant-warp popup is always shown, overriding all automatic actions
@@ -732,34 +734,29 @@ pinned_ships = ""
 # Subgroup: HUD
 # -------------
 
-# HUD visibility mode: auto, show, or hide
-#   "auto" - Use the game's default visibility behaviour
-#   "show" - Always show this HUD item
-#   "hide" - Always hide this HUD item
-hud_daily_goals = "auto"
 
-# HUD visibility mode: auto, show, or hide
+# HUD visibility mode: auto, always, or never
 #   "auto" - Use the game's default visibility behaviour
-#   "show" - Always show this HUD item
-#   "hide" - Always hide this HUD item
+#   "always" - Always show this HUD item
+#   "never" - Always hide this HUD item
 hud_field_training = "auto"
 
-# HUD visibility mode: auto, show, or hide
+# HUD visibility mode: auto, always, or never
 #   "auto" - Use the game's default visibility behaviour
-#   "show" - Always show this HUD item
-#   "hide" - Always hide this HUD item
+#   "always" - Always show this HUD item
+#   "never" - Always hide this HUD item
 hud_missions = "auto"
 
-# HUD visibility mode: auto, show, or hide
+# HUD visibility mode: auto, always, or never
 #   "auto" - Use the game's default visibility behaviour
-#   "show" - Always show this HUD item
-#   "hide" - Always hide this HUD item
+#   "always" - Always show this HUD item
+#   "never" - Always hide this HUD item
 hud_outposts = "auto"
 
-# HUD visibility mode: auto, show, or hide
+# HUD visibility mode: auto, always, or never
 #   "auto" - Use the game's default visibility behaviour
-#   "show" - Always show this HUD item
-#   "hide" - Always hide this HUD item
+#   "always" - Always show this HUD item
+#   "never" - Always hide this HUD item
 hud_q_trials = "auto"
 
 # Subgroup: Previews
