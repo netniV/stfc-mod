@@ -1,7 +1,6 @@
 #include "config.h"
 #include "errormsg.h"
 #include "patches/mission_hud.h"
-#include "patches/native_hook_extent.h"
 
 #include <il2cpp/il2cpp_helper.h>
 
@@ -296,16 +295,6 @@ void InstallMissionHudTweaksHooks()
     return;
   }
 
-#if __APPLE__
-  // The settings feeder supplies loaded-image checks for both Mac architectures.
-  // Validate the entire family before any detour changes the native entries.
-  for (const auto target : {on_enable, achievements, challenges, outposts, combined}) {
-    if (!native_hooks::MacHookFits(target)) {
-      spdlog::warn("MissionHudTweaks: native hook preflight failed; live controls unavailable");
-      return;
-    }
-  }
-#endif
   g_refresh_achievements = reinterpret_cast<RefreshFn>(achievements);
   g_refresh_outposts = reinterpret_cast<RefreshFn>(combined);
   spdlog::info("MissionHudTweaks: applying {}", ConfiguredButtonModes());

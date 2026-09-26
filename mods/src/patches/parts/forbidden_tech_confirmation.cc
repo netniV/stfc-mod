@@ -1,7 +1,6 @@
 #include "config.h"
 #include "errormsg.h"
 #include "settings/forbidden_tech.h"
-#include "settings/windows_hook_extent.h"
 
 #include <il2cpp/il2cpp_helper.h>
 #include <il2cpp-tabledefs.h>
@@ -114,13 +113,13 @@ void InstallForbiddenTechConfirmationHooks()
     bool valid = (method->flags & METHOD_ATTRIBUTE_STATIC) && !method->is_generic && !method->is_inflated
                  && !method->has_full_generic_sharing_signature && method->return_type
                  && method->return_type->type == IL2CPP_TYPE_VOID && !method->return_type->byref
-                 && mod_settings::WindowsHookFits(method->methodPointer);
+                 && method->methodPointer;
     for (int i = 0; valid && i < method->parameters_count; ++i)
       valid = method->parameters[i] && !method->parameters[i]->byref
               && (method->parameters[i]->type == IL2CPP_TYPE_CLASS
                   || method->parameters[i]->type == IL2CPP_TYPE_GENERICINST);
     if (!valid || show->methodPointer == show_with_callback->methodPointer) {
-      spdlog::warn("Forbidden Tech confirmation unavailable: hook metadata/extent");
+      spdlog::warn("Forbidden Tech confirmation unavailable: hook metadata");
       return;
     }
   }

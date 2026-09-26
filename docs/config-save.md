@@ -98,7 +98,6 @@ to recreate the user's file from cached content.
 Runtime persistence supports Windows x64 and macOS clients with compatible Unity quit methods.
 The adapter resolves `Internal_ApplicationWantsToQuit()` and `Quit(int)` by their
 complete managed signatures, without pinning client addresses or instruction bytes.
-On macOS the loaded quit method must also pass native extent/prologue validation.
 Incompatible bindings retain session-only changes with a save-failure notice.
 The adapter is idempotent, allowing native settings and keyboard consumers to
 request the same persistence lifecycle.

@@ -2,8 +2,6 @@
 #include "interop.h"
 #include <il2cpp/runtime.h>
 #include "settings/page_catalog.h"
-#include "settings/windows_hook_extent.h"
-#include "patches/native_hook_extent.h"
 #include <cstring>
 #include <spdlog/spdlog.h>
 
@@ -146,17 +144,6 @@ bool HasLabel(Il2CppObject* row, const char* id)
 {
   Root label(Call(row, "get_LabelContext"));
   return label.get() && Equals(Call(label.get(), "get_Identifier"), id);
-}
-bool Extent(const MethodInfo* method)
-{
-#if __APPLE__
-  const bool fits = method && native_hooks::MacHookFits(reinterpret_cast<const void*>(method->methodPointer));
-  if (!fits)
-    spdlog::warn("[ModSettings] Mac hook rejected: {}", method ? method->name : "missing method");
-  return fits;
-#else
-  return method && WindowsHookFits(method->methodPointer);
-#endif
 }
 
 } // namespace mod_settings::native

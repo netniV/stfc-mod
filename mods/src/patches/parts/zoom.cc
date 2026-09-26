@@ -2,8 +2,6 @@
 #include "errormsg.h"
 #include "settings/camera_settings.h"
 #include "settings/fleet_labels.h"
-#include "settings/windows_hook_extent.h"
-#include "patches/native_hook_extent.h"
 #include <il2cpp/method_contract.h>
 
 #include <patches/mapkey.h>
@@ -662,9 +660,7 @@ void InstallZoomHooks()
       && zoom_level_field && !(zoom_level_field->type->attrs & FIELD_ATTRIBUTE_STATIC)
       && method_contract::Type(zoom_level_field->type, "Digit.Prime.Navigation.ZoomLevels")
       && normalized_zoom_property
-      && method_contract::Resolve(navigation_zoom_class, "get_NormalizedZoom", false, "System.Single", {})
-      && native_hooks::MacHookFits(method_contract::Pointer(fleet_lod_method))
-      && native_hooks::MacHookFits(method_contract::Pointer(fleet_update));
+      && method_contract::Resolve(navigation_zoom_class, "get_NormalizedZoom", false, "System.Single", {});
 #endif
 #if (defined(_WIN32) && defined(_M_X64)) || defined(__APPLE__)
   // Install once so native settings can switch away from Native during play.
@@ -778,11 +774,7 @@ void InstallZoomHooks()
     const std::array targets{ptr_update_lod, ptr_on_enable, ptr_on_disable, ptr_on_did_bind_context,
                              ptr_on_about_to_release_context};
     for (std::size_t i = 0; i < targets.size(); ++i) {
-#if __APPLE__
-      fleet_label_dependencies_valid &= native_hooks::MacHookFits(targets[i]);
-#else
-      fleet_label_dependencies_valid &= mod_settings::WindowsHookFits(targets[i]);
-#endif
+      fleet_label_dependencies_valid &= targets[i] != nullptr;
       for (std::size_t j = 0; j < i; ++j)
         fleet_label_dependencies_valid &= targets[i] != targets[j];
     }
