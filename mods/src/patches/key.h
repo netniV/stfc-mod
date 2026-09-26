@@ -28,6 +28,13 @@ public:
 
   static bool Pressed(KeyCode key);
   static bool Down(KeyCode key);
+  // Capture alone uses raw cached input. Every ordinary Key consumer observes
+  // the same suppression, including continuous zoom/pan and console shortcuts.
+  static bool        RawPressed(KeyCode key);
+  static bool        RawDown(KeyCode key);
+  inline static bool shortcutCaptureActive = false; // Game thread only.
+  inline static bool shortcutPopupActive = false; // Includes preview, not just capture.
+  static std::string Token(KeyCode key);
 
   static void ClaimDirectionalInput(KeyCode key);
   static bool IsDirectionalInputClaimed();
