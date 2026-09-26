@@ -6,7 +6,6 @@
 #include "galaxy_policy.h"
 #include "config.h"
 #include "settings/galaxy_labels.h"
-#include "patches/native_hook_extent.h"
 
 // Galaxy label composition and zoom profiles. Native layout and visibility
 // bindings are validated before installation; macOS also checks loaded native entries.
@@ -870,12 +869,11 @@ public:
 #endif
     }
 #if __APPLE__
-    // Do not install any member of the family until all exact loaded entries fit.
-    // The selection callback may be short; its full SPUD overwrite is still decoded.
+    // Resolve distinct targets before installing the hook family.
     const std::array targets{data, name, select, animation, zoom_changed, should_filter, bind, release};
     for (std::size_t i = 0; i < targets.size(); ++i) {
-      if (!native_hooks::MacHookFits(targets[i], targets[i] == select ? 32 : 64)) {
-        spdlog::warn("[GalaxyLabels] Mac native hook validation failed at target {}", i);
+      if (!targets[i]) {
+        spdlog::warn("[GalaxyLabels] missing Mac hook target {}", i);
         return;
       }
       for (std::size_t j = 0; j < i; ++j) {

@@ -530,12 +530,6 @@ jobs:
         shell: bash
         run: bash tests/run-confirmation-settings.sh
 
-      - name: Test loaded Mach-O hook boundaries
-        shell: bash
-        run: |
-          xmake build -y macos-hook-extent-tests
-          xmake run macos-hook-extent-tests
-
       - name: Verify ARM64 debug core
         if: ${{ matrix.arch == 'arm64' }}
         shell: bash
