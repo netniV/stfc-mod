@@ -362,7 +362,7 @@ void InstallActionWidgets()
       for (auto* target : {action.refresh, action.release}) {
         if (!Instance(target, 0, IL2CPP_TYPE_VOID)
             || action.refresh->methodPointer == action.release->methodPointer)
-          throw std::runtime_error("settings command hook extent");
+          throw std::runtime_error("settings command hook metadata or shared target");
         for (auto* existing :
              {ToggleMeta().refresh, ToggleMeta().changed, ToggleMeta().release, ToggleMeta().addGeneral,
               ToggleMeta().reload, ToggleMeta().session, ToggleMeta().load, m.bind, m.release, m.selected, m.destroyed})
