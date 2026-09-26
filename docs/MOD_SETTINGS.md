@@ -96,8 +96,8 @@ An unavailable action-widget family leaves controls usable and save details in
 the log. Failure notices never create otherwise-empty groups.
 
 There is no new polling hook, save worker or global localization hook.
-Platform guards and native method extent checks remain part of installation;
-macOS installs the same settings adapter behind its Mach-O extent gates, while
+Platform guards, managed signature checks and hook ownership checks remain part
+of installation. Windows and macOS use the same settings adapter, while
 layout-aware capture is Windows-only and macOS uses physical keys.
 Platform builds alone do not establish runtime compatibility.
 

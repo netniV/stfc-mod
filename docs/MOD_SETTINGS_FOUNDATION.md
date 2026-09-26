@@ -95,10 +95,9 @@ only a live widget's explicit change handler can submit its displayed snapshot.
 Reflection and refresh callbacks cannot authorize writes. This does not claim a
 general managed-method registration API.
 
-All seven hook bodies are preflighted for signatures, distinct addresses, exact
-Windows unwind-table entries and at least 64 bytes of native extent. Hooks remain
-inert until installation completes. Other platforms omit this control; support
-awaits their own native extent and runtime evidence.
+All seven hooks resolve managed signatures and require distinct target addresses.
+Hooks remain inert until installation completes. The native control supports
+Windows x64 and macOS; other platforms omit it.
 
 Additional standalone tests:
 

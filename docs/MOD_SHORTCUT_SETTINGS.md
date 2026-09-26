@@ -156,14 +156,13 @@ existing frame dispatcher for focus, lifetime and confirmation checks only while
 open, plus navigation restoration after dismissal; it does no idle key scan.
 An unchanged visible list is not rebound.
 
-The reused command-widget detours install only where runtime extent checks pass.
+The reused command-widget detours resolve managed signatures and require distinct targets.
 On client build261 (GameAssembly SHA256
 487af4bb9c697c353be9714359a97dddcece5dab872622a6c498a27bbfc44f40),
 ButtonAndTextOptionWidget.SetWidgetData spans CFD5F0..CFD8A5 (693 bytes), and
 OnAboutToReleaseContext spans CFD430..CFD53F (271 bytes). Both were checked against
-the PE unwind table and disassembly; SPUD reserves 24 bytes. Runtime metadata and
-extent checks still gate installation on Windows; macOS resolves the same methods
-from runtime metadata and gates each install with the Mach-O extent check. Capture
+the PE unwind table and disassembly; SPUD reserves 24 bytes. These are historical
+measurements. Windows and macOS resolve the same methods from runtime metadata. Capture
 on macOS stays in physical keyboard mode; `keyboard_layout_mode = "layout"` remains
 Windows-only and reports `platform_unsupported` elsewhere. No additional ScreenManager detour is
 installed: recording uses its existing dispatcher and does no idle input scan.

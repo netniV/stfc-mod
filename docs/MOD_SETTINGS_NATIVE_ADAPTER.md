@@ -8,7 +8,7 @@ presentation. Feature adapters own live values and persistence.
 | File under `mods/src/` | Responsibility |
 | --- | --- |
 | `patches/parts/mod_settings.cc` | Install core value/session hooks, then optional navigation. A navigation failure leaves native confirmation controls available. |
-| `settings/native/interop.*` | Managed invocation, temporary roots, weak handles, signature/extent checks and bounded list access. No feature state or hook installation. |
+| `settings/native/interop.*` | Managed invocation, temporary roots, weak handles, signature checks and bounded list access. No feature state or hook installation. |
 | `settings/native/value_widgets.*` | Boolean, choice and slider metadata; live view records; guarded render/write/readback; confirmation placement and session invalidation. Installs value/session hooks. |
 | `settings/native/value_widget_record.h` | Private lifetime record shared with value-widget styling. Navigation queries busy state without borrowing these records. |
 | `settings/native/page_navigation.*` | Immutable plan, fresh page construction, navigation/Back, conditional sections, folding, summaries and heading hooks. Owns page-departure callbacks and coordinates optional widget installation. |
@@ -31,9 +31,9 @@ installed by exactly one module. XMake's existing `src/**.cc` rule builds them.
   existing ScreenManager dispatcher; its callback returns immediately when idle.
 - Feature-owned page-departure callbacks cancel editor visits. Row recycling
   only releases presentation; it must not discard drafts during scrolling.
-- Startup metadata/extent checks, overlap checks, activation gates and install
-  order are preserved. Native support covers Windows x64 and macOS, with
-  platform-specific native extent checks. Other platforms retain the no-op entry point.
+- Startup metadata checks, overlap checks, activation gates and install
+  order are preserved. Native support covers Windows x64 and macOS.
+  Other platforms retain the no-op entry point.
 - Disabled slider wording belongs to the feature. Fleet Labels supplies
   `Select Threshold`; other controls do not inherit that instruction. See
   [the current state contract](MOD_SETTINGS.md).
