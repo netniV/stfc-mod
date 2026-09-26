@@ -8,7 +8,7 @@
 #include "settings/galaxy_labels.h"
 
 // Galaxy label composition and zoom profiles. Native layout and visibility
-// bindings are validated before installation; macOS also checks loaded native entries.
+// bindings are validated before installation.
 #if (defined(_WIN32) && defined(_M_X64)) || defined(__APPLE__)
 #include <array>
 #include <cstring>
