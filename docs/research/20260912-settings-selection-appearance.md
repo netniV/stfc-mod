@@ -46,7 +46,8 @@ selection rows tracked by the mod. It does not run through an Update hook.
 Client SHA256:
 `487af4bb9c697c353be9714359a97dddcece5dab872622a6c498a27bbfc44f40`.
 These measurements cover Windows build261 only and are not proof of macOS
-hook fit; the Mac adapter uses separate loaded-image native checks. Runtime checks must verify release/drag-out behavior,
+hook fit. The Mac adapter now resolves managed metadata without loaded-image extent
+gates. Runtime checks must verify release/drag-out behavior,
 shortcut readback, selected checkmarks, and restoration of pooled native widgets.
 
 ## Collapsible section binding

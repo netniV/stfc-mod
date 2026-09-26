@@ -119,15 +119,15 @@ Exact Windows build261 unwind extents, checked before expanding installation:
 | TextOptionWidget.ClearWidgetData | D0A680 | 271 |
 | Selectable.DoStateTransition | 47A9650 | 805 |
 
-These exceed the bundled x64 SPUD 24-byte overwrite. Runtime also rejects tiny
-or interior entries using unwind metadata. Client SHA256:
+These historical measurements exceed the bundled x64 SPUD 24-byte overwrite.
+Installation resolves current targets through managed metadata. Measured client SHA256:
 `487af4bb9c697c353be9714359a97dddcece5dab872622a6c498a27bbfc44f40`.
 This is Windows evidence, not proof of macOS hook fit or native widget behavior.
 
 ## Camera and previews
 
-Keyboard zoom speed offers 0–1000 in steps of 25 with whole-number labels. Pan
-glide offers 0–0.99 in steps of 0.01; it retains the existing pan formula. These
+Keyboard zoom speed offers 0â€“1000 in steps of 25 with whole-number labels. Pan
+glide offers 0â€“0.99 in steps of 0.01; it retains the existing pan formula. These
 are UI editing ranges, not new TOML constraints. Out-of-range loaded values are
 preserved and explained rather than clamped. The shared slider path controls
 display precision without writing a loaded value.

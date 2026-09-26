@@ -5,7 +5,7 @@
 
 void InstallNativeSettings()
 {
-  // Check loaded-image extents before installing native UI hooks.
+  // Resolve managed signatures and distinct targets before installing native UI hooks.
 #if (defined(_WIN32) && defined(_M_X64)) || defined(__APPLE__)
   using namespace mod_settings::native;
   try {
