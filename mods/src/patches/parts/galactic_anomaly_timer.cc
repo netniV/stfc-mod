@@ -1,5 +1,7 @@
 #include "config.h"
 #include "patches/screen_update_hook.h"
+#include "prime/Color.h"
+#include "prime/Vector2.h"
 
 #include <il2cpp/il2cpp_helper.h>
 #include <il2cpp-tabledefs.h>
@@ -13,14 +15,8 @@
 namespace
 {
 // All Unity work runs on ScreenManager's main-thread dispatcher. No additional detours.
-struct Vector2 {
-  float x, y;
-};
-struct Color {
-  float r, g, b, a;
-};
-
-// Keep optional timer metadata lookups local so this feature can stand alone.
+// The shared class lookup dereferences missing assemblies. These optional UI
+// classes can be absent after a client update, so check each lookup step.
 Il2CppClass* Class(const char* assembly, const char* ns, const char* name)
 {
   auto* domain = il2cpp_domain_get();
@@ -45,6 +41,8 @@ bool TryInvoke(const MethodInfo* method, void* target, void** args, Il2CppObject
 // Unity has Type/string and generic overloads with the same argument count.
 const MethodInfo* TypeMethod(Il2CppClass* cls, const char* name)
 {
+  // The shared filtered lookup cannot inspect is_generic and only searches
+  // one class. Keep the overload check here so a generic overload cannot win.
   void* iter = nullptr;
   while (cls) {
     while (auto* method = il2cpp_class_get_methods(cls, &iter)) {
@@ -63,15 +61,24 @@ const MethodInfo* TypeMethod(Il2CppClass* cls, const char* name)
 
 Il2CppObject* Get(Il2CppObject* object, const char* name)
 {
-  Il2CppObject* result = nullptr;
-  if (object)
-    TryInvoke(IL2CppClassHelper(object->klass).GetMethodInfo(name, 0), object, nullptr, &result);
-  return result;
+  // Callers pass getter method names. Use the shared property helper for its
+  // virtual dispatch and exception handling, while accepting absent objects.
+  if (!object || std::strncmp(name, "get_", 4))
+    return nullptr;
+  return IL2CppClassHelper(object->klass).GetProperty(name + 4).GetRaw<Il2CppObject>(object);
 }
 
 template <typename T> bool Value(Il2CppObject* object, const char* name, T& value)
 {
-  auto*    boxed     = Get(object, name);
+  // Use the shared property helper for getters. CanShowGalacticAnomaly is an
+  // ordinary method, so invoke it directly. Check either boxed result's size.
+  if (!object)
+    return false;
+  Il2CppObject* boxed = nullptr;
+  if (!std::strncmp(name, "get_", 4))
+    boxed = Get(object, name);
+  else if (!TryInvoke(IL2CppClassHelper(object->klass).GetMethodInfo(name, 0), object, nullptr, &boxed))
+    return false;
   uint32_t alignment = 0;
   if (!boxed || !il2cpp_class_is_valuetype(boxed->klass)
       || il2cpp_class_value_size(boxed->klass, &alignment) != sizeof(T))
@@ -168,7 +175,7 @@ Il2CppObject* Find(Il2CppClass* type)
 Il2CppObject* Component(Il2CppObject* object, Il2CppClass* type)
 { return object ? WithType(TypeMethod(object->klass, "GetComponent"), object, type) : nullptr; }
 
-bool Rect(Il2CppObject* transform, Vector2 anchor, Vector2 pivot, Vector2 size, Vector2 position)
+bool Rect(Il2CppObject* transform, vec2 anchor, vec2 pivot, vec2 size, vec2 position)
 {
   return Set(transform, "set_anchorMin", &anchor) && Set(transform, "set_anchorMax", &anchor)
          && Set(transform, "set_pivot", &pivot) && Set(transform, "set_sizeDelta", &size)
@@ -229,7 +236,7 @@ void Slice(Il2CppObject* image, Il2CppObject* sprite)
   Set(image, "set_pixelsPerUnitMultiplier", &multiplier);
 }
 
-Il2CppObject* Decoration(const char* name, Il2CppObject* parent, Vector2 size, Vector2 position, Color color,
+Il2CppObject* Decoration(const char* name, Il2CppObject* parent, vec2 size, vec2 position, color tint,
                          Il2CppObject* sprite = nullptr)
 {
   Root         object;
@@ -239,7 +246,7 @@ Il2CppObject* Decoration(const char* name, Il2CppObject* parent, Vector2 size, V
       object.get() ? WithType(TypeMethod(object.get()->klass, "AddComponent"), object.get(), imageClass) : nullptr;
   bool no = false, yes = true;
   bool ok = transform && image && Rect(transform, {0.5f, 0.5f}, {0.5f, 0.5f}, size, position)
-            && Set(image, "set_color", &color) && Set(image, "set_raycastTarget", &no);
+            && Set(image, "set_color", &tint) && Set(image, "set_raycastTarget", &no);
   if (sprite)
     ok = ok && Set(image, "set_sprite", sprite);
   ok = ok && Set(object.get(), "SetActive", &yes);
@@ -280,7 +287,7 @@ bool Create(Il2CppObject* nav)
     return false;
   static auto* image      = Class("UnityEngine.UI", "UnityEngine.UI", "Image");
   auto*        background = WithType(TypeMethod(panel.get()->klass, "AddComponent"), panel.get(), image);
-  Color        border{0.64f, 0.34f, 0.46f, 0.85f};
+  color        border{0.64f, 0.34f, 0.46f, 0.85f};
   bool         no = false;
   if (!background || !Set(background, "set_color", &border) || !Set(background, "set_raycastTarget", &no))
     return false;
@@ -304,7 +311,7 @@ bool Create(Il2CppObject* nav)
   bool  ok        = textTransform && text && Rect(textTransform, {0.5f, 0.5f}, {0.5f, 0.5f}, {190, 28}, {0, 0});
   float fontSize  = 22;
   int   alignment = 0x202; // TMP: Center (514).
-  Color color{0.95f, 0.83f, 0.89f, 1};
+  color color{0.95f, 0.83f, 0.89f, 1};
   ok       = ok && Set(text, "set_font", font) && Set(text, "set_fontSize", &fontSize)
              && Set(text, "set_alignment", &alignment) && Set(text, "set_color", &color)
              && Set(text, "set_raycastTarget", &no) && Set(text, "set_enableWordWrapping", &no);
