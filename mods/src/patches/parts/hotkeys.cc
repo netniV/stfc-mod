@@ -1,4 +1,8 @@
 #include "config.h"
+#include "patches/runtime_config.h"
+#include "settings/preview_settings.h"
+#include "settings/shortcut_settings.h"
+#include "settings/warp_mode.h"
 
 #include <spud/detour.h>
 
@@ -68,6 +72,13 @@
 
 static bool reset_focus_next_frame = false;
 static int  show_info_pending      = 0;
+static bool preview_shortcuts_ready = false;
+static bool cargo_bind_ready = false, cargo_scan_ready = false;
+
+bool mod_settings::PreviewShortcutsAvailable()
+{ return preview_shortcuts_ready; }
+bool mod_settings::CargoPreviewsAvailable()
+{ return cargo_bind_ready && cargo_scan_ready; }
 
 using GetShowKeybindingsFn     = bool(void*);
 using SetShowKeybindingsFn     = void(void*, bool);
@@ -92,6 +103,8 @@ static ptrdiff_t                  shortcut_hint_text_localizer_offset = 0;
 static bool                       shortcut_hint_fields_ready          = false;
 static bool                       initialize_actions_hook_ready       = false;
 static bool                       shortcut_hints_ready                = false;
+bool                              mod_settings::ShortcutHintControlAvailable()
+{ return shortcut_hints_ready; }
 
 bool SetNativeShortcutHintsVisible(bool visible)
 {
@@ -322,27 +335,6 @@ void     GotoSection(SectionID sectionID, void* screen_data = nullptr);
 bool     CanHideViewers();
 bool     DidHideViewers();
 
-void CycleAutoConfirmInstantWarp(Config& config)
-{
-  const char* state = nullptr;
-  switch (config.auto_confirm_instant_warp) {
-    case InstantWarpConfirmation::None:
-      config.auto_confirm_instant_warp = InstantWarpConfirmation::Warp;
-      state                            = "warp";
-      break;
-    case InstantWarpConfirmation::Warp:
-      config.auto_confirm_instant_warp = InstantWarpConfirmation::Jump;
-      state                            = "jump";
-      break;
-    case InstantWarpConfirmation::Jump:
-      config.auto_confirm_instant_warp = InstantWarpConfirmation::None;
-      state                            = "none";
-      break;
-  }
-
-  spdlog::info("Auto-confirm instant warp set to {}", state);
-}
-
 bool MoveOfficerCanvas(bool goLeft)
 {
   auto selectors = ObjectFinder<ElementSelectorViewController>::GetAll();
@@ -500,7 +492,12 @@ bool MoveDockInManagementView(bool goLeft)
 
 void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
 {
+  const bool shortcutOwnedInput = Key::shortcutCaptureActive || Key::shortcutPopupActive;
   dispatch_screen_manager_update_callbacks();
+  // Capture owns the key through release, including the native shortcut path.
+  // UI mouse navigation continues through EventSystem.
+  if (shortcutOwnedInput || Key::shortcutCaptureActive || Key::shortcutPopupActive)
+    return;
   if (!Config::Get().installHotkeyHooks) {
     return original(_this);
   }
@@ -557,7 +554,8 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
 
 #ifdef _WIN32
   if (MapKey::IsDown(GameFunction::Quit)) {
-    TerminateProcess(GetCurrentProcess(), 1);
+    runtime_config::ForceClose();
+    return;
   }
 #elif defined(__APPLE__)
   if (MapKey::IsDown(GameFunction::Quit)) {
@@ -647,6 +645,7 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
 
   if (!is_in_chat) {
     if (!Key::IsInputFocused()) {
+
       if (MapKey::IsDown(GameFunction::SelectCurrent)) {
         auto fleet_bar = ObjectFinder<FleetBarViewController>::Get();
         if (fleet_bar) {
@@ -801,21 +800,21 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
       } else if (MapKey::IsPressed(GameFunction::UiViewerScaleDown)) {
         config->AdjustUiViewerScale(false);
       } else if (MapKey::IsDown(GameFunction::ToggleAutoConfirmInstantWarp)) {
-        CycleAutoConfirmInstantWarp(*config);
+        mod_settings::CycleWarpMode();
       } else if (MapKey::IsDown(GameFunction::TogglePreviewLocate)) {
-        config->disable_preview_locate = !config->disable_preview_locate;
+        mod_settings::TogglePreviewSetting(mod_settings::PreviewOption::Locate);
       } else if (MapKey::IsDown(GameFunction::TogglePreviewRecall)) {
-        config->disable_preview_recall = !config->disable_preview_recall;
+        mod_settings::TogglePreviewSetting(mod_settings::PreviewOption::Recall);
       } else if (MapKey::IsDown(GameFunction::ToggleCargoDefault)) {
-        config->show_cargo_default = !config->show_cargo_default;
+        mod_settings::TogglePreviewSetting(mod_settings::PreviewOption::Cargo);
       } else if (MapKey::IsDown(GameFunction::ToggleCargoPlayer)) {
-        config->show_player_cargo = !config->show_player_cargo;
+        mod_settings::TogglePreviewSetting(mod_settings::PreviewOption::PlayerCargo);
       } else if (MapKey::IsDown(GameFunction::ToggleCargoStation)) {
-        config->show_station_cargo = !config->show_station_cargo;
+        mod_settings::TogglePreviewSetting(mod_settings::PreviewOption::StationCargo);
       } else if (MapKey::IsDown(GameFunction::ToggleCargoHostile)) {
-        config->show_hostile_cargo = !config->show_hostile_cargo;
+        mod_settings::TogglePreviewSetting(mod_settings::PreviewOption::HostileCargo);
       } else if (MapKey::IsDown(GameFunction::ToggleCargoArmada)) {
-        config->show_armada_cargo = !config->show_armada_cargo;
+        mod_settings::TogglePreviewSetting(mod_settings::PreviewOption::ArmadaCargo);
       } else if (MapKey::IsDown(GameFunction::LogLevelOff)) {
         // spdlog::log("Setting log level to OFF");
         spdlog::set_level(spdlog::level::off);
@@ -1405,9 +1404,8 @@ bool install_screen_manager_update_hook()
   if (!helper.isValidHelper()) {
     ErrorMsg::MissingHelper("UI", "ScreenManager");
   } else if (auto update = helper.GetMethod("Update"); update) {
-    SPUD_STATIC_DETOUR(update, ScreenManager_Update_Hook);
-    installed = true;
-    return true;
+    installed = SPUD_STATIC_DETOUR(update, ScreenManager_Update_Hook);
+    return installed;
   } else {
     ErrorMsg::MissingMethod("ScreenManager", "Update");
   }
@@ -1558,7 +1556,8 @@ void InstallHotkeyHooks()
 
   InstallShortcutHintHooks();
 
-  install_screen_manager_update_hook();
+  preview_shortcuts_ready = install_screen_manager_update_hook();
+  runtime_config::Install();
 #ifdef _MODDBG
   fleet_watch::InstallRuntimeProbe();
 #endif
@@ -1573,7 +1572,7 @@ void InstallHotkeyHooks()
     if (on_did_bind_context_ptr == nullptr) {
       ErrorMsg::MissingMethod("RewardsButtonWidget", "OnDidBindContext");
     } else {
-      SPUD_STATIC_DETOUR(on_did_bind_context_ptr, OnDidBindContext_Hook);
+      cargo_bind_ready = SPUD_STATIC_DETOUR(on_did_bind_context_ptr, OnDidBindContext_Hook);
     }
   }
 
@@ -1587,7 +1586,7 @@ void InstallHotkeyHooks()
     if (show_with_fleet_ptr == nullptr) {
       ErrorMsg::MissingMethod("PreScanTargetWidget", "ShowWithFleet");
     } else {
-      SPUD_STATIC_DETOUR(show_with_fleet_ptr, ShowWithFleet_Hook);
+      cargo_scan_ready = SPUD_STATIC_DETOUR(show_with_fleet_ptr, ShowWithFleet_Hook);
     }
   }
 }

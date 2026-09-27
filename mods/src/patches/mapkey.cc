@@ -1,10 +1,12 @@
 #include "mapkey.h"
 #include "gamefunctions.h"
 #include "key.h"
+#include "keyboard_layout.h"
 #include "modifierkey.h"
 #include "str_utils.h"
 #include <prime/KeyCode.h>
 
+#include <algorithm>
 #include <array>
 #include <iostream>
 #include <string>
@@ -61,6 +63,7 @@ constexpr auto kCompactShortcutTokenMappings = std::to_array<CompactShortcutToke
     {"DELETE", "DEL"},
     {"MINUS", "-"},
     {"EQUAL", "="},
+    {"PIPE", "|"},
     {"LEFT", "LT"},
     {"RIGHT", "RT"},
     {"UP", "UP"},
@@ -202,14 +205,40 @@ void MapKey::AddMappedKey(GameFunction gameFunction, MapKey mappedKey)
   MapKey::mappedKeys[gameFunction].emplace_back(std::move(mappedKey));
 }
 
+void MapKey::RegisterAction(GameFunction gameFunction, std::string_view key, std::string_view defaultBinding)
+{ definitions.at(static_cast<std::size_t>(gameFunction)) = {std::string(key), std::string(defaultBinding)}; }
+
+const MapKey::ActionDefinition& MapKey::Definition(GameFunction gameFunction)
+{ return definitions.at(static_cast<std::size_t>(gameFunction)); }
+
+const std::vector<MapKey>& MapKey::Bindings(GameFunction gameFunction)
+{ return mappedKeys.at(static_cast<std::size_t>(gameFunction)); }
+
+bool MapKey::ReplaceBindings(GameFunction gameFunction, std::vector<MapKey> bindings)
+{
+  if (gameFunction < 0 || gameFunction >= GameFunction::Max)
+    return false;
+  for (const auto& binding : bindings)
+    if (binding.Key == KeyCode::None)
+      return false;
+  if (!bindings.empty())
+    bindings.front().shortcutHint = CompactShortcutForHint(bindings.front().Shortcuts);
+  for (const auto& binding : bindings)
+    keyboard_layout::RegisterShortcut(binding.Key);
+  mappedKeys[gameFunction].swap(bindings);
+  return true;
+}
+
 bool MapKey::IsPressed(GameFunction gameFunction)
 {
   const auto &mapKeys = MapKey::mappedKeys[(int)gameFunction];
   for (const MapKey &mapKey : mapKeys) {
-    if (mapKey.Key != KeyCode::None) {
-      if (Key::Pressed(mapKey.Key)) {
-        if (MapKey::HasCorrectModifiers(mapKey)) {
-          if (mapKey.hasModifiers) {
+    const auto chord = keyboard_layout::ResolveChord(mapKey.Key);
+    const auto key = chord.key;
+    if (key != KeyCode::None) {
+      if (Key::Pressed(key)) {
+        if (MapKey::HasCorrectModifiers(mapKey, chord.shift)) {
+          if (mapKey.hasModifiers || chord.shift) {
             Key::ClaimDirectionalInput(mapKey.Key);
           }
           return true;
@@ -225,10 +254,12 @@ bool MapKey::IsDown(GameFunction gameFunction)
 {
   const auto &mapKeys = MapKey::mappedKeys[(int)gameFunction];
   for (const MapKey &mapKey : mapKeys) {
-    if (mapKey.Key != KeyCode::None) {
-      if (Key::Down(mapKey.Key)) {
-        if (MapKey::HasCorrectModifiers(mapKey)) {
-          if (mapKey.hasModifiers) {
+    const auto chord = keyboard_layout::ResolveChord(mapKey.Key);
+    const auto key = chord.key;
+    if (key != KeyCode::None) {
+      if (Key::Down(key)) {
+        if (MapKey::HasCorrectModifiers(mapKey, chord.shift)) {
+          if (mapKey.hasModifiers || chord.shift) {
             Key::ClaimDirectionalInput(mapKey.Key);
           }
           return true;
@@ -240,13 +271,28 @@ bool MapKey::IsDown(GameFunction gameFunction)
   return false;
 }
 
-bool MapKey::HasCorrectModifiers(const MapKey& mapKey)
+bool MapKey::HasCorrectModifiers(const MapKey& mapKey, bool requiredShift)
 {
+  if (requiredShift && !Key::Pressed(KeyCode::LeftShift) && !Key::Pressed(KeyCode::RightShift))
+    return false;
   auto        result  = false;
   std::string section = "non set";
   if (!mapKey.hasModifiers) {
     section = "no modifiers";
     result  = !Key::IsModified();
+    if (requiredShift) {
+      // Shift is part of typing this character. Other modifiers still prevent
+      // an unmodified action from stealing Ctrl/Alt/Command shortcuts.
+      result = true;
+      for (auto key : {KeyCode::LeftControl, KeyCode::RightControl, KeyCode::LeftAlt, KeyCode::RightAlt,
+                       KeyCode::AltGr, KeyCode::LeftCommand, KeyCode::RightCommand,
+                       KeyCode::LeftWindows, KeyCode::RightWindows}) {
+        if (Key::Pressed(key)) {
+          result = false;
+          break;
+        }
+      }
+    }
   } else {
     result = true;
     for (const ModifierKey& modifier : mapKey.Modifiers) {
@@ -267,6 +313,43 @@ bool MapKey::HasCorrectModifiers(const MapKey& mapKey)
   return result;
 }
 
+bool MapKey::SameBinding(const MapKey& first, const MapKey& second)
+{
+  const auto containsAll = [](const auto& first, const auto& second) {
+    return std::all_of(first.begin(), first.end(), [&](const auto& modifier) {
+      return std::find(second.begin(), second.end(), modifier) != second.end();
+    });
+  };
+  return first.Key != KeyCode::None && first.Key == second.Key && containsAll(first.Modifiers, second.Modifiers)
+         && containsAll(second.Modifiers, first.Modifiers);
+}
+
+bool MapKey::MayOverlap(const MapKey& first, const MapKey& second)
+{
+  const auto a = keyboard_layout::DescribeChord(first.Key);
+  const auto b = keyboard_layout::DescribeChord(second.Key);
+  if (a.key == KeyCode::None || a.key != b.key)
+    return false;
+
+  // Keep this aligned with HasCorrectModifiers: explicit modifiers are minimum
+  // requirements, so holding their union can satisfy both (including both sides).
+  if (first.hasModifiers && second.hasModifiers)
+    return true;
+  if (!first.hasModifiers && !second.hasModifiers)
+    return a.shift == b.shift;
+
+  // Bare bindings reject modifiers, except Shift required to type a character.
+  // Thus plain I cannot overlap SHIFT-I; a layout's bare '/' may overlap SHIFT-7.
+  const auto& modified = first.hasModifiers ? first : second;
+  const auto  bare     = first.hasModifiers ? b : a;
+  if (!bare.shift)
+    return false;
+  for (const auto& modifier : modified.Modifiers)
+    if (!modifier.Contains(KeyCode::LeftShift) && !modifier.Contains(KeyCode::RightShift))
+      return false;
+  return true;
+}
+
 std::string MapKey::GetParsedValues() const
 {
   std::string output = "";
@@ -281,3 +364,4 @@ std::string MapKey::GetParsedValues() const
 }
 
 std::array<std::vector<MapKey>, (int)GameFunction::Max> MapKey::mappedKeys = {};
+std::array<MapKey::ActionDefinition, (int)GameFunction::Max> MapKey::definitions = {};

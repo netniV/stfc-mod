@@ -1,6 +1,9 @@
 #include "config.h"
+#include "config_save.h"
+#include "patches/runtime_config.h"
 #include "file.h"
 #include "patches/mapkey.h"
+#include "patches/keyboard_layout.h"
 #include "prime/KeyCode.h"
 #include "ship_name_match.h"
 #include "str_utils.h"
@@ -93,10 +96,10 @@ Config::Config()
 
 void Config::Save(const toml::table& config, const std::string_view filename, bool apply_warning)
 {
-  std::ofstream config_file;
+  std::ostringstream config_file;
 
   auto config_path = File::MakePath(filename, true);
-  config_file.open(config_path);
+  config_file.exceptions(std::ios::badbit | std::ios::failbit);
 
   if (apply_warning) {
     char defaultFile[255], configFile[255];
@@ -118,8 +121,7 @@ void Config::Save(const toml::table& config, const std::string_view filename, bo
     config_file << "#######################################################################\n\n";
   }
 
-  config_file << config;
-  config_file.close();
+  SaveConfigDocument(config, std::filesystem::path(config_path), config_file.str());
 }
 
 Config& Config::Get()
@@ -673,6 +675,7 @@ void set_shortcut_noop(toml::node_view<toml::node> sectionTable, toml::node_view
 void parse_config_shortcut_value(toml::table& new_config, std::string_view item, GameFunction gameFunction,
                                  std::string_view default_value, const ShortcutConfigValue& shortcut_value)
 {
+  MapKey::RegisterAction(gameFunction, item, default_value);
   auto section = "shortcuts";
   auto source  = "shortcuts_source";
 
@@ -709,6 +712,7 @@ void parse_config_shortcut_value(toml::table& new_config, std::string_view item,
 
     if (mapKey.Key != KeyCode::None) {
       keyAdded = true;
+      keyboard_layout::RegisterShortcut(mapKey.Key);
       MapKey::AddMappedKey(gameFunction, std::move(mapKey));
     } else if (!wantedKey.empty()) {
       spdlog::warn("Invalid shortcut token [shortcuts].{} token='{}' value='{}'; ignoring token.",
@@ -937,6 +941,14 @@ void Config::Load()
       get_config_or_default(config, parsed, "control", "hotkeys_extended", DCC::hotkeys_extended, write_config);
   this->use_scopely_hotkeys =
       get_config_or_default(config, parsed, "control", "use_scopely_hotkeys", DCC::use_scopely_hotkeys, write_config);
+  this->keyboard_layout_mode = get_config_or_default(
+      config, parsed, "control", "keyboard_layout_mode", std::string(DCC::keyboard_layout_mode), write_config);
+  if (this->keyboard_layout_mode != "physical" && this->keyboard_layout_mode != "layout") {
+    spdlog::warn("Invalid keyboard_layout_mode '{}'; using physical", this->keyboard_layout_mode);
+    this->keyboard_layout_mode = "physical";
+    parsed["control"].as_table()->insert_or_assign("keyboard_layout_mode", this->keyboard_layout_mode);
+  }
+  keyboard_layout::Configure(this->keyboard_layout_mode);
   this->select_timer =
       get_config_or_default(config, parsed, "control", "select_timer", DCC::select_timer, write_config);
   this->enable_experimental =
@@ -1042,6 +1054,8 @@ void Config::Load()
   this->auto_confirm_instant_warp =
       get_auto_confirm_instant_warp(config, parsed, DCU::auto_confirm_instant_warp, write_config);
   this->installInstantWarpConfirmationHooks = true;
+  // Internal installation switch; UI availability is checked by the native adapter.
+  this->installNativeSettings = true;
   read_instant_warp_filter(config, parsed, "instant_warp_auto_jump", this->instant_warp_auto_jump,
                            this->instant_warp_auto_jump_all, DCU::instant_warp_auto_jump, write_config);
   read_instant_warp_filter(config, parsed, "instant_warp_auto_warp", this->instant_warp_auto_warp,
@@ -1415,8 +1429,15 @@ void Config::Load()
     message << "Creating " << File::Config() << " (default config file)";
     spdlog::warn(message.str());
 
-    Config::Save(parsed, File::Config(), false);
+    try {
+      Config::Save(parsed, File::Config(), false);
+      config = parsed; // First runtime comparison must match the file just created.
+    } catch (const std::exception& error) {
+      spdlog::error("Could not save default config: {}", error.what());
+    }
   }
+
+  runtime_config::Configure(config);
 
   message.str("");
   message << "Creating " << File::Vars() << " (final config file)";
@@ -1430,7 +1451,12 @@ void Config::Load()
     std::filesystem::remove(FILE_DEF_PARSED);
   }
 
-  Config::Save(parsed, File::Vars());
+  keyboard_layout::InitializeDiagnostics(parsed);
+  try {
+    Config::Save(parsed, File::Vars());
+  } catch (const std::exception& error) {
+    spdlog::error("Could not save runtime config: {}", error.what());
+  }
 
   std::cout << "\n\n-----------------------------\n\n"
             << parsed << "\n\n-----------------------------\nVersion "
