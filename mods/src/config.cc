@@ -922,6 +922,8 @@ void Config::Load()
       config, parsed, "patches", "dailyfactionbulkclaimhooks", DCP::dailyfactionbulkclaimhooks, write_config);
   this->installFocusSearchHooks =
       get_config_or_default(config, parsed, "patches", "focussearch", DCP::focussearch, write_config);
+  this->installInstantCargoCounterHooks =
+      get_config_or_default(config, parsed, "patches", "instantcargocounterhooks", DCP::instantcargocounterhooks, write_config);
   this->installCargoFormatHooks =
       get_config_or_default(config, parsed, "patches", "cargoformathooks", DCP::cargoformathooks, write_config);
   this->installOfficerSortHooks =
@@ -1087,6 +1089,8 @@ void Config::Load()
   this->show_armada_cargo =
       get_config_or_default(config, parsed, "ui", "show_armada_cargo", DCU::show_armada_cargo, write_config);
 
+  this->instant_cargo_counter =
+      get_config_or_default(config, parsed, "ui", "instant_cargo_counter", DCU::instant_cargo_counter, write_config);
   this->cargo_significant_decimals =
       get_config_or_default(config, parsed, "ui", "cargo_significant_decimals", DCU::cargo_significant_decimals, write_config);
 

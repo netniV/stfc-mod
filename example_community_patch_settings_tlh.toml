@@ -249,6 +249,7 @@ zoom = 5000.0
 # Enable the buff fixes
 bufffixhooks = true
 cargoformathooks = true
+instantcargocounterhooks = true
 chatpatches = true
 
 # Enable per-faction bulk claiming for Daily Goals
@@ -765,6 +766,10 @@ hud_q_trials = "auto"
 
 # Decimal places used for abbreviated cargo values
 cargo_significant_decimals = 2
+
+# Show cargo used/capacity immediately instead of counting up. Restart after changing.
+# Windows client 263 only; other builds keep native behavior.
+instant_cargo_counter = true
 
 # Stop locate working ghorgh Duj pagh node previews are displayed
 disable_preview_locate = false
