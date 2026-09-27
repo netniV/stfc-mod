@@ -203,6 +203,10 @@ namespace Shortcuts
 
 namespace Sync
 {
+  constexpr const char* stfcdata_url       = "https://sync.stfcdata.de";
+  constexpr const char* spocksclub_url     = "https://spocks.club/sync/ingress/";
+  constexpr const char* nextspocksclub_url = "https://next.spocks.club/sync/ingress/";
+
   constexpr bool        battlelogs         = true;
   constexpr bool        buffs              = true;
   constexpr bool        buildings          = true;

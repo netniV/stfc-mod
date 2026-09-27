@@ -7,7 +7,7 @@
 #  |    #***     #    #       #***         #   *   #**    #***    | 
 #  |                                                              | 
 #  +--------------------------------------------------------------+ 
-#   Généré le 2026-09-17T11:10:54.258Z
+#   Généré le 2026-09-27T19:44:17.179Z
 #   
 #   Ce fichier de configuration a été généré par https://modconfig.pages.dev
 #   et est fourni tel quel. En cas de problème avec le STFC Community Mod,
@@ -17,7 +17,7 @@
 #       Discord : https://discord.gg/PrpHgs7Vjs
 #       GitHub  : https://github.com/netniV/stfc-mod
 #   
-#   Le fichier de configuration du jour vous est présenté par la lettre A et le nombre 7
+#   Le fichier de configuration du jour vous est présenté par la lettre Y et le nombre 7
 #   
 
 #  <[=======================================]> 
@@ -285,8 +285,6 @@ zoomhooks = true
 #  <[==================================================================================================================================]> 
 
 [shortcuts]
-
-# Utilisez "" ou "NONE" pour désactiver un raccourci. Les valeurs absentes ou invalides utilisent la touche par défaut.
 
 # Subgroup: Cargo & Locate
 # ------------------------
@@ -858,12 +856,6 @@ logging = false
 # L'url du serveur à travers lequel faire passer la connexion
 proxy = ""
 
-# Le jeton utilisé pour l'authentification
-token = ""
-
-# L'url du serveur vers lequel envoyer les données
-url = ""
-
 # Subgroup: Network
 # -----------------
 
@@ -883,7 +875,23 @@ verify_ssl = true
 #                                                                                                                                                                                                 
 #  <[==========================================================================================================================================================================================]> 
 
+[sync.targets.stfcdata]
+token = ""
+url = "https://sync.stfcdata.de"
+
+#  <[==========================================================================================================================================================================================]> 
+#                                                                                                                                                                                                 
+#        ***           *       *                                    *                                            *                             *                   *       *                      
+#       *   *  ****   ***            ***   ***     ****             *   ***           ****  *   *  ***     ***   *      ***     ***   ***            ****   ***   ***            ***   ***        
+#       *   *  *   *   *       *    *   *  *  *   **             ****  * **          **      ****  *  *   *      ****   *   *  *   *  *  *     *    **         *   *       *    *   *  *  *       
+#       *   *  ****    *       *    *   *  *  *     **          *   *  *               **       *  *  *   *      *   *  *      *   *  *  *     *      **    ****   *       *    *   *  *  *       
+#        ***   *       **      *     ***   *  *   ***            ****   ****         ***     ***   *  *    ***   *   *  *       ***   *  *     *    ***     ****   **      *     ***   *  *       
+#                                                                                                                                                                                                 
+#  <[==========================================================================================================================================================================================]> 
+
 [sync.targets.nextspocksclub]
+token = ""
+url = "https://next.spocks.club/sync/ingress/"
 
 #  <[==========================================================================================================================================================================================]> 
 #                                                                                                                                                                                                 
@@ -896,3 +904,5 @@ verify_ssl = true
 #  <[==========================================================================================================================================================================================]> 
 
 [sync.targets.spocksclub]
+token = ""
+url = "https://spocks.club/sync/ingress/"
