@@ -7,7 +7,7 @@
 #  |    #***     #    #       #***         #   *   #**    #***    | 
 #  |                                                              | 
 #  +--------------------------------------------------------------+ 
-#   Gegenereerd op 2026-09-17T11:10:54.248Z
+#   Gegenereerd op 2026-09-27T19:44:17.171Z
 #   
 #   Dit configuratiebestand is gegenereerd door https://modconfig.pages.dev
 #   en wordt geleverd zoals het is. Meld problemen met de STFC Community Mod,
@@ -17,7 +17,7 @@
 #       Discord : https://discord.gg/PrpHgs7Vjs
 #       GitHub  : https://github.com/netniV/stfc-mod
 #   
-#   Het configuratiebestand van vandaag wordt u aangeboden door de letter U en het getal 2
+#   Het configuratiebestand van vandaag wordt u aangeboden door de letter C en het getal 8
 #   
 
 #  <[=======================================]> 
@@ -286,8 +286,6 @@ zoomhooks = true
 #  <[=================================================================================]> 
 
 [shortcuts]
-
-# Gebruik "" of "NONE" om een sneltoets uit te schakelen. Ontbrekende of ongeldige waarden gebruiken de standaardtoets.
 
 # Subgroup: Cargo & Locate
 # ------------------------
@@ -863,12 +861,6 @@ logging = false
 # De url van de proxyserver die je wilt gebruiken om de verbinding door te sturen
 proxy = ""
 
-# De token dat gebruikt wordt voor de authenticatie
-token = ""
-
-# De url van de server waar je data naartoe wilt verzenden
-url = ""
-
 # Subgroup: Network
 # -----------------
 
@@ -888,7 +880,23 @@ verify_ssl = true
 #                                                                                                                                  
 #  <[===========================================================================================================================]> 
 
+[sync.targets.stfcdata]
+token = ""
+url = "https://sync.stfcdata.de"
+
+#  <[===========================================================================================================================]> 
+#                                                                                                                                  
+#        ****                              *****                 *              *      *      *                                    
+#       *      *   *  ***     ***            *    ***     ****  ***     ***     *      *           ***     ****   ***   ***        
+#        ***    ****  *  *   *               *    *  *   **      *     * **     *      *      *    *  *   *   *  * **   *  *       
+#           *      *  *  *   *               *    *  *     **    *     *        *      *      *    *  *    ****  *      *  *       
+#       ****    ***   *  *    ***          *****  *  *   ***     **     ****    *      *      *    *  *    ***    ****  *  *       
+#                                                                                                                                  
+#  <[===========================================================================================================================]> 
+
 [sync.targets.nextspocksclub]
+token = ""
+url = "https://next.spocks.club/sync/ingress/"
 
 #  <[===========================================================================================================================]> 
 #                                                                                                                                  
@@ -901,3 +909,5 @@ verify_ssl = true
 #  <[===========================================================================================================================]> 
 
 [sync.targets.spocksclub]
+token = ""
+url = "https://spocks.club/sync/ingress/"
