@@ -1,4 +1,5 @@
 #include "config.h"
+#include "patches/runtime_config.h"
 
 #include <spud/detour.h>
 
@@ -339,6 +340,7 @@ void CycleAutoConfirmInstantWarp(Config& config)
   }
 
   spdlog::info("Auto-confirm instant warp set to {}", state);
+  runtime_config::SaveWarpMode(state);
 }
 
 bool MoveOfficerCanvas(bool goLeft)
@@ -497,7 +499,8 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
 
 #ifdef _WIN32
   if (MapKey::IsDown(GameFunction::Quit)) {
-    TerminateProcess(GetCurrentProcess(), 1);
+    runtime_config::ForceClose();
+    return;
   }
 #elif defined(__APPLE__)
   if (MapKey::IsDown(GameFunction::Quit)) {
@@ -1497,6 +1500,7 @@ void InstallHotkeyHooks()
   InstallShortcutHintHooks();
 
   install_screen_manager_update_hook();
+  runtime_config::Install();
 #ifdef _MODDBG
   fleet_watch::InstallRuntimeProbe();
 #endif
