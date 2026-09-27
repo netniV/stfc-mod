@@ -11,6 +11,12 @@ namespace Audio
 {
   constexpr const char* disabled_events = "";
   constexpr bool        trace_events    = false;
+  constexpr const char* alert_victory = "none";
+  constexpr const char* alert_defeat = "none";
+  constexpr const char* alert_armada_created = "none";
+  constexpr const char* alert_armada_battle_won = "none";
+  constexpr const char* alert_armada_battle_lost = "none";
+  constexpr const char* alert_fleet_default = "none";
 } // namespace Audio
 
 namespace SystemConfig
@@ -258,6 +264,7 @@ namespace UI
   constexpr const char* instant_warp_always_ask    = "";
   constexpr const char* pinned_ships                = "";
   constexpr const char* notify_banner_types         = "";
+  constexpr const char* notify_fleet_events         = "";
   constexpr auto        extend_chest_purchase_max   = 160;
   constexpr auto        extend_donation_max         = 80;
   constexpr bool        extend_donation_slider      = true;

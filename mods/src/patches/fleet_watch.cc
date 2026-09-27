@@ -41,6 +41,7 @@ struct ObservedFleet {
 };
 
 std::array<ObservedFleet, kFleetSlotCount> s_slots{};
+uint64_t s_observation_epoch = 0;
 std::vector<fleet_watch::Subscription>     s_subscriptions;
 bool                                       s_observer_installed        = false;
 bool                                       s_seed_pending              = false;
@@ -110,6 +111,7 @@ bool needs_fast_poll(FleetState state)
 
 void reset_observation()
 {
+  ++s_observation_epoch;
   s_slots                     = {};
   s_seed_pending              = true;
   s_seed_has_observation      = false;
@@ -152,6 +154,7 @@ void dispatch_transition(int slot, FleetPlayerData* fleet, FleetState before, Fl
       .before = fleet_watch::Snapshot{slot, fleet->Id, before},
       .after  = fleet_watch::Snapshot{slot, fleet->Id, after},
       .fleet  = fleet,
+      .observation_epoch = s_observation_epoch,
   };
   CallbackScope callback_scope;
   for (const auto& subscription : s_subscriptions) {
@@ -207,6 +210,22 @@ void observe_fleet(FleetPlayerData* fleet, int requested_slot, bool publish)
     }
     s_seed_last_change_ms     = now_ms;
     s_seed_finalize_candidate = false;
+  }
+  {
+    CallbackScope               callback_scope;
+    const fleet_watch::Snapshot snapshot{slot, fleet_id, state};
+    for (const auto& subscription : s_subscriptions) {
+      if (!subscription.on_observation) {
+        continue;
+      }
+      try {
+        subscription.on_observation(snapshot, fleet, same_fleet && publish && !s_seed_pending);
+      } catch (const std::exception& error) {
+        spdlog::warn("[FleetWatch] observation callback failed: {}", error.what());
+      } catch (...) {
+        spdlog::warn("[FleetWatch] observation callback failed with an unknown exception");
+      }
+    }
   }
   if (same_fleet && publish && !s_seed_pending && previous_state != state) {
     dispatch_transition(slot, fleet, previous_state, state);
