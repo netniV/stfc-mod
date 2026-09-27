@@ -14,6 +14,7 @@ struct NavigationPan {
 public:
   __declspec(property(get = __get__lastDelta)) Vector2* _lastDelta;
   __declspec(property(get = __get__deltaScaler)) float _deltaScaler;
+  __declspec(property(get = __get__keyboardDeltaScaler)) float _keyboardDeltaScaler;
   __declspec(property(get = __get__trackingPOI)) uintptr_t* _trackingPOI;
 
   __declspec(property(get = __get__farMagRadiusRatioSystemNormal,
@@ -51,6 +52,12 @@ public:
   {
     static auto field = get_class_helper().GetField("_lastDelta");
     return (Vector2*)((ptrdiff_t)this + field.offset());
+  }
+
+  float __get__keyboardDeltaScaler()
+  {
+    static auto field = get_class_helper().GetField("_keyboardDeltaScaler");
+    return *(float*)((ptrdiff_t)this + field.offset());
   }
 
   float __get__deltaScaler()
