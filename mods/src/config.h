@@ -20,6 +20,7 @@ public:
     Buffs,
     Buildings,
     EmeraldChain,
+    Haven,
     Inventory,
     Jobs,
     Missions,
@@ -44,12 +45,13 @@ public:
   bool verify_ssl = true;
   bool battlelogs = false;
   bool buffs      = false;
-  bool buildings  = false;
+  bool buildings  = true;
+  bool haven      = true;
   bool inventory  = false;
   bool jobs       = false;
   bool missions   = false;
   bool officer    = false;
-  bool research   = false;
+  bool research   = true;
   bool resources  = false;
   bool ships      = false;
   bool slots      = false;
@@ -64,6 +66,7 @@ constexpr std::array SyncOptions{
     SyncConfig::Option{SyncConfig::Type::Buffs, "buff", "buffs", &SyncConfig::buffs},
     SyncConfig::Option{SyncConfig::Type::Buildings, "module", "buildings", &SyncConfig::buildings},
     SyncConfig::Option{SyncConfig::Type::EmeraldChain, "emerald_chain", "buffs", &SyncConfig::buffs},
+    SyncConfig::Option{SyncConfig::Type::Haven, "haven", "haven", &SyncConfig::haven},
     SyncConfig::Option{SyncConfig::Type::Inventory, "inventory", "inventory", &SyncConfig::inventory},
     SyncConfig::Option{SyncConfig::Type::Jobs, "job", "jobs", &SyncConfig::jobs},
     SyncConfig::Option{SyncConfig::Type::Missions, "mission", "missions", &SyncConfig::missions},
@@ -239,6 +242,7 @@ public:
   bool show_station_cargo;
   bool show_hostile_cargo;
   bool show_armada_cargo;
+  bool instant_cargo_counter;
 
   bool                                        always_skip_reveal_sequence;
   std::map<std::string, MissionHudVisibility> mission_hud_buttons;
@@ -288,6 +292,7 @@ public:
 
   // Cargo formatting
   bool installCargoFormatHooks;
+  bool installInstantCargoCounterHooks;
   int  cargo_significant_decimals;
 
   // Officer roster/assignment "Below Deck Ability" sort option restore

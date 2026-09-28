@@ -229,17 +229,25 @@ bool MapKey::ReplaceBindings(GameFunction gameFunction, std::vector<MapKey> bind
   return true;
 }
 
+// Movement reads the direction itself; claiming it would suppress its own pan
+// on the next frame. Other modified actions retain ownership until key release.
+static bool IsMovementAction(GameFunction action)
+{
+  return action == GameFunction::MoveLeft || action == GameFunction::MoveRight
+         || action == GameFunction::MoveUp || action == GameFunction::MoveDown;
+}
+
 bool MapKey::IsPressed(GameFunction gameFunction)
 {
   const auto &mapKeys = MapKey::mappedKeys[(int)gameFunction];
   for (const MapKey &mapKey : mapKeys) {
     const auto chord = keyboard_layout::ResolveChord(mapKey.Key);
-    const auto key = chord.key;
+    const auto key   = chord.key;
     if (key != KeyCode::None) {
       if (Key::Pressed(key)) {
         if (MapKey::HasCorrectModifiers(mapKey, chord.shift)) {
-          if (mapKey.hasModifiers || chord.shift) {
-            Key::ClaimDirectionalInput(mapKey.Key);
+          if ((mapKey.hasModifiers || chord.shift) && !IsMovementAction(gameFunction)) {
+            Key::ClaimDirectionalInput(key);
           }
           return true;
         }
@@ -255,12 +263,12 @@ bool MapKey::IsDown(GameFunction gameFunction)
   const auto &mapKeys = MapKey::mappedKeys[(int)gameFunction];
   for (const MapKey &mapKey : mapKeys) {
     const auto chord = keyboard_layout::ResolveChord(mapKey.Key);
-    const auto key = chord.key;
+    const auto key   = chord.key;
     if (key != KeyCode::None) {
       if (Key::Down(key)) {
         if (MapKey::HasCorrectModifiers(mapKey, chord.shift)) {
-          if (mapKey.hasModifiers || chord.shift) {
-            Key::ClaimDirectionalInput(mapKey.Key);
+          if ((mapKey.hasModifiers || chord.shift) && !IsMovementAction(gameFunction)) {
+            Key::ClaimDirectionalInput(key);
           }
           return true;
         }
