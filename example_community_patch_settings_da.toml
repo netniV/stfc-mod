@@ -159,6 +159,22 @@ zoom_label_player_detail = "native"
 # Normalized zoom crossover used when player fleet label detail is "threshold"; 0 is always compact and 1 is always expanded
 zoom_label_player_threshold = 0.5
 
+# Galakseetiketter: native, always eller threshold. Always kan øge indlæsningstiden.
+# Store og små systemer følger spillets klassifikation; tærskel: nær=0, fjern=1.
+# 0 bruger kompakt visning; 1 udvider altid; lighed udvider.
+# Kompakt bevarer spillets Far-visning, også for visse store navne.
+# Kombiner Standard, Fjender, Minedrift og Farer. Standardværdierne bevarer spillets visning.
+# Windows x64 og macOS på validerede klienter.
+galaxy_multi_select = false
+galaxy_overlay_default = true
+galaxy_overlay_mining = false
+galaxy_overlay_hostiles = false
+galaxy_overlay_hazards = false
+galaxy_label_major_detail = "native"
+galaxy_label_major_threshold = 0.5
+galaxy_label_minor_detail = "native"
+galaxy_label_minor_threshold = 0.5
+
 # Subgroup: Keyboard
 # ------------------
 
