@@ -7,7 +7,7 @@
 #  |    #***     #    #       #***         #   *   #**    #***    | 
 #  |                                                              | 
 #  +--------------------------------------------------------------+ 
-#   Knocked up on 2026-09-17T11:10:54.322Z
+#   Knocked up on 2026-09-27T19:44:17.229Z
 #   
 #   This configuration file was knocked up by https://modconfig.pages.dev
 #   and comes as-is. If the STFC Community Mod gives you any aggro
@@ -17,7 +17,7 @@
 #       Discord : https://discord.gg/PrpHgs7Vjs
 #       GitHub  : https://github.com/netniV/stfc-mod
 #   
-#   Today's configuration comes courtesy of the letter U and the number 8
+#   Today's configuration comes courtesy of the letter C and the number 1
 #   
 
 #  <[=======================================]> 
@@ -249,6 +249,7 @@ zoom = 5000.0
 # Enable the buff fixes
 bufffixhooks = true
 cargoformathooks = true
+instantcargocounterhooks = true
 chatpatches = true
 
 # Enable per-faction bulk claiming for Daily Goals
@@ -356,16 +357,16 @@ select_ship8 = "8"
 # ----------------------
 
 # ⚠️ EXPERIMENTAL: Moves down the screen
-move_down = "S"
+move_down = "S|DOWN"
 
 # ⚠️ EXPERIMENTAL: Moves left the screen
-move_left = "LEFT"
+move_left = "A|LEFT"
 
 # ⚠️ EXPERIMENTAL: Moves right the screen
-move_right = "RIGHT"
+move_right = "D|RIGHT"
 
 # ⚠️ EXPERIMENTAL: Moves up the screen
-move_up = "W"
+move_up = "W|UP"
 
 # ⚠️ EXPERIMENTAL: Shows the bookmark->lookup screen
 show_lookup = "L"
@@ -768,6 +769,10 @@ hud_q_trials = "auto"
 # Decimal places used for abbreviated cargo values
 cargo_significant_decimals = 2
 
+# Show cargo used/capacity immediately instead of counting up. Restart after changing.
+# Windows client 263 only; other builds keep native behavior.
+instant_cargo_counter = true
+
 # Stop locate working when ship or node previews are displayed
 disable_preview_locate = false
 
@@ -858,12 +863,6 @@ logging = false
 # The url of the server to proxy the connection through
 proxy = ""
 
-# The token that is used to provide authentication
-token = ""
-
-# The url of the server to send data to
-url = ""
-
 # Subgroup: Network
 # -----------------
 
@@ -883,7 +882,23 @@ verify_ssl = true
 #                                                                                               
 #  <[========================================================================================]> 
 
+[sync.targets.stfcdata]
+token = ""
+url = "https://sync.stfcdata.de"
+
+#  <[========================================================================================]> 
+#                                                                                               
+#       *   *                                *                   ****   *                       
+#       *  *    ***    ***   ****                 ***           *      ***     ***   ****       
+#       ***    * **   * **   *   *           *    *  *           ***    *     * **   *   *      
+#       *  *   *      *      ****            *    *  *              *   *     *      ****       
+#       *   *   ****   ****  *               *    *  *          ****    **     ****  *          
+#                                                                                               
+#  <[========================================================================================]> 
+
 [sync.targets.nextspocksclub]
+token = ""
+url = "https://next.spocks.club/sync/ingress/"
 
 #  <[========================================================================================]> 
 #                                                                                               
@@ -896,3 +911,5 @@ verify_ssl = true
 #  <[========================================================================================]> 
 
 [sync.targets.spocksclub]
+token = ""
+url = "https://spocks.club/sync/ingress/"
