@@ -603,7 +603,7 @@ void read_sync_targets(toml::table& config, toml::table& new_config,
       auto token = values["token"].value<std::string>();
       auto proxy = values["proxy"].value<std::string>();
 
-      if (!url.has_value() || !token.has_value()) {
+      if (!url.has_value() || !token.has_value() || url->empty() || token->empty()) {
         continue;
       }
 
@@ -627,7 +627,7 @@ void read_sync_targets(toml::table& config, toml::table& new_config,
     }
 
     if (sync_targets.emplace(target_key.str(), target).second) {
-      new_config["sync"]["targets"].as_table()->emplace<toml::table>(target_key.str(), parsed_target);
+      new_config["sync"]["targets"].as_table()->insert_or_assign(target_key.str(), parsed_target);
       spdlog::debug("config value {} url: {}, token: {}", target_section, target.url, mask_token(target.token));
       spdlog::info("target [{}] proxy: '{}', verify_ssl: {}", target_section, target.proxy, target.verify_ssl);
     }
@@ -695,16 +695,11 @@ void parse_config_shortcut_value(toml::table& new_config, std::string_view item,
   auto valueTrimmed = StripTrailingAsciiWhitespace(config_value);
   auto valueLowered = AsciiStrToUpper(valueTrimmed);
 
-  if (valueLowered == "NONE") {
+  // An explicit empty string disables the binding, just like NONE. Missing or
+  // invalid settings still fall back to their defaults.
+  if (valueTrimmed.empty() || valueLowered == "NONE") {
     set_shortcut_noop(sectionTable, sourceTable, item, sourceLabel);
     return;
-  }
-
-  if (valueTrimmed.empty()) {
-    spdlog::error("Empty shortcut value [shortcuts].{}; using default for [shortcuts].{}.", shortcut_value.source_item,
-                  item);
-    return parse_config_shortcut_value(new_config, item, gameFunction, default_value,
-                                       {std::string(default_value), std::string(item), false, true});
   }
 
   auto wantedKeys   = StrSplit(valueLowered, '|');
@@ -929,6 +924,8 @@ void Config::Load()
       config, parsed, "patches", "dailyfactionbulkclaimhooks", DCP::dailyfactionbulkclaimhooks, write_config);
   this->installFocusSearchHooks =
       get_config_or_default(config, parsed, "patches", "focussearch", DCP::focussearch, write_config);
+  this->installInstantCargoCounterHooks =
+      get_config_or_default(config, parsed, "patches", "instantcargocounterhooks", DCP::instantcargocounterhooks, write_config);
   this->installCargoFormatHooks =
       get_config_or_default(config, parsed, "patches", "cargoformathooks", DCP::cargoformathooks, write_config);
   this->installOfficerSortHooks =
@@ -1102,6 +1099,8 @@ void Config::Load()
   this->show_armada_cargo =
       get_config_or_default(config, parsed, "ui", "show_armada_cargo", DCU::show_armada_cargo, write_config);
 
+  this->instant_cargo_counter =
+      get_config_or_default(config, parsed, "ui", "instant_cargo_counter", DCU::instant_cargo_counter, write_config);
   this->cargo_significant_decimals =
       get_config_or_default(config, parsed, "ui", "cargo_significant_decimals", DCU::cargo_significant_decimals, write_config);
 
@@ -1139,40 +1138,14 @@ void Config::Load()
 
   spdlog::debug("");
 
-  parsed["sync"].as_table()->emplace<toml::table>("targets", toml::table());
+  toml::table default_targets{
+      {"stfcdata", toml::table{{"token", ""}, {"url", DCS::stfcdata_url}}},
+      {"nextspocksclub", toml::table{{"token", ""}, {"url", DCS::nextspocksclub_url}}},
+      {"spocksclub", toml::table{{"token", ""}, {"url", DCS::spocksclub_url}}},
+  };
+  parsed["sync"].as_table()->emplace<toml::table>("targets", std::move(default_targets));
+
   read_sync_targets(config, parsed, this->sync_targets, sync_defaults);
-
-  // handle legacy sync options
-  auto sync_url   = config["sync"]["url"].value<std::string>();
-  auto sync_token = config["sync"]["token"].value<std::string>();
-
-  if (sync_url.has_value() && sync_token.has_value()) {
-    SyncTargetConfig converted_target;
-    static_cast<SyncConfig&>(converted_target) = sync_defaults;
-    converted_target.url                       = sync_url.value();
-    converted_target.token                     = sync_token.value();
-
-    if (!converted_target.url.empty() && !converted_target.token.empty()) {
-      if (this->sync_targets.emplace("default", converted_target).second) {
-        toml::table default_target{
-            {"url", sync_url.value()}, {"token", sync_token.value()}, {"proxy", converted_target.proxy}};
-
-        for (const auto& opt : SyncOptions) {
-          default_target.insert(opt.option_str, converted_target.*opt.option);
-        }
-
-        parsed["sync"]["targets"].as_table()->emplace<toml::table>("default", default_target);
-        spdlog::info("Legacy config options 'sync_url' and 'sync_token' were converted to "
-                     " sync.targets.default url: {}, token: {}",
-                     sync_url.value(), mask_token(sync_token.value()));
-      } else {
-        spdlog::error(
-            "Failed to convert legacy config options sync_url: {} and sync_token: {} "
-            "as [sync.targets.default] was already specified.",
-            sync_url.value(), mask_token(sync_token.value()));
-      }
-    }
-  }
 
   if (auto sync_file = config["sync"]["file"].value<std::string>();
       sync_file.has_value() && !sync_file.value().empty()) {
@@ -1282,6 +1255,8 @@ void Config::Load()
 
   spdlog::debug("");
 
+  parse_config_shortcut(config, parsed, "move_up", GameFunction::MoveUp, DCSH::move_up);
+  parse_config_shortcut(config, parsed, "move_down", GameFunction::MoveDown, DCSH::move_down);
   parse_config_shortcut(config, parsed, "move_left",  GameFunction::MoveLeft,  DCSH::move_left);
   parse_config_shortcut(config, parsed, "move_right", GameFunction::MoveRight, DCSH::move_right);
 

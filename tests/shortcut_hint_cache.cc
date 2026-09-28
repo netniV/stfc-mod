@@ -4,7 +4,9 @@
 #include "patches/mapkey.h"
 #include "patches/keyboard_layout.h"
 #include "patches/keyboard_layout_mapping.h"
+#include "defaultconfig.h"
 
+#include <array>
 #include <cstdlib>
 #include <iostream>
 #include <utility>
@@ -14,6 +16,7 @@ static std::array<bool, static_cast<int>(KeyCode::Max)> down{};
 static keyboard_layout::BindingState layout_bindings;
 static bool layout_enabled = false;
 static std::array<keyboard_layout::ResolvedChord, keyboard_layout::LayoutKeyCount> chords;
+static KeyCode claimed = KeyCode::None;
 
 KeyCode Key::Parse(std::string_view key)
 {
@@ -22,6 +25,9 @@ KeyCode Key::Parse(std::string_view key)
       {"F7", KeyCode::F7}, {"F8", KeyCode::F8}, {"G", KeyCode::G}, {"+", KeyCode::Plus},
       {"/", KeyCode::Slash}, {"(", KeyCode::LeftParen}, {"1", KeyCode::Alpha1},
       {"'", KeyCode::Quote}, {"^", KeyCode::Caret},
+      {"W", KeyCode::W}, {"A", KeyCode::A}, {"S", KeyCode::S}, {"D", KeyCode::D},
+      {"UP", KeyCode::UpArrow}, {"DOWN", KeyCode::DownArrow},
+      {"LEFT", KeyCode::LeftArrow}, {"RIGHT", KeyCode::RightArrow},
   };
   for (const auto& [token, code] : tokens) {
     if (key == token)
@@ -39,7 +45,7 @@ bool Key::IsModified() {
     if (Key::Pressed(key)) return true;
   return false;
 }
-void Key::ClaimDirectionalInput(KeyCode) {}
+void Key::ClaimDirectionalInput(KeyCode key) { claimed = key; }
 
 namespace keyboard_layout
 {
@@ -194,5 +200,55 @@ int main()
   pressed[static_cast<int>(KeyCode::Plus)] = true;
   down[static_cast<int>(KeyCode::Plus)] = true;
   Check(MapKey::IsDown(GameFunction::ShowDaily), "Physical mode no longer uses configured key");
-  std::cout << "Shortcut hint cache tests passed\n";
+
+  // Movement uses the production matcher. Physical defaults stay active, and
+  // extra modifiers must not turn an unmodified movement chord into a match.
+  pressed.fill(false);
+  down.fill(false);
+  for (const auto [action, defaults] : {
+           std::pair{GameFunction::MoveUp, DefaultConfig::Shortcuts::move_up},
+           std::pair{GameFunction::MoveDown, DefaultConfig::Shortcuts::move_down},
+           std::pair{GameFunction::MoveLeft, DefaultConfig::Shortcuts::move_left},
+           std::pair{GameFunction::MoveRight, DefaultConfig::Shortcuts::move_right}}) {
+    std::string_view remaining = defaults;
+    while (!remaining.empty()) {
+      const auto end     = remaining.find('|');
+      const auto binding = MapKey::Parse(std::string(remaining.substr(0, end)));
+      Check(binding.Key != KeyCode::None, "Invalid movement default");
+      MapKey::AddMappedKey(action, binding);
+      pressed[static_cast<int>(binding.Key)] = true;
+      down[static_cast<int>(binding.Key)]    = true;
+      Check(MapKey::IsDown(action) && MapKey::IsPressed(action), "Default movement key did not match");
+      for (auto modifier : {KeyCode::LeftControl, KeyCode::RightControl, KeyCode::LeftShift,
+                             KeyCode::LeftAlt, KeyCode::LeftCommand}) {
+        pressed[static_cast<int>(modifier)] = true;
+        down[static_cast<int>(modifier)]    = true;
+        Check(!MapKey::IsDown(action) && !MapKey::IsPressed(action), "Modified chord leaked into plain movement");
+        pressed[static_cast<int>(modifier)] = false;
+        down[static_cast<int>(modifier)]    = false;
+      }
+      pressed[static_cast<int>(binding.Key)] = false;
+      down[static_cast<int>(binding.Key)]    = false;
+      Check(!MapKey::IsDown(action) && !MapKey::IsPressed(action), "Released movement key remained active");
+      if (end == std::string_view::npos)
+        break;
+      remaining.remove_prefix(end + 1);
+    }
+  }
+
+  // A modified movement binding must not claim its own direction. Other
+  // actions still claim the same chord through its resolved physical key.
+  MapKey::AddMappedKey(GameFunction::MoveDown, MapKey::Parse("CTRL-DOWN"));
+  pressed[static_cast<int>(KeyCode::LeftControl)] = true;
+  down[static_cast<int>(KeyCode::LeftControl)]    = true;
+  pressed[static_cast<int>(KeyCode::DownArrow)]   = true;
+  down[static_cast<int>(KeyCode::DownArrow)]      = true;
+  claimed = KeyCode::None;
+  Check(MapKey::IsDown(GameFunction::MoveDown) && MapKey::IsPressed(GameFunction::MoveDown),
+        "Explicit movement chord did not match");
+  Check(claimed == KeyCode::None, "Movement claimed and blocked itself");
+  MapKey::AddMappedKey(toggle, MapKey::Parse("CTRL-DOWN"));
+  Check(MapKey::IsDown(toggle) && MapKey::IsPressed(toggle) && claimed == KeyCode::DownArrow,
+        "Other chord lost directional ownership");
+  std::cout << "Shortcut hint, layout and movement binding tests passed\n";
 }
