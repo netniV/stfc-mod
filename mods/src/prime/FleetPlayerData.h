@@ -1,5 +1,7 @@
 #pragma once
 
+#include "errormsg.h"
+
 #include "BattleTargetData.h"
 #include "HullSpec.h"
 #include "RecallRequirement.h"
@@ -96,5 +98,21 @@ public:
     static auto field = get_class_helper().GetProperty("HasShip");
     auto*      value  = field.Get<bool>(this);
     return value ? *value : false;
+  }
+
+  int64_t GetLocaId()
+  {
+    static auto GetLocaIdWarn = true;
+    static auto GetLocaIdMethod = get_class_helper().GetMethod<int64_t(FleetPlayerData*)>("GetLocaId");
+
+    if (GetLocaIdMethod) {
+      return GetLocaIdMethod(this);
+    }
+    if (GetLocaIdWarn) {
+      GetLocaIdWarn = false;
+      ErrorMsg::MissingMethod("FleetPlayerData", "GetLocaId");
+    }
+
+    return 0;
   }
 };

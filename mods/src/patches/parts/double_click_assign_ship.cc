@@ -1,8 +1,10 @@
 #include "config.h"
 #include "errormsg.h"
+#include "patches/key.h"
 
 #include "prime/AssignShipsWidget.h"
 #include "prime/CanvasController.h"
+#include "prime/KeyCode.h"
 #include "prime/ShipTileWidget.h"
 
 #include <il2cpp/il2cpp_helper.h>
@@ -10,11 +12,7 @@
 
 #include <chrono>
 
-// Ship-assignment dock: double-clicking a ship tile presses the Assign
-// button, instead of requiring select-then-click-Assign. Detected by timing
-// since Unity's Button.onClick doesn't report click count; keyed off the
-// tile's bound FleetPlayerData context so reused/pooled list rows don't
-// misfire across different ships.
+#include "double_click_assign_ship.h"
 
 namespace {
 
@@ -64,6 +62,15 @@ void ShipTileWidget_HandleOnClick_Hook(auto original, ShipTileWidget* _this)
 }
 
 } // namespace
+
+void AssignShipEnterKeyUpdate()
+{
+  if (!Config::Get().double_click_to_assign_ship) return;
+  if (!Key::Pressed(KeyCode::Return) && !Key::Pressed(KeyCode::KeypadEnter)) return;
+  if (Key::IsInputFocused()) return;
+
+  PressAssignButton();
+}
 
 void InstallDoubleClickAssignShipHooks()
 {

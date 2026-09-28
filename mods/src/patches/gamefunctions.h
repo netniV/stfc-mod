@@ -38,6 +38,7 @@ enum GameFunction {
   ShowShips,
   ShowInventory,
   ShowStationInterior,
+  ShowHaven,
   ShoWStationExterior,
   ShowGalaxy,
   NativeShortcutGalaxy,

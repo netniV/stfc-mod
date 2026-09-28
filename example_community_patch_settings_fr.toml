@@ -7,7 +7,7 @@
 #  |    #***     #    #       #***         #   *   #**    #***    | 
 #  |                                                              | 
 #  +--------------------------------------------------------------+ 
-#   Généré le 2026-09-05T13:04:20.403Z
+#   Généré le 2026-09-27T19:44:17.179Z
 #   
 #   Ce fichier de configuration a été généré par https://modconfig.pages.dev
 #   et est fourni tel quel. En cas de problème avec le STFC Community Mod,
@@ -17,7 +17,7 @@
 #       Discord : https://discord.gg/PrpHgs7Vjs
 #       GitHub  : https://github.com/netniV/stfc-mod
 #   
-#   Le fichier de configuration du jour vous est présenté par la lettre Z et le nombre 6
+#   Le fichier de configuration du jour vous est présenté par la lettre Y et le nombre 7
 #   
 
 #  <[=======================================]> 
@@ -249,6 +249,7 @@ zoom = 5000.0
 # Activez les corrections de buffs
 bufffixhooks = true
 cargoformathooks = true
+instantcargocounterhooks = true
 chatpatches = true
 
 # Active la réclamation groupée par faction pour les objectifs quotidiens
@@ -356,16 +357,16 @@ select_ship8 = "8"
 # ----------------------
 
 # ⚠️ EXPÉRIMENTAL : Fait défiler l'écran vers le bas
-move_down = "S"
+move_down = "S|DOWN"
 
 # ⚠️ EXPÉRIMENTAL : Fait défiler l'écran vers la gauche
-move_left = "LEFT"
+move_left = "A|LEFT"
 
 # ⚠️ EXPÉRIMENTAL : Fait défiler l'écran vers la droite
-move_right = "RIGHT"
+move_right = "D|RIGHT"
 
 # ⚠️ EXPÉRIMENTAL : Fait défiler l'écran vers le haut
-move_up = "W"
+move_up = "W|UP"
 
 # ⚠️ EXPÉRIMENTAL : Affiche l'écran de recherche des signets
 show_lookup = "L"
@@ -402,6 +403,9 @@ set_hotkeys_disabled = "CTRL-ALT-MINUS"
 
 # CTRL-ALT-=
 set_hotkeys_enabled = "CTRL-ALT-="
+
+# Afficher ou masquer les indications de raccourcis
+toggle_shortcut_hints = "HOME"
 
 # Subgroup: Queue & Primary
 # -------------------------
@@ -457,6 +461,9 @@ show_artifacts = "SHIFT-I"
 # Afficher l'équipe de détachement
 show_awayteam = "T"
 
+# Ouvrir la boîte de réception des rapports de combat
+show_battlelogs = "SHIFT-B"
+
 # Afficher les favoris
 show_bookmarks = "B"
 
@@ -496,6 +503,9 @@ show_galaxy_native = "CTRL-G"
 # Aller aux cadeaux
 show_gifts = "/"
 
+# Ouvrir Haven
+show_haven = "ALT-H"
+
 # Aller à l'inventaire
 show_inventory = "I"
 
@@ -520,22 +530,14 @@ show_scrapyard = "Y"
 # Aller aux paramètres
 show_settings = "SHIFT-S"
 
-# Afficher ou masquer les raccourcis à l’écran (affiche les raccourcis du mod pris en charge)
-# NONE désactive les hooks et le cache des indications du mod ; attribuez une touche pour activer (redémarrage requis).
-toggle_shortcut_hints = "HOME"
-# Les modificateurs utilisent la notation AutoHotkey : ^ Ctrl, ! Alt, + Maj, # Win/Commande
-
-# Aller aux vaisseaux
-show_ships = "N"
+# Ouvrir la sélection des boucliers de paix
+show_shields = "CTRL-S"
 
 # Ouvrir la construction de vaisseaux du chantier spatial
 show_shipconstruction = "SHIFT-N"
 
-# Ouvrir la sélection des boucliers de paix
-show_shields = "CTRL-S"
-
-# Ouvrir la boîte de réception des rapports de combat
-show_battlelogs = "SHIFT-B"
+# Aller aux vaisseaux
+show_ships = "N"
 
 # Extérieur de la station
 show_stationexterior = "SHIFT-G"
@@ -767,6 +769,10 @@ hud_q_trials = "auto"
 # Decimal places used for abbreviated cargo values
 cargo_significant_decimals = 2
 
+# Afficher immediatement la cargaison/capacite sans animation. Redemarrer apres modification.
+# Client Windows 263 uniquement ; les autres versions gardent le comportement normal.
+instant_cargo_counter = true
+
 # Empêcher la localisation de fonctionner quand les aperçus de vaisseaux ou de nœuds sont affichés
 disable_preview_locate = false
 
@@ -857,17 +863,11 @@ logging = false
 # L'url du serveur à travers lequel faire passer la connexion
 proxy = ""
 
-# Le jeton utilisé pour l'authentification
-token = ""
-
-# L'url du serveur vers lequel envoyer les données
-url = ""
-
 # Subgroup: Network
 # -----------------
 
 # Durée de conservation des éléments en cache (ms)
-resolver_cache_ttl = "300"
+resolver_cache_ttl = 300
 
 # Les certificats SSL doivent-ils être vérifiés ?
 verify_ssl = true
@@ -882,7 +882,23 @@ verify_ssl = true
 #                                                                                                                                                                                                 
 #  <[==========================================================================================================================================================================================]> 
 
+[sync.targets.stfcdata]
+token = ""
+url = "https://sync.stfcdata.de"
+
+#  <[==========================================================================================================================================================================================]> 
+#                                                                                                                                                                                                 
+#        ***           *       *                                    *                                            *                             *                   *       *                      
+#       *   *  ****   ***            ***   ***     ****             *   ***           ****  *   *  ***     ***   *      ***     ***   ***            ****   ***   ***            ***   ***        
+#       *   *  *   *   *       *    *   *  *  *   **             ****  * **          **      ****  *  *   *      ****   *   *  *   *  *  *     *    **         *   *       *    *   *  *  *       
+#       *   *  ****    *       *    *   *  *  *     **          *   *  *               **       *  *  *   *      *   *  *      *   *  *  *     *      **    ****   *       *    *   *  *  *       
+#        ***   *       **      *     ***   *  *   ***            ****   ****         ***     ***   *  *    ***   *   *  *       ***   *  *     *    ***     ****   **      *     ***   *  *       
+#                                                                                                                                                                                                 
+#  <[==========================================================================================================================================================================================]> 
+
 [sync.targets.nextspocksclub]
+token = ""
+url = "https://next.spocks.club/sync/ingress/"
 
 #  <[==========================================================================================================================================================================================]> 
 #                                                                                                                                                                                                 
@@ -895,3 +911,5 @@ verify_ssl = true
 #  <[==========================================================================================================================================================================================]> 
 
 [sync.targets.spocksclub]
+token = ""
+url = "https://spocks.club/sync/ingress/"
