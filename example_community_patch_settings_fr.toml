@@ -7,7 +7,7 @@
 #  |    #***     #    #       #***         #   *   #**    #***    | 
 #  |                                                              | 
 #  +--------------------------------------------------------------+ 
-#   Généré le 2026-09-17T11:10:54.258Z
+#   Généré le 2026-09-27T19:44:17.179Z
 #   
 #   Ce fichier de configuration a été généré par https://modconfig.pages.dev
 #   et est fourni tel quel. En cas de problème avec le STFC Community Mod,
@@ -17,7 +17,7 @@
 #       Discord : https://discord.gg/PrpHgs7Vjs
 #       GitHub  : https://github.com/netniV/stfc-mod
 #   
-#   Le fichier de configuration du jour vous est présenté par la lettre A et le nombre 7
+#   Le fichier de configuration du jour vous est présenté par la lettre Y et le nombre 7
 #   
 
 #  <[=======================================]> 
@@ -249,6 +249,7 @@ zoom = 5000.0
 # Activez les corrections de buffs
 bufffixhooks = true
 cargoformathooks = true
+instantcargocounterhooks = true
 chatpatches = true
 
 # Active la réclamation groupée par faction pour les objectifs quotidiens
@@ -285,8 +286,6 @@ zoomhooks = true
 #  <[==================================================================================================================================]> 
 
 [shortcuts]
-
-# Utilisez "" ou "NONE" pour désactiver un raccourci. Les valeurs absentes ou invalides utilisent la touche par défaut.
 
 # Subgroup: Cargo & Locate
 # ------------------------
@@ -358,16 +357,16 @@ select_ship8 = "8"
 # ----------------------
 
 # ⚠️ EXPÉRIMENTAL : Fait défiler l'écran vers le bas
-move_down = "S"
+move_down = "S|DOWN"
 
 # ⚠️ EXPÉRIMENTAL : Fait défiler l'écran vers la gauche
-move_left = "LEFT"
+move_left = "A|LEFT"
 
 # ⚠️ EXPÉRIMENTAL : Fait défiler l'écran vers la droite
-move_right = "RIGHT"
+move_right = "D|RIGHT"
 
 # ⚠️ EXPÉRIMENTAL : Fait défiler l'écran vers le haut
-move_up = "W"
+move_up = "W|UP"
 
 # ⚠️ EXPÉRIMENTAL : Affiche l'écran de recherche des signets
 show_lookup = "L"
@@ -768,6 +767,10 @@ hud_q_trials = "auto"
 # Decimal places used for abbreviated cargo values
 cargo_significant_decimals = 2
 
+# Afficher immediatement la cargaison/capacite sans animation. Redemarrer apres modification.
+# Client Windows 263 uniquement ; les autres versions gardent le comportement normal.
+instant_cargo_counter = true
+
 # Empêcher la localisation de fonctionner quand les aperçus de vaisseaux ou de nœuds sont affichés
 disable_preview_locate = false
 
@@ -858,12 +861,6 @@ logging = false
 # L'url du serveur à travers lequel faire passer la connexion
 proxy = ""
 
-# Le jeton utilisé pour l'authentification
-token = ""
-
-# L'url du serveur vers lequel envoyer les données
-url = ""
-
 # Subgroup: Network
 # -----------------
 
@@ -883,7 +880,23 @@ verify_ssl = true
 #                                                                                                                                                                                                 
 #  <[==========================================================================================================================================================================================]> 
 
+[sync.targets.stfcdata]
+token = ""
+url = "https://sync.stfcdata.de"
+
+#  <[==========================================================================================================================================================================================]> 
+#                                                                                                                                                                                                 
+#        ***           *       *                                    *                                            *                             *                   *       *                      
+#       *   *  ****   ***            ***   ***     ****             *   ***           ****  *   *  ***     ***   *      ***     ***   ***            ****   ***   ***            ***   ***        
+#       *   *  *   *   *       *    *   *  *  *   **             ****  * **          **      ****  *  *   *      ****   *   *  *   *  *  *     *    **         *   *       *    *   *  *  *       
+#       *   *  ****    *       *    *   *  *  *     **          *   *  *               **       *  *  *   *      *   *  *      *   *  *  *     *      **    ****   *       *    *   *  *  *       
+#        ***   *       **      *     ***   *  *   ***            ****   ****         ***     ***   *  *    ***   *   *  *       ***   *  *     *    ***     ****   **      *     ***   *  *       
+#                                                                                                                                                                                                 
+#  <[==========================================================================================================================================================================================]> 
+
 [sync.targets.nextspocksclub]
+token = ""
+url = "https://next.spocks.club/sync/ingress/"
 
 #  <[==========================================================================================================================================================================================]> 
 #                                                                                                                                                                                                 
@@ -896,3 +909,5 @@ verify_ssl = true
 #  <[==========================================================================================================================================================================================]> 
 
 [sync.targets.spocksclub]
+token = ""
+url = "https://spocks.club/sync/ingress/"

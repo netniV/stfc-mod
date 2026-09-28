@@ -796,6 +796,9 @@ static std::mutex                           resource_states_alliance_mtx;
 static std::unordered_map<int64_t, int64_t> slot_states;
 static std::mutex                           slot_states_mtx;
 
+static std::unordered_map<int64_t, int64_t> structure_states;
+static std::mutex                           structure_states_mtx;
+
 static eastl::ring_buffer<uint64_t> previously_sent_battlelogs;
 static std::mutex                   previously_sent_battlelogs_mtx;
 
@@ -1218,6 +1221,81 @@ static void starbase_modules(std::unique_ptr<std::string>&& bytes)
     spdlog::error("Failed to parse resources");
   }
 }
+
+static void planetary_base_data(std::unique_ptr<std::string>&& bytes)
+{
+  using json = nlohmann::json;
+  using trackers::structure_states;
+  using trackers::structure_states_mtx;
+
+  if (auto response = Digit::PrimeServer::Models::PlanetaryBase(); response.ParseFromString(*bytes)) {
+    http::logging::trace("PROCESS", "planetary base data", STR_FORMAT("Processing {} buildings", response.buildings_size()));
+
+    auto structure_array = json::array();
+    {
+      std::scoped_lock lk(structure_states_mtx);
+
+      for (const auto& building : response.buildings() | std::views::values) {
+        if (const auto& it = structure_states.find(building.id()); it == structure_states.end() || it->second != building.level()) {
+          structure_states[building.id()] = building.level();
+          structure_array.push_back({{"type", SyncConfig::Type::Haven},
+                                     {"sid", building.specid()},
+                                     {"id", building.id()},
+                                     {"level", building.level()}});
+        }
+      }
+    }
+
+    if (!structure_array.empty()) {
+      workers::queue_data(SyncConfig::Type::Haven, structure_array);
+    }
+  }
+}
+
+static void planetary_map_building_data(const google::protobuf::Map<int64_t, Digit::PrimeServer::Models::PlanetaryMapData_BuildingData>& buildings)
+{
+  // TODO: use PlanetaryMapBuildingDiff for updates during game session
+
+  auto structure_array = nlohmann::json::array();
+  for (const auto& building : buildings | std::views::values) {
+    structure_array.push_back({{"type", SyncConfig::Type::Haven + "_map"}, {"sid", building.specid()}, {"level", building.level()}, {"status", building.status()}, {"position", building.position()}});
+  }
+
+  if (!structure_array.empty()) {
+    workers::queue_data(SyncConfig::Type::Haven, structure_array, true);
+  }
+}
+
+static void planetary_map_data(std::unique_ptr<std::string>&& bytes)
+{
+  if (auto response = Digit::PrimeServer::Models::PlanetaryMapData(); response.ParseFromString(*bytes)) {
+    http::logging::trace("PROCESS", "planetary map data", STR_FORMAT("Processing {} buildings", response.buildings_size()));
+    planetary_map_building_data(response.buildings());
+  }
+}
+
+static void planetary_map_prosperity(std::unique_ptr<std::string>&& bytes)
+{
+  if (auto response = Digit::PrimeServer::Models::PlanetaryMapProsperityResponse(); response.ParseFromString(*bytes)) {
+    http::logging::trace("PROCESS", "planetary map prosperity", STR_FORMAT("Processing prosperity={}", response.prosperity()));
+    const auto prosperity_array = nlohmann::json::array(
+        {{{"type", SyncConfig::Type::Haven + "_prosperity"}, {"prosperity", response.prosperity()}}});
+    workers::queue_data(SyncConfig::Type::Haven, prosperity_array, true);
+  }
+}
+
+/* static void planetary_map(std::unique_ptr<std::string>&& bytes)
+{
+  if (auto response = Digit::PrimeServer::Models::PlanetaryMapResponse(); response.ParseFromString(*bytes)) {
+    http::logging::trace("PROCESS", "planetary map", STR_FORMAT("Processing {} haven structures", response.mapdata().buildings_size()));
+    const auto& owner = response.owneruserid();
+
+    // TODO: If the owner is not the current player, we may want to skip processing the map data, as it may not be relevant to the player's own structures.
+    planetary_map_building_data(response.mapdata().buildings());
+  } else {
+    spdlog::error("Failed to parse planetary map");
+  }
+} */
 
 static void player_inventories(std::unique_ptr<std::string>&& bytes)
 {
@@ -2206,6 +2284,40 @@ static void HandleEntityGroup(EntityGroup* entity_group)
         submit_async(processors::starbase_modules);
       }
       break;
+
+    // haven
+    case EntityGroup::Type::PlanetaryBaseData:
+      if (sync_options.haven) {
+        static std::once_flag haven_init_base_flag;
+        std::call_once(haven_init_base_flag, [&] {
+          submit_async(processors::planetary_base_data);
+        });
+      }
+      break;
+
+    case EntityGroup::Type::PlanetaryMapData:
+      if (sync_options.haven) {
+        static std::once_flag haven_init_map_flag;
+        std::call_once(haven_init_map_flag, [&] {
+          submit_async(processors::planetary_map_data);
+        });
+      }
+      break;
+
+    case EntityGroup::Type::PlanetaryMapProsperity:
+      if (sync_options.haven) {
+        static std::once_flag haven_init_prosperity_flag;
+        std::call_once(haven_init_prosperity_flag, [&] {
+          submit_async(processors::planetary_map_prosperity);
+        });
+      }
+      break;
+
+    // case EntityGroup::Type::PlanetaryMapResponse:
+    //   if (sync_options.haven) {
+    //     submit_async(processors::planetary_map);
+    //   }
+    //   break;
 
     // inventory
     case EntityGroup::Type::PlayerInventories:
