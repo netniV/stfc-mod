@@ -7,7 +7,7 @@
 #  |    #***     #    #       #***         #   *   #**    #***    | 
 #  |                                                              | 
 #  +--------------------------------------------------------------+ 
-#   Generado el 2026-09-17T11:10:54.267Z
+#   Generado el 2026-09-27T19:44:17.187Z
 #   
 #   Este archivo de configuración fue generado por https://modconfig.pages.dev
 #   y se proporciona tal cual. Si hay algún problema con el Mod Comunitario de STFC
@@ -17,7 +17,7 @@
 #       Discord : https://discord.gg/PrpHgs7Vjs
 #       GitHub  : https://github.com/netniV/stfc-mod
 #   
-#   El archivo de configuración de hoy está patrocinado por la letra I y el número 0
+#   El archivo de configuración de hoy está patrocinado por la letra S y el número 3
 #   
 
 #  <[=======================================]> 
@@ -249,6 +249,7 @@ zoom = 5000.0
 # Activa las correcciones de mejoras
 bufffixhooks = true
 cargoformathooks = true
+instantcargocounterhooks = true
 chatpatches = true
 
 # Activa la reclamación masiva por facción para los objetivos diarios
@@ -356,16 +357,16 @@ select_ship8 = "8"
 # ----------------------
 
 # ⚠️ EXPERIMENTAL: Se desplaza hacia abajo por la pantalla
-move_down = "S"
+move_down = "S|DOWN"
 
 # ⚠️ EXPERIMENTAL: Se desplaza hacia la izquierda por la pantalla
-move_left = "LEFT"
+move_left = "A|LEFT"
 
 # ⚠️ EXPERIMENTAL: Se desplaza hacia la derecha por la pantalla
-move_right = "RIGHT"
+move_right = "D|RIGHT"
 
 # ⚠️ EXPERIMENTAL: Se desplaza hacia arriba por la pantalla
-move_up = "W"
+move_up = "W|UP"
 
 # ⚠️ EXPERIMENTAL: Muestra la pantalla de marcador->búsqueda
 show_lookup = "L"
@@ -763,6 +764,10 @@ hud_q_trials = "auto"
 # Decimal places used for abbreviated cargo values
 cargo_significant_decimals = 2
 
+# Mostrar carga/capacidad al instante, sin recuento animado. Reiniciar tras cambiar.
+# Solo cliente Windows 263; otras versiones conservan el comportamiento normal.
+instant_cargo_counter = true
+
 # Impide localizar cuando se muestran vistas previas de barcos o nodos
 disable_preview_locate = false
 
@@ -853,12 +858,6 @@ logging = false
 # La URL del servidor a través del cual se canalizará la conexión
 proxy = ""
 
-# El token que se usa para proporcionar autenticación
-token = ""
-
-# La URL del servidor al que se enviarán los datos
-url = ""
-
 # Subgroup: Network
 # -----------------
 
@@ -878,7 +877,23 @@ verify_ssl = true
 #                                                                                                                                                                                                 
 #  <[==========================================================================================================================================================================================]> 
 
+[sync.targets.stfcdata]
+token = ""
+url = "https://sync.stfcdata.de"
+
+#  <[==========================================================================================================================================================================================]> 
+#                                                                                                                                                                                                 
+#        ***                   *                                           *                         *                                         *                           *                      
+#       *   *  ****    ***           ***   ***     ***    ****             *   ***           ****         ***     ***   ***     ***   ***           ****    ***    ***                 ***        
+#       *   *  *   *  *        *    *   *  *  *   * **   **             ****  * **          **       *    *  *   *      *   *  *   *  *  *     *      *        *  *        *           *  *       
+#       *   *  ****   *        *    *   *  *  *   *        **          *   *  *               **     *    *  *   *      *      *   *  *  *     *     *      ****  *        *           *  *       
+#        ***   *       ***     *     ***   *  *    ****  ***            ****   ****         ***      *    *  *    ***   *       ***   *  *     *    ****    ****   ***     *           *  *       
+#                                                                                                                                                                                                 
+#  <[==========================================================================================================================================================================================]> 
+
 [sync.targets.nextspocksclub]
+token = ""
+url = "https://next.spocks.club/sync/ingress/"
 
 #  <[==========================================================================================================================================================================================]> 
 #                                                                                                                                                                                                 
@@ -891,3 +906,5 @@ verify_ssl = true
 #  <[==========================================================================================================================================================================================]> 
 
 [sync.targets.spocksclub]
+token = ""
+url = "https://spocks.club/sync/ingress/"

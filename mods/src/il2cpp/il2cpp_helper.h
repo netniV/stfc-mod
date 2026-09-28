@@ -104,6 +104,11 @@ public:
 #endif
   }
 
+  FieldInfo* get_info() const
+  {
+    return this->fieldInfo;
+  }
+
   inline ptrdiff_t offset() const
   {
     return this->fieldInfo->offset;
