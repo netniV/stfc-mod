@@ -94,6 +94,12 @@ hotkeys_extended = true
 # Следует ли включать очередь по умолчанию при наличии артефакта Кир'Шара?
 queue_enabled = true
 
+# Быстрое восстановление очереди, если ожидаемая цель исчезла (только Windows x64).
+faster_queue_recovery = false
+
+# Защита очереди после удаления целей (только Windows x64; включена по умолчанию).
+thin_queue_protection = true
+
 # Включите этот параметр, если предпочитаете горячие клавиши Scopely
 use_scopely_hotkeys = false
 

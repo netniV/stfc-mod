@@ -94,6 +94,12 @@ hotkeys_extended = true
 # Si tienes el artefacto Kir'Shara, ¿debe activarse la cola de forma predeterminada?
 queue_enabled = true
 
+# Recuperación rápida de la cola cuando desaparece un objetivo pendiente (solo Windows x64).
+faster_queue_recovery = false
+
+# Protege la cola tras eliminar objetivos (solo Windows x64; activado por defecto).
+thin_queue_protection = true
+
 # Si prefieres usar los atajos de Scopely, establece este valor en verdadero
 use_scopely_hotkeys = false
 

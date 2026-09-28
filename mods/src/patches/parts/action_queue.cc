@@ -45,14 +45,6 @@ template <typename T> T Read(const void* object, std::size_t offset)
     std::memcpy(&value, static_cast<const char*>(object) + offset, sizeof(value));
   return value;
 }
-Il2CppClass* Resolve(const char* assembly, const char* ns, const char* name)
-{
-  auto* domain = il2cpp_domain_get();
-  auto* loaded = domain ? il2cpp_domain_assembly_open(domain, assembly) : nullptr;
-  auto* image  = loaded ? il2cpp_assembly_get_image(loaded) : nullptr;
-  return image ? il2cpp_class_from_name(image, ns, name) : nullptr;
-}
-
 // Inspect actual List<QueueableAction> storage without invoking game properties or enumerators.
 // Unknown storage/layout is ineligible, never equivalent to an empty queue or absent target.
 QueueState Inspect(Il2CppObject* queue, std::int64_t target = 0)
@@ -229,10 +221,10 @@ void InstallActionQueueRecovery()
 {
   if (!Config::Get().faster_queue_recovery)
     return;
-  auto* cls   = Resolve("Assembly-CSharp", "Prime.ActionQueue", "ActionQueueManager");
-  queueClass  = Resolve("Assembly-CSharp", "Prime.ActionQueue", "ActionQueueInstance");
-  actionClass = Resolve("Assembly-CSharp", "Prime.ActionQueue", "QueueableAction");
-  int64Class  = Resolve("mscorlib", "System", "Int64");
+  auto* cls   = il2cpp_get_class_helper("Assembly-CSharp", "Prime.ActionQueue", "ActionQueueManager").get_cls();
+  queueClass  = il2cpp_get_class_helper("Assembly-CSharp", "Prime.ActionQueue", "ActionQueueInstance").get_cls();
+  actionClass = il2cpp_get_class_helper("Assembly-CSharp", "Prime.ActionQueue", "QueueableAction").get_cls();
+  int64Class  = il2cpp_get_class_helper("mscorlib", "System", "Int64").get_cls();
   if (!cls || !queueClass || !actionClass || !int64Class) {
     spdlog::warn("[FasterQueueRecovery] unavailable: native types not found");
     return;

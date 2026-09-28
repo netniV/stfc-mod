@@ -34,7 +34,7 @@ The hooked methods are `TryPlanPathAndEngageTarget`, `ShouldRetryFailedSetCourse
 
 The course event is a 24-byte value type, with fleet ID at 0, success/recall at 8/9 and boxed target at 16. Metadata field offsets include the boxed object header. The native retry handler is called synchronously inside the course handler; returning true selects its existing planner branch.
 
-**THIS WAS FIXED BY SCOPELY:** the older off-screen Kir'Shara combat-completion repair is obsolete. Remove that workaround and its `kirshara_queue_repair` setting; it is not a prerequisite for Faster Queue Recovery. This feature addresses only the separate unavailable-target/course-response race described above.
+The older off-screen Kir'Shara combat-completion repair was fixed by Scopely. That workaround and its `kirshara_queue_repair` setting have already been removed; neither is a prerequisite for Faster Queue Recovery. This feature addresses only the separate unavailable-target/course-response race described above.
 
 ## Validation
 

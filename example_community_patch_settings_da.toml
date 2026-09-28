@@ -94,6 +94,12 @@ hotkeys_extended = true
 # Skal køen være aktiveret som standard, hvis du har Kir'Shara-artefakten?
 queue_enabled = true
 
+# Hurtigere køgendannelse, når et ventende mål forsvinder (kun Windows x64).
+faster_queue_recovery = false
+
+# Beskytter køen efter oprydning af mål (kun Windows x64; aktiveret som standard).
+thin_queue_protection = true
+
 # Sæt denne til sand, hvis du foretrækker at bruge Scopelys genvejstaster
 use_scopely_hotkeys = false
 
