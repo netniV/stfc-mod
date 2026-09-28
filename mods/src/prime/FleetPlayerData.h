@@ -121,10 +121,10 @@ public:
     return value ? *value : false;
   }
 
-  long GetLocaId()
+  int64_t GetLocaId()
   {
     static auto GetLocaIdWarn = true;
-    static auto GetLocaIdMethod = get_class_helper().GetMethod<long(FleetPlayerData*)>("GetLocaId");
+    static auto GetLocaIdMethod = get_class_helper().GetMethod<int64_t(FleetPlayerData*)>("GetLocaId");
 
     if (GetLocaIdMethod) {
       return GetLocaIdMethod(this);

@@ -94,6 +94,7 @@ namespace Patches
   constexpr bool giftsbulkclaimhooks        = true;
   constexpr bool dailyfactionbulkclaimhooks = true;
   constexpr bool focussearch                = true;
+  constexpr bool instantcargocounterhooks    = true;
   constexpr bool cargoformathooks           = true;  // on by default: cargo number precision override
   constexpr bool officersorthooks           = true;  // restore Below Deck Ability sort option
   constexpr bool pinnedshiphooks            = true;  // pin configured ships to front of fleet dock sort
@@ -201,14 +202,18 @@ namespace Shortcuts
   constexpr const char* zoom_preset3          = "F3";
   constexpr const char* zoom_preset4          = "F4";
   constexpr const char* zoom_preset5          = "F5";
-  constexpr const char* move_up               = "W";
-  constexpr const char* move_down             = "S";
-  constexpr const char* move_left             = "LEFT";
-  constexpr const char* move_right            = "RIGHT";
+  constexpr const char* move_up               = "W|UP";
+  constexpr const char* move_down             = "S|DOWN";
+  constexpr const char* move_left             = "A|LEFT";
+  constexpr const char* move_right            = "D|RIGHT";
 } // namespace Shortcuts
 
 namespace Sync
 {
+  constexpr const char* stfcdata_url       = "https://sync.stfcdata.de";
+  constexpr const char* spocksclub_url     = "https://spocks.club/sync/ingress/";
+  constexpr const char* nextspocksclub_url = "https://next.spocks.club/sync/ingress/";
+
   constexpr bool        battlelogs         = true;
   constexpr bool        buffs              = true;
   constexpr bool        buildings          = true;
@@ -275,6 +280,7 @@ namespace UI
   constexpr bool        show_hostile_cargo          = true;
   constexpr bool        show_player_cargo           = true;
   constexpr bool        show_station_cargo          = true;
+  constexpr bool        instant_cargo_counter       = true;
   constexpr int         cargo_significant_decimals  = 2; // decimal places for abbreviated cargo values (e.g. 1.25M)
 } // namespace UI
 

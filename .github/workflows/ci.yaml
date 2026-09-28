@@ -224,6 +224,11 @@ jobs:
             "build/windows/x64/release/stfc-community-mod.dll" `
             "version.dll"
 
+      - name: Test checked IL2CPP helpers
+        run: |
+          xmake build -y il2cpp-checked-tests
+          xmake run il2cpp-checked-tests
+
       - name: Verify DLL provenance
         shell: pwsh
         run: |
@@ -526,6 +531,11 @@ jobs:
           else
             echo "::warning::Swift module cache directory was not created"
           fi
+
+      - name: Test checked IL2CPP helpers
+        run: |
+          xmake build -y il2cpp-checked-tests
+          xmake run il2cpp-checked-tests
 
       - name: Verify portable macOS linkage
         shell: bash
