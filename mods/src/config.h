@@ -243,6 +243,7 @@ public:
   bool show_station_cargo;
   bool show_hostile_cargo;
   bool show_armada_cargo;
+  bool instant_cargo_counter;
 
   bool                                        always_skip_reveal_sequence;
   std::map<std::string, MissionHudVisibility> mission_hud_buttons;
@@ -291,6 +292,7 @@ public:
 
   // Cargo formatting
   bool installCargoFormatHooks;
+  bool installInstantCargoCounterHooks;
   int  cargo_significant_decimals;
 
   // Officer roster/assignment "Below Deck Ability" sort option restore
