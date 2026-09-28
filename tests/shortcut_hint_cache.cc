@@ -1,6 +1,7 @@
 // Link production MapKey/ModifierKey parsing, action dispatch and hint caching from mods.lib.
 // Key token parsing and input are test fixtures; layout lookup is injected below.
 // These tests do not exercise Unity lookup, native notifications or legacy input caching.
+#include "patches/keyboard_layout.h"
 #include "patches/keyboard_layout_mapping.h"
 #include "patches/mapkey.h"
 #include "settings/shortcut_draft.h"
