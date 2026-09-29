@@ -11,6 +11,11 @@ namespace Audio
 {
   constexpr const char* disabled_events = "";
   constexpr bool        trace_events    = false;
+  constexpr const char* alert_victory = "none";
+  constexpr const char* alert_defeat = "none";
+  constexpr const char* alert_armada_created = "none";
+  constexpr const char* alert_armada_battle_won = "none";
+  constexpr const char* alert_armada_battle_lost = "none";
 } // namespace Audio
 
 namespace SystemConfig
