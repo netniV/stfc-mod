@@ -165,6 +165,7 @@ namespace Shortcuts
   constexpr const char* show_settings         = "SHIFT-S";
   constexpr const char* show_ships            = "N";
   constexpr const char* show_shipconstruction = "SHIFT-N";
+  constexpr const char* show_shipswap         = "ALT-N";
   constexpr const char* show_shields          = "CTRL-S";
   constexpr const char* show_battlelogs       = "SHIFT-B";
   constexpr const char* show_stationexterior  = "SHIFT-G";

@@ -36,6 +36,7 @@
 #include "prime/ScreenManager.h"
 #include "prime/SelectableList.h"
 #include "prime/ShipManagementViewController.h"
+#include "prime/ShipManagementScreenStateViewController.h"
 #include "prime/ShortcutsManager.h"
 
 #include "patches/key.h"
@@ -68,6 +69,7 @@
 
 static bool reset_focus_next_frame = false;
 static int  show_info_pending      = 0;
+static int  show_ship_swap_pending = 0;
 
 using GetShowKeybindingsFn     = bool(void*);
 using SetShowKeybindingsFn     = void(void*, bool);
@@ -498,6 +500,30 @@ bool MoveDockInManagementView(bool goLeft)
   return acted;
 }
 
+bool PressShipSwapButton()
+{
+  for (auto controller : ObjectFinder<ShipManagementScreenStateViewController>::GetAll()) {
+    if (!controller) {
+      continue;
+    }
+
+    auto canvas = GetCanvasControllerFromComponent(controller);
+    if (!canvas || !canvas->Visible() || !controller->isActiveAndEnabled) {
+      continue;
+    }
+
+    auto* button = controller->_swapShipButton;
+    if (button) {
+      spdlog::info("[ShipSwap] pressing swap button controller={} button={}", static_cast<void*>(controller),
+                   static_cast<void*>(button));
+      button->Press();
+      return true;
+    }
+  }
+
+  return false;
+}
+
 void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
 {
   dispatch_screen_manager_update_callbacks();
@@ -529,6 +555,17 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
   // early-returns below (it must also run in Scopely-hotkey mode and
   // while hotkeys are toggled off).
   AssignShipEnterKeyUpdate();
+
+  if (show_ship_swap_pending > 0) {
+    if (PressShipSwapButton()) {
+      show_ship_swap_pending = 0;
+      return;
+    }
+
+    if (--show_ship_swap_pending == 0) {
+      spdlog::warn("[Hotkeys] timed out waiting for the Ship Swap button");
+    }
+  }
 
   if (Config::Get().use_scopely_hotkeys && Config::Get().hotkeys_enabled) {
     return original(_this);
@@ -746,6 +783,25 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
         return GotoSection(SectionID::ArtifactHall_Inventory);
       } else if (MapKey::IsDown(GameFunction::ShowShipConstruction)) {
         InvokeNativeShortcut(show_shipconstruction_action, "Ship Construction");
+        return;
+      } else if (MapKey::IsDown(GameFunction::ShowShipSwap)) {
+        auto* section_manager = Hub::get_SectionManager();
+        spdlog::info("[ShipSwap] shortcut pressed current_section={}",
+                     section_manager ? static_cast<int32_t>(section_manager->CurrentSection) : 0);
+        if (PressShipSwapButton()) {
+          return;
+        }
+
+        auto* fleet_bar        = ObjectFinder<FleetBarViewController>::Get();
+        auto* fleet_controller = fleet_bar ? fleet_bar->_fleetPanelController : nullptr;
+        auto* fleet            = fleet_controller ? fleet_controller->fleet : nullptr;
+        if (fleet) {
+          spdlog::info("[ShipSwap] requesting Manage Ships before swap fleet={}", static_cast<void*>(fleet));
+          fleet_controller->RequestAction(fleet, ActionType::Manage, 0, ActionBehaviour::Default);
+          show_ship_swap_pending = 300;
+        } else {
+          spdlog::warn("[Hotkeys] unable to open Manage Ships for Ship Swap");
+        }
         return;
       } else if (MapKey::IsDown(GameFunction::ShowShields)) {
         InvokeNativeShortcut(show_shields_action, "Peace Shields");

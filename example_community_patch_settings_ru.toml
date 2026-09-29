@@ -536,6 +536,9 @@ show_shields = "CTRL-S"
 # Открыть экран постройки корабля на верфи
 show_shipconstruction = "SHIFT-N"
 
+# Перейти прямо к смене корабля
+show_shipswap = "ALT-N"
+
 # Перейти к управлению кораблями
 show_ships = "N"
 
