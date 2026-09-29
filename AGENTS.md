@@ -94,7 +94,7 @@ static auto method = class_helper.GetMethodInfo("MethodName");
 
 **Adding a new patch** — Create a `.cc` file in `mods/src/patches/parts/`, write an `InstallXxxHooks()` function, declare it in `patches.cc`, add a `bool installXxx` to `Config`, and register in the `patches[]` array in `patches.cc`. Patch toggles are only read from TOML in `_MODDBG` builds, so update both the `_MODDBG` config parsing path and the non-`_MODDBG` release defaults in `config.cc`.
 
-**Config** — User settings are in TOML files. The `Config` singleton (`Config::Get()`) is loaded once during `il2cpp_init_hook`. Add new settings to `config.h`, add defaults in `defaultconfig.h`, and load them in `config.cc`. For user-facing settings, update every localized example (`example_community_patch_settings_<locale>.toml` — all of them, kept in sync key-for-key) unless the setting is intentionally internal. The unsuffixed `example_community_patch_settings.toml` is only a pointer to these localized examples.
+**Config** — User settings are in TOML files. The `Config` singleton (`Config::Get()`) is loaded once during `il2cpp_init_hook`. Add new settings to `config.h`, add defaults in `defaultconfig.h`, and load them in `config.cc`. For user-facing settings, update only the English example (`example_community_patch_settings_en.toml`). Do not update the other localized examples unless the user explicitly asks for translation updates. The unsuffixed `example_community_patch_settings.toml` is only a pointer to these localized examples and should not be changed when adding or modifying settings.
 
 ### Dependencies (via xmake packages)
 
