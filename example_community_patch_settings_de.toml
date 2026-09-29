@@ -536,6 +536,9 @@ show_shields = "CTRL-S"
 # Den Bildschirm Schiff bauen der Werft öffnen
 show_shipconstruction = "SHIFT-N"
 
+# Direkt zum Schiffstausch
+show_shipswap = "ALT-N"
+
 # Zur Schiffsverwaltung
 show_ships = "N"
 

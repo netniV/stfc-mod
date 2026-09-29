@@ -536,6 +536,9 @@ show_shields = "CTRL-S"
 # Åbn skibsværftets Byg skib-skærm
 show_shipconstruction = "SHIFT-N"
 
+# Gå direkte til skibsbytte
+show_shipswap = "ALT-N"
+
 # Gå til administration af skibe
 show_ships = "N"
 

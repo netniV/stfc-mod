@@ -536,6 +536,9 @@ show_shields = "CTRL-S"
 # Abrir la pantalla Construir nave del astillero
 show_shipconstruction = "SHIFT-N"
 
+# Ir directamente a Intercambiar nave
+show_shipswap = "ALT-N"
+
 # Ir a administrar barcos
 show_ships = "N"
 

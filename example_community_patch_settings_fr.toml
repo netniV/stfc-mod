@@ -536,6 +536,9 @@ show_shields = "CTRL-S"
 # Ouvrir la construction de vaisseaux du chantier spatial
 show_shipconstruction = "SHIFT-N"
 
+# Aller directement à Échanger un vaisseau
+show_shipswap = "ALT-N"
+
 # Aller aux vaisseaux
 show_ships = "N"
 

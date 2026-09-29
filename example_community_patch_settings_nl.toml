@@ -536,6 +536,9 @@ show_shields = "CTRL-S"
 # Open het scherm Schip bouwen van de scheepswerf
 show_shipconstruction = "SHIFT-N"
 
+# Ga direct naar Schip wisselen
+show_shipswap = "ALT-N"
+
 # Ga naar Scheepsmanagement
 show_ships = "N"
 
