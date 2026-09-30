@@ -739,7 +739,7 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
         }
       }
 
-      if (Config::Get().installFocusSearchHooks && MapKey::IsDown(GameFunction::FocusSearch)) {
+      if (Config::Get().focus_search && MapKey::IsDown(GameFunction::FocusSearch)) {
         if (FocusSearchBox()) {
           return;
         }
