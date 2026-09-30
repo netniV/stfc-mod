@@ -39,9 +39,11 @@ void InstallSyncPatches();
 void InstallObjectTrackers();
 void InstallLoadingScreenHooks();
 void InstallTransitionScreenHooks();
+void InstallGalacticAnomalyTimer();
 void InstallLoadingTipHooks();
 void InstallFocusSearchHooks();
 void InstallCargoFormatHooks();
+void InstallInstantCargoCounterHooks();
 void InstallOfficerSortHooks();
 void InstallPinnedShipSortHooks();
 void InstallDoubleClickAssignShipHooks();
@@ -142,8 +144,10 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
       {"ObjectTracker", {InstallObjectTrackers, &cfg.installObjectTracker}},
       {"LoadingScreen",        {InstallLoadingScreenHooks,   &cfg.installLoadingScreenHooks}},
       {"TransitionScreen",     {InstallTransitionScreenHooks, &cfg.installTransitionScreenHooks}},
+      {"GalacticAnomalyTimer", {InstallGalacticAnomalyTimer, &cfg.galactic_anomaly_timer}},
       {"LoadingTip",           {InstallLoadingTipHooks,       &cfg.loader_tip_enabled}},
       {"FocusSearch",          {InstallFocusSearchHooks,      &cfg.installFocusSearchHooks}},
+      {"InstantCargoCounter",   {InstallInstantCargoCounterHooks, &cfg.installInstantCargoCounterHooks}},
       {"CargoFormat",          {InstallCargoFormatHooks,      &cfg.installCargoFormatHooks}},
       {"OfficerSortHooks",     {InstallOfficerSortHooks,      &cfg.installOfficerSortHooks}},
       {"PinnedShipSort",       {InstallPinnedShipSortHooks,   &cfg.installPinnedShipSortHooks}},
