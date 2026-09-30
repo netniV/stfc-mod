@@ -257,7 +257,12 @@ chatpatches = true
 
 # Enable per-faction bulk claiming for Daily Goals
 dailyfactionbulkclaimhooks = true
-focussearch = true
+missionhudtweakshooks = true
+galacticanomalytimerhooks = true
+loadingtiphooks = true
+doubleclickassignshiphooks = true
+forbiddentechconfirmhooks = true
+audioeventhooks = true
 freeresizehooks = true
 game_version = true
 giftsbulkclaimhooks = true
@@ -730,6 +735,15 @@ arrow_keys_to_select_ship = true
 
 # Double-click a ship in the fleet management dock to assign it instead of selecting it and then clicking Assign
 double_click_to_assign_ship = false
+
+# Enable the shortcut that focuses the search box on supported screens
+focus_search = true
+
+# Format abbreviated cargo values using cargo_significant_decimals
+cargo_format = true
+
+# Restore the Below Deck Ability officer sort option
+officer_sort = true
 
 # Comma-separated ship names to always show first in the fleet management dock; pinned ships retain the active sort order
 pinned_ships = ""
