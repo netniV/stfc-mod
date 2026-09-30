@@ -27,7 +27,9 @@ These bindings can be changed in the `[shortcuts]` section of `community_patch_s
 
 | Setting | Default | Action |
 | --- | --- | --- |
+| `show_officerswap` | `ALT-O` | Open officer assignment for the selected ship. |
 | `show_shipconstruction` | `SHIFT-N` | Open Ships / Ship Construction (Shipyard → Build Ship). |
+| `show_shipswap` | `ALT-N` | Open Ship Swap for the selected ship. |
 | `show_shields` | `CTRL-S` | Open the Peace Shield selection popup. |
 | `show_battlelogs` | `SHIFT-B` | Open the Battle Reports inbox. |
 

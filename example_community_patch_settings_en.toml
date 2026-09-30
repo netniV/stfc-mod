@@ -544,6 +544,9 @@ show_shields = "CTRL-S"
 # Open the Shipyard Build Ship screen
 show_shipconstruction = "SHIFT-N"
 
+# Go directly to Officer Swap
+show_officerswap = "ALT-O"
+
 # Go directly to Ship Swap
 show_shipswap = "ALT-N"
 
