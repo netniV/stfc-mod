@@ -3577,6 +3577,17 @@ enum Type {
   TYPE_STARBASEMODULES = 239;
   TYPE_RESOURCEPRODUCERS = 240;
   TYPE_STARBASE = 241;
+  TYPE_NODESYSTEM = 242;
+  TYPE_DOCKINGPOINTS = 243;
+  TYPE_PLAYERCONTAINER = 244;
+  TYPE_MARAUDERQUICKSCANDATA = 245;
+  TYPE_ALLIANCECONTAINER = 246;
+  TYPE_QUICKSCANRESULTS = 247;
+  TYPE_DEPLOYEDFLEETS = 248;
+  TYPE_MYDEPLOYEDFLEETS = 249;
+  TYPE_FLEETS = 250;
+  TYPE_SHIPS = 251;
+  TYPE_RESOURCEHARVESTERS = 252;
   TYPE_OUTPOSTSTATICDATA = 8401;
   TYPE_OUTPOSTUPGRADERESPONSE = 8402;
   TYPE_OUTPOSTSYNC = 8403;
@@ -3898,6 +3909,19 @@ message PartyResponse {
 
 message PlayerPartyResponse {
   PartyResponse response = 1;
+}
+
+message PlayerShipData {
+  int64 id = 1;
+  int32 tier = 2;
+  int64 hullId = 3;
+  repeated int64 components = 4;
+  int32 level = 5;
+  float levelPercentage = 6;
+}
+
+message PlayerShipsResponse {
+  map<int64, PlayerShipData> ships = 1;
 }
 
 message PlanetaryBaseSpec {
@@ -5582,4 +5606,12 @@ message WaveDefenseChallengeDataResponse {
 
 message ActiveWormholesResponse {
   repeated Wormhole wormholes = 1;
+}
+
+message JournalHeaderProto {
+  int64 id = 1;
+}
+
+message BattleResultHeadersResponse {
+  repeated JournalHeaderProto headers = 1;
 }
