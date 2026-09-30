@@ -102,6 +102,7 @@ enum GameFunction {
   FocusSearch,
 
   ShowShipConstruction,
+  ShowOfficerSwap,
   ShowShipSwap,
   ShowShields,
   ShowBattlelogs,
