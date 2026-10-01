@@ -1338,6 +1338,8 @@ void Config::Load()
   parse_config_shortcut(config, parsed, "toggle_shortcut_hints", GameFunction::ToggleShortcutHints,
                         DCSH::toggle_shortcut_hints);
   parse_config_shortcut(config, parsed, "show_officers", GameFunction::ShowOfficers, DCSH::show_officers);
+  parse_config_shortcut(config, parsed, "show_officerpresets", GameFunction::ShowOfficerPresets,
+                        DCSH::show_officerpresets);
   parse_config_shortcut(config, parsed, "show_officerswap", GameFunction::ShowOfficerSwap, DCSH::show_officerswap);
   parse_config_shortcut(config, parsed, "show_qtrials", GameFunction::ShowQTrials, DCSH::show_qtrials);
   parse_config_shortcut(config, parsed, "show_refinery", GameFunction::ShowRefinery, DCSH::show_refinery);
