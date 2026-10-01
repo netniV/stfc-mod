@@ -523,6 +523,9 @@ show_missions = "M"
 # Go to Officers
 show_officers = "SHIFT-O"
 
+# Go to Officer Presets
+show_officerpresets = "CTRL-O"
+
 # Go to Q Trials
 show_qtrials = "SHIFT-Q"
 

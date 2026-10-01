@@ -164,6 +164,7 @@ namespace Shortcuts
   constexpr const char* show_lookup           = "L";
   constexpr const char* show_missions         = "M";
   constexpr const char* show_officers         = "SHIFT-O";
+  constexpr const char* show_officerpresets   = "CTRL-O";
   constexpr const char* show_officerswap      = "ALT-O";
   constexpr const char* show_qtrials          = "SHIFT-Q";
   constexpr const char* show_refinery         = "SHIFT-F";
