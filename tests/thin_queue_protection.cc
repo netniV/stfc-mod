@@ -42,14 +42,6 @@ QueueState Queue(std::initializer_list<std::int64_t> targets)
 
 int main()
 {
-  // module installs for protection or diagnostics
-  {
-    assert(!(action_queue_guard::ShouldInstall(false, false)));
-    assert(action_queue_guard::ShouldInstall(true, false));
-    assert(action_queue_guard::ShouldInstall(false, true));
-    assert(action_queue_guard::ShouldInstall(true, true));
-  }
-
   // native engage results have stable diagnostic names
   {
     assert(action_queue_guard::EngageResultName(0).compare("success") == 0);

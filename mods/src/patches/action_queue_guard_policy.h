@@ -37,9 +37,6 @@ struct QueueState {
   std::int64_t                pending_target_id      = 0;
 };
 
-constexpr bool ShouldInstall(bool protection_enabled, bool diagnostics_enabled)
-{ return protection_enabled || diagnostics_enabled; }
-
 constexpr bool ShouldProcessDestroyedHead(bool enabled, bool target_destroyed, std::int64_t target_id,
                                           const QueueState& after_native)
 {
