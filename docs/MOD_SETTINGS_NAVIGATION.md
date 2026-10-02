@@ -5,9 +5,8 @@ control placement, conditional rows, summaries and native adapter ownership are
 documented in [Mod Settings](MOD_SETTINGS.md).
 
 This foundation separates presentation placement from a setting's owner. The
-intended native path is Settings > Mod Settings > group > setting. Group names
-and final membership are deliberately undecided; moving a control must not rename
-its stored setting or introduce another copy of its value. Confirmation controls
+intended native path is Settings > Mod Settings > group > setting. Current page membership follows the task layout in `MOD_SETTINGS.md`. Moving a
+control must not rename its stored setting or introduce another copy of its value. Confirmation controls
 continue to belong on the native confirmation page.
 
 `PageCatalog` holds stable page IDs, labels, parent IDs and references to existing
@@ -43,14 +42,12 @@ its method extent. Those disk measurements do not establish live relocation,
 callback lifetime or native presentation. Exact artifact navigation/pooling smoke
 and supported Mac native extent/execution evidence remain qualification gates.
 
-Register through `ModPages()` before settings installation. The first production
-groups follow populated TOML sections: User Interface > Instant warp mode shares
-Alt+I's owner and persistence; Graphics > Fleet Labels places player/non-player
-sections on one page, each with detail
-choices and a percentage slider. Headings use native text-only rows with scoped
-label overrides and optional row tints cleared on refresh/clear. Two text-widget hooks have Windows x64
-extents of 293 and 271 bytes. Future grouping follows the section-based direction in
-[MOD_SETTINGS_CONTROLS.md](MOD_SETTINGS_CONTROLS.md). Native confirmation placement remains unchanged.
+Register through `ModPages()` before settings installation. Current pages are
+Camera, Fleet Labels, Map & Travel, and Previews & Cargo, as documented in
+[Mod Settings](MOD_SETTINGS.md). Instant warp shares Alt+I's owner and persistence.
+Fleet Labels places Player and Non-player sections on one page, each with detail
+choices and a percentage slider. Native text-only headings use scoped labels and
+row tints cleared on refresh/clear. Native confirmation placement stays unchanged.
 Selection controls share the typed setting/view guards with booleans and retain
 the whole integer value in each row snapshot. Three selection-widget hooks have
 verified Windows x64 extents of 146, 355 and 281 bytes. Selection prefabs may put
