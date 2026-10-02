@@ -1091,14 +1091,10 @@ void Config::Load()
   if (!this->installToastBannerHooks && any_toast_audio_alert_configured) {
     spdlog::warn("audio alerts require patches.toastbannerhooks = true");
   }
-  this->audio_fleet_events = 0;
   for (const auto& entry : kFleetNotificationCatalog) {
     const auto sound = get_notification_sound(config, parsed, entry.audio_config_name,
                                                DCA::alert_fleet_default, write_config);
     this->alert_fleet_events[static_cast<std::size_t>(entry.kind)] = sound;
-    if (sound != NotificationSound::None) {
-      this->audio_fleet_events |= fleet_notification_bit(entry.kind);
-    }
   }
   this->auto_open_bulk_claim_flyout = get_config_or_default(config, parsed, "ui", "auto_open_bulk_claim_flyout",
                                                             DCU::auto_open_bulk_claim_flyout, write_config);
@@ -1321,13 +1317,12 @@ void Config::Load()
     if (trimmed.empty()) {
       continue;
     }
-    const auto normalized = AsciiStrToUpper(trimmed);
-    if (normalized == "ALL") {
+    if (fleet_notification_name_matches(trimmed, "All")) {
       this->notify_fleet_events = kAllFleetNotifications;
       break;
     }
     const auto match = std::ranges::find_if(kFleetNotificationCatalog, [&](const auto& entry) {
-      return normalized == AsciiStrToUpper(entry.config_name);
+      return fleet_notification_name_matches(trimmed, entry.config_name);
     });
     if (match == kFleetNotificationCatalog.end()) {
       spdlog::warn("Unknown fleet notification event '{}'; ignoring it", trimmed);

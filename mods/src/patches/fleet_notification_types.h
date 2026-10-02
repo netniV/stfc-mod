@@ -36,6 +36,21 @@ inline constexpr std::array kFleetNotificationCatalog{
 
 static_assert(kFleetNotificationCatalog.size() == static_cast<std::size_t>(FleetNotificationKind::Count));
 
+// Match ASCII configuration tokens without locale, signed ctype input or NUL truncation.
+constexpr bool fleet_notification_name_matches(std::string_view value, std::string_view expected)
+{
+  if (value.size() != expected.size()) return false;
+  const auto fold = [](unsigned char c) { return c >= 'a' && c <= 'z' ? c - ('a' - 'A') : c; };
+  for (std::size_t i = 0; i < value.size(); ++i)
+    if (fold(static_cast<unsigned char>(value[i])) != fold(static_cast<unsigned char>(expected[i])))
+      return false;
+  return true;
+}
+static_assert(fleet_notification_name_matches("mInErOpc", "MinerOPC"));
+static_assert(fleet_notification_name_matches(std::string_view{"AllSuffix", 3}, "All"));
+static_assert(!fleet_notification_name_matches(std::string_view{"All\0suffix", 10}, "All"));
+static_assert(!fleet_notification_name_matches("\xC3\xA9", "All"));
+
 constexpr FleetNotificationMask fleet_notification_bit(FleetNotificationKind kind)
 { return FleetNotificationMask{1} << static_cast<uint8_t>(kind); }
 
