@@ -2,6 +2,7 @@
 #include "errormsg.h"
 
 #include <il2cpp/il2cpp_helper.h>
+#include <il2cpp/method_contract.h>
 
 #include <spdlog/spdlog.h>
 #include <spud/detour.h>
@@ -36,6 +37,7 @@ std::array<MissionHudButtonDefinition, 4> g_button_definitions{{
 std::vector<MissionHudButtonDefinition*> g_configured_buttons;
 ComponentGetGameObjectFn                 g_get_game_object = nullptr;
 GameObjectSetActiveFn                    g_set_active      = nullptr;
+bool g_ready = false;
 
 std::string_view to_string(MissionHudVisibility visibility)
 {
@@ -55,10 +57,6 @@ std::vector<MissionHudButtonDefinition*> LoadConfiguredButtons()
   std::vector<MissionHudButtonDefinition*> configured_buttons;
   for (auto& definition : g_button_definitions) {
     definition.visibility = Config::Get().MissionHudButtonVisibility(definition.canonical_name);
-    if (definition.visibility == MissionHudVisibility::Auto) {
-      continue;
-    }
-
     configured_buttons.emplace_back(&definition);
   }
   return configured_buttons;
@@ -68,6 +66,9 @@ std::string ConfiguredButtonModes()
 {
   std::string modes;
   for (const auto* button : g_configured_buttons) {
+    if (button->visibility == MissionHudVisibility::Auto) {
+      continue;
+    }
     if (!modes.empty()) {
       modes.append(", ");
     }
@@ -78,12 +79,19 @@ std::string ConfiguredButtonModes()
   return modes;
 }
 
-bool ResolveButtonFields(IL2CppClassHelper& controller_helper)
+bool ResolveButtonFields(IL2CppClassHelper& controller_helper, Il2CppClass* component_class)
 {
   auto valid_count = 0;
   for (auto* button : g_configured_buttons) {
     auto field = controller_helper.GetField(button->field_name);
-    if (!field.isValidHelper()) {
+    const auto* info = field.get_info();
+    const auto* type = info ? info->type : nullptr;
+    auto* field_class = type ? il2cpp_class_from_type(type) : nullptr;
+    if (!info || !type || type->byref || (il2cpp_field_get_flags(info) & FIELD_ATTRIBUTE_STATIC)
+        || (type->type != IL2CPP_TYPE_CLASS && type->type != IL2CPP_TYPE_GENERICINST)
+        || !field_class || !il2cpp_class_is_assignable_from(component_class, field_class)
+        || info->offset < sizeof(Il2CppObject)
+        || info->offset + sizeof(void*) > il2cpp_class_instance_size(controller_helper.get_cls())) {
       spdlog::error("MissionHudTweaks: unable to find MissionsHudViewController field '{}'", button->field_name);
       continue;
     }
@@ -118,8 +126,12 @@ void ApplyButtonVisibility(void* controller, const MissionHudButtonDefinition& b
 // setup/notification work, then apply only explicitly configured overrides.
 void ApplyConfiguredButtonVisibility(void* controller)
 {
-  for (const auto* button : g_configured_buttons) {
-    ApplyButtonVisibility(controller, *button);
+  if (!g_ready)
+    return;
+  for (auto* button : g_configured_buttons) {
+    button->visibility = Config::Get().MissionHudButtonVisibility(button->canonical_name);
+    if (button->visibility != MissionHudVisibility::Auto)
+      ApplyButtonVisibility(controller, *button);
   }
 }
 
@@ -158,18 +170,10 @@ void MissionsHudViewController_HandleOutpostsAndChallengesHUD_Hook(auto original
 void InstallMissionHudTweaksHooks()
 {
   g_configured_buttons = LoadConfiguredButtons();
-  if (g_configured_buttons.empty()) {
-    spdlog::warn("MissionHudTweaks: no mission HUD button overrides are configured");
-    return;
-  }
 
   auto controller_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.HUD", "MissionsHudViewController");
   if (!controller_helper.isValidHelper()) {
     ErrorMsg::MissingHelper("Digit.Prime.HUD", "MissionsHudViewController");
-    return;
-  }
-
-  if (!ResolveButtonFields(controller_helper)) {
     return;
   }
 
@@ -179,7 +183,11 @@ void InstallMissionHudTweaksHooks()
     return;
   }
 
-  g_get_game_object = reinterpret_cast<ComponentGetGameObjectFn>(component_helper.GetMethod("get_gameObject"));
+  if (!ResolveButtonFields(controller_helper, component_helper.get_cls()))
+    return;
+  const auto* get_game_object = method_contract::Resolve(
+      component_helper.get_cls(), "get_gameObject", false, "UnityEngine.GameObject", {});
+  g_get_game_object = reinterpret_cast<ComponentGetGameObjectFn>(method_contract::Pointer(get_game_object));
   if (!g_get_game_object) {
     ErrorMsg::MissingMethod("Component", "get_gameObject");
     return;
@@ -191,7 +199,9 @@ void InstallMissionHudTweaksHooks()
     return;
   }
 
-  g_set_active = reinterpret_cast<GameObjectSetActiveFn>(game_object_helper.GetMethod("SetActive", 1));
+  const auto* set_active = method_contract::Resolve(
+      game_object_helper.get_cls(), "SetActive", false, "System.Void", {"System.Boolean"});
+  g_set_active = reinterpret_cast<GameObjectSetActiveFn>(method_contract::Pointer(set_active));
   if (!g_set_active) {
     ErrorMsg::MissingMethod("GameObject", "SetActive");
     return;
@@ -199,23 +209,43 @@ void InstallMissionHudTweaksHooks()
 
   // Resolve the complete surface before installing anything. Avoid the tiny
   // planetary/outpost event wrappers: these substantive methods own the work.
-  auto on_enable = controller_helper.GetMethod("OnEnable", 0);
-  auto achievements = controller_helper.GetMethod("SetupAchievementsButton", 0);
-  auto challenges = controller_helper.GetMethod("SetupChallengesButton", 1);
-  auto outposts = controller_helper.GetMethod("SetupOutpostsButton", 1);
-  auto combined = controller_helper.GetMethod("HandleOutpostsAndChallengesHUD", 0);
+  const auto* on_enable = method_contract::Resolve(
+      controller_helper.get_cls(), "OnEnable", false, "System.Void", {});
+  const auto* achievements = method_contract::Resolve(
+      controller_helper.get_cls(), "SetupAchievementsButton", false, "System.Void", {});
+  const auto* challenges = method_contract::Resolve(
+      controller_helper.get_cls(), "SetupChallengesButton", false, "System.Void", {"System.Boolean"});
+  const auto* outposts = method_contract::Resolve(
+      controller_helper.get_cls(), "SetupOutpostsButton", false, "System.Void", {"System.Boolean"});
+  const auto* combined = method_contract::Resolve(
+      controller_helper.get_cls(), "HandleOutpostsAndChallengesHUD", false, "System.Void", {});
   if (!on_enable || !achievements || !challenges || !outposts || !combined) {
     spdlog::error("MissionHudTweaks: current HUD lifecycle/setup methods are missing; overrides disabled");
     return;
   }
 
-  spdlog::info("MissionHudTweaks: applying {}", ConfiguredButtonModes());
-  const bool enabled = SPUD_STATIC_DETOUR(on_enable, MissionsHudViewController_OnEnable_Hook);
-  const bool achievement_hook = SPUD_STATIC_DETOUR(achievements, MissionsHudViewController_SetupAchievementsButton_Hook);
-  const bool challenge_hook = SPUD_STATIC_DETOUR(challenges, MissionsHudViewController_SetupChallengesButton_Hook);
-  const bool outpost_hook = SPUD_STATIC_DETOUR(outposts, MissionsHudViewController_SetupOutpostsButton_Hook);
-  const bool combined_hook = SPUD_STATIC_DETOUR(combined, MissionsHudViewController_HandleOutpostsAndChallengesHUD_Hook);
-  if (enabled && achievement_hook && challenge_hook && outpost_hook && combined_hook) {
+  const std::array targets{on_enable, achievements, challenges, outposts, combined};
+  for (std::size_t i = 0; i < targets.size(); ++i) {
+    if (targets[i]->has_full_generic_sharing_signature)
+      return;
+    for (std::size_t j = 0; j < i; ++j)
+      if (targets[i]->methodPointer == targets[j]->methodPointer) {
+        spdlog::error("MissionHudTweaks: lifecycle/setup targets overlap; overrides disabled");
+        return;
+      }
+  }
+  if (get_game_object->has_full_generic_sharing_signature || set_active->has_full_generic_sharing_signature)
+    return;
+  const auto modes = ConfiguredButtonModes();
+  if (!modes.empty())
+    spdlog::info("MissionHudTweaks: applying {}", modes);
+  const bool enabled = SPUD_STATIC_DETOUR(on_enable->methodPointer, MissionsHudViewController_OnEnable_Hook);
+  const bool achievement_hook = SPUD_STATIC_DETOUR(achievements->methodPointer, MissionsHudViewController_SetupAchievementsButton_Hook);
+  const bool challenge_hook = SPUD_STATIC_DETOUR(challenges->methodPointer, MissionsHudViewController_SetupChallengesButton_Hook);
+  const bool outpost_hook = SPUD_STATIC_DETOUR(outposts->methodPointer, MissionsHudViewController_SetupOutpostsButton_Hook);
+  const bool combined_hook = SPUD_STATIC_DETOUR(combined->methodPointer, MissionsHudViewController_HandleOutpostsAndChallengesHUD_Hook);
+  g_ready = enabled && achievement_hook && challenge_hook && outpost_hook && combined_hook;
+  if (g_ready) {
     spdlog::info("MissionHudTweaks: installed current HUD lifecycle/setup hooks");
   } else {
     // Successfully installed detours still call through, but must not partially

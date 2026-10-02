@@ -31,6 +31,7 @@ namespace Control
 
 namespace Graphics
 {
+  constexpr bool        galactic_anomaly_timer       = false;
   constexpr bool        borderless_fullscreen       = true;
   constexpr bool        allow_cursor                = true;
   constexpr const char* zoom_label_player_detail        = "native";
@@ -74,8 +75,8 @@ namespace Patches
   constexpr bool freeresizehooks            = true;
   constexpr bool game_version               = true;
   constexpr bool hotkeyhooks                = true;
-  constexpr bool loadingscreenhooks           = true;
-  constexpr bool transitionscreenhooks          = true;
+  constexpr bool loadingscreenhooks         = true;
+  constexpr bool transitionscreenhooks      = true;
   constexpr bool objecttracker              = true;
   constexpr bool panhooks                   = true;
   constexpr bool syncpatches                = true;
@@ -87,7 +88,13 @@ namespace Patches
   constexpr bool miscpatches                = true;
   constexpr bool giftsbulkclaimhooks        = true;
   constexpr bool dailyfactionbulkclaimhooks = true;
-  constexpr bool focussearch                = true;
+  constexpr bool missionhudtweakshooks      = true;
+  constexpr bool galacticanomalytimerhooks  = true;
+  constexpr bool loadingtiphooks            = true;
+  constexpr bool doubleclickassignshiphooks = true;
+  constexpr bool forbiddentechconfirmhooks  = true;
+  constexpr bool audioeventhooks            = true;
+  constexpr bool instantcargocounterhooks   = true;
   constexpr bool cargoformathooks           = true;  // on by default: cargo number precision override
   constexpr bool officersorthooks           = true;  // restore Below Deck Ability sort option
   constexpr bool pinnedshiphooks            = true;  // pin configured ships to front of fleet dock sort
@@ -157,6 +164,8 @@ namespace Shortcuts
   constexpr const char* show_lookup           = "L";
   constexpr const char* show_missions         = "M";
   constexpr const char* show_officers         = "SHIFT-O";
+  constexpr const char* show_officerpresets   = "CTRL-O";
+  constexpr const char* show_officerswap      = "ALT-O";
   constexpr const char* show_qtrials          = "SHIFT-Q";
   constexpr const char* show_refinery         = "SHIFT-F";
   constexpr const char* show_research         = "U";
@@ -164,6 +173,7 @@ namespace Shortcuts
   constexpr const char* show_settings         = "SHIFT-S";
   constexpr const char* show_ships            = "N";
   constexpr const char* show_shipconstruction = "SHIFT-N";
+  constexpr const char* show_shipswap         = "ALT-N";
   constexpr const char* show_shields          = "CTRL-S";
   constexpr const char* show_battlelogs       = "SHIFT-B";
   constexpr const char* show_stationexterior  = "SHIFT-G";
@@ -195,14 +205,18 @@ namespace Shortcuts
   constexpr const char* zoom_preset3          = "F3";
   constexpr const char* zoom_preset4          = "F4";
   constexpr const char* zoom_preset5          = "F5";
-  constexpr const char* move_up               = "W";
-  constexpr const char* move_down             = "S";
-  constexpr const char* move_left             = "LEFT";
-  constexpr const char* move_right            = "RIGHT";
+  constexpr const char* move_up               = "W|UP";
+  constexpr const char* move_down             = "S|DOWN";
+  constexpr const char* move_left             = "A|LEFT";
+  constexpr const char* move_right            = "D|RIGHT";
 } // namespace Shortcuts
 
 namespace Sync
 {
+  constexpr const char* stfcdata_url       = "https://sync.stfcdata.de";
+  constexpr const char* spocksclub_url     = "https://spocks.club/sync/ingress/";
+  constexpr const char* nextspocksclub_url = "https://next.spocks.club/sync/ingress/";
+
   constexpr bool        battlelogs         = true;
   constexpr bool        buffs              = true;
   constexpr bool        buildings          = true;
@@ -246,6 +260,9 @@ namespace UI
   constexpr bool        disable_toast_banners       = false;
   constexpr bool        disable_veil_chat           = false;
   constexpr bool        double_click_to_assign_ship = false;
+  constexpr bool        focus_search                = true;
+  constexpr bool        cargo_format                = true;
+  constexpr bool        officer_sort                = true;
   constexpr const char* disabled_banner_types       = "";
   constexpr const char* hud_field_training          = "auto";
   constexpr const char* hud_missions                = "auto";
@@ -265,6 +282,7 @@ namespace UI
   constexpr bool        show_hostile_cargo          = true;
   constexpr bool        show_player_cargo           = true;
   constexpr bool        show_station_cargo          = true;
+  constexpr bool        instant_cargo_counter       = true;
   constexpr int         cargo_significant_decimals  = 2; // decimal places for abbreviated cargo values (e.g. 1.25M)
 } // namespace UI
 
