@@ -243,7 +243,8 @@ bool shift_pressed()
 bool control_pressed()
 {
 #ifdef __APPLE__
-  return key_pressed(KeyCode::LeftCommand) || key_pressed(KeyCode::RightCommand);
+  return key_pressed(KeyCode::LeftCommand) || key_pressed(KeyCode::RightCommand)
+         || key_pressed(KeyCode::LeftControl) || key_pressed(KeyCode::RightControl);
 #else
   return key_pressed(KeyCode::LeftControl) || key_pressed(KeyCode::RightControl);
 #endif
