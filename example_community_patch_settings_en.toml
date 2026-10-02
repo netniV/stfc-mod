@@ -263,6 +263,8 @@ loadingtiphooks = true
 doubleclickassignshiphooks = true
 forbiddentechconfirmhooks = true
 audioeventhooks = true
+# Install local preset ordering hooks; the feature remains opt-in under [ui]
+officerpresetreorderhooks = true
 freeresizehooks = true
 game_version = true
 giftsbulkclaimhooks = true
@@ -656,7 +658,7 @@ auto_confirm_discovery = true
 auto_open_bulk_claim_flyout = false
 
 # EXPERIMENTAL: Allow officer presets to be reordered in the presets screen
-# Shift-click a preset's edit-name button to move it up; Ctrl-click to move it down
+# Shift-click a preset's edit-name button to move it up; Ctrl-click (Command on Mac) moves it down
 # The chosen order is stored locally and does not change Scopely's preset slots
 allow_officer_preset_reordering = false
 

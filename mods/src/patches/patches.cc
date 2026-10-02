@@ -153,7 +153,7 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
       {"InstantWarpConfirm", {InstallInstantWarpConfirmationHooks, &cfg.installInstantWarpConfirmationHooks}},
       {"ForbiddenTechConfirm", {InstallForbiddenTechConfirmationHooks, &cfg.installForbiddenTechConfirmationHooks}},
       {"AudioEvents", {InstallAudioEventHooks, &cfg.installAudioEventHooks}},
-      {"OfficerPresetReorder", {InstallOfficerPresetReorderHooks, &cfg.allow_officer_preset_reordering}},
+      {"OfficerPresetReorder", {InstallOfficerPresetReorderHooks, &cfg.installOfficerPresetReorderHooks}},
   };
   printf("il2cpp_init_hook(%s)\n", domain_name);
 

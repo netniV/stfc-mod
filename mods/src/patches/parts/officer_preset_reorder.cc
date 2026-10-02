@@ -1,9 +1,12 @@
 #include "errormsg.h"
+#include "config.h"
 #include "mod_state.h"
 #include "prime/KeyCode.h"
 #include "str_utils.h"
 
 #include <il2cpp/il2cpp_helper.h>
+#include <il2cpp/method_contract.h>
+#include <il2cpp/runtime.h>
 
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
@@ -14,6 +17,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <limits>
 #include <vector>
 
 namespace
@@ -33,21 +37,83 @@ struct OfficerPresetItemContext {
   void*         officer_presets_view_context;
 };
 
-using ClearAndGenerateContentsFn = void(void*, Il2CppObject*, Il2CppObject*);
-using GetScrollPositionFn        = float(void*);
-using RestoreScrollPositionFn    = void(void*, float);
+std::vector<int64_t> session_order;
+std::vector<int32_t> active_presentations;
+Il2CppObject* active_controller = nullptr;
+Il2CppObject* active_view_context = nullptr;
+Il2CppClass* item_context_class = nullptr;
+Il2CppClass* view_context_class = nullptr;
+Il2CppClass* scroller_class = nullptr;
+FieldInfo* widget_context_field = nullptr;
+FieldInfo* controller_context_field = nullptr;
+FieldInfo* controller_scroller_field = nullptr;
+FieldInfo* presets_items_field = nullptr;
+FieldInfo* scroller_data_field = nullptr;
+FieldInfo* scroller_held_data_field = nullptr;
+const MethodInfo* clear_and_generate = nullptr;
+const MethodInfo* get_scroll_position = nullptr;
+const MethodInfo* restore_scroll_position = nullptr;
+bool hooks_ready = false;
+bool custom_presentations = false;
+bool view_failed = false;
+bool processing = false;
+bool order_loaded = false;
+uint64_t view_epoch = 0;
 
-std::vector<int64_t>        session_order;
-std::vector<int32_t>        active_presentations;
-Il2CppObject*               active_controller          = nullptr;
-Il2CppClass*                item_context_class         = nullptr;
-ptrdiff_t                   widget_context_offset      = 0;
-ptrdiff_t                   controller_context_offset  = 0;
-ptrdiff_t                   controller_scroller_offset = 0;
-ptrdiff_t                   presets_items_offset       = 0;
-ClearAndGenerateContentsFn* clear_and_generate         = nullptr;
-GetScrollPositionFn*        get_scroll_position        = nullptr;
-RestoreScrollPositionFn*    restore_scroll_position    = nullptr;
+bool enabled() { return hooks_ready && Config::Get().allow_officer_preset_reordering; }
+
+struct ProcessingScope {
+  bool previous = processing;
+  ProcessingScope() { processing = true; }
+  ~ProcessingScope() { processing = previous; }
+};
+
+bool instance_field(FieldInfo* field)
+{
+  return field && field->type && !field->type->byref && field->offset >= 0
+         && !(field->type->attrs & FIELD_ATTRIBUTE_STATIC);
+}
+
+FieldInfo* reference_field(Il2CppClass* owner, const char* name, Il2CppClass* expected = nullptr)
+{
+  auto* field = owner ? il2cpp_class_get_field_from_name(owner, name) : nullptr;
+  auto* cls = field && field->type ? il2cpp_class_from_type(field->type) : nullptr;
+  return instance_field(field) && cls && !il2cpp_class_is_valuetype(cls)
+         && (!expected || il2cpp_class_is_assignable_from(expected, cls)) ? field : nullptr;
+}
+
+Il2CppObject* read_reference(void* object, FieldInfo* field)
+{
+  Il2CppObject* value = nullptr;
+  if (!object || !instance_field(field)) return nullptr;
+  auto* instance = static_cast<Il2CppObject*>(object);
+  if (!instance->klass || !il2cpp_class_is_assignable_from(field->parent, instance->klass)) return nullptr;
+  il2cpp_field_get_value(instance, field, &value);
+  auto* expected = il2cpp_class_from_type(field->type);
+  return value && value->klass && expected && il2cpp_class_is_assignable_from(expected, value->klass) ? value : nullptr;
+}
+
+bool write_reference(Il2CppObject* object, FieldInfo* field, Il2CppObject* value)
+{
+  auto* expected = field && field->type ? il2cpp_class_from_type(field->type) : nullptr;
+  if (!object || !object->klass || !instance_field(field) || !expected
+      || !il2cpp_class_is_assignable_from(field->parent, object->klass)
+      || (value && (!value->klass || !il2cpp_class_is_assignable_from(expected, value->klass)))) return false;
+  il2cpp_field_set_value_object(object, field, value);
+  Il2CppObject* observed = nullptr;
+  il2cpp_field_get_value(object, field, &observed);
+  return observed == value;
+}
+
+void clear_active_view()
+{
+  ++view_epoch;
+  active_controller = nullptr;
+  active_view_context = nullptr;
+  active_presentations.clear();
+  custom_presentations = false;
+  view_failed = false;
+}
 
 void load_session_order()
 {
@@ -90,6 +156,14 @@ void load_session_order()
   }
 }
 
+void ensure_order_loaded()
+{
+  if (!order_loaded) {
+    load_session_order();
+    order_loaded = true;
+  }
+}
+
 bool save_session_order()
 {
   auto order = nlohmann::json::array();
@@ -109,7 +183,7 @@ bool validate_context_field(Il2CppClass* context_class, const char* name, ptrdif
                             Il2CppTypeEnum expected_type)
 {
   auto* field = il2cpp_class_get_field_from_name(context_class, name);
-  if (field == nullptr || field->type == nullptr) {
+  if (!instance_field(field)) {
     spdlog::error("[OfficerPresetReorder] required context field '{}' is unavailable", name);
     return false;
   }
@@ -125,7 +199,17 @@ bool validate_context_field(Il2CppClass* context_class, const char* name, ptrdif
 
 bool validate_context_layout(Il2CppClass* context_class)
 {
-  return context_class != nullptr
+  auto* presentation = context_class ? il2cpp_class_get_field_from_name(context_class, "Presentation") : nullptr;
+  auto* enum_class = presentation && presentation->type ? il2cpp_class_from_type(presentation->type) : nullptr;
+  const auto* underlying = enum_class && il2cpp_class_is_enum(enum_class) ? il2cpp_class_enum_basetype(enum_class) : nullptr;
+  auto* owner_field = context_class ? reference_field(context_class, "_officerPresetsViewContext", view_context_class) : nullptr;
+  auto* officers_field = context_class ? il2cpp_class_get_field_from_name(context_class, "Officers") : nullptr;
+  auto* officers_array = officers_field && officers_field->type ? il2cpp_class_from_type(officers_field->type) : nullptr;
+  return context_class != nullptr && enum_class && enum_class->declaringType == context_class
+         && std::strcmp(enum_class->name, "PresentationType") == 0
+         && underlying && !underlying->byref && underlying->type == IL2CPP_TYPE_I4
+         && owner_field && officers_array && officers_array->element_class
+         && !il2cpp_class_is_valuetype(officers_array->element_class)
          && validate_context_field(context_class, "Presentation", offsetof(OfficerPresetItemContext, presentation),
                                    IL2CPP_TYPE_VALUETYPE)
          && validate_context_field(context_class, "IsOccupied", offsetof(OfficerPresetItemContext, is_occupied),
@@ -143,12 +227,9 @@ bool validate_context_layout(Il2CppClass* context_class)
 
 bool is_reorderable_preset(const OfficerPresetItemContext* context)
 {
-  return context != nullptr && context->slot_id >= 0 && context->order_id >= 0 && context->preset_name != nullptr
+  return context != nullptr && context->object.klass == item_context_class && context->slot_id >= 0 && context->order_id >= 0 && context->preset_name != nullptr
          && context->officers != nullptr && reinterpret_cast<Il2CppArraySize*>(context->officers)->max_length > 0;
 }
-
-template <typename T> T* read_object_field(void* object, ptrdiff_t offset)
-{ return object != nullptr ? *reinterpret_cast<T**>(reinterpret_cast<char*>(object) + offset) : nullptr; }
 
 bool key_pressed(KeyCode key)
 {
@@ -160,7 +241,13 @@ bool shift_pressed()
 { return key_pressed(KeyCode::LeftShift) || key_pressed(KeyCode::RightShift); }
 
 bool control_pressed()
-{ return key_pressed(KeyCode::LeftControl) || key_pressed(KeyCode::RightControl); }
+{
+#ifdef __APPLE__
+  return key_pressed(KeyCode::LeftCommand) || key_pressed(KeyCode::RightCommand);
+#else
+  return key_pressed(KeyCode::LeftControl) || key_pressed(KeyCode::RightControl);
+#endif
+}
 
 void remember_slots(OfficerPresetItemContext** items, il2cpp_array_size_t size)
 {
@@ -176,7 +263,7 @@ void remember_slots(OfficerPresetItemContext** items, il2cpp_array_size_t size)
 }
 
 bool has_native_identity(const OfficerPresetItemContext* context)
-{ return context != nullptr && context->slot_id >= 0 && context->order_id >= 0; }
+{ return context != nullptr && context->object.klass == item_context_class && context->slot_id >= 0 && context->order_id >= 0; }
 
 bool validate_unique_preset_identity(OfficerPresetItemContext** items, int32_t size)
 {
@@ -186,6 +273,7 @@ bool validate_unique_preset_identity(OfficerPresetItemContext** items, int32_t s
   order_ids.reserve(size);
   for (int32_t index = 0; index < size; ++index) {
     const auto* context = items[index];
+    if (context && context->object.klass != item_context_class) return false;
     if (!has_native_identity(context)) {
       continue;
     }
@@ -250,21 +338,18 @@ std::vector<OfficerPresetItemContext*> make_view_order(OfficerPresetItemContext*
 
 bool try_get_preset_list(void* view_context, Il2CppObject** list, Il2CppArraySize** backing_items, int32_t* size)
 {
-  *list = read_object_field<Il2CppObject>(view_context, presets_items_offset);
-  if (*list == nullptr) {
-    return false;
-  }
-
-  auto list_helper = IL2CppClassHelper{(*list)->klass};
-  auto items_field = list_helper.GetField("_items");
-  auto size_field  = list_helper.GetField("_size");
-  if (!items_field.isValidHelper() || !size_field.isValidHelper()) {
-    return false;
-  }
-
-  *backing_items = read_object_field<Il2CppArraySize>(*list, items_field.offset());
-  *size          = *reinterpret_cast<int32_t*>(reinterpret_cast<char*>(*list) + size_field.offset());
-  return *backing_items != nullptr && *size >= 0
+  *list = read_reference(view_context, presets_items_field);
+  if (!*list || !(*list)->klass) return false;
+  auto* items_field = reference_field((*list)->klass, "_items");
+  auto* size_field = il2cpp_class_get_field_from_name((*list)->klass, "_size");
+  auto* array_class = items_field ? il2cpp_class_from_type(items_field->type) : nullptr;
+  if (!array_class || items_field->type->type != IL2CPP_TYPE_SZARRAY
+      || array_class->element_class != item_context_class || !instance_field(size_field)
+      || size_field->type->type != IL2CPP_TYPE_I4) return false;
+  *backing_items = reinterpret_cast<Il2CppArraySize*>(read_reference(*list, items_field));
+  il2cpp_field_get_value(*list, size_field, size);
+  return *backing_items && reinterpret_cast<Il2CppObject*>(*backing_items)->klass == array_class && *size >= 0
+         && (*backing_items)->max_length <= static_cast<il2cpp_array_size_t>(std::numeric_limits<int32_t>::max())
          && static_cast<il2cpp_array_size_t>(*size) <= (*backing_items)->max_length;
 }
 
@@ -296,52 +381,110 @@ bool restore_native_presentations(OfficerPresetItemContext** canonical_items, in
   return true;
 }
 
+bool read_scroll(Il2CppObject* scroller, float& position)
+{
+  Il2CppObject* boxed = nullptr;
+  if (!Il2CppRuntime::TryInvoke(get_scroll_position, scroller, nullptr, &boxed)
+      || !boxed || !boxed->klass || il2cpp_class_get_type(boxed->klass)->type != IL2CPP_TYPE_R4) return false;
+  auto* value = static_cast<float*>(il2cpp_object_unbox(boxed));
+  if (!value) return false;
+  position = *value;
+  return true;
+}
+
+bool restore_scroll(Il2CppObject* scroller, float position)
+{
+  void* args[]{&position};
+  return Il2CppRuntime::TryInvoke(restore_scroll_position, scroller, args);
+}
+
+// This runs for an owned custom view even after the preference becomes false.
+// A successful ClearAndGenerateContents can defer or omit AssignContextData.
+// Its invocation status therefore cannot establish the canonical save source.
+bool restore_canonical_view(Il2CppObject* controller, bool regenerate)
+{
+  if (active_controller != controller || !custom_presentations) return true;
+  auto* view_context = read_reference(controller, controller_context_field);
+  auto* scroller = read_reference(controller, controller_scroller_field);
+  Il2CppObject* list = nullptr;
+  Il2CppArraySize* backing = nullptr;
+  int32_t size = 0;
+  if (view_context != active_view_context || !scroller
+      || !try_get_preset_list(view_context, &list, &backing, &size)
+      || !restore_native_presentations(reinterpret_cast<OfficerPresetItemContext**>(backing->vector), size)) {
+    view_failed = true;
+    return false;
+  }
+  bool regenerated = true;
+  if (regenerate) {
+    ProcessingScope scope;
+    void* args[]{controller, list};
+    regenerated = Il2CppRuntime::TryInvoke(clear_and_generate, scroller, args);
+  }
+  // Reference writes use the reflected API and its GC barrier, never raw offsets.
+  const bool source_restored = write_reference(scroller, scroller_data_field, list);
+  Il2CppObject* held = nullptr;
+  il2cpp_field_get_value(scroller, scroller_held_data_field, &held);
+  const bool pending_restored = !held || write_reference(scroller, scroller_held_data_field, list);
+  if (source_restored && pending_restored) custom_presentations = false;
+  if (!regenerated || !source_restored || !pending_restored) {
+    view_failed = true;
+    spdlog::warn("[OfficerPresetReorder] canonical restoration incomplete; custom ordering suspended");
+    return false;
+  }
+  return true;
+}
+
 bool render_local_order(Il2CppObject* controller, bool preserve_scroll)
 {
-  if (controller == nullptr || item_context_class == nullptr || clear_and_generate == nullptr) {
-    return false;
-  }
-
-  auto*            view_context   = read_object_field<void>(controller, controller_context_offset);
-  auto*            scroller       = read_object_field<void>(controller, controller_scroller_offset);
-  Il2CppObject*    canonical_list = nullptr;
-  Il2CppArraySize* backing_items  = nullptr;
-  int32_t          size           = 0;
-  if (scroller == nullptr || !try_get_preset_list(view_context, &canonical_list, &backing_items, &size)) {
-    return false;
-  }
-
-  auto** canonical_items = reinterpret_cast<OfficerPresetItemContext**>(backing_items->vector);
-  if (!validate_canonical_order(canonical_items, size) || active_presentations.size() != static_cast<size_t>(size)) {
-    return false;
-  }
-
-  auto  view_items = make_view_order(canonical_items, size);
+  if (!enabled() || processing || view_failed || active_controller != controller) return false;
+  auto* view_context = read_reference(controller, controller_context_field);
+  auto* scroller = read_reference(controller, controller_scroller_field);
+  Il2CppObject* list = nullptr;
+  Il2CppArraySize* backing = nullptr;
+  int32_t size = 0;
+  if (view_context != active_view_context || !scroller
+      || !try_get_preset_list(view_context, &list, &backing, &size)) return false;
+  auto** canonical_items = reinterpret_cast<OfficerPresetItemContext**>(backing->vector);
+  if (!validate_canonical_order(canonical_items, size) || active_presentations.size() != static_cast<size_t>(size)) return false;
+  auto view_items = make_view_order(canonical_items, size);
   auto* view_array = il2cpp_array_new(item_context_class, static_cast<il2cpp_array_size_t>(size));
-  if (view_array == nullptr) {
-    spdlog::warn("[OfficerPresetReorder] unable to allocate the scroller view array");
+  if (!view_array) return false;
+  float scroll = 0.0f;
+  const bool have_scroll = preserve_scroll && read_scroll(scroller, scroll);
+  const auto epoch = view_epoch;
+  custom_presentations = true; // retain the restoration snapshot before the first mutation
+  auto** slots = reinterpret_cast<void**>(reinterpret_cast<Il2CppArraySize*>(view_array)->vector);
+  for (int32_t i = 0; i < size; ++i) {
+    auto* context = view_items[i];
+    if (context) context->presentation = active_presentations[i];
+    il2cpp_gc_wbarrier_set_field(reinterpret_cast<Il2CppObject*>(view_array), &slots[i], context);
+  }
+  bool generated = false;
+  {
+    ProcessingScope scope;
+    void* args[]{controller, view_array};
+    generated = Il2CppRuntime::TryInvoke(clear_and_generate, scroller, args);
+  }
+  if (epoch != view_epoch || active_controller != controller || !custom_presentations) return false;
+  // A normal return without installing this source is not a completed custom render.
+  if (!generated || read_reference(scroller, scroller_data_field) != reinterpret_cast<Il2CppObject*>(view_array)) {
+    view_failed = true;
+    restore_canonical_view(controller, false);
     return false;
   }
-  auto** view_slots = reinterpret_cast<void**>(reinterpret_cast<Il2CppArraySize*>(view_array)->vector);
-  for (int32_t index = 0; index < size; ++index) {
-    auto* context = view_items[index];
-    if (context != nullptr) {
-      context->presentation = active_presentations[index];
-    }
-    il2cpp_gc_wbarrier_set_field(reinterpret_cast<Il2CppObject*>(view_array), &view_slots[index], context);
-  }
-
-  const auto scroll_position = preserve_scroll && get_scroll_position != nullptr ? get_scroll_position(scroller) : 0.0f;
-  clear_and_generate(scroller, controller, reinterpret_cast<Il2CppObject*>(view_array));
-  if (preserve_scroll && restore_scroll_position != nullptr) {
-    restore_scroll_position(scroller, scroll_position);
+  if (have_scroll && !restore_scroll(scroller, scroll)) {
+    view_failed = true;
+    restore_canonical_view(controller, true);
+    return false;
   }
   return true;
 }
 
 bool move_preset(OfficerPresetItemContext* context, int direction)
 {
-  if (!is_reorderable_preset(context) || context->officer_presets_view_context == nullptr
+  if (!enabled() || processing || view_failed || !is_reorderable_preset(context)
+      || context->officer_presets_view_context != active_view_context
       || active_controller == nullptr || clear_and_generate == nullptr) {
     return false;
   }
@@ -381,7 +524,7 @@ bool move_preset(OfficerPresetItemContext* context, int direction)
     return true;
   }
 
-  auto* scroller = read_object_field<void>(active_controller, controller_scroller_offset);
+  auto* scroller = read_reference(active_controller, controller_scroller_field);
   if (scroller == nullptr) {
     spdlog::warn("[OfficerPresetReorder] unable to access the active preset scroller");
     return false;
@@ -408,216 +551,204 @@ bool move_preset(OfficerPresetItemContext* context, int direction)
 void OfficerPresetsViewController_OnSaveSlotsSuccess_Hook(auto original, Il2CppObject* _this,
                                                           bool increase_occupied_slots_count)
 {
-  auto* view_context = read_object_field<void>(_this, controller_context_offset);
-  auto* scroller     = read_object_field<void>(_this, controller_scroller_offset);
-
-  Il2CppObject*    canonical_list = nullptr;
-  Il2CppArraySize* backing_items  = nullptr;
-  int32_t          size           = 0;
-  const bool       canonical_available =
-      scroller != nullptr && try_get_preset_list(view_context, &canonical_list, &backing_items, &size)
-      && validate_canonical_order(reinterpret_cast<OfficerPresetItemContext**>(backing_items->vector), size);
-  const bool can_rerender =
-      canonical_available && active_controller == _this
-      && restore_native_presentations(reinterpret_cast<OfficerPresetItemContext**>(backing_items->vector), size);
-  const auto scroll_position = can_rerender && get_scroll_position != nullptr ? get_scroll_position(scroller) : 0.0f;
-  if (canonical_available) {
-    // Scopely's callback indexes SmartScroller._data by OrderId. Give it the canonical list for the duration of the
-    // callback, then rebuild our separate presentation-only view.
-    clear_and_generate(scroller, _this, canonical_list);
-  }
-
-  original(_this, increase_occupied_slots_count);
-
-  if (!canonical_available) {
-    spdlog::warn("[OfficerPresetReorder] save succeeded without an available canonical scroller source");
-    return;
-  }
-  if (!can_rerender) {
-    spdlog::debug("[OfficerPresetReorder] save succeeded in canonical order without an active local view");
-    return;
-  }
-
-  if (!try_get_preset_list(read_object_field<void>(_this, controller_context_offset), &canonical_list, &backing_items,
-                           &size)) {
-    spdlog::warn("[OfficerPresetReorder] save succeeded but the canonical preset list became unavailable");
-    return;
-  }
-
-  auto** canonical_items = reinterpret_cast<OfficerPresetItemContext**>(backing_items->vector);
-  if (!validate_canonical_order(canonical_items, size)) {
-    spdlog::error("[OfficerPresetReorder] canonical preset invariant failed after save; local ordering was not "
-                  "reapplied");
-    return;
-  }
-  if (active_presentations.size() != static_cast<size_t>(size)) {
-    if (!capture_native_presentations(canonical_items, size)) {
-      return;
+  const auto epoch = view_epoch;
+  auto* context = active_view_context;
+  const bool owned = active_controller == _this && custom_presentations;
+  bool restored = false;
+  float scroll = 0.0f;
+  bool have_scroll = false;
+  try {
+    if (owned) {
+      auto* scroller = read_reference(_this, controller_scroller_field);
+      have_scroll = scroller && read_scroll(scroller, scroll);
+      restored = restore_canonical_view(_this, !processing);
     }
+  } catch (...) {
+    view_failed = true;
+    // Keep the snapshot; a later release can still restore it.
   }
-  if (!render_local_order(_this, false)) {
-    spdlog::warn("[OfficerPresetReorder] save reconciled safely but the local scroller order could not be restored");
-    return;
+  original(_this, increase_occupied_slots_count);
+  if (!owned || !restored || !enabled() || processing || view_failed || epoch != view_epoch
+      || active_controller != _this || read_reference(_this, controller_context_field) != context) return;
+  try {
+    Il2CppObject* list = nullptr;
+    Il2CppArraySize* backing = nullptr;
+    int32_t size = 0;
+    if (!try_get_preset_list(context, &list, &backing, &size)
+        || !capture_native_presentations(reinterpret_cast<OfficerPresetItemContext**>(backing->vector), size)
+        || !render_local_order(_this, false)) return;
+    if (have_scroll) restore_scroll(read_reference(_this, controller_scroller_field), scroll);
+  } catch (...) {
+    view_failed = true;
+    restore_canonical_view(_this, false);
   }
-  if (restore_scroll_position != nullptr) {
-    restore_scroll_position(scroller, scroll_position);
-  }
-  spdlog::info("[OfficerPresetReorder] reconciled presentation-only ordering after preset save");
 }
 
 bool OfficerManager_TryGetPresetItemContext_Hook(auto original, void* _this, Il2CppArraySize** preset_contexts,
                                                  void* view_context)
 {
   const bool result = original(_this, preset_contexts, view_context);
-  if (!result || preset_contexts == nullptr || *preset_contexts == nullptr) {
-    spdlog::info("[OfficerPresetReorder] preset context load returned result={} array={}", result,
-                 preset_contexts != nullptr ? static_cast<void*>(*preset_contexts) : nullptr);
-    return result;
+  if (!enabled() || processing || !result || !preset_contexts || !*preset_contexts) return result;
+  try {
+    auto* contexts = *preset_contexts;
+    if (!reinterpret_cast<Il2CppObject*>(contexts)->klass || reinterpret_cast<Il2CppObject*>(contexts)->klass->element_class != item_context_class
+        || contexts->max_length > static_cast<il2cpp_array_size_t>(std::numeric_limits<int32_t>::max())) return result;
+    auto** items = reinterpret_cast<OfficerPresetItemContext**>(contexts->vector);
+    if (validate_canonical_order(items, static_cast<int32_t>(contexts->max_length))) {
+      ensure_order_loaded();
+      remember_slots(items, contexts->max_length);
+    }
+  } catch (...) {
+    spdlog::warn("[OfficerPresetReorder] ignored a failed order observation");
   }
-
-  auto*  contexts = *preset_contexts;
-  auto** items    = reinterpret_cast<OfficerPresetItemContext**>(contexts->vector);
-  if (validate_canonical_order(items, static_cast<int32_t>(contexts->max_length))) {
-    remember_slots(items, contexts->max_length);
-    spdlog::debug("[OfficerPresetReorder] observed {} canonical preset rows", contexts->max_length);
-  } else {
-    spdlog::error("[OfficerPresetReorder] Scopely returned non-canonical preset rows; leaving them untouched");
-  }
-
   return result;
 }
 
 void OfficerPresetItemWidget_OnEditNameButtonClicked_Hook(auto original, void* _this)
 {
-  const bool move_up   = shift_pressed();
-  const bool move_down = control_pressed();
-  if (move_up != move_down) {
-    auto* context = read_object_field<OfficerPresetItemContext>(_this, widget_context_offset);
-    if (move_preset(context, move_up ? -1 : 1)) {
-      return;
+  if (!enabled() || processing || view_failed) {
+    if (hooks_ready && active_controller && custom_presentations && !processing) {
+      try { restore_canonical_view(active_controller, true); } catch (...) { view_failed = true; }
     }
+    original(_this);
+    return;
+  }
+  try {
+    const bool up = shift_pressed();
+    const bool down = control_pressed();
+    if (up != down) {
+      auto* context = reinterpret_cast<OfficerPresetItemContext*>(read_reference(_this, widget_context_field));
+      if (move_preset(context, up ? -1 : 1)) return;
+    }
+  } catch (...) {
+    view_failed = true;
+    if (active_controller && custom_presentations) restore_canonical_view(active_controller, false);
   }
   original(_this);
 }
 
 void OfficerPresetsViewController_OnDidBindCanvasContext_Hook(auto original, Il2CppObject* _this)
 {
-  original(_this);
-  active_controller = _this;
-
-  auto*            view_context   = read_object_field<void>(_this, controller_context_offset);
-  Il2CppObject*    canonical_list = nullptr;
-  Il2CppArraySize* backing_items  = nullptr;
-  int32_t          size           = 0;
-  if (!try_get_preset_list(view_context, &canonical_list, &backing_items, &size)) {
-    active_controller = nullptr;
-    active_presentations.clear();
-    spdlog::warn("[OfficerPresetReorder] unable to capture the bound canonical preset list");
-    return;
+  if (hooks_ready && active_controller && custom_presentations) {
+    try { restore_canonical_view(active_controller, false); } catch (...) { view_failed = true; }
   }
-
-  auto** canonical_items = reinterpret_cast<OfficerPresetItemContext**>(backing_items->vector);
-  if (!capture_native_presentations(canonical_items, size) || !render_local_order(_this, false)) {
-    active_controller = nullptr;
-    active_presentations.clear();
-    spdlog::warn("[OfficerPresetReorder] local ordering was disabled for the bound preset view");
+  original(_this);
+  clear_active_view();
+  if (!enabled() || processing) return;
+  try {
+    active_controller = _this;
+    active_view_context = read_reference(_this, controller_context_field);
+    Il2CppObject* list = nullptr;
+    Il2CppArraySize* backing = nullptr;
+    int32_t size = 0;
+    ensure_order_loaded();
+    if (!try_get_preset_list(active_view_context, &list, &backing, &size)
+        || !capture_native_presentations(reinterpret_cast<OfficerPresetItemContext**>(backing->vector), size)
+        || !render_local_order(_this, false)) view_failed = true;
+  } catch (...) {
+    view_failed = true;
+    restore_canonical_view(_this, false);
   }
 }
 
 void OfficerPresetsViewController_OnAboutToReleaseCanvasContext_Hook(auto original, Il2CppObject* _this)
 {
-  if (active_controller == _this) {
-    auto*            view_context   = read_object_field<void>(_this, controller_context_offset);
-    auto*            scroller       = read_object_field<void>(_this, controller_scroller_offset);
-    Il2CppObject*    canonical_list = nullptr;
-    Il2CppArraySize* backing_items  = nullptr;
-    int32_t          size           = 0;
-    if (scroller != nullptr && try_get_preset_list(view_context, &canonical_list, &backing_items, &size)) {
-      auto** canonical_items = reinterpret_cast<OfficerPresetItemContext**>(backing_items->vector);
-      if (validate_canonical_order(canonical_items, size)) {
-        restore_native_presentations(canonical_items, size);
-        clear_and_generate(scroller, _this, canonical_list);
-      }
-    }
-    active_controller = nullptr;
-    active_presentations.clear();
+  const bool owned = active_controller == _this;
+  const auto epoch = view_epoch;
+  if (hooks_ready && owned && custom_presentations) {
+    try { restore_canonical_view(_this, !processing); } catch (...) { view_failed = true; }
   }
   original(_this);
+  // Teardown is definitive; never clear a different view bound by the native callback.
+  if (owned && epoch == view_epoch && active_controller == _this) clear_active_view();
+}
+
+const MethodInfo* resolve(Il2CppClass* cls, const char* name, const char* result,
+                          std::initializer_list<const char*> parameters)
+{
+  auto* method = method_contract::Resolve(cls, name, false, result, parameters);
+  return method && !method->has_full_generic_sharing_signature ? method : nullptr;
+}
+
+const MethodInfo* resolve_manager(Il2CppClass* cls)
+{
+  const MethodInfo* found = nullptr;
+  void* iterator = nullptr;
+  while (auto* method = il2cpp_class_get_methods(cls, &iterator)) {
+    if (std::strcmp(method->name, "TryGetPresetItemContext") != 0 || !method->methodPointer
+        || method->is_generic || method->is_inflated || method->has_full_generic_sharing_signature
+        || (method->flags & METHOD_ATTRIBUTE_STATIC) || method->parameters_count != 2
+        || !method_contract::Type(method->return_type, "System.Boolean") || !method->parameters
+        || !method->parameters[0] || !method->parameters[0]->byref
+        || method->parameters[0]->type != IL2CPP_TYPE_SZARRAY
+        || !method_contract::Type(method->parameters[1], "Digit.Prime.OfficerPresets.OfficerPresetsViewContext")) continue;
+    auto* array_class = il2cpp_class_from_type(method->parameters[0]);
+    if (!array_class || array_class->element_class != item_context_class) continue;
+    if (found) return nullptr;
+    found = method;
+  }
+  return found;
 }
 } // namespace
 
 void InstallOfficerPresetReorderHooks()
 {
-  auto helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Officers", "OfficerManager");
-  if (!helper.isValidHelper()) {
-    ErrorMsg::MissingHelper("Digit.Prime.Officers", "OfficerManager");
+  auto manager = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Officers", "OfficerManager");
+  auto widget = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.OfficerPresets", "OfficerPresetItemWidget");
+  auto controller = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.OfficerPresets", "OfficerPresetsViewController");
+  auto view = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.OfficerPresets", "OfficerPresetsViewContext");
+  auto item = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.OfficerPresets", "OfficerPresetItemContext");
+  auto scroller = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.UI", "SmartScrollerBase");
+  auto list_interface = il2cpp_get_class_helper("mscorlib", "System.Collections", "IList");
+  auto provider = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.UI", "IDataContextProvider");
+  if (!manager.isValidHelper() || !widget.isValidHelper() || !controller.isValidHelper()
+      || !view.isValidHelper() || !item.isValidHelper() || !scroller.isValidHelper()
+      || !list_interface.isValidHelper() || !provider.isValidHelper()) {
+    ErrorMsg::MissingHelper("OfficerPresetReorder", "required UI surface");
     return;
   }
+#ifdef __APPLE__
+  if (!il2cpp_field_set_value_object || !il2cpp_field_get_value || !il2cpp_class_enum_basetype) return;
+#endif
+  item_context_class = item.get_cls();
+  view_context_class = view.get_cls();
+  scroller_class = scroller.get_cls();
+  if (!validate_context_layout(item_context_class)) return;
+  widget_context_field = reference_field(widget.get_cls(), "m_context", item_context_class);
+  controller_context_field = reference_field(controller.get_cls(), "m_context", view_context_class);
+  controller_scroller_field = reference_field(controller.get_cls(), "_smartScroller", scroller_class);
+  presets_items_field = reference_field(view_context_class, "PresetsItemsContext", list_interface.get_cls());
+  scroller_data_field = reference_field(scroller_class, "_data", list_interface.get_cls());
+  scroller_held_data_field = reference_field(scroller_class, "_dataHeldWhilstInitializing", list_interface.get_cls());
+  if (!widget_context_field || !controller_context_field || !controller_scroller_field || !presets_items_field
+      || !scroller_data_field || !scroller_held_data_field
+      || il2cpp_class_from_type(scroller_data_field->type) != list_interface.get_cls()
+      || il2cpp_class_from_type(scroller_held_data_field->type) != list_interface.get_cls()
+      || !il2cpp_class_is_assignable_from(provider.get_cls(), controller.get_cls())) return;
 
-  const auto method = helper.GetMethodInfo("TryGetPresetItemContext", 2);
-  if (method == nullptr || method->methodPointer == nullptr) {
-    ErrorMsg::MissingMethod("OfficerManager", "TryGetPresetItemContext");
+  clear_and_generate = resolve(scroller_class, "ClearAndGenerateContents", "System.Void",
+                                {"Digit.Client.UI.IDataContextProvider", "System.Collections.IList"});
+  get_scroll_position = resolve(scroller_class, "get_ScrollPosition", "System.Single", {});
+  restore_scroll_position = resolve(scroller_class, "RestoreScrollPosition", "System.Void", {"System.Single"});
+  const auto* method = resolve_manager(manager.get_cls());
+  const auto* edit = resolve(widget.get_cls(), "OnEditNameButtonClicked", "System.Void", {});
+  const auto* bind = resolve(controller.get_cls(), "OnDidBindCanvasContext", "System.Void", {});
+  const auto* release = resolve(controller.get_cls(), "OnAboutToReleaseCanvasContext", "System.Void", {});
+  const auto* save = resolve(controller.get_cls(), "OnSaveSlotsSuccess", "System.Void", {"System.Boolean"});
+  if (!clear_and_generate || !get_scroll_position || !restore_scroll_position
+      || !method || !edit || !bind || !release || !save) {
+    ErrorMsg::MissingMethod("OfficerPresetReorder", "full signature");
     return;
   }
-
-  auto widget_helper =
-      il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.OfficerPresets", "OfficerPresetItemWidget");
-  auto controller_helper =
-      il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.OfficerPresets", "OfficerPresetsViewController");
-  auto view_context_helper =
-      il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.OfficerPresets", "OfficerPresetsViewContext");
-  auto item_context_helper =
-      il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.OfficerPresets", "OfficerPresetItemContext");
-  auto scroller_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.UI", "SmartScrollerBase");
-  if (!widget_helper.isValidHelper() || !controller_helper.isValidHelper() || !view_context_helper.isValidHelper()
-      || !item_context_helper.isValidHelper() || !scroller_helper.isValidHelper()) {
-    ErrorMsg::MissingHelper("Digit.Prime.OfficerPresets", "reorder UI surface");
-    return;
-  }
-  if (!validate_context_layout(item_context_helper.get_cls())) {
-    return;
-  }
-  item_context_class = item_context_helper.get_cls();
-
-  auto context_field            = widget_helper.GetField("m_context");
-  auto controller_context_field = controller_helper.GetField("m_context");
-  auto scroller_field           = controller_helper.GetField("_smartScroller");
-  auto presets_field            = view_context_helper.GetField("PresetsItemsContext");
-  if (!context_field.isValidHelper() || !controller_context_field.isValidHelper() || !scroller_field.isValidHelper()
-      || !presets_field.isValidHelper()) {
-    ErrorMsg::MissingMethod("OfficerPresetReorder", "required field");
-    return;
-  }
-  widget_context_offset      = context_field.offset();
-  controller_context_offset  = controller_context_field.offset();
-  controller_scroller_offset = scroller_field.offset();
-  presets_items_offset       = presets_field.offset();
-
-  const auto clear_method          = scroller_helper.GetMethodInfo("ClearAndGenerateContents", 2);
-  const auto get_scroll_method     = scroller_helper.GetMethodInfo("get_ScrollPosition", 0);
-  const auto restore_scroll_method = scroller_helper.GetMethodInfo("RestoreScrollPosition", 1);
-  const auto edit_method           = widget_helper.GetMethodInfo("OnEditNameButtonClicked", 0);
-  const auto bind_method           = controller_helper.GetMethodInfo("OnDidBindCanvasContext", 0);
-  const auto release_method        = controller_helper.GetMethodInfo("OnAboutToReleaseCanvasContext", 0);
-  const auto save_success_method   = controller_helper.GetMethodInfo("OnSaveSlotsSuccess", 1);
-  if (clear_method == nullptr || clear_method->methodPointer == nullptr || get_scroll_method == nullptr
-      || get_scroll_method->methodPointer == nullptr || restore_scroll_method == nullptr
-      || restore_scroll_method->methodPointer == nullptr || edit_method == nullptr
-      || edit_method->methodPointer == nullptr || bind_method == nullptr || bind_method->methodPointer == nullptr
-      || release_method == nullptr || release_method->methodPointer == nullptr || save_success_method == nullptr
-      || save_success_method->methodPointer == nullptr) {
-    ErrorMsg::MissingMethod("OfficerPresetReorder", "required UI method");
-    return;
-  }
-  clear_and_generate      = reinterpret_cast<ClearAndGenerateContentsFn*>(clear_method->methodPointer);
-  get_scroll_position     = reinterpret_cast<GetScrollPositionFn*>(get_scroll_method->methodPointer);
-  restore_scroll_position = reinterpret_cast<RestoreScrollPositionFn*>(restore_scroll_method->methodPointer);
-
-  load_session_order();
-
-  SPUD_STATIC_DETOUR(method->methodPointer, OfficerManager_TryGetPresetItemContext_Hook);
-  SPUD_STATIC_DETOUR(edit_method->methodPointer, OfficerPresetItemWidget_OnEditNameButtonClicked_Hook);
-  SPUD_STATIC_DETOUR(bind_method->methodPointer, OfficerPresetsViewController_OnDidBindCanvasContext_Hook);
-  SPUD_STATIC_DETOUR(release_method->methodPointer, OfficerPresetsViewController_OnAboutToReleaseCanvasContext_Hook);
-  SPUD_STATIC_DETOUR(save_success_method->methodPointer, OfficerPresetsViewController_OnSaveSlotsSuccess_Hook);
+  const MethodInfo* targets[]{method, edit, bind, release, save};
+  for (size_t i = 0; i < std::size(targets); ++i)
+    for (size_t j = 0; j < i; ++j)
+      if (targets[i]->methodPointer == targets[j]->methodPointer) return;
+  const bool manager_ok = SPUD_STATIC_DETOUR(method->methodPointer, OfficerManager_TryGetPresetItemContext_Hook) != nullptr;
+  const bool edit_ok = SPUD_STATIC_DETOUR(edit->methodPointer, OfficerPresetItemWidget_OnEditNameButtonClicked_Hook) != nullptr;
+  const bool bind_ok = SPUD_STATIC_DETOUR(bind->methodPointer, OfficerPresetsViewController_OnDidBindCanvasContext_Hook) != nullptr;
+  const bool release_ok = SPUD_STATIC_DETOUR(release->methodPointer, OfficerPresetsViewController_OnAboutToReleaseCanvasContext_Hook) != nullptr;
+  const bool save_ok = SPUD_STATIC_DETOUR(save->methodPointer, OfficerPresetsViewController_OnSaveSlotsSuccess_Hook) != nullptr;
+  hooks_ready = manager_ok && edit_ok && bind_ok && release_ok && save_ok;
+  if (!hooks_ready) spdlog::warn("[OfficerPresetReorder] incomplete hook family; callbacks retain native behavior");
 }

@@ -925,6 +925,8 @@ void Config::Load()
       get_config_or_default(config, parsed, "patches", "forbiddentechconfirmhooks", DCP::forbiddentechconfirmhooks, write_config);
   this->installAudioEventHooks =
       get_config_or_default(config, parsed, "patches", "audioeventhooks", DCP::audioeventhooks, write_config);
+  this->installOfficerPresetReorderHooks = get_config_or_default(
+      config, parsed, "patches", "officerpresetreorderhooks", DCP::officerpresetreorderhooks, write_config);
   this->installInstantCargoCounterHooks =
       get_config_or_default(config, parsed, "patches", "instantcargocounterhooks", DCP::instantcargocounterhooks, write_config);
   this->installCargoFormatHooks =
