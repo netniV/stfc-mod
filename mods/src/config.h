@@ -157,7 +157,6 @@ public:
   void        AdjustUiViewerScale(bool scaleUp);
 
   [[nodiscard]] MissionHudVisibility MissionHudButtonVisibility(std::string_view button_name) const;
-  [[nodiscard]] bool                 MissionHudTweaksEnabled() const;
   [[nodiscard]] NotificationSound    NotificationSoundForToast(int toast_state) const;
 
   // Disallow copying/moving to enforce singleton
@@ -166,17 +165,17 @@ public:
   Config(Config&&)                 = delete;
   Config& operator=(Config&&)      = delete;
 
-  float ui_scale;
-  float ui_scale_adjust;
-  float ui_scale_ship;
-  float ui_scale_viewer;
-  float zoom;
-  float fr_scale;
+  float             ui_scale;
+  float             ui_scale_adjust;
+  float             ui_scale_ship;
+  float             ui_scale_viewer;
+  float             zoom;
+  float             fr_scale;
   FleetLabelProfile zoom_label_player;
   FleetLabelProfile zoom_label_non_player;
-  bool  allow_cursor;
-  bool  free_resize;
-  bool  adjust_scale_res;
+  bool              allow_cursor;
+  bool              free_resize;
+  bool              adjust_scale_res;
 
   bool  use_out_of_dock_power;
   float system_pan_momentum;
@@ -207,19 +206,19 @@ public:
   FleetNotificationMask audio_fleet_events = 0;
   std::array<NotificationSound, kFleetNotificationCatalog.size()> alert_fleet_events{};
 
-  int  extend_chest_purchase_max;
-  int  extend_donation_max;
-  bool extend_donation_slider;
-  bool disable_move_keys;
-  bool disable_preview_locate;
-  bool disable_preview_recall;
-  bool disable_escape_exit;
-  int  disable_escape_exit_timer;
-  bool disable_galaxy_chat;
-  bool disable_veil_chat;
-  bool disable_first_popup;
-  bool disable_toast_banners;
-  bool trace_audio_events;
+  int                      extend_chest_purchase_max;
+  int                      extend_donation_max;
+  bool                     extend_donation_slider;
+  bool                     disable_move_keys;
+  bool                     disable_preview_locate;
+  bool                     disable_preview_recall;
+  bool                     disable_escape_exit;
+  int                      disable_escape_exit_timer;
+  bool                     disable_galaxy_chat;
+  bool                     disable_veil_chat;
+  bool                     disable_first_popup;
+  bool                     disable_toast_banners;
+  bool                     trace_audio_events;
   std::vector<std::string> disabled_audio_events;
   NotificationSound alert_victory            = NotificationSound::None;
   NotificationSound alert_defeat             = NotificationSound::None;
@@ -246,6 +245,9 @@ public:
   std::vector<std::string> pinned_ships;
 
   bool double_click_to_assign_ship;
+  bool focus_search;
+  bool cargo_format;
+  bool officer_sort;
   bool arrow_keys_to_select_ship;
 
   bool show_cargo_default;
@@ -283,6 +285,10 @@ public:
   bool installObjectTracker;
   bool installGiftsBulkClaimHooks;
   bool installDailyFactionBulkClaimHooks;
+  bool installGalacticAnomalyTimerHooks;
+  bool installLoadingTipHooks;
+  bool installDoubleClickAssignShipHooks;
+  bool installForbiddenTechConfirmationHooks;
   bool installInstantWarpConfirmationHooks;
   bool installAudioEventHooks;
 
@@ -296,10 +302,10 @@ public:
   std::string loader_image;
   float       loader_logo_scale;
   bool        loader_tip_enabled;
+  bool        galactic_anomaly_timer;
 
   bool installLoadingScreenHooks;
   bool installTransitionScreenHooks;
-  bool installFocusSearchHooks;
 
   // Cargo formatting
   bool installCargoFormatHooks;

@@ -56,10 +56,6 @@ std::vector<MissionHudButtonDefinition*> LoadConfiguredButtons()
   std::vector<MissionHudButtonDefinition*> configured_buttons;
   for (auto& definition : g_button_definitions) {
     definition.visibility = Config::Get().MissionHudButtonVisibility(definition.canonical_name);
-    if (definition.visibility == MissionHudVisibility::Auto) {
-      continue;
-    }
-
     configured_buttons.emplace_back(&definition);
   }
   return configured_buttons;
@@ -69,6 +65,9 @@ std::string ConfiguredButtonModes()
 {
   std::string modes;
   for (const auto* button : g_configured_buttons) {
+    if (button->visibility == MissionHudVisibility::Auto) {
+      continue;
+    }
     if (!modes.empty()) {
       modes.append(", ");
     }
@@ -119,8 +118,11 @@ int32_t MissionsHudViewController_UpdateButtons_Hook(auto original, void* contro
 {
   const auto result = original(controller);
 
-  for (const auto* button : g_configured_buttons) {
-    ApplyButtonVisibility(controller, *button);
+  for (auto* button : g_configured_buttons) {
+    button->visibility = Config::Get().MissionHudButtonVisibility(button->canonical_name);
+    if (button->visibility != MissionHudVisibility::Auto) {
+      ApplyButtonVisibility(controller, *button);
+    }
   }
 
   return result;
@@ -129,10 +131,6 @@ int32_t MissionsHudViewController_UpdateButtons_Hook(auto original, void* contro
 void InstallMissionHudTweaksHooks()
 {
   g_configured_buttons = LoadConfiguredButtons();
-  if (g_configured_buttons.empty()) {
-    spdlog::warn("MissionHudTweaks: no mission HUD button overrides are configured");
-    return;
-  }
 
   auto controller_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.HUD", "MissionsHudViewController");
   if (!controller_helper.isValidHelper()) {
@@ -174,7 +172,10 @@ void InstallMissionHudTweaksHooks()
     return;
   }
 
-  spdlog::info("MissionHudTweaks: applying {}", ConfiguredButtonModes());
+  const auto configured_modes = ConfiguredButtonModes();
+  if (!configured_modes.empty()) {
+    spdlog::info("MissionHudTweaks: applying {}", configured_modes);
+  }
   SPUD_STATIC_DETOUR(update_buttons, MissionsHudViewController_UpdateButtons_Hook);
   spdlog::info("MissionHudTweaks: installed MissionsHudViewController.UpdateButtons hook");
 }
