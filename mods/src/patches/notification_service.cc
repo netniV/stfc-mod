@@ -461,6 +461,11 @@ ScopedToastNotificationSuppression::~ScopedToastNotificationSuppression()
 
 void notification_init()
 {
+#if __APPLE__
+  // Desktop enablement can follow audio-only/all-off initialization.
+  if (!Config::Get().notify_banner_types.empty() || Config::Get().notify_fleet_events != 0)
+    notification_desktop_mac_init();
+#endif
   if (s_initialized) {
     return;
   }
@@ -529,8 +534,6 @@ void notification_init()
     spdlog::warn("[Notify] Windows notification service failed (unknown error)");
   }
 #elif __APPLE__
-  if (!Config::Get().notify_banner_types.empty() || Config::Get().notify_fleet_events != 0)
-    notification_desktop_mac_init();
   spdlog::info("[Notify] macOS notification service ready");
 #else
   spdlog::info("[Notify] Notification service: platform not supported (no-op)");
@@ -544,6 +547,7 @@ void notification_emit(std::string_view title, std::string_view body)
   const std::string owned_body{body};
   show_system_notification(owned_title.c_str(), owned_body.c_str());
 #elif __APPLE__
+  notification_desktop_mac_init();
   notification_desktop_mac_emit(title, body);
 #else
   (void)title;
