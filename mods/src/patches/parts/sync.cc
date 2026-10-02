@@ -796,6 +796,9 @@ static std::mutex                           resource_states_alliance_mtx;
 static std::unordered_map<int64_t, int64_t> slot_states;
 static std::mutex                           slot_states_mtx;
 
+static std::unordered_map<int64_t, int64_t> structure_states;
+static std::mutex                           structure_states_mtx;
+
 static eastl::ring_buffer<uint64_t> previously_sent_battlelogs;
 static std::mutex                   previously_sent_battlelogs_mtx;
 
@@ -1092,10 +1095,120 @@ static void ship_combat_log_data()
 namespace processors
 {
 
+static void queue_battle_ids(const std::vector<uint64_t>& battle_ids)
+{
+  std::vector<uint64_t> to_enqueue;
+  {
+    using trackers::previously_sent_battlelogs;
+    using trackers::previously_sent_battlelogs_mtx;
+
+    std::scoped_lock lk(previously_sent_battlelogs_mtx);
+
+    for (const auto id : battle_ids | std::views::reverse) {
+      if (eastl::find(previously_sent_battlelogs.begin(), previously_sent_battlelogs.end(), id)
+          == previously_sent_battlelogs.end()) {
+        previously_sent_battlelogs.push_back(id);
+        to_enqueue.push_back(id);
+      }
+    }
+  }
+
+  if (!to_enqueue.empty()) {
+    http::logging::debug("QUEUE", "battle headers",
+                         STR_FORMAT("Queuing {} battles for background processing", to_enqueue.size()));
+
+    {
+      std::scoped_lock lk(workers::combat_log_data_mtx);
+      for (const auto id : to_enqueue) {
+        workers::combat_log_data_queue.push(id);
+      }
+    }
+
+    trackers::save_previously_sent_logs();
+    workers::combat_log_data_cv.notify_all();
+  }
+}
+
 static void battle_result_headers(std::unique_ptr<std::string>&& bytes)
 {
-  // TODO: Placeholder for future client support; currently unused by the game client.
-  spdlog::debug("process_battle_result_headers() was called");
+  if (auto response = Digit::PrimeServer::Models::BattleResultHeadersResponse(); response.ParseFromString(*bytes)) {
+    http::logging::trace("PROCESS", "battle headers",
+                         STR_FORMAT("Processing {} battle headers", response.headers_size()));
+
+    std::vector<uint64_t> battle_ids;
+    battle_ids.reserve(static_cast<size_t>(response.headers_size()));
+
+    for (const auto& header : response.headers()) {
+      battle_ids.push_back(static_cast<uint64_t>(header.id()));
+    }
+
+    queue_battle_ids(battle_ids);
+  } else {
+    spdlog::error("Failed to parse battle result headers");
+  }
+}
+
+struct ShipRecord {
+  int64_t              id;
+  int64_t              hull_id;
+  int32_t              tier;
+  int32_t              level;
+  double               level_percentage;
+  std::vector<int64_t> components;
+};
+
+static void sync_ships(const std::vector<ShipRecord>& ships)
+{
+  using json = nlohmann::json;
+  using trackers::types::ShipState;
+
+  static std::unordered_map<int64_t, ShipState> ship_states;
+  static std::mutex                             ship_states_mtx;
+  static std::atomic_bool                       is_first_sync{true};
+
+  auto ship_array = json::array();
+  {
+    std::scoped_lock lk(ship_states_mtx);
+
+    for (const auto& ship : ships) {
+      const ShipState state{ship.tier, ship.level, ship.level_percentage, ship.components};
+
+      if (const auto& it = ship_states.find(ship.id); it == ship_states.end() || it->second != state) {
+        ship_states[ship.id] = state;
+        ship_array.push_back({{"type", SyncConfig::Type::Ships},
+                              {"psid", ship.id},
+                              {"level", ship.level},
+                              {"level_percentage", ship.level_percentage},
+                              {"tier", ship.tier},
+                              {"hull_id", ship.hull_id},
+                              {"components", ship.components}});
+      }
+    }
+  }
+
+  if (!ship_array.empty()) {
+    const bool first_sync = is_first_sync.exchange(false, std::memory_order_acq_rel);
+    workers::queue_data(SyncConfig::Type::Ships, ship_array, first_sync);
+  }
+}
+
+static void player_ships(std::unique_ptr<std::string>&& bytes)
+{
+  if (auto response = Digit::PrimeServer::Models::PlayerShipsResponse(); response.ParseFromString(*bytes)) {
+    http::logging::trace("PROCESS", "ships", STR_FORMAT("Processing {} ships", response.ships_size()));
+
+    std::vector<ShipRecord> ships;
+    ships.reserve(static_cast<size_t>(response.ships_size()));
+
+    for (const auto& ship : response.ships() | std::views::values) {
+      ships.push_back({ship.id(), ship.hullid(), ship.tier(), ship.level(), ship.levelpercentage(),
+                       std::vector<int64_t>(ship.components().begin(), ship.components().end())});
+    }
+
+    sync_ships(ships);
+  } else {
+    spdlog::error("Failed to parse player ships");
+  }
 }
 
 static void battle_report(std::unique_ptr<std::string>&& bytes)
@@ -1218,6 +1331,81 @@ static void starbase_modules(std::unique_ptr<std::string>&& bytes)
     spdlog::error("Failed to parse resources");
   }
 }
+
+static void planetary_base_data(std::unique_ptr<std::string>&& bytes)
+{
+  using json = nlohmann::json;
+  using trackers::structure_states;
+  using trackers::structure_states_mtx;
+
+  if (auto response = Digit::PrimeServer::Models::PlanetaryBase(); response.ParseFromString(*bytes)) {
+    http::logging::trace("PROCESS", "planetary base data", STR_FORMAT("Processing {} buildings", response.buildings_size()));
+
+    auto structure_array = json::array();
+    {
+      std::scoped_lock lk(structure_states_mtx);
+
+      for (const auto& building : response.buildings() | std::views::values) {
+        if (const auto& it = structure_states.find(building.id()); it == structure_states.end() || it->second != building.level()) {
+          structure_states[building.id()] = building.level();
+          structure_array.push_back({{"type", SyncConfig::Type::Haven},
+                                     {"sid", building.specid()},
+                                     {"id", building.id()},
+                                     {"level", building.level()}});
+        }
+      }
+    }
+
+    if (!structure_array.empty()) {
+      workers::queue_data(SyncConfig::Type::Haven, structure_array);
+    }
+  }
+}
+
+static void planetary_map_building_data(const google::protobuf::Map<int64_t, Digit::PrimeServer::Models::PlanetaryMapData_BuildingData>& buildings)
+{
+  // TODO: use PlanetaryMapBuildingDiff for updates during game session
+
+  auto structure_array = nlohmann::json::array();
+  for (const auto& building : buildings | std::views::values) {
+    structure_array.push_back({{"type", SyncConfig::Type::Haven + "_map"}, {"sid", building.specid()}, {"level", building.level()}, {"status", building.status()}, {"position", building.position()}});
+  }
+
+  if (!structure_array.empty()) {
+    workers::queue_data(SyncConfig::Type::Haven, structure_array, true);
+  }
+}
+
+static void planetary_map_data(std::unique_ptr<std::string>&& bytes)
+{
+  if (auto response = Digit::PrimeServer::Models::PlanetaryMapData(); response.ParseFromString(*bytes)) {
+    http::logging::trace("PROCESS", "planetary map data", STR_FORMAT("Processing {} buildings", response.buildings_size()));
+    planetary_map_building_data(response.buildings());
+  }
+}
+
+static void planetary_map_prosperity(std::unique_ptr<std::string>&& bytes)
+{
+  if (auto response = Digit::PrimeServer::Models::PlanetaryMapProsperityResponse(); response.ParseFromString(*bytes)) {
+    http::logging::trace("PROCESS", "planetary map prosperity", STR_FORMAT("Processing prosperity={}", response.prosperity()));
+    const auto prosperity_array = nlohmann::json::array(
+        {{{"type", SyncConfig::Type::Haven + "_prosperity"}, {"prosperity", response.prosperity()}}});
+    workers::queue_data(SyncConfig::Type::Haven, prosperity_array, true);
+  }
+}
+
+/* static void planetary_map(std::unique_ptr<std::string>&& bytes)
+{
+  if (auto response = Digit::PrimeServer::Models::PlanetaryMapResponse(); response.ParseFromString(*bytes)) {
+    http::logging::trace("PROCESS", "planetary map", STR_FORMAT("Processing {} haven structures", response.mapdata().buildings_size()));
+    const auto& owner = response.owneruserid();
+
+    // TODO: If the owner is not the current player, we may want to skip processing the map data, as it may not be relevant to the player's own structures.
+    planetary_map_building_data(response.mapdata().buildings());
+  } else {
+    spdlog::error("Failed to parse planetary map");
+  }
+} */
 
 static void player_inventories(std::unique_ptr<std::string>&& bytes)
 {
@@ -1849,36 +2037,7 @@ namespace json
       battle_ids.push_back(id);
     }
 
-    std::vector<uint64_t> to_enqueue;
-    {
-      using trackers::previously_sent_battlelogs;
-      using trackers::previously_sent_battlelogs_mtx;
-
-      std::scoped_lock lk(previously_sent_battlelogs_mtx);
-
-      for (const auto id : battle_ids | std::views::reverse) {
-        if (eastl::find(previously_sent_battlelogs.begin(), previously_sent_battlelogs.end(), id)
-            == previously_sent_battlelogs.end()) {
-          previously_sent_battlelogs.push_back(id);
-          to_enqueue.push_back(id);
-        }
-      }
-    }
-
-    if (!to_enqueue.empty()) {
-      http::logging::debug("QUEUE", "battle headers",
-                           STR_FORMAT("Queuing {} battles for background processing", to_enqueue.size()));
-
-      {
-        std::scoped_lock lk(workers::combat_log_data_mtx);
-        for (const auto id : to_enqueue) {
-          workers::combat_log_data_queue.push(id);
-        }
-      }
-
-      trackers::save_previously_sent_logs();
-      workers::combat_log_data_cv.notify_all();
-    }
+    queue_battle_ids(battle_ids);
   }
 
   static void resources(const nlohmann::json& section)
@@ -1942,43 +2101,19 @@ namespace json
   static void ships(const nlohmann::json& section)
   {
     using json = nlohmann::json;
-    using trackers::types::ShipState;
-
-    static std::unordered_map<int64_t, ShipState> ship_states;
-    static std::mutex                             ship_states_mtx;
-    static std::atomic_bool                       is_first_sync{true};
 
     http::logging::trace("PROCESS", "ships", STR_FORMAT("Processing {} ships (JSON)", section.size()));
 
-    auto ship_array = json::array();
-    {
-      std::scoped_lock lk(ship_states_mtx);
+    std::vector<ShipRecord> records;
+    records.reserve(section.size());
 
-      for (const auto& ship : section.get<json::object_t>() | std::views::values) {
-        const auto      id               = ship["id"].get<int64_t>();
-        const auto      tier             = ship["tier"].get<int32_t>();
-        const auto      level            = ship["level"].get<int32_t>();
-        const auto      level_percentage = ship["level_percentage"].get<double_t>();
-        const auto      components       = ship["components"].get<std::vector<int64_t>>();
-        const ShipState state{tier, level, level_percentage, components};
-
-        if (const auto& it = ship_states.find(id); it == ship_states.end() || it->second != state) {
-          ship_states[id] = state;
-          ship_array.push_back({{"type", SyncConfig::Type::Ships},
-                                {"psid", id},
-                                {"level", level},
-                                {"level_percentage", level_percentage},
-                                {"tier", tier},
-                                {"hull_id", ship["hull_id"].get<int64_t>()},
-                                {"components", components}});
-        }
-      }
+    for (const auto& ship : section.get<json::object_t>() | std::views::values) {
+      records.push_back({ship["id"].get<int64_t>(), ship["hull_id"].get<int64_t>(), ship["tier"].get<int32_t>(),
+                         ship["level"].get<int32_t>(), ship["level_percentage"].get<double_t>(),
+                         ship["components"].get<std::vector<int64_t>>()});
     }
 
-    if (!ship_array.empty()) {
-      const bool first_sync = is_first_sync.exchange(false, std::memory_order_acq_rel);
-      workers::queue_data(SyncConfig::Type::Ships, ship_array, first_sync);
-    }
+    sync_ships(records);
   }
 
   static void parse(std::unique_ptr<std::string>&& bytes)
@@ -2207,6 +2342,40 @@ static void HandleEntityGroup(EntityGroup* entity_group)
       }
       break;
 
+    // haven
+    case EntityGroup::Type::PlanetaryBaseData:
+      if (sync_options.haven) {
+        static std::once_flag haven_init_base_flag;
+        std::call_once(haven_init_base_flag, [&] {
+          submit_async(processors::planetary_base_data);
+        });
+      }
+      break;
+
+    case EntityGroup::Type::PlanetaryMapData:
+      if (sync_options.haven) {
+        static std::once_flag haven_init_map_flag;
+        std::call_once(haven_init_map_flag, [&] {
+          submit_async(processors::planetary_map_data);
+        });
+      }
+      break;
+
+    case EntityGroup::Type::PlanetaryMapProsperity:
+      if (sync_options.haven) {
+        static std::once_flag haven_init_prosperity_flag;
+        std::call_once(haven_init_prosperity_flag, [&] {
+          submit_async(processors::planetary_map_prosperity);
+        });
+      }
+      break;
+
+    // case EntityGroup::Type::PlanetaryMapResponse:
+    //   if (sync_options.haven) {
+    //     submit_async(processors::planetary_map);
+    //   }
+    //   break;
+
     // inventory
     case EntityGroup::Type::PlayerInventories:
       if (sync_options.inventory) {
@@ -2270,7 +2439,11 @@ static void HandleEntityGroup(EntityGroup* entity_group)
       break;
 
     // ships
-    // TODO: currently still part of JSON, likely to change in the future
+    case EntityGroup::Type::Ships:
+      if (sync_options.ships) {
+        submit_async(processors::player_ships);
+      }
+      break;
 
     // slots
     case EntityGroup::Type::EntitySlots:

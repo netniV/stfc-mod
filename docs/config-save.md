@@ -6,9 +6,13 @@ routing and the existing generated-file warning. Save errors are logged once by
 the caller; startup continues with the in-memory configuration.
 
 `SaveConfigDocument` serializes with toml++, parses the output before touching
-disk, exclusively creates a sibling temporary file, checks writing and closing,
+disk, exclusively creates a private sibling temporary file, checks writing and closing,
 and replaces the destination. Startup callers remain synchronous. These
 whole-document saves do not merge concurrent setting changes or preserve comments.
+
+Staging is private before writing and after close until replacement preparation: Windows uses
+a protected owner/system DACL, and macOS uses mode `0600`. New documents keep
+these private permissions.
 
 Windows uses `ReplaceFileW` to preserve existing permissions and streams, with a
 temporary backup for its documented partial-failure cases. A missing destination
@@ -17,8 +21,8 @@ exclusive create transaction. Ordinary failures clean up the temporary file; par
 replacement failures retain recovery files and report their location. The backup
 name is the reported temporary path plus `.bak`. Recovery is not automatic.
 macOS uses rename after copying the existing permission bits. Extended metadata
-and hard-link identity are not preserved by that path. Existing symlinks are
-resolved before staging. Replacement requires directory permissions in addition
+and hard-link identity are not preserved by that path. Existing and dangling final symlinks are
+resolved before staging; cyclic links fail without replacing the link. Replacement requires directory permissions in addition
 to any file access checks; it cannot exactly match an in-place overwrite.
 
 Successful close/replacement is not a guarantee against power loss. A forced exit
@@ -31,7 +35,8 @@ directory. Fixtures never access the installed game's files.
 On macOS, run `bash tests/run-config-save.sh TOML_INCLUDE_DIR`. Both native macOS
 CI jobs run these fixtures after the normal build, including permission-bit and
 symlink checks. The failure fixture injects short writes and failed closes at
-compile time; it does not install test controls in the mod.
+compile time and checks staging permissions before/during writes and after close;
+it does not install test controls in the mod.
 
 Native behavior references:
 - [Windows ReplaceFileW](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-replacefilew)
@@ -97,8 +102,9 @@ Runtime persistence supports Windows x64 and macOS clients with compatible Unity
 The adapter resolves `Internal_ApplicationWantsToQuit()` and `Quit(int)` by their
 complete managed signatures, without pinning client addresses or instruction bytes.
 Incompatible bindings retain session-only changes with a save-failure notice.
-The adapter is idempotent, allowing native settings and keyboard consumers to
-request the same persistence lifecycle.
+The patch registry owns installation through default-enabled `[patches].runtimeconfighooks`.
+Persistence installation is independent of hotkeys and native settings. Disabling
+the compatibility switch retains live changes for the session only.
 
 An idle normal quit closes admission and passes the original vote through without
 replaying quit. When work is active, normal quit stops admission, drains accepted work, then resumes the game's quit

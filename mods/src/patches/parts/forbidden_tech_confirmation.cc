@@ -1,4 +1,5 @@
 #include "errormsg.h"
+#include "config.h"
 
 #include <il2cpp/il2cpp_helper.h>
 #include <spud/detour.h>
@@ -27,7 +28,7 @@ bool IsForbiddenTechConfirmation(const Il2CppDelegate* callback)
 
 bool ConfirmForbiddenTechUpgrade(Il2CppDelegate* callback)
 {
-  if (!IsForbiddenTechConfirmation(callback)) {
+  if (!Config::Get().auto_confirm_ft_upgrade || !IsForbiddenTechConfirmation(callback)) {
     return false;
   }
 
