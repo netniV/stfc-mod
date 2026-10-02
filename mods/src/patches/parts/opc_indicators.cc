@@ -162,8 +162,8 @@ FleetOpcStatus read_opc_status(FleetPlayerData* fleet, int slot, uint64_t fleet_
   status.rate_known      = std::isfinite(status.rate_per_second) && status.rate_per_second > 0.0;
 
   if (mining_data) {
-    const auto node_current = mining_data->CurrentValue;
-    const auto node_max     = mining_data->MaxValue;
+    const auto node_current = mining_data->AmountMined;
+    const auto node_max     = static_cast<double>(mining_data->Amount);
     status.node_known =
         std::isfinite(node_current) && std::isfinite(node_max) && node_current >= 0.0 && node_max >= node_current;
     if (status.node_known) {
