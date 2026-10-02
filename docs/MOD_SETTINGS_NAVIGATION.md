@@ -5,13 +5,12 @@ control placement, conditional rows, summaries and native adapter ownership are
 documented in [Mod Settings](MOD_SETTINGS.md).
 
 This foundation separates presentation placement from a setting's owner. The
-intended native path is Settings > Mod Settings > group > setting. Group names
-and final membership are deliberately undecided; moving a control must not rename
-its stored setting or introduce another copy of its value. Confirmation controls
+intended native path is Settings > Mod Settings > group > setting. Current page membership follows the task layout in `MOD_SETTINGS.md`. Moving a
+control must not rename its stored setting or introduce another copy of its value. Confirmation controls
 continue to belong on the native confirmation page.
 
 `PageCatalog` holds stable page IDs, labels, parent IDs and references to existing
-`BooleanSetting`, `ChoiceSetting` and `SliderSetting` instances, plus static
+`BooleanSetting`, `ChoiceSetting`, `SliderSetting` and `ActionSetting` instances, plus static
 headings, in registration order. Multiple independent choices can share a page.
 Parents register first; invalid parents, duplicate
 pages and conflicting setting owners are rejected. The same setting can appear
@@ -30,47 +29,43 @@ duplicate roots within one context, and release any temporary roots on failure.
 Pooled widgets must clear owned label/state overrides before reuse. No setting
 registration may install an additional copy of an existing widget detour.
 
-Current build261 metadata exposes both root and parent-taking `AddCategory`
-overloads on `SettingsContext`, plus parent-taking toggle/selection builders.
-The Windows bridge calls that native builder and adds boolean rows through the
-existing confirmation adapter. It restores owned text overrides on category
-unbind/rebind and page destruction; titles use the same scoped human-text override
-as existing confirmation labels. No global localization hook is installed.
-Four substantive category/page lifecycle hooks are installed only when registered
-pages exist. Current x64 bodies are 366, 250, 572 and 608 bytes respectively, each
-larger than SPUD's 24-byte overwrite. Other platforms omit the native UI pending
-their own hook evidence. Metadata/builds alone do not validate presentation or
-callback lifetime; repeated navigation/pooling remains a runtime gate.
+The shared native adapter supports Windows x64 and macOS and creates boolean,
+selection, slider and action rows through validated managed builders. It restores
+owned text overrides on category unbind/rebind and page destruction, using scoped
+human-text overrides without a global localization hook. Optional category/page,
+heading and value hooks install only when their registered controls need them.
 
-Register through `ModPages()` before settings installation. The first production
-groups follow populated TOML sections: User Interface > Instant warp mode shares
-Alt+I's owner and persistence; Graphics > Fleet Labels places player/non-player
-sections on one page, each with detail
-choices and a percentage slider. Headings use native text-only rows with scoped
-label overrides and optional row tints cleared on refresh/clear. Two text-widget hooks have Windows x64
-extents of 293 and 271 bytes. Future grouping follows the section-based direction in
-[MOD_SETTINGS_CONTROLS.md](MOD_SETTINGS_CONTROLS.md). Native confirmation placement remains unchanged.
+Historical build261 measurements covered four category/page lifecycle methods.
+Current Windows client270 static measurements cover those methods and the heading,
+action, selection and slider families; every selected SPUD overwrite window fits
+its method extent. Those disk measurements do not establish live relocation,
+callback lifetime or native presentation. Exact artifact navigation/pooling smoke
+and supported Mac native extent/execution evidence remain qualification gates.
+
+Register through `ModPages()` before settings installation. Current pages are
+Camera, Fleet Labels, Map & Travel, and Previews & Cargo, as documented in
+[Mod Settings](MOD_SETTINGS.md). Instant warp shares Alt+I's owner and persistence.
+Fleet Labels places Player and Non-player sections on one page, each with detail
+choices and a percentage slider. Native text-only headings use scoped labels and
+row tints cleared on refresh/clear. Native confirmation placement stays unchanged.
 Selection controls share the typed setting/view guards with booleans and retain
 the whole integer value in each row snapshot. Three selection-widget hooks have
 verified Windows x64 extents of 146, 355 and 281 bytes. Selection prefabs may put
 their toggle on the row itself: an unavailable selection clears its selected
 index and disables interaction instead of hiding its label's container.
 
-The current native bridge shares the `ModConfirmationSettings` patch installation
-and its debug installation switch. Disabling that patch disables both native UI
-surfaces. Settings retain their own identity and persistence independently of it.
-The shared native adapter sizes its stable weak-view storage once at installation
-from all registered control rows plus the two native confirmation rows, retaining
-the existing minimum of eight slots. Both fleet profiles need ten interactive
-rows on one page; headings use the existing scoped text records. There is no
-per-frame allocation or registry rescan to grow that storage. Heading-only pages
-are pruned as empty.
+The native adapter shares the `ModConfirmationSettings` registry entry,
+controlled by default-enabled `[patches].nativesettingshooks` in all builds.
+Disabling it skips native UI installation. Stable weak-view storage is sized once
+from all registered control rows plus the native confirmation rows, retaining a
+minimum of eight slots. There is no fixed maximum of eight rows. Native contexts
+own rows and delegates; headings use scoped text records. Heading-only pages are
+pruned as empty.
 
-Persistence stays with explicit feature adapters. A live mod change and its
-asynchronous save result are distinct; page construction never calls the TOML
-writer. The writer registers the mode, fleet-label and FT keys and keeps pending
-changes per setting on one worker. This work does not add arbitrary TOML browsing,
-a second save worker, automatic config hot reload, or speculative profiler options.
+Persistence stays with explicit feature adapters, independently installed through
+`[patches].runtimeconfighooks`. Live changes and their asynchronous save results
+are distinct; page construction never writes TOML. One worker registers mode,
+fleet-label and FT keys and retains pending changes per setting.
 
 Run `tests/run-settings.ps1` on Windows or `bash tests/run-settings.sh` on macOS.
 The catalog fixture covers repeated builds, empty branches, registration failures,

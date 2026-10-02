@@ -124,10 +124,6 @@ std::vector<MissionHudButtonDefinition*> LoadConfiguredButtons()
   std::vector<MissionHudButtonDefinition*> configured_buttons;
   for (auto& definition : g_button_definitions) {
     definition.visibility = Config::Get().MissionHudButtonVisibility(definition.canonical_name);
-    if (definition.visibility == MissionHudVisibility::Auto) {
-      continue;
-    }
-
     configured_buttons.emplace_back(&definition);
   }
   return configured_buttons;
@@ -137,6 +133,9 @@ std::string ConfiguredButtonModes()
 {
   std::string modes;
   for (const auto* button : g_configured_buttons) {
+    if (button->visibility == MissionHudVisibility::Auto) {
+      continue;
+    }
     if (!modes.empty()) {
       modes.append(", ");
     }

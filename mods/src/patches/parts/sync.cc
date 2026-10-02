@@ -1095,10 +1095,120 @@ static void ship_combat_log_data()
 namespace processors
 {
 
+static void queue_battle_ids(const std::vector<uint64_t>& battle_ids)
+{
+  std::vector<uint64_t> to_enqueue;
+  {
+    using trackers::previously_sent_battlelogs;
+    using trackers::previously_sent_battlelogs_mtx;
+
+    std::scoped_lock lk(previously_sent_battlelogs_mtx);
+
+    for (const auto id : battle_ids | std::views::reverse) {
+      if (eastl::find(previously_sent_battlelogs.begin(), previously_sent_battlelogs.end(), id)
+          == previously_sent_battlelogs.end()) {
+        previously_sent_battlelogs.push_back(id);
+        to_enqueue.push_back(id);
+      }
+    }
+  }
+
+  if (!to_enqueue.empty()) {
+    http::logging::debug("QUEUE", "battle headers",
+                         STR_FORMAT("Queuing {} battles for background processing", to_enqueue.size()));
+
+    {
+      std::scoped_lock lk(workers::combat_log_data_mtx);
+      for (const auto id : to_enqueue) {
+        workers::combat_log_data_queue.push(id);
+      }
+    }
+
+    trackers::save_previously_sent_logs();
+    workers::combat_log_data_cv.notify_all();
+  }
+}
+
 static void battle_result_headers(std::unique_ptr<std::string>&& bytes)
 {
-  // TODO: Placeholder for future client support; currently unused by the game client.
-  spdlog::debug("process_battle_result_headers() was called");
+  if (auto response = Digit::PrimeServer::Models::BattleResultHeadersResponse(); response.ParseFromString(*bytes)) {
+    http::logging::trace("PROCESS", "battle headers",
+                         STR_FORMAT("Processing {} battle headers", response.headers_size()));
+
+    std::vector<uint64_t> battle_ids;
+    battle_ids.reserve(static_cast<size_t>(response.headers_size()));
+
+    for (const auto& header : response.headers()) {
+      battle_ids.push_back(static_cast<uint64_t>(header.id()));
+    }
+
+    queue_battle_ids(battle_ids);
+  } else {
+    spdlog::error("Failed to parse battle result headers");
+  }
+}
+
+struct ShipRecord {
+  int64_t              id;
+  int64_t              hull_id;
+  int32_t              tier;
+  int32_t              level;
+  double               level_percentage;
+  std::vector<int64_t> components;
+};
+
+static void sync_ships(const std::vector<ShipRecord>& ships)
+{
+  using json = nlohmann::json;
+  using trackers::types::ShipState;
+
+  static std::unordered_map<int64_t, ShipState> ship_states;
+  static std::mutex                             ship_states_mtx;
+  static std::atomic_bool                       is_first_sync{true};
+
+  auto ship_array = json::array();
+  {
+    std::scoped_lock lk(ship_states_mtx);
+
+    for (const auto& ship : ships) {
+      const ShipState state{ship.tier, ship.level, ship.level_percentage, ship.components};
+
+      if (const auto& it = ship_states.find(ship.id); it == ship_states.end() || it->second != state) {
+        ship_states[ship.id] = state;
+        ship_array.push_back({{"type", SyncConfig::Type::Ships},
+                              {"psid", ship.id},
+                              {"level", ship.level},
+                              {"level_percentage", ship.level_percentage},
+                              {"tier", ship.tier},
+                              {"hull_id", ship.hull_id},
+                              {"components", ship.components}});
+      }
+    }
+  }
+
+  if (!ship_array.empty()) {
+    const bool first_sync = is_first_sync.exchange(false, std::memory_order_acq_rel);
+    workers::queue_data(SyncConfig::Type::Ships, ship_array, first_sync);
+  }
+}
+
+static void player_ships(std::unique_ptr<std::string>&& bytes)
+{
+  if (auto response = Digit::PrimeServer::Models::PlayerShipsResponse(); response.ParseFromString(*bytes)) {
+    http::logging::trace("PROCESS", "ships", STR_FORMAT("Processing {} ships", response.ships_size()));
+
+    std::vector<ShipRecord> ships;
+    ships.reserve(static_cast<size_t>(response.ships_size()));
+
+    for (const auto& ship : response.ships() | std::views::values) {
+      ships.push_back({ship.id(), ship.hullid(), ship.tier(), ship.level(), ship.levelpercentage(),
+                       std::vector<int64_t>(ship.components().begin(), ship.components().end())});
+    }
+
+    sync_ships(ships);
+  } else {
+    spdlog::error("Failed to parse player ships");
+  }
 }
 
 static void battle_report(std::unique_ptr<std::string>&& bytes)
@@ -1927,36 +2037,7 @@ namespace json
       battle_ids.push_back(id);
     }
 
-    std::vector<uint64_t> to_enqueue;
-    {
-      using trackers::previously_sent_battlelogs;
-      using trackers::previously_sent_battlelogs_mtx;
-
-      std::scoped_lock lk(previously_sent_battlelogs_mtx);
-
-      for (const auto id : battle_ids | std::views::reverse) {
-        if (eastl::find(previously_sent_battlelogs.begin(), previously_sent_battlelogs.end(), id)
-            == previously_sent_battlelogs.end()) {
-          previously_sent_battlelogs.push_back(id);
-          to_enqueue.push_back(id);
-        }
-      }
-    }
-
-    if (!to_enqueue.empty()) {
-      http::logging::debug("QUEUE", "battle headers",
-                           STR_FORMAT("Queuing {} battles for background processing", to_enqueue.size()));
-
-      {
-        std::scoped_lock lk(workers::combat_log_data_mtx);
-        for (const auto id : to_enqueue) {
-          workers::combat_log_data_queue.push(id);
-        }
-      }
-
-      trackers::save_previously_sent_logs();
-      workers::combat_log_data_cv.notify_all();
-    }
+    queue_battle_ids(battle_ids);
   }
 
   static void resources(const nlohmann::json& section)
@@ -2020,43 +2101,19 @@ namespace json
   static void ships(const nlohmann::json& section)
   {
     using json = nlohmann::json;
-    using trackers::types::ShipState;
-
-    static std::unordered_map<int64_t, ShipState> ship_states;
-    static std::mutex                             ship_states_mtx;
-    static std::atomic_bool                       is_first_sync{true};
 
     http::logging::trace("PROCESS", "ships", STR_FORMAT("Processing {} ships (JSON)", section.size()));
 
-    auto ship_array = json::array();
-    {
-      std::scoped_lock lk(ship_states_mtx);
+    std::vector<ShipRecord> records;
+    records.reserve(section.size());
 
-      for (const auto& ship : section.get<json::object_t>() | std::views::values) {
-        const auto      id               = ship["id"].get<int64_t>();
-        const auto      tier             = ship["tier"].get<int32_t>();
-        const auto      level            = ship["level"].get<int32_t>();
-        const auto      level_percentage = ship["level_percentage"].get<double_t>();
-        const auto      components       = ship["components"].get<std::vector<int64_t>>();
-        const ShipState state{tier, level, level_percentage, components};
-
-        if (const auto& it = ship_states.find(id); it == ship_states.end() || it->second != state) {
-          ship_states[id] = state;
-          ship_array.push_back({{"type", SyncConfig::Type::Ships},
-                                {"psid", id},
-                                {"level", level},
-                                {"level_percentage", level_percentage},
-                                {"tier", tier},
-                                {"hull_id", ship["hull_id"].get<int64_t>()},
-                                {"components", components}});
-        }
-      }
+    for (const auto& ship : section.get<json::object_t>() | std::views::values) {
+      records.push_back({ship["id"].get<int64_t>(), ship["hull_id"].get<int64_t>(), ship["tier"].get<int32_t>(),
+                         ship["level"].get<int32_t>(), ship["level_percentage"].get<double_t>(),
+                         ship["components"].get<std::vector<int64_t>>()});
     }
 
-    if (!ship_array.empty()) {
-      const bool first_sync = is_first_sync.exchange(false, std::memory_order_acq_rel);
-      workers::queue_data(SyncConfig::Type::Ships, ship_array, first_sync);
-    }
+    sync_ships(records);
   }
 
   static void parse(std::unique_ptr<std::string>&& bytes)
@@ -2382,7 +2439,11 @@ static void HandleEntityGroup(EntityGroup* entity_group)
       break;
 
     // ships
-    // TODO: currently still part of JSON, likely to change in the future
+    case EntityGroup::Type::Ships:
+      if (sync_options.ships) {
+        submit_async(processors::player_ships);
+      }
+      break;
 
     // slots
     case EntityGroup::Type::EntitySlots:
