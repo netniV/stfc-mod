@@ -27,6 +27,24 @@
 #define CONFIG_SAVE_CLOSE std::fclose
 #endif
 
+namespace
+{
+std::filesystem::path ResolveConfigDestination(const std::filesystem::path& path)
+{
+  // Follow dangling final links too, preserving the former ofstream behavior.
+  auto destination = std::filesystem::weakly_canonical(path);
+  unsigned links = 0;
+  while (std::filesystem::is_symlink(std::filesystem::symlink_status(destination))) {
+    if (++links > 40)
+      throw std::filesystem::filesystem_error("config symlink cycle", path,
+                                              std::make_error_code(std::errc::too_many_symbolic_link_levels));
+    auto target = std::filesystem::read_symlink(destination);
+    destination = std::filesystem::weakly_canonical(target.is_absolute() ? target : destination.parent_path() / target);
+  }
+  return destination;
+}
+} // namespace
+
 void SaveConfigDocument(const toml::table& config, const std::filesystem::path& path, std::string_view header)
 {
   // Serialize and validate before opening any file. Values are encoded by toml++,
@@ -60,17 +78,7 @@ bool ReplaceConfigText(const std::filesystem::path& path, std::string_view bytes
 {
   (void)toml::parse(bytes);
 
-  // weakly_canonical alone leaves a dangling final symlink unresolved.
-  // Follow it before staging, preserving the former ofstream behavior.
-  auto destination = std::filesystem::weakly_canonical(path);
-  unsigned links = 0;
-  while (std::filesystem::is_symlink(std::filesystem::symlink_status(destination))) {
-    if (++links > 40)
-      throw std::filesystem::filesystem_error("config symlink cycle", path,
-                                              std::make_error_code(std::errc::too_many_symbolic_link_levels));
-    auto target = std::filesystem::read_symlink(destination);
-    destination = std::filesystem::weakly_canonical(target.is_absolute() ? target : destination.parent_path() / target);
-  }
+  const auto destination = ResolveConfigDestination(path);
   static std::atomic<unsigned long long> sequence{0};
   auto                                   temporary = destination;
   temporary += ".tmp-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()) + "-"
@@ -126,7 +134,7 @@ bool ReplaceConfigText(const std::filesystem::path& path, std::string_view bytes
     }
     // Recheck after staging, immediately before commit. Another editor can still
     // race the native replacement; arbitrary external editors do not share our lock.
-    if (expected && ReadConfigText(path) != *expected) {
+    if (expected && (ResolveConfigDestination(path) != destination || ReadConfigText(destination) != *expected)) {
       std::error_code ignored;
       std::filesystem::remove(temporary, ignored);
       return false;

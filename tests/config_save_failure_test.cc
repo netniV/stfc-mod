@@ -45,6 +45,10 @@ static void CheckPrivateStaging(std::FILE* file)
 }
 
 static bool failClose = false;
+#if !_WIN32
+static bool retarget = false;
+static std::filesystem::path retargetLink, retargetDestination;
+#endif
 
 static std::size_t ShortWrite(const void* data, std::size_t size, std::size_t count, std::FILE* file)
 {
@@ -52,9 +56,13 @@ static std::size_t ShortWrite(const void* data, std::size_t size, std::size_t co
     if (entry.path().filename().string().find(".tmp-") != std::string::npos)
       staging = entry.path();
   CheckPrivateStaging(file);
-  const auto written = std::fwrite(data, size, failClose ? count : count / 2, file);
+  bool complete = failClose;
+#if !_WIN32
+  complete |= retarget;
+#endif
+  const auto written = std::fwrite(data, size, complete ? count : count / 2, file);
   CheckPrivateStaging(file);
-  if (failClose)
+  if (complete)
     return written;
   errno              = ENOSPC;
   return written;
@@ -64,6 +72,13 @@ static int FailedClose(std::FILE* file)
 {
   std::fclose(file);
   CheckPrivateStaging(nullptr);
+#if !_WIN32
+  if (retarget) {
+    std::filesystem::remove(retargetLink);
+    std::filesystem::create_symlink(retargetDestination, retargetLink);
+    return 0;
+  }
+#endif
   errno = ENOSPC;
   return EOF;
 }
@@ -109,5 +124,19 @@ int main(int argc, char** argv)
       assert(entry.path() == path);
     }
   }
+#if !_WIN32
+  const auto other = root / "other.toml";
+  { std::ofstream out(other); out << original; }
+  retargetLink = root / "selected.toml";
+  retargetDestination = other.filename();
+  std::filesystem::create_symlink(path.filename(), retargetLink);
+  staging = path;
+  retarget = true;
+  assert(!ReplaceConfigText(retargetLink, "enabled = true\n", original));
+  assert(ReadConfigText(path) == original && ReadConfigText(other) == original);
+  assert(std::filesystem::read_symlink(retargetLink) == retargetDestination);
+  for (const auto& entry : std::filesystem::directory_iterator(root))
+    assert(entry.path().filename().string().find(".tmp-") == std::string::npos);
+#endif
   std::cout << "Short-write and failed-close fixtures passed\n";
 }

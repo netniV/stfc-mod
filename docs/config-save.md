@@ -92,8 +92,8 @@ changes. It uses the existing update dispatcher even if persistence setup failed
 The adapter conservatively retains failures from submissions it could not track.
 Settings UI wording and widgets belong to the consumers, not the writer.
 
-The checked replacement re-reads the source after staging and rejects changed
-bytes before commit. This is best-effort conflict detection, not an atomic
+The checked replacement re-resolves the selected path and re-reads its source
+after staging, rejecting a changed symlink target or changed bytes before commit. This is best-effort conflict detection, not an atomic
 compare-and-swap with arbitrary external editors: an external write can still
 race the final native replacement. File deletion is an I/O error, not permission
 to recreate the user's file from cached content.
