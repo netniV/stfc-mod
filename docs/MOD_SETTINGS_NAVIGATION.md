@@ -7,7 +7,7 @@ its stored setting or introduce another copy of its value. Confirmation controls
 continue to belong on the native confirmation page.
 
 `PageCatalog` holds stable page IDs, labels, parent IDs and references to existing
-`BooleanSetting` instances. Parents register first; invalid parents, duplicate
+`BooleanSetting`, `ChoiceSetting`, `SliderSetting` and `ActionSetting` adapters. Parents register first; invalid parents, duplicate
 pages and conflicting setting owners are rejected. The same setting can appear
 on different pages, with the same authoritative read/write adapter. Registration
 freezes at the first build. Definitions and setting owners outlive their views.
@@ -24,35 +24,36 @@ duplicate roots within one context, and release any temporary roots on failure.
 Pooled widgets must clear owned label/state overrides before reuse. No setting
 registration may install an additional copy of an existing widget detour.
 
-Current build261 metadata exposes both root and parent-taking `AddCategory`
-overloads on `SettingsContext`, plus parent-taking toggle/selection builders.
-The Windows bridge calls that native builder and adds boolean rows through the
-existing confirmation adapter. It restores owned text overrides on category
-unbind/rebind and page destruction; titles use the same scoped human-text override
-as existing confirmation labels. No global localization hook is installed.
-Four substantive category/page lifecycle hooks are installed only when registered
-pages exist. Current x64 bodies are 366, 250, 572 and 608 bytes respectively, each
-larger than SPUD's 24-byte overwrite. Other platforms omit the native UI pending
-their own hook evidence. Metadata/builds alone do not validate presentation or
-callback lifetime; repeated navigation/pooling remains a runtime gate.
+The shared native adapter supports Windows x64 and macOS and creates boolean,
+selection, slider and action rows through validated managed builders. It restores
+owned text overrides on category unbind/rebind and page destruction, using scoped
+human-text overrides without a global localization hook. Optional category/page,
+heading and value hooks install only when their registered controls need them.
+
+Historical build261 measurements covered four category/page lifecycle methods.
+Current Windows client270 static measurements cover those methods and the heading,
+action, selection and slider families; every selected SPUD overwrite window fits
+its method extent. Those disk measurements do not establish live relocation,
+callback lifetime or native presentation. Exact artifact navigation/pooling smoke
+and supported Mac native extent/execution evidence remain qualification gates.
 
 Register through `ModPages()` before settings installation. The production catalog
 is empty: no final group layout, settings placement or new preference is shipped
 by this infrastructure slice. This supersedes the earlier General > Community Mod
 placement proposal; native confirmation placement remains unchanged.
 
-The current native bridge shares the `ModConfirmationSettings` patch installation
-and its debug installation switch. Disabling that patch disables both native UI
-surfaces. Settings retain their own identity and persistence independently of it.
-The shared native adapter currently supports eight simultaneously bound mod
-boolean rows across pages. Plan populated groups within that existing limit;
-catalog registration does not itself guarantee native widget capacity.
+The native adapter shares the `ModConfirmationSettings` registry entry, controlled
+by default-enabled `[patches].nativesettingshooks` in all builds. Disabling it skips
+native UI installation. Value records are sized from the registered page plan;
+there is no fixed eight-row limit. Managed contexts own rows and delegates, while
+weak records track bound views without retaining historical settings pages.
 
 Persistence stays with explicit feature adapters. A live mod change and its
 asynchronous save result are distinct; page construction never calls the TOML
-writer. The current writer supports its one known mode setting. This work does
-not add arbitrary TOML browsing, a second save worker, automatic config hot reload,
-sliders/selection abstractions without a consumer, or speculative profiler options.
+writer. The current writer registers only instant-warp mode. Its installation is owned
+separately by `[patches].runtimeconfighooks`. Choice, slider and action adapters are
+included as navigation groundwork; a populated consumer owns its registrations,
+validation and persistence. Page construction does not register arbitrary TOML keys.
 
 Run `tests/run-settings.ps1` on Windows or `bash tests/run-settings.sh` on macOS.
 The catalog fixture covers repeated builds, empty branches, registration failures,
