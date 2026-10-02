@@ -924,6 +924,8 @@ void Config::Load()
       get_config_or_default(config, parsed, "patches", "doubleclickassignshiphooks", DCP::doubleclickassignshiphooks, write_config);
   this->installForbiddenTechConfirmationHooks =
       get_config_or_default(config, parsed, "patches", "forbiddentechconfirmhooks", DCP::forbiddentechconfirmhooks, write_config);
+  this->installRuntimeConfigHooks =
+      get_config_or_default(config, parsed, "patches", "runtimeconfighooks", DCP::runtimeconfighooks, write_config);
   this->installAudioEventHooks =
       get_config_or_default(config, parsed, "patches", "audioeventhooks", DCP::audioeventhooks, write_config);
   this->installInstantCargoCounterHooks =

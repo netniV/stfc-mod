@@ -1741,7 +1741,6 @@ void InstallHotkeyHooks()
   InstallShortcutHintHooks();
 
   install_screen_manager_update_hook();
-  runtime_config::Install();
 #ifdef _MODDBG
   fleet_watch::InstallRuntimeProbe();
 #endif
