@@ -968,6 +968,8 @@ void Config::Load()
       get_config_or_default(config, parsed, "patches", "doubleclickassignshiphooks", DCP::doubleclickassignshiphooks, write_config);
   this->installForbiddenTechConfirmationHooks =
       get_config_or_default(config, parsed, "patches", "forbiddentechconfirmhooks", DCP::forbiddentechconfirmhooks, write_config);
+  this->installOpcIndicatorHooks =
+      get_config_or_default(config, parsed, "patches", "opcindicatorhooks", DCP::opcindicatorhooks, write_config);
   this->installFleetNotificationHooks =
       get_config_or_default(config, parsed, "patches", "fleetnotificationhooks", DCP::fleetnotificationhooks, write_config);
   this->installAudioEventHooks =
@@ -1102,7 +1104,6 @@ void Config::Load()
                                                       DCU::highlight_opc_fleets, write_config);
   this->fleet_hud_opc_eta = get_config_or_default(config, parsed, "ui", "fleet_hud_opc_eta",
                                                    DCU::fleet_hud_opc_eta, write_config);
-  this->installOpcIndicatorHooks = this->highlight_opc_fleets || this->fleet_hud_opc_eta;
 
   read_daily_bulk_claim_factions(config, parsed, this->daily_bulk_claim_factions, DCU::daily_bulk_claim_factions,
                                  write_config);

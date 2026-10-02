@@ -1,3 +1,4 @@
+#include "il2cpp/method_contract.h"
 #include <il2cpp/runtime.h>
 #include "config.h"
 #include "errormsg.h"
@@ -76,9 +77,13 @@ std::array<uint8_t, kFleetSlotCount>           s_opc_highlight_setup_failures{};
 std::array<int64_t, kFleetSlotCount>           s_opc_highlight_retry_at_ms{};
 std::array<uint64_t, kFleetSlotCount>          s_opc_highlight_retry_fleet_ids{};
 std::array<uintptr_t, kFleetSlotCount>         s_opc_highlight_retry_anchor_ids{};
-bool                                           s_highlight_enabled = false;
-bool                                           s_eta_enabled       = false;
+bool                                           s_highlight_ready = false;
+bool                                           s_eta_ready       = false;
 OpcCardRenderState                             s_opc_card_render_state{};
+FieldInfo* s_state_context_field = nullptr;
+FieldInfo* s_flag_context_field = nullptr;
+const MethodInfo* s_local_get_fleet = nullptr;
+const MethodInfo* s_is_index_selected = nullptr;
 
 struct Color {
   float r;
@@ -273,14 +278,11 @@ bool invoke_void(const MethodInfo* method, void* target, void** args, const char
   return true;
 }
 
-const MethodInfo* resolve_instance_void(IL2CppClassHelper& helper, const char* name, int parameter_count)
+const MethodInfo* resolve_instance_void(IL2CppClassHelper& helper, const char* name,
+                                        std::initializer_list<const char*> parameters = {})
 {
-  auto* method = helper.GetMethodInfoSpecial(
-      name, [parameter_count](int count, const Il2CppType**) { return count == parameter_count; });
-  return method && !(method->flags & METHOD_ATTRIBUTE_STATIC) && method->methodPointer && method->return_type
-                 && method->return_type->type == IL2CPP_TYPE_VOID
-             ? method
-             : nullptr;
+  const auto* method = method_contract::Resolve(helper.get_cls(), name, false, "System.Void", parameters);
+  return method && !method->has_full_generic_sharing_signature ? method : nullptr;
 }
 
 void destroy_game_object(GameObject* game_object)
@@ -383,7 +385,9 @@ void* fleet_panel_controller(void* component)
   if (!fleet_bar || !is_instance_class_field(panel_field, "Digit.Prime.Ships", "FleetLocalViewController")) {
     return nullptr;
   }
-  return *reinterpret_cast<Il2CppObject**>(reinterpret_cast<char*>(fleet_bar) + panel_field->offset);
+  Il2CppObject* panel = nullptr;
+  il2cpp_field_get_value(static_cast<Il2CppObject*>(fleet_bar), panel_field, &panel);
+  return panel;
 }
 
 Transform* fleet_panel_timer_anchor(void* component)
@@ -401,8 +405,8 @@ Transform* fleet_panel_timer_anchor(void* component)
   if (!is_instance_class_field(timer_widget_field, "Digit.Client.UI", "TimerWidget")) {
     return nullptr;
   }
-  auto* timer_widget =
-      *reinterpret_cast<Il2CppObject**>(reinterpret_cast<char*>(fleet_panel) + timer_widget_field->offset);
+  Il2CppObject* timer_widget = nullptr;
+  il2cpp_field_get_value(static_cast<Il2CppObject*>(fleet_panel), timer_widget_field, &timer_widget);
   return component_transform(timer_widget);
 }
 
@@ -592,6 +596,15 @@ void update_opc_highlight(Transform* body_transform, FleetPlayerData* fleet)
 
   auto* highlight = find_opc_highlight(body_transform);
   const auto slot = fleet ? fleet->Index : -1;
+  if (!Config::Get().highlight_opc_fleets) {
+    if (highlight) highlight->SetActive(false);
+    if (slot >= 0 && slot < kFleetSlotCount) {
+      s_opc_highlight_retry_fleet_ids[slot] = 0;
+      s_opc_highlight_retry_anchor_ids[slot] = 0;
+      clear_ui_retry(s_opc_highlight_setup_failures[slot], s_opc_highlight_retry_at_ms[slot]);
+    }
+    return;
+  }
   if (!fleet || slot < 0 || slot >= kFleetSlotCount) {
     if (highlight) {
       highlight->SetActive(false);
@@ -647,9 +660,11 @@ bool fleet_tile_is_selected(void* fleet_state_widget, FleetPlayerData* fleet)
 
   static auto fleet_bar_helper =
       il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.HUD", "FleetBarViewController");
-  static auto is_index_selected = fleet_bar_helper.GetMethod<bool(void*, int32_t)>("IsIndexSelected", 1);
-  auto*       fleet_bar         = component_in_parent(fleet_state_widget, fleet_bar_helper);
-  return fleet_bar && is_index_selected && is_index_selected(fleet_bar, fleet->Index);
+  auto* fleet_bar = component_in_parent(fleet_state_widget, fleet_bar_helper);
+  auto index = fleet->Index;
+  void* args[]{&index};
+  auto* result = fleet_bar ? invoke(s_is_index_selected, fleet_bar, args, "FleetBar.IsIndexSelected") : nullptr;
+  return result && *static_cast<bool*>(il2cpp_object_unbox(result));
 }
 
 bool configure_opc_eta_label(void* label, Transform* transform, bool selected, bool safe_on_node)
@@ -1149,6 +1164,12 @@ void update_opc_eta_label(void* ui_component, FleetPlayerData* fleet, Transform*
 {
   auto*      label_anchor    = known_label_anchor ? known_label_anchor : fleet_state_widget_label_anchor(ui_component);
   const bool panel_component = ui_component && fleet_panel_controller(ui_component) == ui_component;
+  if (!Config::Get().fleet_hud_opc_eta) {
+    hide_opc_eta(label_anchor);
+    update_opc_card_label(ui_component, nullptr, {});
+    reset_opc_eta_slot(fleet ? fleet->Index : -1);
+    return;
+  }
   if (!ui_component || !fleet) {
     hide_opc_eta(label_anchor);
     if (panel_component) {
@@ -1183,7 +1204,7 @@ void update_opc_eta_label(void* ui_component, FleetPlayerData* fleet, Transform*
   auto       safe_on_node = render.computed_safe;
   if (refresh_due) {
     const auto status = read_opc_status(fleet, slot, render.fleet_id, fleet_state);
-    display           = Config::Get().fleet_hud_opc_eta ? format_opc_eta(status) : std::string{};
+    display           = format_opc_eta(status);
     card_display      = display.empty() ? std::string{} : format_opc_card_display(status);
     safe_on_node      = status.safe_on_node;
     log_opc_eta(fleet, status, display);
@@ -1291,49 +1312,30 @@ void update_opc_eta_label(void* ui_component, FleetPlayerData* fleet, Transform*
   label_object->SetActive(true);
 }
 
+FleetPlayerData* widget_context(void* self, FieldInfo* field)
+{
+  FleetPlayerData* fleet = nullptr;
+  if (self && field)
+    il2cpp_field_get_value(static_cast<Il2CppObject*>(self), field, &fleet);
+  return fleet;
+}
 FleetPlayerData* fleet_state_widget_context(void* self)
-{
-  if (!self) {
-    return nullptr;
-  }
-
-  static auto helper      = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.HUD", "FleetStateWidget");
-  static auto get_context = helper.GetMethod<FleetPlayerData*(void*)>("get_Context", 0);
-  return get_context ? get_context(self) : nullptr;
-}
-
+{ return widget_context(self, s_state_context_field); }
 FleetPlayerData* fleetbar_flag_widget_context(void* self)
-{
-  if (!self) {
-    return nullptr;
-  }
-
-  static auto helper      = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.HUD", "FleetbarFlagWidget");
-  static auto get_context = helper.GetMethod<FleetPlayerData*(void*)>("get_Context", 0);
-  return get_context ? get_context(self) : nullptr;
-}
-
+{ return widget_context(self, s_flag_context_field); }
 FleetPlayerData* fleet_local_view_fleet(void* self)
-{
-  if (!self) {
-    return nullptr;
-  }
-
-  static auto helper    = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Ships", "FleetLocalViewController");
-  static auto get_fleet = helper.GetMethod<FleetPlayerData*(void*)>("get_fleet", 0);
-  return get_fleet ? get_fleet(self) : nullptr;
-}
+{ return self ? reinterpret_cast<FleetPlayerData*>(invoke(s_local_get_fleet, self, nullptr, "FleetLocal.get_fleet")) : nullptr; }
 
 void FleetStateWidget_SetWidgetData_Hook(auto original, void* self)
 {
   original(self);
-  if (s_eta_enabled)
+  if (s_eta_ready)
     update_opc_eta_label(self, fleet_state_widget_context(self));
 }
 
 void FleetStateWidget_ClearWidgetData_Hook(auto original, void* self)
 {
-  if (!s_eta_enabled) {
+  if (!s_eta_ready) {
     original(self);
     return;
   }
@@ -1356,13 +1358,13 @@ void FleetStateWidget_ClearWidgetData_Hook(auto original, void* self)
 void FleetbarFlagWidget_SetWidgetData_Hook(auto original, void* self)
 {
   original(self);
-  if (s_highlight_enabled)
+  if (s_highlight_ready)
     update_opc_highlight(opc_anchor_from_fleetbar_flag(self), fleetbar_flag_widget_context(self));
 }
 
 void FleetbarFlagWidget_ClearWidgetData_Hook(auto original, void* self)
 {
-  if (!s_highlight_enabled) {
+  if (!s_highlight_ready) {
     original(self);
     return;
   }
@@ -1385,15 +1387,16 @@ void FleetbarFlagWidget_ClearWidgetData_Hook(auto original, void* self)
 void FleetLocalViewController_BindDataContext_Hook(auto original, void* self, void* provider, void* data_context)
 {
   original(self, provider, data_context);
+  if (!s_eta_ready && !s_highlight_ready) return;
 
   auto* tile_transform = component_transform(self);
   auto* label_anchor   = opc_anchor_from_tile(tile_transform);
   auto* fleet          = fleet_local_view_fleet(self);
-  if (s_highlight_enabled) {
+  if (s_highlight_ready) {
     update_opc_highlight(label_anchor, fleet);
   }
   const bool panel_component = fleet_panel_controller(self) == self;
-  if (s_eta_enabled && (label_anchor || panel_component)) {
+  if (s_eta_ready && (label_anchor || panel_component)) {
     reset_opc_eta_slot(fleet ? fleet->Index : -1);
     update_opc_eta_label(self, fleet, label_anchor);
   }
@@ -1402,13 +1405,14 @@ void FleetLocalViewController_BindDataContext_Hook(auto original, void* self, vo
 void FleetLocalViewController_OnCurrentCargoReactiveEvent_Hook(auto original, void* self, int32_t dirty_flags)
 {
   original(self, dirty_flags);
+  if (!s_eta_ready && !s_highlight_ready) return;
   auto* tile_transform = component_transform(self);
   auto* fleet          = fleet_local_view_fleet(self);
   invalidate_fleet_opc_sample(fleet ? fleet->Index : -1);
-  if (s_highlight_enabled) {
+  if (s_highlight_ready) {
     update_opc_highlight(opc_anchor_from_tile(tile_transform), fleet);
   }
-  if (s_eta_enabled) {
+  if (s_eta_ready) {
     update_opc_eta_label(self, fleet, opc_anchor_from_tile(tile_transform));
   }
 }
@@ -1417,109 +1421,64 @@ void FleetLocalViewController_OnCurrentCargoReactiveEvent_Hook(auto original, vo
 
 void InstallOpcIndicatorHooks()
 {
-  const bool use_opc_highlight = Config::Get().highlight_opc_fleets;
-  const bool use_opc_eta       = Config::Get().fleet_hud_opc_eta;
 #if !defined(_WIN32) && !defined(__APPLE__)
-  if (use_opc_highlight || use_opc_eta) {
-    spdlog::warn("[OpcIndicators] disabled: unsupported platform");
-  }
+  spdlog::warn("[OpcIndicators] unavailable: unsupported platform");
   return;
 #endif
-
-  if (!use_opc_highlight && !use_opc_eta) {
+  auto local = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Ships", "FleetLocalViewController");
+  auto state = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.HUD", "FleetStateWidget");
+  auto flag = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.HUD", "FleetbarFlagWidget");
+  auto bar = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.HUD", "FleetBarViewController");
+  const auto* bind = resolve_instance_void(local, "BindDataContext",
+      {"Digit.Client.UI.IDataContextProvider", "System.Object"});
+  const auto* cargo = resolve_instance_void(local, "OnCurrentCargoReactiveEvent", {"System.Int32"});
+  const auto* state_set = resolve_instance_void(state, "SetWidgetData");
+  const auto* state_clear = resolve_instance_void(state, "ClearWidgetData");
+  const auto* flag_set = resolve_instance_void(flag, "SetWidgetData");
+  const auto* flag_clear = resolve_instance_void(flag, "ClearWidgetData");
+  s_local_get_fleet = method_contract::Resolve(local.get_cls(), "get_fleet", false,
+      "Digit.PrimeServer.Models.FleetPlayerData", {});
+  s_is_index_selected = method_contract::Resolve(bar.get_cls(), "IsIndexSelected", false,
+      "System.Boolean", {"System.Int32"});
+  s_state_context_field = state.get_cls() ? il2cpp_class_get_field_from_name(state.get_cls(), "m_context") : nullptr;
+  s_flag_context_field = flag.get_cls() ? il2cpp_class_get_field_from_name(flag.get_cls(), "m_context") : nullptr;
+  const bool local_ready = bind && cargo && s_local_get_fleet && !s_local_get_fleet->has_full_generic_sharing_signature;
+  const bool eta_ready = local_ready && state_set && state_clear && s_is_index_selected
+      && !s_is_index_selected->has_full_generic_sharing_signature
+      && is_instance_class_field(s_state_context_field, "Digit.PrimeServer.Models", "FleetPlayerData");
+  const bool highlight_ready = local_ready && flag_set && flag_clear
+      && is_instance_class_field(s_flag_context_field, "Digit.PrimeServer.Models", "FleetPlayerData");
+  if (!eta_ready && !highlight_ready) {
+    spdlog::warn("[OpcIndicators] unavailable: required method/context contracts");
     return;
   }
-
-  auto fleet_local_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Ships", "FleetLocalViewController");
-  const auto* bind_data_context =
-      fleet_local_helper.isValidHelper() ? resolve_instance_void(fleet_local_helper, "BindDataContext", 2) : nullptr;
-  const auto* cargo_updated = fleet_local_helper.isValidHelper()
-                                  ? resolve_instance_void(fleet_local_helper, "OnCurrentCargoReactiveEvent", 1)
-                                  : nullptr;
-  if (!fleet_local_helper.isValidHelper()) {
-    ErrorMsg::MissingHelper("Ships", "FleetLocalViewController");
-  } else {
-    if (!bind_data_context) {
-      ErrorMsg::MissingMethod("FleetLocalViewController", "BindDataContext");
-    }
-    if (!cargo_updated) {
-      ErrorMsg::MissingMethod("FleetLocalViewController", "OnCurrentCargoReactiveEvent");
-    }
-  }
-  const bool local_ready = bind_data_context && cargo_updated;
-
-  const MethodInfo* state_set   = nullptr;
-  const MethodInfo* state_clear = nullptr;
-  if (use_opc_eta) {
-    auto state_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.HUD", "FleetStateWidget");
-    if (!state_helper.isValidHelper()) {
-      ErrorMsg::MissingHelper("HUD", "FleetStateWidget");
-    } else {
-      state_set   = resolve_instance_void(state_helper, "SetWidgetData", 0);
-      state_clear = resolve_instance_void(state_helper, "ClearWidgetData", 0);
-      if (!state_set) {
-        ErrorMsg::MissingMethod("FleetStateWidget", "SetWidgetData");
-      }
-      if (!state_clear) {
-        ErrorMsg::MissingMethod("FleetStateWidget", "ClearWidgetData");
-      }
-    }
-  }
-
-  const MethodInfo* flag_set   = nullptr;
-  const MethodInfo* flag_clear = nullptr;
-  if (use_opc_highlight) {
-    auto flag_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.HUD", "FleetbarFlagWidget");
-    if (!flag_helper.isValidHelper()) {
-      ErrorMsg::MissingHelper("HUD", "FleetbarFlagWidget");
-    } else {
-      flag_set   = resolve_instance_void(flag_helper, "SetWidgetData", 0);
-      flag_clear = resolve_instance_void(flag_helper, "ClearWidgetData", 0);
-      if (!flag_set) {
-        ErrorMsg::MissingMethod("FleetbarFlagWidget", "SetWidgetData");
-      }
-      if (!flag_clear) {
-        ErrorMsg::MissingMethod("FleetbarFlagWidget", "ClearWidgetData");
-      }
-    }
-  }
-
-#if __APPLE__
-  // Resolve distinct targets before installing the requested hooks.
-  std::vector<const MethodInfo*> targets{bind_data_context, cargo_updated};
-  if (use_opc_eta) { targets.push_back(state_set); targets.push_back(state_clear); }
-  if (use_opc_highlight) { targets.push_back(flag_set); targets.push_back(flag_clear); }
-  for (size_t i = 0; i < targets.size(); ++i) {
-    if (!targets[i] || !targets[i]->methodPointer) {
-      spdlog::warn("[OpcIndicators] disabled: missing Mac hook target");
-      return;
-    }
+  std::vector<const MethodInfo*> targets{bind, cargo};
+  if (eta_ready) { targets.push_back(state_set); targets.push_back(state_clear); }
+  if (highlight_ready) { targets.push_back(flag_set); targets.push_back(flag_clear); }
+  for (size_t i = 0; i < targets.size(); ++i)
     for (size_t j = 0; j < i; ++j)
       if (targets[i]->methodPointer == targets[j]->methodPointer) {
-        spdlog::warn("[OpcIndicators] disabled: shared native hook target");
+        spdlog::warn("[OpcIndicators] unavailable: shared native hook target");
         return;
       }
-  }
-#endif
-
-  const bool eta_ready = use_opc_eta && local_ready && state_set && state_clear;
-  const bool highlight_ready = use_opc_highlight && local_ready && flag_set && flag_clear;
   bool installed = true;
   if (eta_ready) {
-    installed = SPUD_STATIC_DETOUR(state_clear->methodPointer, FleetStateWidget_ClearWidgetData_Hook)
-                && SPUD_STATIC_DETOUR(state_set->methodPointer, FleetStateWidget_SetWidgetData_Hook);
+    const bool a = SPUD_STATIC_DETOUR(state_clear->methodPointer, FleetStateWidget_ClearWidgetData_Hook) != nullptr;
+    const bool b = SPUD_STATIC_DETOUR(state_set->methodPointer, FleetStateWidget_SetWidgetData_Hook) != nullptr;
+    installed = a && b;
   }
   if (installed && highlight_ready) {
-    installed = SPUD_STATIC_DETOUR(flag_clear->methodPointer, FleetbarFlagWidget_ClearWidgetData_Hook)
-                && SPUD_STATIC_DETOUR(flag_set->methodPointer, FleetbarFlagWidget_SetWidgetData_Hook);
+    const bool a = SPUD_STATIC_DETOUR(flag_clear->methodPointer, FleetbarFlagWidget_ClearWidgetData_Hook) != nullptr;
+    const bool b = SPUD_STATIC_DETOUR(flag_set->methodPointer, FleetbarFlagWidget_SetWidgetData_Hook) != nullptr;
+    installed = a && b;
   }
-  if (installed && (eta_ready || highlight_ready)) {
-    installed = SPUD_STATIC_DETOUR(bind_data_context->methodPointer, FleetLocalViewController_BindDataContext_Hook)
-                && SPUD_STATIC_DETOUR(cargo_updated->methodPointer, FleetLocalViewController_OnCurrentCargoReactiveEvent_Hook);
+  if (installed) {
+    const bool a = SPUD_STATIC_DETOUR(bind->methodPointer, FleetLocalViewController_BindDataContext_Hook) != nullptr;
+    const bool b = SPUD_STATIC_DETOUR(cargo->methodPointer, FleetLocalViewController_OnCurrentCargoReactiveEvent_Hook) != nullptr;
+    installed = a && b;
   }
-  // Partial installations stay on the original path; never retry them on macOS.
-  s_eta_enabled = installed && eta_ready;
-  s_highlight_enabled = installed && highlight_ready;
-  if (!installed)
-    spdlog::warn("[OpcIndicators] disabled: native hook installation failed");
+  // A partial installation remains native; do not retry the same targets.
+  s_eta_ready = installed && eta_ready;
+  s_highlight_ready = installed && highlight_ready;
+  spdlog::info("[OpcIndicators] eta_ready={} highlight_ready={}", s_eta_ready, s_highlight_ready);
 }
