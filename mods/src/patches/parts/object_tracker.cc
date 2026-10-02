@@ -19,6 +19,7 @@
 #include "prime/PreScanTargetWidget.h"
 #include "prime/ElementSelectorViewController.h"
 #include "prime/ShipManagementViewController.h"
+#include "prime/ShipManagementScreenStateViewController.h"
 #include "prime/StarNodeObjectViewerWidget.h"
 
 #include <EASTL/unordered_map.h>
@@ -220,6 +221,7 @@ void InstallObjectTrackers()
   TrackObject<OfficerAssignmentViewController>();
   TrackObject<ElementSelectorViewController>();
   TrackObject<ShipManagementViewController>();
+  TrackObject<ShipManagementScreenStateViewController>();
   TrackObject<StarNodeObjectViewerWidget>();
 
   SPUD_STATIC_DETOUR(il2cpp_unity_liveness_finalize, calc_liveness_hook);

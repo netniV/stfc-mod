@@ -114,6 +114,9 @@ enable_experimental = false
 #  <[===========================================================================================================================]> 
 
 [graphics]
+# Show the remaining Galactic Anomaly time below Help All / Engage / Claim.
+galactic_anomaly_timer = false
+
 
 # Subgroup: Display
 # -----------------
@@ -254,7 +257,14 @@ chatpatches = true
 
 # Enable per-faction bulk claiming for Daily Goals
 dailyfactionbulkclaimhooks = true
-focussearch = true
+missionhudtweakshooks = true
+galacticanomalytimerhooks = true
+loadingtiphooks = true
+doubleclickassignshiphooks = true
+forbiddentechconfirmhooks = true
+audioeventhooks = true
+# Install native Mod Settings hooks; disable only for compatibility troubleshooting.
+nativesettingshooks = true
 freeresizehooks = true
 game_version = true
 giftsbulkclaimhooks = true
@@ -515,6 +525,9 @@ show_missions = "M"
 # Go to Officers
 show_officers = "SHIFT-O"
 
+# Go to Officer Presets
+show_officerpresets = "CTRL-O"
+
 # Go to Q Trials
 show_qtrials = "SHIFT-Q"
 
@@ -535,6 +548,12 @@ show_shields = "CTRL-S"
 
 # Open the Shipyard Build Ship screen
 show_shipconstruction = "SHIFT-N"
+
+# Go directly to Officer Swap
+show_officerswap = "ALT-O"
+
+# Go directly to Ship Swap
+show_shipswap = "ALT-N"
 
 # Go to Manage Ships
 show_ships = "N"
@@ -724,6 +743,15 @@ arrow_keys_to_select_ship = true
 
 # Double-click a ship in the fleet management dock to assign it instead of selecting it and then clicking Assign
 double_click_to_assign_ship = false
+
+# Enable the shortcut that focuses the search box on supported screens
+focus_search = true
+
+# Format abbreviated cargo values using cargo_significant_decimals
+cargo_format = true
+
+# Restore the Below Deck Ability officer sort option
+officer_sort = true
 
 # Comma-separated ship names to always show first in the fleet management dock; pinned ships retain the active sort order
 pinned_ships = ""

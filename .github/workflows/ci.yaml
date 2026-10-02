@@ -210,6 +210,14 @@ jobs:
         shell: pwsh
         run: ./tests/run-confirmation-settings.ps1
 
+      - name: Test x64 trampoline relocation
+        shell: pwsh
+        run: |
+          xmake build -y spud-relocation-tests
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          xmake run spud-relocation-tests
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Report compiler cache
         shell: pwsh
         run: sccache --show-stats
@@ -505,6 +513,13 @@ jobs:
       - name: Build
         # -D keeps the existing XMake compiler-cache diagnostics too.
         run: xmake -y -D
+
+      - name: Test x64 trampoline relocation
+        if: matrix.arch == 'x86_64'
+        shell: bash
+        run: |
+          xmake build -y spud-relocation-tests
+          xmake run spud-relocation-tests
 
       - name: Report protobuf compiler cache
         shell: bash
