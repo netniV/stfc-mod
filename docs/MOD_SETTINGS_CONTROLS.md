@@ -72,10 +72,12 @@ The native slider callbacks use the same typed snapshot/reentry guards as choice
 Unknown values suppress the slider and numeric label; disabled known values remain
 visible. Releasing a pooled widget restores its label, active state and interaction.
 
-Windows installs the existing fleet-label and Forbidden Tech hooks when the mod
-settings UI is enabled, so changing their values does not require a restart.
-Each FT hook consults the current bypass flag; hook availability is separate from
-the value. Other platforms retain startup-controlled installation and omit this UI.
+The owning Zoom and Forbidden Tech patch switches control installation independently
+of native settings and feature values. Supported callbacks install once; current
+label profiles and the FT bypass flag are checked inside them, so live changes do
+not require a restart. Windows x64 and macOS use shared adapters; native availability
+requires validated metadata and completed hook families. Mac qualification remains
+separate from the Windows evidence below.
 Confirmation ON means the bypass flag is false. Toggling must never invoke an
 upgrade callback by itself.
 
