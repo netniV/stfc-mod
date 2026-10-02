@@ -265,6 +265,8 @@ forbiddentechconfirmhooks = true
 audioeventhooks = true
 # Install native Mod Settings hooks; disable only for compatibility troubleshooting.
 nativesettingshooks = true
+# Installs runtime config persistence independently of keyboard/native settings features.
+runtimeconfighooks = true
 freeresizehooks = true
 game_version = true
 giftsbulkclaimhooks = true

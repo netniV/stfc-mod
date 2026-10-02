@@ -1,4 +1,5 @@
 #include "patches.h"
+#include "runtime_config.h"
 #include "file.h"
 #include "version.h"
 
@@ -154,6 +155,7 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
       {"ForbiddenTechConfirm", {InstallForbiddenTechConfirmationHooks, &cfg.installForbiddenTechConfirmationHooks}},
       {"AudioEvents", {InstallAudioEventHooks, &cfg.installAudioEventHooks}},
       {"ModConfirmationSettings", {InstallModConfirmationSettings, &cfg.installModConfirmationSettings}},
+      {"RuntimeConfigHooks", {runtime_config::Install, &cfg.installRuntimeConfigHooks}},
   };
   printf("il2cpp_init_hook(%s)\n", domain_name);
 
