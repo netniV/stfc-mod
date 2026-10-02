@@ -6,8 +6,9 @@
 
 struct ShipManagementScreenStateViewController {
 public:
-  __declspec(property(get = __get_isActiveAndEnabled)) bool    isActiveAndEnabled;
-  __declspec(property(get = __get__swapShipButton)) Button* _swapShipButton;
+  __declspec(property(get = __get_isActiveAndEnabled)) bool        isActiveAndEnabled;
+  __declspec(property(get = __get__officerIconButton)) Button* _officerIconButton;
+  __declspec(property(get = __get__swapShipButton)) Button*        _swapShipButton;
 
   static IL2CppClassHelper& get_class_helper()
   {
@@ -20,6 +21,12 @@ public:
   {
     static auto property = get_class_helper().GetProperty("isActiveAndEnabled");
     return property.Get<bool>(this);
+  }
+
+  Button* __get__officerIconButton()
+  {
+    static auto field = get_class_helper().GetField("_officerIconButton").offset();
+    return *(Button**)((char*)this + field);
   }
 
   Button* __get__swapShipButton()
