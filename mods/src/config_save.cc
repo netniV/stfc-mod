@@ -10,6 +10,13 @@
 
 #if _WIN32
 #include <Windows.h>
+#include <sddl.h>
+#include <fcntl.h>
+#include <io.h>
+#pragma comment(lib, "advapi32.lib")
+#else
+#include <fcntl.h>
+#include <unistd.h>
 #endif
 
 // Compile-time substitutions are used only by the isolated failure fixture.
@@ -19,6 +26,24 @@
 #ifndef CONFIG_SAVE_CLOSE
 #define CONFIG_SAVE_CLOSE std::fclose
 #endif
+
+namespace
+{
+std::filesystem::path ResolveConfigDestination(const std::filesystem::path& path)
+{
+  // Follow dangling final links too, preserving the former ofstream behavior.
+  auto destination = std::filesystem::weakly_canonical(path);
+  unsigned links = 0;
+  while (std::filesystem::is_symlink(std::filesystem::symlink_status(destination))) {
+    if (++links > 40)
+      throw std::filesystem::filesystem_error("config symlink cycle", path,
+                                              std::make_error_code(std::errc::too_many_symbolic_link_levels));
+    auto target = std::filesystem::read_symlink(destination);
+    destination = std::filesystem::weakly_canonical(target.is_absolute() ? target : destination.parent_path() / target);
+  }
+  return destination;
+}
+} // namespace
 
 void SaveConfigDocument(const toml::table& config, const std::filesystem::path& path, std::string_view header)
 {
@@ -53,24 +78,48 @@ bool ReplaceConfigText(const std::filesystem::path& path, std::string_view bytes
 {
   (void)toml::parse(bytes);
 
-  // Follow existing symlinks as the former ofstream save did. A sibling stays on
-  // the same filesystem. Exclusive creation avoids truncating another save's file.
-  const auto                             destination = std::filesystem::weakly_canonical(path);
+  const auto destination = ResolveConfigDestination(path);
   static std::atomic<unsigned long long> sequence{0};
   auto                                   temporary = destination;
   temporary += ".tmp-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()) + "-"
                + std::to_string(sequence.fetch_add(1, std::memory_order_relaxed));
 
-  // C11 exclusive creation avoids depending on newer libc++ fstream runtime
-  // support on our minimum supported macOS version.
-#if _WIN32
+  // Configs may contain tokens. Protect staging at creation, before any bytes,
+  // even if the destination is private beneath a more permissive directory.
   std::FILE* file = nullptr;
-  _wfopen_s(&file, temporary.c_str(), L"wbx");
+#if _WIN32
+  PSECURITY_DESCRIPTOR security = nullptr;
+  if (!ConvertStringSecurityDescriptorToSecurityDescriptorW(
+          L"D:P(A;;FA;;;OW)(A;;FA;;;SY)", SDDL_REVISION_1, &security, nullptr))
+    throw std::system_error(GetLastError(), std::system_category(), "could not protect temporary config file");
+  SECURITY_ATTRIBUTES attributes{sizeof(SECURITY_ATTRIBUTES), security, FALSE};
+  const auto handle = CreateFileW(temporary.c_str(), GENERIC_WRITE | READ_CONTROL, 0, &attributes,
+                                  CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr);
+  const auto create_error = GetLastError();
+  LocalFree(security);
+  if (handle == INVALID_HANDLE_VALUE)
+    throw std::system_error(create_error, std::system_category(), "could not create temporary config file");
+  const auto descriptor = _open_osfhandle(reinterpret_cast<intptr_t>(handle), _O_WRONLY | _O_BINARY);
+  if (descriptor == -1) {
+    CloseHandle(handle);
+  } else {
+    file = _fdopen(descriptor, "wb");
+    if (!file)
+      _close(descriptor);
+  }
 #else
-  auto* file = std::fopen(temporary.c_str(), "wbx");
+  const auto descriptor = ::open(temporary.c_str(), O_WRONLY | O_CREAT | O_EXCL, 0600);
+  if (descriptor == -1)
+    throw std::system_error(errno, std::generic_category(), "could not create temporary config file");
+  file = ::fdopen(descriptor, "wb");
+  if (!file)
+    ::close(descriptor);
 #endif
   if (!file) {
-    throw std::system_error(errno, std::generic_category(), "could not create temporary config file");
+    const auto error = errno;
+    std::error_code ignored;
+    std::filesystem::remove(temporary, ignored);
+    throw std::system_error(error, std::generic_category(), "could not open temporary config stream");
   }
 
   bool replacing = false;
@@ -85,7 +134,7 @@ bool ReplaceConfigText(const std::filesystem::path& path, std::string_view bytes
     }
     // Recheck after staging, immediately before commit. Another editor can still
     // race the native replacement; arbitrary external editors do not share our lock.
-    if (expected && ReadConfigText(path) != *expected) {
+    if (expected && (ResolveConfigDestination(path) != destination || ReadConfigText(destination) != *expected)) {
       std::error_code ignored;
       std::filesystem::remove(temporary, ignored);
       return false;

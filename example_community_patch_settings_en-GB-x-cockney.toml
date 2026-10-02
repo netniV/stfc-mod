@@ -114,6 +114,9 @@ enable_experimental = false
 #  <[=============================================================================================================]> 
 
 [graphics]
+# Show the remaining Galactic Anomaly time below Help All / Engage / Claim.
+galactic_anomaly_timer = false
+
 
 # Subgroup: Display
 # -----------------
@@ -535,6 +538,9 @@ show_shields = "CTRL-S"
 
 # Open the Shipyard Build Ship screen
 show_shipconstruction = "SHIFT-N"
+
+# Go directly to Ship Swap
+show_shipswap = "ALT-N"
 
 # Go to Manage Ships
 show_ships = "N"

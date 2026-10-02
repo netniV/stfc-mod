@@ -82,7 +82,7 @@ label. The prefab must prove that those nodes are descendants of the row and do
 not contain the label; otherwise that UI is unsupported. Exact visual validation
 of this behavior remains a release gate.
 
-Eight weak view records bound bookkeeping. Native contexts own rows/delegates;
+Weak view records sized from the page plan bound bookkeeping. Native contexts own rows/delegates;
 there are no strong roots retaining historical settings pages. Native release
 clears records, with dead-record reclamation on binding as a fallback. A successful
 write refreshes other live framework views. No polling or file work is scheduled.
