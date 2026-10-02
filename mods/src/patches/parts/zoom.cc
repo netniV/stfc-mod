@@ -40,13 +40,6 @@ bool                                                         threshold_state_val
 bool                                                         player_threshold_state_expanded     = false;
 bool                                                         non_player_threshold_state_expanded = false;
 
-bool FleetLabelProfilesEnabled()
-{
-  const auto &config = Config::Get();
-  return config.zoom_label_player.detail != FleetLabelDetail::Native
-         || config.zoom_label_non_player.detail != FleetLabelDetail::Native;
-}
-
 bool FleetLabelThresholdEnabled()
 {
   const auto &config = Config::Get();
@@ -650,13 +643,12 @@ void InstallZoomHooks()
   auto *normalized_zoom_property = navigation_zoom_class != nullptr
                                        ? il2cpp_class_get_property_from_name(navigation_zoom_class, "NormalizedZoom")
                                        : nullptr;
-  bool  enable_labels            = FleetLabelProfilesEnabled() || GalaxyLabelsRequested();
   bool fleet_widget_hooks_ready = false;
 #if __APPLE__
   // Galaxy composition needs the shared LOD and zoom hooks, not the fleet-only
   // pooled-widget hooks. Resolve their managed contracts before either owner
   // installs them, and reuse the one LOD detour below.
-  enable_labels = FleetLabelProfilesEnabled();
+  bool lod_hook_attempted = false;
   auto galaxy_lod = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Navigation", "NavigationLOD");
   const auto* galaxy_lod_method = method_contract::Resolve(
       galaxy_lod.get_cls(), "UpdateLOD", false, "System.Void", {"Digit.Prime.Navigation.ZoomLevels"});
@@ -675,11 +667,9 @@ void InstallZoomHooks()
       && normalized_zoom_property
       && method_contract::Resolve(navigation_zoom_class, "get_NormalizedZoom", false, "System.Single", {});
 #endif
-#if (defined(_WIN32) && defined(_M_X64)) || defined(__APPLE__)
-  // Install once so native settings can switch away from Native during play.
-  enable_labels |= Config::Get().installNativeSettings;
-#endif
-  if (enable_labels) {
+  // Install supported callbacks independently of feature values. ZoomHooks is
+  // the installation switch; each callback reads current label settings.
+  {
     auto lod_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Navigation", "NavigationLOD");
     auto fleet_widget_helper =
         il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Navigation", "NavigationFleetWidget");
@@ -793,6 +783,9 @@ void InstallZoomHooks()
     }
 #endif
     if (fleet_label_dependencies_valid) {
+#if __APPLE__
+      lod_hook_attempted = true;
+#endif
       galaxy_lod_hook_installed = SPUD_STATIC_DETOUR(ptr_update_lod, NavigationLOD_UpdateLOD_Hook);
       const bool enabled = SPUD_STATIC_DETOUR(ptr_on_enable, NavigationFleetWidget_OnEnable_Hook);
       const bool disabled = SPUD_STATIC_DETOUR(ptr_on_disable, NavigationFleetWidget_OnDisable_Hook);
@@ -805,7 +798,9 @@ void InstallZoomHooks()
   }
 
 #if __APPLE__
-  if (galaxy_zoom_hooks_validated && !galaxy_lod_hook_installed)
+  // A failed first attempt stays failed; only missing fleet dependencies use
+  // this independent galaxy path. Never install the same LOD target twice.
+  if (galaxy_zoom_hooks_validated && !lod_hook_attempted)
     galaxy_lod_hook_installed = SPUD_STATIC_DETOUR(method_contract::Pointer(galaxy_lod_method), NavigationLOD_UpdateLOD_Hook);
   if (GalaxyLabelsRequested() && !galaxy_zoom_hooks_validated)
     spdlog::warn("[GalaxyLabels] Mac shared zoom/LOD validation failed; using native galaxy labels");
@@ -859,7 +854,6 @@ void InstallZoomHooks()
   }
   // Widget callbacks remain pass-through until their shared per-frame owner is ready.
   fleet_label_hooks_installed = fleet_widget_hooks_ready && keyboard_zoom_hook_installed;
-  if (enable_labels)
-    spdlog::info("Fleet label detail hooks ready={}", fleet_label_hooks_installed);
+  spdlog::info("Fleet label detail hooks ready={}", fleet_label_hooks_installed);
 
 }

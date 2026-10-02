@@ -19,7 +19,8 @@ See [the current architecture contract](MOD_SETTINGS.md) and
 | Future separate branch: Hotkeys | Rebind existing actions | Existing shortcut parser and `MapKey` registrations |
 | General > confirmation page | Confirm Forbidden Tech upgrades | Inverse of `ui.auto_confirm_ft_upgrade` |
 
-The controls branch implements these controls on Windows x64.
+The controls branch implements shared Windows x64 and macOS adapters; platform
+qualification is recorded separately from implementation.
 Hotkey editing remains a separate branch. Native confirmation
 controls stay on the native page. FC retains its existing owner.
 
@@ -43,7 +44,7 @@ Selected options use bold text and the native checkmark on a normal background,
 including instant warp and both Fleet Labels profiles. White fill is transient
 pressed feedback, not persistent selection or keyboard focus. The scoped adapter
 uses native sprites already rendered by settings rows and restores each Image's
-previous override before pooling. A Windows-only `Selectable.DoStateTransition`
+previous override before pooling. The shared `Selectable.DoStateTransition`
 hook observes input-state changes, calls the original once, then updates only
 owned selection rows. Other controls take the native path; there is no frame
 polling, animation replacement, asset loading or setting write in this hook.
@@ -72,10 +73,12 @@ The native slider callbacks use the same typed snapshot/reentry guards as choice
 Unknown values suppress the slider and numeric label; disabled known values remain
 visible. Releasing a pooled widget restores its label, active state and interaction.
 
-Windows installs the existing fleet-label and Forbidden Tech hooks when the mod
-settings UI is enabled, so changing their values does not require a restart.
-Each FT hook consults the current bypass flag; hook availability is separate from
-the value. Other platforms retain startup-controlled installation and omit this UI.
+The owning Zoom and Forbidden Tech patch switches control installation independently
+of native settings and feature values. Supported callbacks install once; current
+label profiles and the FT bypass flag are checked inside them, so live changes do
+not require a restart. Windows x64 and macOS use shared adapters; native availability
+requires validated metadata and completed hook families. Mac qualification remains
+separate from the Windows evidence below.
 Confirmation ON means the bypass flag is false. Toggling must never invoke an
 upgrade callback by itself.
 
@@ -136,6 +139,25 @@ Preview toggles and their existing hotkeys call the same owner, so live state,
 readback and saving agree. Locate/Recall labels invert their stored disable
 flags. Cargo targets are visible only while auto-open is ON, with their saved
 preferences retained while hidden. Hook installation success gates each group.
+
+## Galaxy Labels
+
+The Galaxy Labels page combines overlay multi-select with independent Major and
+Minor system label profiles. Defaults retain native behavior. Live changes use
+the existing shared writer and retain `[graphics].galaxy_overlay_*`,
+`galaxy_label_major_*` and `galaxy_label_minor_*` identities.
+
+Default-enabled `[patches].zoomhooks` owns installation independently of feature
+values and native settings availability. `zoom.cc` owns the sole shared LOD
+detour; galaxy composition adds no second LOD hook. Fleet callbacks consult
+current profiles, and galaxy callbacks consult current overlay/label choices.
+Incomplete galaxy installation leaves its eight callbacks using native behavior.
+On Mac, validated galaxy dependencies can use the shared LOD path without fleet
+widget dependencies; a failed LOD attempt is never retried through that fallback.
+
+Windows 270 static native fit covers the galaxy and shared zoom/fleet targets.
+Earlier combined-build smoke remains historical. Exact-candidate game smoke and
+supported Mac native extent/execution remain open qualification work.
 
 ## Future organization and commands (design notes)
 

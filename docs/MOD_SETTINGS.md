@@ -15,8 +15,11 @@ Each game settings context gets a fresh tree from that immutable plan.
 The [native adapter map](MOD_SETTINGS_NATIVE_ADAPTER.md) identifies each hook
 owner. Interop, value widgets, action widgets, navigation and styling are separate
 concerns. Existing XMake source discovery builds them. Each detour has one owner.
-The historical `ModConfirmationSettings` debug patch key remains compatible;
-its C++ name is `installNativeSettings`.
+The `ModConfirmationSettings` registry entry uses default-enabled
+`[patches].nativesettingshooks` in every build; its C++ flag is
+`installNativeSettings`. Persistence is independently controlled by
+`[patches].runtimeconfighooks`. Forbidden Tech and fleet-label installation use
+their owning patch switches, independent of native UI and feature values.
 
 ## Placement and summaries
 
