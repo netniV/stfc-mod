@@ -16,13 +16,13 @@ See [the current architecture contract](MOD_SETTINGS.md) and
 | Mod Settings > Fleet Labels | Non-player label detail and zoom threshold | `graphics.zoom_label_non_player_detail`, `graphics.zoom_label_non_player_threshold` |
 | Mod Settings > Camera | Keyboard zoom speed and pan glide | `graphics.keyboard_zoom_speed`, `graphics.system_pan_momentum_falloff` |
 | Mod Settings > Previews & Cargo | Locate/Recall while previewing; automatic cargo and target types | Existing preview/cargo keys in `[ui]` |
-| Future separate branch: Hotkeys | Rebind existing actions | Existing shortcut parser and `MapKey` registrations |
+| Mod Settings > Shortcuts | Rebind registered actions | Existing shortcut parser and `MapKey` registrations |
 | General > confirmation page | Confirm Forbidden Tech upgrades | Inverse of `ui.auto_confirm_ft_upgrade` |
 
 The controls branch implements shared Windows x64 and macOS adapters; platform
 qualification is recorded separately from implementation.
-Hotkey editing remains a separate branch. Native confirmation
-controls stay on the native page. FC retains its existing owner.
+The shortcut editor shares that foundation and its existing dispatcher. Native
+confirmation controls stay on the native page. FC retains its existing owner.
 
 ## Instant warp mode
 
@@ -154,10 +154,11 @@ clearing is a separate operation and must not be called by this command. This is
 an idea only: the current branch adds neither restart-only controls nor a restart
 command. The ownership/relaunch details need their own design before implementation.
 
-Hotkey editing follows the first real selection and persistence checks. Reuse the
-current parser and binding map; add an explicit capture mode with Escape to cancel,
-conflict feedback and a deliberate unbind action. Gameplay shortcuts must not fire
-while a chord is being captured. Do not serialize display labels as key identities.
+The delivered shortcut editor reuses the parser and binding map, with Escape to
+cancel capture, overlap feedback and explicit Remove. Capture owns keyboard input
+through release; display labels are never serialized as key identities. See
+[shortcut contracts](MOD_SHORTCUT_SETTINGS.md) for current publication and undo
+behavior before extending the editor.
 
 ## Runtime gate
 

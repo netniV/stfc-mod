@@ -76,9 +76,10 @@ unchanged. See [persistence contracts](config-save.md).
 
 ## Editor lifetime and native views
 
-Shortcut changes, additions, removals and defaults stay drafts until Apply.
-Restore uses the existing canonical default definition; `NONE` means unbound.
-Overlap warnings allow keeping both, with Next to inspect each affected action.
+Change and Add stay drafts until popup Confirm or Use anyway publishes the complete
+action list. Remove, Restore and Undo publish immediately; there is no page-level
+Apply step. Restore uses canonical defaults; `NONE` means unbound. Scrollable overlap
+warnings are advisory and never remove another action's binding.
 Uncategorized gives newly registered actions an editor before presentation
 metadata is supplied; it does not discover arbitrary TOML values. See
 [shortcut contracts and extension guidance](MOD_SHORTCUT_SETTINGS.md).
