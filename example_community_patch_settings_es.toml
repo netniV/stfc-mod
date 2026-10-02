@@ -120,6 +120,9 @@ enable_experimental = false
 #  <[====================================================================================================================]> 
 
 [graphics]
+# Mostrar el tiempo restante de la anomalía galáctica debajo de Ayudar / Participar / Reclamar.
+galactic_anomaly_timer = false
+
 
 # Subgroup: Display
 # -----------------
@@ -541,6 +544,9 @@ show_shields = "CTRL-S"
 
 # Abrir la pantalla Construir nave del astillero
 show_shipconstruction = "SHIFT-N"
+
+# Ir directamente a Intercambiar nave
+show_shipswap = "ALT-N"
 
 # Ir a administrar barcos
 show_ships = "N"
