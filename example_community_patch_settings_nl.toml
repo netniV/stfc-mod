@@ -119,6 +119,9 @@ enable_experimental = false
 #  <[==============================================================================================================================================================]> 
 
 [graphics]
+# Toon de resterende tijd van de galactische anomalie onder Help All / Engage / Claim.
+galactic_anomaly_timer = false
+
 
 # Subgroup: Display
 # -----------------
@@ -540,6 +543,9 @@ show_shields = "CTRL-S"
 
 # Open het scherm Schip bouwen van de scheepswerf
 show_shipconstruction = "SHIFT-N"
+
+# Ga direct naar Schip wisselen
+show_shipswap = "ALT-N"
 
 # Ga naar Scheepsmanagement
 show_ships = "N"

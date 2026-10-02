@@ -252,6 +252,18 @@ public:
     ResourceProducers                        = 240, // 0x000000F0
     Starbase                                 = 241, // 0x000000F1
 
+    NodeSystem            = 242, // 0x000000F2
+    DockingPoints         = 243, // 0x000000F3
+    PlayerContainer       = 244, // 0x000000F4
+    MarauderQuickScanData = 245, // 0x000000F5
+    AllianceContainer     = 246, // 0x000000F6
+    QuickScanResults      = 247, // 0x000000F7
+    DeployedFleets        = 248, // 0x000000F8
+    MyDeployedFleets      = 249, // 0x000000F9
+    Fleets                = 250, // 0x000000FA
+    Ships                 = 251, // 0x000000FB
+    ResourceHarvesters    = 252, // 0x000000FC
+
     PlanetaryBaseData            = 1213, // 0x000004BD
     PlanetaryResourceProducers   = 1214, // 0x000004BE
     PlanetaryMapData             = 1215, // 0x000004BF

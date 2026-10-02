@@ -39,8 +39,9 @@ installed by exactly one module. XMake's existing `src/**.cc` rule builds them.
   [the current state contract](MOD_SETTINGS.md).
 
 The entry point and member are `InstallNativeSettings` and
-`Config::installNativeSettings`. The debug patch key `ModConfirmationSettings`
-remains unchanged. Setting IDs, TOML keys and defaults remain stable while
+`Config::installNativeSettings`. The registry entry name `ModConfirmationSettings`
+remains stable, with default-enabled `[patches].nativesettingshooks` controlling
+installation in every build. Setting IDs, TOML keys and defaults remain stable while
 presentation placement evolves.
 
 ## Validation

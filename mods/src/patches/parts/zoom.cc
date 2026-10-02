@@ -39,13 +39,6 @@ bool                                                         threshold_state_val
 bool                                                         player_threshold_state_expanded     = false;
 bool                                                         non_player_threshold_state_expanded = false;
 
-bool FleetLabelProfilesEnabled()
-{
-  const auto &config = Config::Get();
-  return config.zoom_label_player.detail != FleetLabelDetail::Native
-         || config.zoom_label_non_player.detail != FleetLabelDetail::Native;
-}
-
 bool FleetLabelThresholdEnabled()
 {
   const auto &config = Config::Get();
@@ -640,7 +633,6 @@ void InstallZoomHooks()
   auto *normalized_zoom_property = navigation_zoom_class != nullptr
                                        ? il2cpp_class_get_property_from_name(navigation_zoom_class, "NormalizedZoom")
                                        : nullptr;
-  bool  enable_labels            = FleetLabelProfilesEnabled();
   bool fleet_widget_hooks_ready = false;
 #if __APPLE__
   // Validate the shared LOD and per-frame hooks before installing fleet callbacks.
@@ -662,11 +654,9 @@ void InstallZoomHooks()
       && normalized_zoom_property
       && method_contract::Resolve(navigation_zoom_class, "get_NormalizedZoom", false, "System.Single", {});
 #endif
-#if (defined(_WIN32) && defined(_M_X64)) || defined(__APPLE__)
-  // Install once so native settings can switch away from Native during play.
-  enable_labels |= Config::Get().installNativeSettings;
-#endif
-  if (enable_labels) {
+  // Install supported callbacks independently of feature values. ZoomHooks is
+  // the installation switch; each callback reads current label settings.
+  {
     auto lod_helper = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Navigation", "NavigationLOD");
     auto fleet_widget_helper =
         il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Navigation", "NavigationFleetWidget");
@@ -840,7 +830,6 @@ void InstallZoomHooks()
   }
   // Widget callbacks remain pass-through until their shared per-frame owner is ready.
   fleet_label_hooks_installed = fleet_widget_hooks_ready && keyboard_zoom_hook_installed;
-  if (enable_labels)
-    spdlog::info("Fleet label detail hooks ready={}", fleet_label_hooks_installed);
+  spdlog::info("Fleet label detail hooks ready={}", fleet_label_hooks_installed);
 
 }

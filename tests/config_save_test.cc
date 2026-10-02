@@ -66,6 +66,14 @@ int main(int argc, char** argv)
   assert(std::filesystem::is_symlink(link));
   assert(toml::parse_file(path.string())["enabled"].value<bool>() == false);
   assert(std::filesystem::status(path).permissions() == mode);
+  for (bool relative : {false, true}) {
+    const auto target = root / (relative ? "relative-target.toml" : "absolute-target.toml");
+    const auto dangling = root / (relative ? "relative-link.toml" : "absolute-link.toml");
+    std::filesystem::create_symlink(relative ? target.filename() : std::filesystem::absolute(target), dangling);
+    SaveConfigDocument(config, dangling);
+    assert(std::filesystem::is_symlink(dangling));
+    assert(toml::parse_file(target.string())["enabled"].value<bool>() == false);
+  }
 #endif
   for (const auto& entry : std::filesystem::directory_iterator(root)) {
     assert(entry.path().filename().string().find(".tmp-") == std::string::npos);
