@@ -84,7 +84,7 @@ bool ResolveButtonFields(IL2CppClassHelper& controller_helper, Il2CppClass* comp
   auto valid_count = 0;
   for (auto* button : g_configured_buttons) {
     auto field = controller_helper.GetField(button->field_name);
-    const auto* info = field.get_info();
+    auto* info = field.get_info();
     const auto* type = info ? info->type : nullptr;
     auto* field_class = type ? il2cpp_class_from_type(type) : nullptr;
     if (!info || !type || type->byref || (il2cpp_field_get_flags(info) & FIELD_ATTRIBUTE_STATIC)
