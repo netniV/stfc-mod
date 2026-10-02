@@ -19,7 +19,8 @@ See [the current architecture contract](MOD_SETTINGS.md) and
 | Future separate branch: Hotkeys | Rebind existing actions | Existing shortcut parser and `MapKey` registrations |
 | General > confirmation page | Confirm Forbidden Tech upgrades | Inverse of `ui.auto_confirm_ft_upgrade` |
 
-The controls branch implements these controls on Windows x64.
+The controls branch implements shared Windows x64 and macOS adapters; platform
+qualification is recorded separately from implementation.
 Hotkey editing remains a separate branch. Native confirmation
 controls stay on the native page. FC retains its existing owner.
 
@@ -43,7 +44,7 @@ Selected options use bold text and the native checkmark on a normal background,
 including instant warp and both Fleet Labels profiles. White fill is transient
 pressed feedback, not persistent selection or keyboard focus. The scoped adapter
 uses native sprites already rendered by settings rows and restores each Image's
-previous override before pooling. A Windows-only `Selectable.DoStateTransition`
+previous override before pooling. The shared `Selectable.DoStateTransition`
 hook observes input-state changes, calls the original once, then updates only
 owned selection rows. Other controls take the native path; there is no frame
 polling, animation replacement, asset loading or setting write in this hook.
