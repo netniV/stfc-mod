@@ -96,6 +96,8 @@ namespace Patches
   constexpr bool doubleclickassignshiphooks = true;
   constexpr bool forbiddentechconfirmhooks  = true;
   constexpr bool audioeventhooks            = true;
+  constexpr bool actionqueuerecoveryhooks   = true;
+  constexpr bool thinqueueprotectionhooks   = true;
   constexpr bool instantcargocounterhooks   = true;
   constexpr bool cargoformathooks           = true;  // on by default: cargo number precision override
   constexpr bool officersorthooks           = true;  // restore Below Deck Ability sort option

@@ -154,6 +154,8 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
       {"InstantWarpConfirm", {InstallInstantWarpConfirmationHooks, &cfg.installInstantWarpConfirmationHooks}},
       {"ForbiddenTechConfirm", {InstallForbiddenTechConfirmationHooks, &cfg.installForbiddenTechConfirmationHooks}},
       {"AudioEvents", {InstallAudioEventHooks, &cfg.installAudioEventHooks}},
+      {"ActionQueueRecovery", {InstallActionQueueRecovery, &cfg.installActionQueueRecoveryHooks}},
+      {"ThinQueueProtection", {InstallThinQueueProtection, &cfg.installThinQueueProtectionHooks}},
   };
   printf("il2cpp_init_hook(%s)\n", domain_name);
 
@@ -173,9 +175,6 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
       patch_func();
     }
   }
-
-  InstallActionQueueRecovery();
-  InstallThinQueueProtection();
 
   spdlog::info("");
 

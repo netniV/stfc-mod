@@ -270,6 +270,9 @@ loadingtiphooks = true
 doubleclickassignshiphooks = true
 forbiddentechconfirmhooks = true
 audioeventhooks = true
+# Install queue hooks independently of the current control preferences.
+actionqueuerecoveryhooks = true
+thinqueueprotectionhooks = true
 freeresizehooks = true
 game_version = true
 giftsbulkclaimhooks = true

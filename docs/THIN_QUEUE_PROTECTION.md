@@ -10,8 +10,10 @@ thin_queue_protection = true
 
 Enabled by default on Windows x64. Also respects `control.queue_enabled`. The old
 `advanced.queue.thin_queue_protection` value is used when the new control key is
-absent, preserving an explicit opt-out. Hook installation requires a restart;
-enabling a setting later does not install missing hooks.
+absent, preserving an explicit opt-out. Default-enabled `[patches].thinqueueprotectionhooks`
+controls installation independently. Installed callbacks check the current feature and queue
+preferences. Changing the installation switch requires restart; TOML changes require
+reload/restart.
 
 The native planner (`DoPlanPathAndEngageTarget`) and watchdog (`HandleStall`) run
 first. If they removed an exact prefix of targets, left a nonempty unchanged

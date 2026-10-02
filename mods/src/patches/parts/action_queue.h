@@ -4,6 +4,9 @@
 #include <chrono>
 #include <cstdint>
 
+// Invalidate pending recovery authorization at both queue toggle transitions.
+void ClearActionQueueRecoveryRequests();
+
 namespace action_queue
 {
 using Clock = std::chrono::steady_clock;

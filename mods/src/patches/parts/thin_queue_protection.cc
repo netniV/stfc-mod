@@ -2,7 +2,7 @@
 #include <config.h>
 
 // Port of the active v2.1.0-guffa.10 guard, not the dormant completion repair.
-// Native extents/ABI have been checked for Windows x64 client 262 only.
+// Windows x64 callback ABI is validated against running metadata; current native fit is recorded separately.
 #if defined(_WIN32) && defined(_M_X64)
 #include <algorithm>
 #include <atomic>
@@ -53,7 +53,9 @@ Il2CppArraySize* List(Object* list, Il2CppClass* element, int limit, int& count)
   auto* size    = il2cpp_class_get_field_from_name(cls, "_size");
   auto* storage = il2cpp_class_get_field_from_name(cls, "_items");
   if (!size || !storage || !size->type || size->type->type != IL2CPP_TYPE_I4 || !storage->type
-      || storage->type->type != IL2CPP_TYPE_SZARRAY)
+      || storage->type->type != IL2CPP_TYPE_SZARRAY || size->type->byref || storage->type->byref
+      || (il2cpp_field_get_flags(size) & FIELD_ATTRIBUTE_STATIC)
+      || (il2cpp_field_get_flags(storage) & FIELD_ATTRIBUTE_STATIC))
     return nullptr;
   Il2CppArray* items{};
   il2cpp_field_get_value(list, size, &count);
@@ -194,13 +196,15 @@ void Disposed(auto original, Object* manager, Object* fleets)
 bool Field(Il2CppClass* cls, const char* name, std::ptrdiff_t offset, Il2CppTypeEnum type)
 {
   auto* f = cls ? il2cpp_class_get_field_from_name(cls, name) : nullptr;
-  return f && f->offset == offset && f->type && f->type->type == type;
+  return f && f->offset == offset && f->type && !f->type->byref
+         && !(il2cpp_field_get_flags(f) & FIELD_ATTRIBUTE_STATIC) && f->type->type == type;
 }
 
 template <typename T> bool Getter(T& out, Il2CppClass* cls, const char* name, const char* result)
 {
   const auto* method = method_contract::Resolve(cls, name, false, result, {});
-  out                = reinterpret_cast<T>(method_contract::Pointer(method));
+  out                = method && !method->has_full_generic_sharing_signature
+                           ? reinterpret_cast<T>(method_contract::Pointer(method)) : nullptr;
   if (method && method->return_type->type == IL2CPP_TYPE_VALUETYPE) {
     auto*       type       = il2cpp_class_from_type(method->return_type);
     const auto* underlying = type && il2cpp_class_is_enum(type) ? il2cpp_class_enum_basetype(type) : nullptr;
@@ -213,8 +217,6 @@ template <typename T> bool Getter(T& out, Il2CppClass* cls, const char* name, co
 
 void InstallThinQueueProtection()
 {
-  if (!Config::Get().thin_queue_protection)
-    return;
   auto* manager = il2cpp_get_class_helper("Assembly-CSharp", "Prime.ActionQueue", "ActionQueueManager").get_cls();
   queueClass    = il2cpp_get_class_helper("Assembly-CSharp", "Prime.ActionQueue", "ActionQueueInstance").get_cls();
   actionClass   = il2cpp_get_class_helper("Assembly-CSharp", "Prime.ActionQueue", "QueueableAction").get_cls();
@@ -222,23 +224,30 @@ void InstallThinQueueProtection()
   deployedClass = il2cpp_get_class_helper("Digit.Client.PrimeLib.Runtime", "Digit.PrimeServer.Models", "FleetDeployedData").get_cls();
   using method_contract::Pointer;
   using method_contract::Resolve;
-  auto* plan     = Pointer(Resolve(manager, "DoPlanPathAndEngageTarget", false, "System.Boolean",
-                                   {"Digit.PrimeServer.Models.FleetPlayerData"}));
-  auto* stall    = Pointer(Resolve(manager, "HandleStall", false, "System.Void",
+  const auto* plan_info = Resolve(manager, "DoPlanPathAndEngageTarget", false, "System.Boolean",
+                                   {"Digit.PrimeServer.Models.FleetPlayerData"});
+  auto* plan = Pointer(plan_info);
+  const auto* stall_info = Resolve(manager, "HandleStall", false, "System.Void",
                                    {"Prime.ActionQueue.ActionQueueInstance", "Digit.PrimeServer.Models.FleetPlayerData",
-                                    "Digit.PrimeServer.Models.FleetDeployedData"}));
-  auto* disposed = Pointer(Resolve(manager, "OnFleetsDisposedEventHandler", false, "System.Void",
-                                   {"System.Collections.Generic.List<Digit.PrimeServer.Models.FleetDeployedData>"}));
+                                    "Digit.PrimeServer.Models.FleetDeployedData"});
+  auto* stall = Pointer(stall_info);
+  const auto* disposed_info = Resolve(manager, "OnFleetsDisposedEventHandler", false, "System.Void",
+                                   {"System.Collections.Generic.List<Digit.PrimeServer.Models.FleetDeployedData>"});
+  auto* disposed = Pointer(disposed_info);
   const auto* engage = Resolve(manager, "TryPlanPathAndEngageTarget", false, "Digit.Prime.Combat.EngageResult",
                                {"Digit.PrimeServer.Models.FleetPlayerData", "Prime.ActionQueue.ActionQueueInstance"});
   tryEngage          = reinterpret_cast<decltype(tryEngage)>(Pointer(engage));
-  processTarget      = reinterpret_cast<decltype(processTarget)>(
-      Pointer(Resolve(manager, "ProcessQueue", false, "System.Void", {"System.Int64", "System.Boolean"})));
+  const auto* process_info = Resolve(manager, "ProcessQueue", false, "System.Void", {"System.Int64", "System.Boolean"});
+  processTarget = reinterpret_cast<decltype(processTarget)>(Pointer(process_info));
   auto*       result     = engage ? il2cpp_class_from_type(engage->return_type) : nullptr;
   const auto* underlying = result && il2cpp_class_is_enum(result) ? il2cpp_class_enum_basetype(result) : nullptr;
   const bool  valid =
       manager && queueClass && actionClass && playerClass && deployedClass && plan && stall && disposed && tryEngage
       && processTarget && underlying && underlying->type == IL2CPP_TYPE_I4
+      && !plan_info->has_full_generic_sharing_signature && !stall_info->has_full_generic_sharing_signature
+      && !disposed_info->has_full_generic_sharing_signature && !engage->has_full_generic_sharing_signature
+      && !process_info->has_full_generic_sharing_signature
+      && plan != stall && plan != disposed && stall != disposed
       && Field(manager, "_battleQueue", 0x48, IL2CPP_TYPE_SZARRAY)
       && Field(queueClass, "IsEngaging", 0x10, IL2CPP_TYPE_BOOLEAN)
       && Field(queueClass, "LastEngagedTargetId", 0x18, IL2CPP_TYPE_I8)

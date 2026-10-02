@@ -62,7 +62,9 @@ QueueState Inspect(Il2CppObject* queue, std::int64_t target = 0)
   auto* size    = il2cpp_class_get_field_from_name(cls, "_size");
   auto* storage = il2cpp_class_get_field_from_name(cls, "_items");
   if (!size || !storage || !size->type || !storage->type || size->type->type != IL2CPP_TYPE_I4
-      || storage->type->type != IL2CPP_TYPE_SZARRAY)
+      || storage->type->type != IL2CPP_TYPE_SZARRAY || size->type->byref || storage->type->byref
+      || (il2cpp_field_get_flags(size) & FIELD_ATTRIBUTE_STATIC)
+      || (il2cpp_field_get_flags(storage) & FIELD_ATTRIBUTE_STATIC))
     return s;
   Il2CppArray* items{};
   il2cpp_field_get_value(list, size, &s.count);
@@ -151,6 +153,8 @@ int Engage(auto original, Il2CppObject* manager, Il2CppObject* player, Il2CppObj
 }
 bool Retry(auto original, Il2CppObject* manager, std::int64_t target, Il2CppObject* queue)
 {
+  if (!Enabled())
+    ClearRequests();
   const bool retry = original(manager, target, queue);
   if (retry || !Enabled() || !currentCourse)
     return retry;
@@ -183,6 +187,8 @@ struct CourseResponse {
 static_assert(sizeof(CourseResponse) == 24 && offsetof(CourseResponse, target) == 16);
 void Course(auto original, Il2CppObject* manager, CourseResponse args)
 {
+  if (!Enabled())
+    ClearRequests();
   CourseContext context{args.fleet};
   if (Enabled() && !args.success && !args.recall) {
     try {
@@ -213,14 +219,16 @@ void ClearAll(auto original, Il2CppObject* manager)
 bool Field(Il2CppClass* cls, const char* name, std::ptrdiff_t offset, Il2CppTypeEnum type)
 {
   auto* field = cls ? il2cpp_class_get_field_from_name(cls, name) : nullptr;
-  return field && field->offset == offset && field->type && field->type->type == type;
+  return field && field->offset == offset && field->type && !field->type->byref
+         && !(il2cpp_field_get_flags(field) & FIELD_ATTRIBUTE_STATIC) && field->type->type == type;
 }
 } // namespace
 
+void ClearActionQueueRecoveryRequests()
+{ ClearRequests(); }
+
 void InstallActionQueueRecovery()
 {
-  if (!Config::Get().faster_queue_recovery)
-    return;
   auto* cls   = il2cpp_get_class_helper("Assembly-CSharp", "Prime.ActionQueue", "ActionQueueManager").get_cls();
   queueClass  = il2cpp_get_class_helper("Assembly-CSharp", "Prime.ActionQueue", "ActionQueueInstance").get_cls();
   actionClass = il2cpp_get_class_helper("Assembly-CSharp", "Prime.ActionQueue", "QueueableAction").get_cls();
@@ -234,9 +242,11 @@ void InstallActionQueueRecovery()
   const auto* engage_info = Resolve(cls, "TryPlanPathAndEngageTarget", false, "Digit.Prime.Combat.EngageResult",
       {"Digit.PrimeServer.Models.FleetPlayerData", "Prime.ActionQueue.ActionQueueInstance"});
   auto* engage = Pointer(engage_info);
-  auto* retry = Pointer(Resolve(cls, "ShouldRetryFailedSetCourse", false, "System.Boolean",
-      {"System.Int64", "Prime.ActionQueue.ActionQueueInstance"}));
-  auto* clear = Pointer(Resolve(cls, "StopWatchdogAndClearAllQueues", false, "System.Void", {}));
+  const auto* retry_info = Resolve(cls, "ShouldRetryFailedSetCourse", false, "System.Boolean",
+      {"System.Int64", "Prime.ActionQueue.ActionQueueInstance"});
+  auto* retry = Pointer(retry_info);
+  const auto* clear_info = Resolve(cls, "StopWatchdogAndClearAllQueues", false, "System.Void", {});
+  auto* clear = Pointer(clear_info);
   const auto* info = Resolve(cls, "OnSetCourseResponseEventHandler", false, "System.Void",
       {"Digit.PrimeServer.Events.SetCourseResponseEventArgs"});
   auto* course = Pointer(info);
@@ -258,7 +268,11 @@ void InstallActionQueueRecovery()
       && Field(queueClass, "<PlayerFleetId>k__BackingField", 0x30, IL2CPP_TYPE_I8)
       && Field(queueClass, "_actionQueue", 0x28, IL2CPP_TYPE_GENERICINST)
       && Field(actionClass, "<FleetId>k__BackingField", 0x10, IL2CPP_TYPE_I8)
-      && engage && retry && course && clear;
+      && engage && retry && course && clear
+      && !engage_info->has_full_generic_sharing_signature && !retry_info->has_full_generic_sharing_signature
+      && !info->has_full_generic_sharing_signature && !clear_info->has_full_generic_sharing_signature
+      && engage != retry && engage != course && engage != clear
+      && retry != course && retry != clear && course != clear;
   if (!valid) {
     spdlog::warn("[FasterQueueRecovery] unavailable: incompatible method signature or queue layout");
     return;
@@ -272,4 +286,5 @@ void InstallActionQueueRecovery()
 }
 #else
 void InstallActionQueueRecovery() {}
+void ClearActionQueueRecoveryRequests() {}
 #endif
