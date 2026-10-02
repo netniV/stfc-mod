@@ -1,51 +1,59 @@
 #include "config.h"
 
 #include <il2cpp/il2cpp_helper.h>
+#include <il2cpp/method_contract.h>
+#include <il2cpp/runtime.h>
 #include <spdlog/spdlog.h>
 #include <spud/detour.h>
 
 namespace
 {
-ptrdiff_t convert_all_offset    = 0;
-void* (*get_game_object)(void*) = nullptr;
-void (*set_active)(void*, bool) = nullptr;
+FieldInfo* convert_all_field = nullptr;
+const MethodInfo* get_game_object = nullptr;
+const MethodInfo* set_active = nullptr;
 
 void InventoryUsePopup_Bind_Hook(auto original, void* controller)
 {
   original(controller);
-  if (!controller)
+  if (!Config::Get().hide_artifact_exchange_all || !controller)
     return;
-  auto* button = *reinterpret_cast<void**>(static_cast<char*>(controller) + convert_all_offset);
-  if (button) {
-    if (auto* object = get_game_object(button))
-      set_active(object, false);
-  }
+  Il2CppObject* button = nullptr;
+  il2cpp_field_get_value(static_cast<Il2CppObject*>(controller), convert_all_field, &button);
+  Il2CppObject* object = nullptr;
+  if (!button || !Il2CppRuntime::TryInvoke(get_game_object, button, nullptr, &object) || !object)
+    return;
+  bool active = false;
+  void* args[]{&active};
+  Il2CppRuntime::TryInvoke(set_active, object, args);
 }
 } // namespace
 
 void InstallArtifactExchangeHooks()
 {
   // This dedicated field belongs to artifact bulk conversion, not the inventory
-  // entry button or the individual exchange controls. Hide it after normal setup.
+  // entry button or individual exchanges. Preserve native binding first.
   auto controller =
       il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Inventories", "InventoryUsePopupViewController");
-  if (!controller.isValidHelper()) {
-    spdlog::warn("[ArtifactExchange] popup class unavailable; leaving game unchanged");
-    return;
-  }
-  auto field = controller.GetField("_convertAllButton");
-  auto bind  = controller.GetMethod("OnDidBindCanvasContext", 0);
-  // Current Unity exposes injected native entry points; use the managed wrappers
-  // that accept component/GameObject instances, as the other UI patches do.
-  auto component   = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "Component");
+  auto component = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "Component");
   auto game_object = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "GameObject");
-  get_game_object  = component.GetMethod<void*(void*)>("get_gameObject", 0);
-  set_active       = game_object.GetMethod<void(void*, bool)>("SetActive", 1);
-  if (!field.isValidHelper() || field.offset() < sizeof(Il2CppObject) || !bind || !get_game_object || !set_active) {
+  auto* cls = controller.get_cls();
+  auto* field = cls ? il2cpp_class_get_field_from_name(cls, "_convertAllButton") : nullptr;
+  auto* field_class = field && field->type ? il2cpp_class_from_type(field->type) : nullptr;
+  const auto* bind = method_contract::Resolve(cls, "OnDidBindCanvasContext", false, "System.Void", {});
+  get_game_object = method_contract::Resolve(component.get_cls(), "get_gameObject", false, "UnityEngine.GameObject", {});
+  set_active = method_contract::Resolve(game_object.get_cls(), "SetActive", false, "System.Void", {"System.Boolean"});
+  if (!cls || !component.get_cls() || !game_object.get_cls() || !field || !field->type || field->type->byref
+      || (il2cpp_field_get_flags(field) & FIELD_ATTRIBUTE_STATIC) || !field_class
+      || !il2cpp_class_is_assignable_from(component.get_cls(), field_class)
+      || !bind || !get_game_object || !set_active
+      || bind->has_full_generic_sharing_signature || get_game_object->has_full_generic_sharing_signature
+      || set_active->has_full_generic_sharing_signature) {
     spdlog::warn("[ArtifactExchange] required popup API unavailable; leaving game unchanged");
     return;
   }
-  convert_all_offset = field.offset();
-  SPUD_STATIC_DETOUR(bind, InventoryUsePopup_Bind_Hook);
-  spdlog::info("[ArtifactExchange] hiding artifact Exchange All button");
+  convert_all_field = field;
+  if (SPUD_STATIC_DETOUR(bind->methodPointer, InventoryUsePopup_Bind_Hook))
+    spdlog::info("[ArtifactExchange] installed popup bind hook");
+  else
+    spdlog::warn("[ArtifactExchange] popup bind hook was not installed");
 }
