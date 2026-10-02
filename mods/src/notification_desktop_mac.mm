@@ -3,6 +3,7 @@
 #import <Foundation/Foundation.h>
 #import <UserNotifications/UserNotifications.h>
 #include <spdlog/spdlog.h>
+#include <atomic>
 
 namespace
 {
@@ -22,6 +23,8 @@ UNUserNotificationCenter* Center()
 
 void notification_desktop_mac_init()
 {
+  static std::atomic_bool requested{false};
+  if (requested.exchange(true)) return;
   dispatch_async(dispatch_get_main_queue(), ^{
     @autoreleasepool {
       UNUserNotificationCenter* center = Center();

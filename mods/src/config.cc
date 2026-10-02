@@ -968,6 +968,8 @@ void Config::Load()
       get_config_or_default(config, parsed, "patches", "doubleclickassignshiphooks", DCP::doubleclickassignshiphooks, write_config);
   this->installForbiddenTechConfirmationHooks =
       get_config_or_default(config, parsed, "patches", "forbiddentechconfirmhooks", DCP::forbiddentechconfirmhooks, write_config);
+  this->installFleetNotificationHooks =
+      get_config_or_default(config, parsed, "patches", "fleetnotificationhooks", DCP::fleetnotificationhooks, write_config);
   this->installAudioEventHooks =
       get_config_or_default(config, parsed, "patches", "audioeventhooks", DCP::audioeventhooks, write_config);
   this->installInstantCargoCounterHooks =
@@ -1347,11 +1349,6 @@ void Config::Load()
   spdlog::debug("Final fleet notification events: {}", fleet_events_string);
   parsed["ui"].as_table()->insert_or_assign("notify_fleet_events", fleet_events_string);
 
-#if _WIN32 || __APPLE__
-  this->installFleetNotificationHooks = (this->notify_fleet_events | this->audio_fleet_events) != 0;
-#else
-  this->installFleetNotificationHooks = false;
-#endif
 
   spdlog::debug("");
 

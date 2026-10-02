@@ -429,6 +429,12 @@ void Tick()
     if (!slot.occupied || slot.fast_poll_started_ms == 0) {
       continue;
     }
+    // A subscriber preference can change without a fleet state transition.
+    if (!needs_fast_poll(slot.state)) {
+      slot.fast_poll_started_ms = 0;
+      --s_fast_poll_count;
+      continue;
+    }
     const auto lifetime = now_ms - slot.fast_poll_started_ms;
     if (lifetime >= kFastPollLifetimeMs) {
       slot.fast_poll_started_ms = 0;

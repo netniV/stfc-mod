@@ -282,6 +282,8 @@ loadingtiphooks = true
 doubleclickassignshiphooks = true
 forbiddentechconfirmhooks = true
 audioeventhooks = true
+# Install fleet observers independently of the desktop/audio selections.
+fleetnotificationhooks = true
 freeresizehooks = true
 game_version = true
 giftsbulkclaimhooks = true

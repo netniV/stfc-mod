@@ -98,14 +98,21 @@ static_assert(docked(FleetState::Impulsing, FleetState::Docked));
 static_assert(!docked(FleetState::Repairing, FleetState::Docked));
 static_assert(repair_complete(FleetState::Repairing, FleetState::Docked));
 
-FleetNotificationMask s_enabled_notifications = 0;
-FleetNotificationMask s_enabled_events = 0;
-
 bool notification_enabled(FleetNotificationKind kind)
-{ return (s_enabled_notifications & fleet_notification_bit(kind)) != 0; }
+{ return (Config::Get().notify_fleet_events & fleet_notification_bit(kind)) != 0; }
+
+FleetNotificationMask enabled_events()
+{
+  const auto& config = Config::Get();
+  auto enabled = config.notify_fleet_events;
+  for (const auto& entry : kFleetNotificationCatalog)
+    if (config.alert_fleet_events[static_cast<std::size_t>(entry.kind)] != NotificationSound::None)
+      enabled |= fleet_notification_bit(entry.kind);
+  return enabled;
+}
 
 bool event_enabled(FleetNotificationKind kind)
-{ return (s_enabled_events & fleet_notification_bit(kind)) != 0; }
+{ return (enabled_events() & fleet_notification_bit(kind)) != 0; }
 
 void play_event_audio(FleetNotificationKind kind)
 {
@@ -136,13 +143,14 @@ std::array<MinerOpcTracker, kFleetSlotCount> s_miner_opc{};
 
 void observe_miner_opc(const fleet_watch::Snapshot& snapshot, FleetPlayerData* fleet, bool publish)
 {
-  if (!event_enabled(FleetNotificationKind::MinerOpc) || snapshot.slot < 0 || snapshot.slot >= kFleetSlotCount) {
+  if (snapshot.slot < 0 || snapshot.slot >= kFleetSlotCount) {
     return;
   }
   const bool mining = snapshot.state == FleetState::Mining;
   const auto cargo  = mining ? read_fleet_opc_sample(fleet, snapshot.slot, snapshot.fleet_id, snapshot.state)
                             : FleetOpcCargo{};
-  if (!s_miner_opc[snapshot.slot].Observe(snapshot.fleet_id, mining, cargo.known, cargo.opc, publish)) {
+  if (!s_miner_opc[snapshot.slot].Observe(snapshot.fleet_id, mining, cargo.known, cargo.opc,
+                                          publish && event_enabled(FleetNotificationKind::MinerOpc))) {
     return;
   }
   spdlog::debug("[FleetNotifications] event=MinerOPC slot={} fleet={}", snapshot.slot, snapshot.fleet_id);
@@ -167,12 +175,13 @@ std::array<FleetArrivalTracker, kFleetSlotCount> s_arrivals{};
 void emit_transition(const fleet_watch::Transition& transition)
 {
   const auto slot = transition.after.slot;
-  if (event_enabled(FleetNotificationKind::ArrivedInSystem) && slot >= 0 && slot < kFleetSlotCount) {
+  if (slot >= 0 && slot < kFleetSlotCount) {
     const bool native_warp = transition.after.state == FleetState::Impulsing && transition.fleet
                              && transition.fleet->PreviousState == FleetState::Warping;
     if (s_arrivals[slot].Observe(transition.after.fleet_id, transition.observation_epoch,
                                  arrival_phase(transition.before.state), arrival_phase(transition.after.state),
-                                 native_warp)) {
+                                 native_warp)
+        && event_enabled(FleetNotificationKind::ArrivedInSystem)) {
       play_event_audio(FleetNotificationKind::ArrivedInSystem);
       if (notification_enabled(FleetNotificationKind::ArrivedInSystem))
         notification_emit("Fleet Arrived", "Your " + fleet_subject(transition.fleet) + " has arrived in-system");
@@ -223,7 +232,12 @@ constexpr bool needs_fast_poll(FleetNotificationMask enabled, FleetState state)
 }
 
 bool needs_enabled_fast_poll(FleetState state)
-{ return needs_fast_poll(s_enabled_events, state); }
+{
+  // Recheck desktop authorization independently of one-time metadata setup.
+  // This existing observation path notices later desktop enablement without a new poller.
+  notification_init();
+  return needs_fast_poll(enabled_events(), state);
+}
 
 static_assert(needs_fast_poll(fleet_notification_bit(FleetNotificationKind::ArrivedInSystem), FleetState::Warping));
 static_assert(!needs_fast_poll(fleet_notification_bit(FleetNotificationKind::ArrivedInSystem), FleetState::Impulsing));
@@ -280,6 +294,8 @@ void ToastFleetObserver_HandleMiningDepleted_Hook(auto original, void* self, int
   } else {
     original(self, fleet_id);
   }
+  if (!event_enabled(FleetNotificationKind::NodeDepleted))
+    return;
   const auto id = static_cast<uint64_t>(fleet_id);
   if (!allow_node_depletion(id)) {
     return;
@@ -303,14 +319,10 @@ bool install_node_depletion_hook()
     ErrorMsg::MissingHelper("HUD", "ToastFleetObserver");
     return false;
   }
-#if __APPLE__
   const auto* metadata = method_contract::Resolve(helper.get_cls(), "HandleMiningDepleted", false,
                                                    "System.Void", {"System.Int64"});
   auto* method = method_contract::Pointer(metadata);
-#else
-  auto* method = helper.GetMethod("HandleMiningDepleted", 1);
-#endif
-  if (!method) {
+  if (!method || metadata->has_full_generic_sharing_signature) {
     ErrorMsg::MissingMethod("ToastFleetObserver", "HandleMiningDepleted");
     return false;
   }
@@ -321,22 +333,12 @@ bool install_node_depletion_hook()
 void InstallFleetNotificationHooks()
 {
 #if _WIN32 || __APPLE__
-  s_enabled_notifications = Config::Get().notify_fleet_events;
-#endif
-#if _WIN32 || __APPLE__
-  s_enabled_events = s_enabled_notifications | Config::Get().audio_fleet_events;
   notification_init();
-
-  // OPC uses the existing round-robin observations (~2.5s per slot); no additional mining poll or detour.
-  constexpr auto observed_events =
-      kAllFleetNotifications & ~fleet_notification_bit(FleetNotificationKind::NodeDepleted);
-  if ((s_enabled_events & observed_events) != 0
-      && !fleet_watch::Subscribe({emit_transition, needs_enabled_fast_poll,
-                                 event_enabled(FleetNotificationKind::MinerOpc) ? observe_miner_opc : nullptr})) {
+  // Continuous quiet observation prevents replay when a feature is enabled later.
+  // OPC keeps the existing round-robin cadence; no additional mining poll or detour.
+  if (!fleet_watch::Subscribe({emit_transition, needs_enabled_fast_poll, observe_miner_opc}))
     spdlog::warn("[FleetNotifications] Fleet Watch subscription failed");
-  }
-  if (event_enabled(FleetNotificationKind::NodeDepleted) && !install_node_depletion_hook()) {
+  if (!install_node_depletion_hook())
     spdlog::warn("[FleetNotifications] node-depletion hook installation failed");
-  }
 #endif
 }
