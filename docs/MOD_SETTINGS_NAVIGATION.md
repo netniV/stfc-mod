@@ -43,7 +43,7 @@ callback lifetime or native presentation. Exact artifact navigation/pooling smok
 and supported Mac native extent/execution evidence remain qualification gates.
 
 Register through `ModPages()` before settings installation. Current pages are
-Camera, Fleet Labels, Map & Travel, and Previews & Cargo, as documented in
+Camera, Fleet Labels, Map & Travel, Previews & Cargo, and HUD Buttons, as documented in
 [Mod Settings](MOD_SETTINGS.md). Instant warp shares Alt+I's owner and persistence.
 Fleet Labels places Player and Non-player sections on one page, each with detail
 choices and a percentage slider. Native text-only headings use scoped labels and

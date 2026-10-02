@@ -32,6 +32,7 @@ reference. Moving a page does not rename stored keys or change defaults.
 | Fleet Labels | Collapsible Player and Non-player profiles | `[graphics]` |
 | Map & Travel | Instant warp mode, shared with its shortcut | `[ui]` |
 | Previews & Cargo | Preview shortcuts and automatic cargo previews | `[ui]` |
+| HUD Buttons | Q's Trials, Field Training, Outposts and Missions; Auto / Always / Never | `[ui].hud_*` |
 
 Empty groups are omitted. Camera and preview controls require their existing
 consumer hooks to have installed successfully. FC and Forbidden Tech remain in

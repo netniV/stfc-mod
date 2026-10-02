@@ -140,6 +140,25 @@ readback and saving agree. Locate/Recall labels invert their stored disable
 flags. Cargo targets are visible only while auto-open is ON, with their saved
 preferences retained while hidden. Hook installation success gates each group.
 
+## HUD Buttons
+
+Q's Trials, Field Training, Outposts and Missions each have a collapsed group
+with an Auto / Always / Never choice and a summary of the current mode. The
+default-enabled `[patches].missionhudtweakshooks` controls the complete HUD hook
+family independently of those feature values. Controls are unavailable unless
+the family and required Unity lifetime/visibility methods are ready.
+
+Changes refresh live through native achievements/outpost rules; Missions Auto
+restores its tracked native visibility. Weak tracking rechecks destroyed objects,
+captures replacement Missions buttons and defers inactive HUD views. Callbacks
+read current choices before applying overrides or Auto restoration. Preferences
+save through the shared TOML writer; live readback is separate from save success.
+
+The existing persistence fixture covers all twelve button/mode combinations.
+Static Windows 270 overwrite fit and local build/fixture results do not establish
+exact-artifact HUD/Haven interaction or supported Mac execution. Those runtime
+qualification gaps remain open.
+
 ## Future organization and commands (design notes)
 
 Use player tasks for navigation and TOML sections as storage references.
