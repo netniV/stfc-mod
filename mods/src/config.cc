@@ -925,6 +925,8 @@ void Config::Load()
       get_config_or_default(config, parsed, "patches", "forbiddentechconfirmhooks", DCP::forbiddentechconfirmhooks, write_config);
   this->installAudioEventHooks =
       get_config_or_default(config, parsed, "patches", "audioeventhooks", DCP::audioeventhooks, write_config);
+  this->installOfficerPresetReorderHooks = get_config_or_default(
+      config, parsed, "patches", "officerpresetreorderhooks", DCP::officerpresetreorderhooks, write_config);
   this->installInstantCargoCounterHooks =
       get_config_or_default(config, parsed, "patches", "instantcargocounterhooks", DCP::instantcargocounterhooks, write_config);
   this->installCargoFormatHooks =
@@ -1036,7 +1038,9 @@ void Config::Load()
     }
   }
   this->auto_open_bulk_claim_flyout = get_config_or_default(config, parsed, "ui", "auto_open_bulk_claim_flyout",
-                                                            DCU::auto_open_bulk_claim_flyout, write_config);
+                                                             DCU::auto_open_bulk_claim_flyout, write_config);
+  this->allow_officer_preset_reordering = get_config_or_default(
+      config, parsed, "ui", "allow_officer_preset_reordering", DCU::allow_officer_preset_reordering, write_config);
 
   read_daily_bulk_claim_factions(config, parsed, this->daily_bulk_claim_factions, DCU::daily_bulk_claim_factions,
                                  write_config);

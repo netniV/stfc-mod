@@ -217,8 +217,9 @@ public:
   bool                     disable_toast_banners;
   bool                     trace_audio_events;
   std::vector<std::string> disabled_audio_events;
-  bool                     auto_open_bulk_claim_flyout;
-  bool                     auto_confirm_ft_upgrade;
+  bool auto_open_bulk_claim_flyout;
+  bool allow_officer_preset_reordering;
+  bool auto_confirm_ft_upgrade;
 
   std::vector<std::string> daily_bulk_claim_factions;
 
@@ -282,6 +283,7 @@ public:
   bool installForbiddenTechConfirmationHooks;
   bool installInstantWarpConfirmationHooks;
   bool installAudioEventHooks;
+  bool installOfficerPresetReorderHooks;
 
   std::string config_settings_url;
   std::string config_assets_url_override;
