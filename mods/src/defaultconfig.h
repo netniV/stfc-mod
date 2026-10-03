@@ -265,7 +265,6 @@ namespace UI
   constexpr bool        cargo_format                = true;
   constexpr bool        officer_sort                = true;
   constexpr const char* disabled_banner_types       = "";
-  constexpr const char* hud_daily_goals             = "auto";
   constexpr const char* hud_field_training          = "auto";
   constexpr const char* hud_missions                = "auto";
   constexpr const char* hud_outposts                = "auto";
