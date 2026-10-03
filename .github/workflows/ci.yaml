@@ -206,6 +206,10 @@ jobs:
       - name: Build
         run: xmake build -y stfc-community-mod
 
+      - name: Test confirmation setting contracts
+        shell: pwsh
+        run: ./tests/run-confirmation-settings.ps1
+
       - name: Test x64 trampoline relocation
         shell: pwsh
         run: |
@@ -520,6 +524,10 @@ jobs:
       - name: Report protobuf compiler cache
         shell: bash
         run: sccache --show-stats
+
+      - name: Test confirmation setting contracts
+        shell: bash
+        run: bash tests/run-confirmation-settings.sh
 
       - name: Report Swift module cache
         shell: bash

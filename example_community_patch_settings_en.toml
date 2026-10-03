@@ -263,6 +263,8 @@ loadingtiphooks = true
 doubleclickassignshiphooks = true
 forbiddentechconfirmhooks = true
 audioeventhooks = true
+# Install native Mod Settings hooks; disable only for compatibility troubleshooting.
+nativesettingshooks = true
 freeresizehooks = true
 game_version = true
 giftsbulkclaimhooks = true
