@@ -206,6 +206,13 @@ jobs:
       - name: Build
         run: xmake build -y stfc-community-mod
 
+      - name: Test fleet observation trackers
+        run: |
+          xmake build -y miner-opc-tests
+          xmake build -y fleet-arrival-tests
+          xmake run miner-opc-tests
+          xmake run fleet-arrival-tests
+
       - name: Test x64 trampoline relocation
         shell: pwsh
         run: |
@@ -520,6 +527,13 @@ jobs:
       - name: Report protobuf compiler cache
         shell: bash
         run: sccache --show-stats
+
+      - name: Test fleet observation trackers
+        run: |
+          xmake build -y miner-opc-tests
+          xmake build -y fleet-arrival-tests
+          xmake run miner-opc-tests
+          xmake run fleet-arrival-tests
 
       - name: Report Swift module cache
         shell: bash
