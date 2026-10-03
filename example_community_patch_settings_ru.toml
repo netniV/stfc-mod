@@ -162,6 +162,22 @@ zoom_label_player_detail = "native"
 # Normalized zoom crossover used when player fleet label detail is "threshold"; 0 is always compact and 1 is always expanded
 zoom_label_player_threshold = 0.5
 
+# Подписи галактики: native, always или threshold. Always может увеличить время загрузки.
+# Крупные и малые системы следуют классификации игры; порог: близко=0, далеко=1.
+# 0 включает краткие подписи; 1 всегда раскрывает; при равенстве подпись раскрывается.
+# Краткий режим сохраняет стандартное отображение Far, в том числе для некоторых крупных названий.
+# Можно сочетать обычные системы, врагов, добычу и опасности. Значения по умолчанию сохраняют вид игры.
+# Windows x64 и macOS на проверенных версиях клиента.
+galaxy_multi_select = false
+galaxy_overlay_default = true
+galaxy_overlay_mining = false
+galaxy_overlay_hostiles = false
+galaxy_overlay_hazards = false
+galaxy_label_major_detail = "native"
+galaxy_label_major_threshold = 0.5
+galaxy_label_minor_detail = "native"
+galaxy_label_minor_threshold = 0.5
+
 # Subgroup: Keyboard
 # ------------------
 
@@ -669,6 +685,8 @@ auto_confirm_ft_upgrade = false
 #   "none" - Do not choose an action automatically; show the confirmation dialog
 #   "warp" - Automatically choose regular warp
 #   "jump" - Automatically choose instant jump
+# The mode shortcut persists this value on validated Windows x64 and macOS clients; otherwise session-only.
+# External edits are preserved; conflicts are logged. See docs/config-save.md.
 auto_confirm_instant_warp = "none"
 
 # Comma-separated ship hull names for which the instant-warp popup is always shown, overriding all automatic actions

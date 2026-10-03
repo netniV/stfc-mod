@@ -8,6 +8,8 @@
 
 #include <toml++/toml.h>
 
+#include "patches/parts/galaxy_policy.h"
+
 #if _WIN32
 #include <Windows.h>
 #endif
@@ -173,9 +175,13 @@ public:
   float             fr_scale;
   FleetLabelProfile zoom_label_player;
   FleetLabelProfile zoom_label_non_player;
-  bool              allow_cursor;
-  bool              free_resize;
-  bool              adjust_scale_res;
+  bool galaxy_multi_select;
+  std::array<bool, 4> galaxy_overlays; // Default, Mining, Hostiles, Hazards
+  galaxy_controls::ZoomProfile galaxy_label_major;
+  galaxy_controls::ZoomProfile galaxy_label_minor;
+  bool  allow_cursor;
+  bool  free_resize;
+  bool  adjust_scale_res;
 
   bool  use_out_of_dock_power;
   float system_pan_momentum;
@@ -282,6 +288,8 @@ public:
   bool installForbiddenTechConfirmationHooks;
   bool installInstantWarpConfirmationHooks;
   bool installAudioEventHooks;
+  bool installNativeSettings;
+  bool installRuntimeConfigHooks;
 
   std::string config_settings_url;
   std::string config_assets_url_override;

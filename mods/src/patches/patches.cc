@@ -1,4 +1,5 @@
 #include "patches.h"
+#include "runtime_config.h"
 #include "file.h"
 #include "version.h"
 
@@ -49,6 +50,8 @@ void InstallDoubleClickAssignShipHooks();
 void InstallInstantWarpConfirmationHooks();
 void InstallForbiddenTechConfirmationHooks();
 void InstallAudioEventHooks();
+void InstallNativeSettings();
+void InstallGalaxyLabels();
 
 __int64 il2cpp_init_hook(auto original, const char* domain_name)
 {
@@ -152,6 +155,10 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
       {"InstantWarpConfirm", {InstallInstantWarpConfirmationHooks, &cfg.installInstantWarpConfirmationHooks}},
       {"ForbiddenTechConfirm", {InstallForbiddenTechConfirmationHooks, &cfg.installForbiddenTechConfirmationHooks}},
       {"AudioEvents", {InstallAudioEventHooks, &cfg.installAudioEventHooks}},
+      // Galaxy availability must be established before settings pages register.
+      {"GalaxyLabels", {InstallGalaxyLabels, &cfg.installZoomHooks}},
+      {"ModConfirmationSettings", {InstallNativeSettings, &cfg.installNativeSettings}},
+      {"RuntimeConfigHooks", {runtime_config::Install, &cfg.installRuntimeConfigHooks}},
   };
   printf("il2cpp_init_hook(%s)\n", domain_name);
 

@@ -1,5 +1,6 @@
 #include "config.h"
 #include "errormsg.h"
+#include "settings/camera_settings.h"
 
 #include <il2cpp/il2cpp_helper.h>
 
@@ -13,6 +14,14 @@
 
 #include <spud/detour.h>
 #include <cmath>
+
+namespace
+{
+bool pan_glide_hook_installed = false;
+}
+
+bool mod_settings::PanGlideControlAvailable()
+{ return pan_glide_hook_installed; }
 
 TKTouch *TKTouch_populateWithPosition_Hook(auto original, TKTouch *_this, uintptr_t pos, TouchPhase phase)
 {
@@ -127,7 +136,7 @@ void InstallPanHooks()
     if (const auto ptr = navHelper.GetMethod("LateUpdate"); ptr == nullptr) {
       ErrorMsg::MissingMethod("NavigationPan", "LateUpdate");
     } else {
-      SPUD_STATIC_DETOUR(ptr, NavigationPan_LateUpdate_Hook);
+      pan_glide_hook_installed = SPUD_STATIC_DETOUR(ptr, NavigationPan_LateUpdate_Hook);
     }
   }
 }
