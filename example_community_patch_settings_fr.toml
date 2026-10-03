@@ -94,6 +94,13 @@ hotkeys_extended = true
 # Si vous avez l’artefact Kir’Shara, la file d’attente doit-elle être activée par défaut ?
 queue_enabled = true
 
+# Reprise plus rapide de la file si une cible disparaît (Windows x64 uniquement).
+faster_queue_recovery = false
+
+# Thin Queue Protection : reprendre après le nettoyage natif des cibles en tête de file.
+# Windows x64 uniquement. Activé par défaut ; indépendant de Faster Queue Recovery.
+thin_queue_protection = true
+
 # Si vous préférez utiliser les raccourcis de Scopely mettez ça sur activer
 use_scopely_hotkeys = false
 

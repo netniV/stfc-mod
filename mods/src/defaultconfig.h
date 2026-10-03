@@ -26,6 +26,8 @@ namespace Control
   constexpr bool hotkeys_extended    = true;
   constexpr bool use_scopely_hotkeys = false;
   constexpr bool queue_enabled       = true;
+  constexpr bool faster_queue_recovery = false;
+  constexpr bool thin_queue_protection = true;
   constexpr auto select_timer        = 500;
 } // namespace Control
 
@@ -94,6 +96,8 @@ namespace Patches
   constexpr bool doubleclickassignshiphooks = true;
   constexpr bool forbiddentechconfirmhooks  = true;
   constexpr bool audioeventhooks            = true;
+  constexpr bool actionqueuerecoveryhooks   = true;
+  constexpr bool thinqueueprotectionhooks   = true;
   constexpr bool instantcargocounterhooks   = true;
   constexpr bool cargoformathooks           = true;  // on by default: cargo number precision override
   constexpr bool officersorthooks           = true;  // restore Below Deck Ability sort option
