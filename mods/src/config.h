@@ -282,6 +282,7 @@ public:
   bool installForbiddenTechConfirmationHooks;
   bool installInstantWarpConfirmationHooks;
   bool installAudioEventHooks;
+  bool installRuntimeConfigHooks;
 
   std::string config_settings_url;
   std::string config_assets_url_override;
