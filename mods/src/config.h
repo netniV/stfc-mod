@@ -270,6 +270,7 @@ public:
   bool installTestPatches;
   bool installMiscPatches;
   bool installMissionHudTweaksHooks;
+  bool hide_artifact_exchange_all;
   bool installChatPatches;
   bool installSyncPatches;
   bool installGameVersionHook;
@@ -282,6 +283,7 @@ public:
   bool installForbiddenTechConfirmationHooks;
   bool installInstantWarpConfirmationHooks;
   bool installAudioEventHooks;
+  bool installArtifactExchangeHooks;
 
   std::string config_settings_url;
   std::string config_assets_url_override;

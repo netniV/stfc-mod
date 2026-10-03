@@ -94,6 +94,7 @@ namespace Patches
   constexpr bool doubleclickassignshiphooks = true;
   constexpr bool forbiddentechconfirmhooks  = true;
   constexpr bool audioeventhooks            = true;
+  constexpr bool artifactexchangehooks      = true;
   constexpr bool instantcargocounterhooks   = true;
   constexpr bool cargoformathooks           = true;  // on by default: cargo number precision override
   constexpr bool officersorthooks           = true;  // restore Below Deck Ability sort option
@@ -242,6 +243,7 @@ namespace Sync
 
 namespace UI
 {
+  constexpr bool hide_artifact_exchange_all = false;
   constexpr bool        always_skip_reveal_sequence = true;
   constexpr bool        arrow_keys_to_select_ship   = true;
   constexpr bool        auto_confirm_discovery      = true;
