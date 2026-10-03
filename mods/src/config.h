@@ -188,6 +188,7 @@ public:
   bool  hotkeys_enabled;
   bool  hotkeys_extended;
   bool  use_scopely_hotkeys;
+  std::string keyboard_layout_mode;
   bool  use_presets_as_default;
   bool  enable_experimental;
   float default_system_zoom;
@@ -282,6 +283,8 @@ public:
   bool installForbiddenTechConfirmationHooks;
   bool installInstantWarpConfirmationHooks;
   bool installAudioEventHooks;
+  bool installNativeSettings;
+  bool installRuntimeConfigHooks;
 
   std::string config_settings_url;
   std::string config_assets_url_override;

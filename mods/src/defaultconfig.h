@@ -25,6 +25,7 @@ namespace Control
   constexpr bool hotkeys_enabled     = true;
   constexpr bool hotkeys_extended    = true;
   constexpr bool use_scopely_hotkeys = false;
+  constexpr const char* keyboard_layout_mode = "physical";
   constexpr bool queue_enabled       = true;
   constexpr auto select_timer        = 500;
 } // namespace Control
@@ -94,6 +95,8 @@ namespace Patches
   constexpr bool doubleclickassignshiphooks = true;
   constexpr bool forbiddentechconfirmhooks  = true;
   constexpr bool audioeventhooks            = true;
+  constexpr bool nativesettingshooks        = true;
+  constexpr bool runtimeconfighooks         = true;
   constexpr bool instantcargocounterhooks   = true;
   constexpr bool cargoformathooks           = true;  // on by default: cargo number precision override
   constexpr bool officersorthooks           = true;  // restore Below Deck Ability sort option

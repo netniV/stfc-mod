@@ -77,6 +77,9 @@ const std::unordered_map<std::string, KeyCode> Key::mappedKeys = {
     {"MOUSE6", KeyCode::Mouse6},
     {"SPACE", KeyCode::Space},
     {"MINUS", KeyCode::Minus},
+    {"EQUAL", KeyCode::Equals},
+    // '-' separates modifiers and '|' separates alternative bindings in config.
+    {"PIPE", KeyCode::Pipe},
     {"_", KeyCode::Underscore},
     {",", KeyCode::Comma},
     {";", KeyCode::Semicolon},
@@ -227,6 +230,8 @@ void Key::ClaimDirectionalInput(KeyCode key)
 
 bool Key::IsDirectionalInputClaimed()
 {
+  if (shortcutCaptureActive || shortcutPopupActive)
+    return true;
   EnsureCurrentFrame();
 
   auto claimed = false;
@@ -291,6 +296,9 @@ void Key::EnsureCurrentFrame()
 }
 
 bool Key::Down(KeyCode key)
+{ return !shortcutCaptureActive && !shortcutPopupActive && RawDown(key); }
+
+bool Key::RawDown(KeyCode key)
 {
   EnsureCurrentFrame();
 
@@ -305,6 +313,9 @@ bool Key::Down(KeyCode key)
 }
 
 bool Key::Pressed(KeyCode key)
+{ return !shortcutCaptureActive && !shortcutPopupActive && RawPressed(key); }
+
+bool Key::RawPressed(KeyCode key)
 {
   EnsureCurrentFrame();
 
@@ -316,6 +327,23 @@ bool Key::Pressed(KeyCode key)
   }
 
   return cacheKeyPressed[(int)key] == 1;
+}
+
+std::string Key::Token(KeyCode key)
+{
+  // Pick a stable accepted token, with separator-safe spellings. Sorting the
+  // aliases makes the result independent of unordered_map iteration order.
+  if (key == KeyCode::Minus)
+    return "MINUS";
+  if (key == KeyCode::Equals)
+    return "EQUAL";
+  if (key == KeyCode::Pipe)
+    return "PIPE";
+  std::string result;
+  for (const auto& [token, value] : mappedKeys)
+    if (value == key && (result.empty() || token < result))
+      result = token;
+  return result;
 }
 
 bool Key::IsInputFocused()
