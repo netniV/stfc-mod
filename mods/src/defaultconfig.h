@@ -94,6 +94,8 @@ namespace Patches
   constexpr bool doubleclickassignshiphooks = true;
   constexpr bool forbiddentechconfirmhooks  = true;
   constexpr bool audioeventhooks            = true;
+  constexpr bool nativesettingshooks        = true;
+  constexpr bool runtimeconfighooks         = true;
   constexpr bool instantcargocounterhooks   = true;
   constexpr bool cargoformathooks           = true;  // on by default: cargo number precision override
   constexpr bool officersorthooks           = true;  // restore Below Deck Ability sort option
@@ -265,7 +267,6 @@ namespace UI
   constexpr bool        cargo_format                = true;
   constexpr bool        officer_sort                = true;
   constexpr const char* disabled_banner_types       = "";
-  constexpr const char* hud_daily_goals             = "auto";
   constexpr const char* hud_field_training          = "auto";
   constexpr const char* hud_missions                = "auto";
   constexpr const char* hud_outposts                = "auto";
