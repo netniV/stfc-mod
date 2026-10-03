@@ -77,6 +77,9 @@ const std::unordered_map<std::string, KeyCode> Key::mappedKeys = {
     {"MOUSE6", KeyCode::Mouse6},
     {"SPACE", KeyCode::Space},
     {"MINUS", KeyCode::Minus},
+    {"EQUAL", KeyCode::Equals},
+    // '-' separates modifiers and '|' separates alternative bindings in config.
+    {"PIPE", KeyCode::Pipe},
     {"_", KeyCode::Underscore},
     {",", KeyCode::Comma},
     {";", KeyCode::Semicolon},

@@ -97,6 +97,11 @@ queue_enabled = true
 # Si vous préférez utiliser les raccourcis de Scopely mettez ça sur activer
 use_scopely_hotkeys = false
 
+# Windows x64 : "physical" conserve les positions ; "layout" suit la disposition active.
+# Maj nécessaire est ajouté ; les caractères nécessitant Ctrl/AltGr ne sont pas pris en charge.
+# Les changements sont appliqués en direct ; relâchez les touches. Voir docs/keyboard-letter-layout.md.
+keyboard_layout_mode = "physical"
+
 # Subgroup: Options
 # -----------------
 

@@ -19,7 +19,7 @@ public:
   static bool   HasBinding(GameFunction gameFunction);
   static bool   IsPressed(GameFunction gameFunction);
   static bool   IsDown(GameFunction gameFunction);
-  static bool   HasCorrectModifiers(const MapKey& mapKey);
+  static bool   HasCorrectModifiers(const MapKey& mapKey, bool requiredShift = false);
 
   static std::string GetShortcuts(GameFunction gameFunction);
   static std::string GetShortcutHint(GameFunction gameFunction);
