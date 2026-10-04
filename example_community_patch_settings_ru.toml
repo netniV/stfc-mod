@@ -7,7 +7,7 @@
 #  |    #***     #    #       #***         #   *   #**    #***    | 
 #  |                                                              | 
 #  +--------------------------------------------------------------+ 
-#   Создано 2026-09-27T19:44:17.196Z
+#   Создано 2026-10-04T20:00:48.821Z
 #   
 #   Этот файл конфигурации создан на https://modconfig.pages.dev
 #   и предоставляется как есть. Если возникли проблемы с STFC Community Mod,
@@ -17,7 +17,7 @@
 #       Discord : https://discord.gg/PrpHgs7Vjs
 #       GitHub  : https://github.com/netniV/stfc-mod
 #   
-#   Сегодняшний файл конфигурации представлен буквой Z и числом 9
+#   Сегодняшний файл конфигурации представлен буквой K и числом 4
 #   
 
 #  <[=======================================]> 
@@ -114,9 +114,6 @@ enable_experimental = false
 #  <[===========================================================================================================================]> 
 
 [graphics]
-# Показывать оставшееся время галактической аномалии под кнопками помощи, участия и наград.
-galactic_anomaly_timer = false
-
 
 # Subgroup: Display
 # -----------------
@@ -130,11 +127,11 @@ transition_time = 0.01
 # Коэффициент масштабирования интерфейса; по умолчанию 1,0
 ui_scale = 0.6
 
-# Шаг изменения масштаба; по умолчанию 0,05
-ui_scale_adjust = 0.05
-
 # Масштаб моделей кораблей в системном виде; по умолчанию 1,0
 ui_scale_ship = 1.0
+
+# This specifies the amount to adjust the scale by, 0.05 being default
+ui_scale_step = 0.05
 
 # Масштаб окон просмотра объектов интерфейса; по умолчанию 1,0
 ui_scale_viewer = 1.2
@@ -207,6 +204,9 @@ borderless_fullscreen = true
 # Разрешить свободное изменение размера; отключите параметр, чтобы запретить его
 free_resize = true
 
+# Show the remaining Galactic Anomaly time below Help All, Engage, and Claim
+galactic_anomaly_timer = false
+
 # После применения шаблона масштаба он станет масштабом по умолчанию
 use_presets_as_default = true
 
@@ -249,21 +249,30 @@ zoom = 5000.0
 # Subgroup: Leave Well Alone
 # --------------------------
 
+artifactexchangehooks = true
+audioeventhooks = true
+
 # Включить исправления усилений
 bufffixhooks = true
 cargoformathooks = true
-instantcargocounterhooks = true
 chatpatches = true
 
 # Включает массовое получение наград по отдельным фракциям в ежедневных целях
 dailyfactionbulkclaimhooks = true
-focussearch = true
+doubleclickassignshiphooks = true
+forbiddentechconfirmhooks = true
 freeresizehooks = true
+galacticanomalytimerhooks = true
 game_version = true
 giftsbulkclaimhooks = true
 hotkeyhooks = true
+
+# Show cargo totals immediately instead of counting up
+instantcargocounterhooks = true
 loadingscreenhooks = true
+loadingtiphooks = true
 miscpatches = true
+missionhudtweakshooks = true
 objecttracker = true
 officersorthooks = true
 panhooks = true
@@ -515,8 +524,14 @@ show_inventory = "I"
 # Перейти к заданиям
 show_missions = "M"
 
+# Go directly to Officer Presets
+show_officerpresets = "CTRL-O"
+
 # Перейти к офицерам
 show_officers = "SHIFT-O"
+
+# Go directly to Officer Swap
+show_officerswap = "ALT-O"
 
 # Перейти к испытаниям Q
 show_qtrials = "SHIFT-Q"
@@ -539,11 +554,11 @@ show_shields = "CTRL-S"
 # Открыть экран постройки корабля на верфи
 show_shipconstruction = "SHIFT-N"
 
-# Перейти прямо к смене корабля
-show_shipswap = "ALT-N"
-
 # Перейти к управлению кораблями
 show_ships = "N"
+
+# Go directly to Ship Swap
+show_shipswap = "ALT-N"
 
 # Внешний вид станции
 show_stationexterior = "SHIFT-G"
@@ -637,8 +652,6 @@ zoom_reset = "="
 #  <[===================================================================]> 
 
 [ui]
-# Hide artifact shards "Exchange All"; individual exchanges remain available. Requires restart.
-hide_artifact_exchange_all = false
 # Пропускать анимацию открытия контейнеров и сразу открывать их
 always_skip_reveal_sequence = true
 auto_confirm_discovery = true
@@ -769,21 +782,35 @@ hud_outposts = "auto"
 #   "hide" - Always hide this HUD item
 hud_q_trials = "auto"
 
+# Subgroup: Options
+# -----------------
+
+# Hide the Exchange All button in the Artifact Gallery
+disable_exchange_all = false
+
+# Enable the shortcut that focuses the search box on supported screens
+focus_search = true
+
+# Format abbreviated cargo values using Cargo Significant Decimals
+format_cargo_values = true
+
+# Restore the Below Deck Ability officer sort option
+officer_sort = true
+
 # Subgroup: Previews
 # ------------------
 
 # Decimal places used for abbreviated cargo values
 cargo_significant_decimals = 2
 
-# Показывать груз/вместимость сразу, без анимации счётчика. После изменения перезапустите игру.
-# Только клиент Windows 263; остальные версии сохраняют обычное поведение.
-instant_cargo_counter = true
-
 # Отключить поиск при отображении предпросмотра корабля или узла
 disable_preview_locate = false
 
 # Отключить отзыв при отображении предпросмотра корабля или узла
 disable_preview_recall = false
+
+# Show cargo used and capacity immediately instead of counting up. Restart after changing. Windows client 263 only; other builds keep native behavior
+instant_cargo_counter = true
 
 # Включите, чтобы всегда показывать награды выбранных кораблей/станций
 show_armada_cargo = true
@@ -815,7 +842,7 @@ show_station_cargo = true
 # Subgroup: Data
 # --------------
 
-# Синхронизировать данные заданий десантной группы?
+# Do you want to sync away team assignment data?
 away_assignments = true
 
 # Синхронизировать журналы боёв?
@@ -836,8 +863,8 @@ jobs = true
 # Синхронизировать данные заданий?
 missions = true
 
-# Синхронизировать данные имеющихся офицеров?
-officer = true
+# Do you want to sync owned officer data?
+officers = true
 
 # Синхронизировать данные исследований?
 research = true
