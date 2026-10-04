@@ -130,8 +130,8 @@ transition_time = 0.01
 # This specifies the amount to scale the UI by, 1.0 being default
 ui_scale = 0.6
 
-# This specifies the amount to adjust the scale by, 0.05 being default
-ui_scale_adjust = 0.05
+# Step used when adjusting the UI scale, 0.05 being default
+ui_scale_step = 0.05
 
 # This specifies the amount to scale the ship models in System View, 1.0 being default
 ui_scale_ship = 1.0
@@ -651,7 +651,7 @@ zoom_reset = "="
 
 [ui]
 # Hide artifact shards "Exchange All"; individual exchanges remain available. Requires restart.
-hide_artifact_exchange_all = false
+disable_exchange_all = false
 # Skip the reveal box animation, and just open the boxes
 always_skip_reveal_sequence = true
 auto_confirm_discovery = true
@@ -750,7 +750,7 @@ double_click_to_assign_ship = false
 focus_search = true
 
 # Format abbreviated cargo values using cargo_significant_decimals
-cargo_format = true
+format_cargo_values = true
 
 # Restore the Below Deck Ability officer sort option
 officer_sort = true
@@ -859,7 +859,7 @@ jobs = true
 missions = true
 
 # Do you want to sync owned officer data?
-officer = true
+officers = true
 
 # Do you want to sync research data?
 research = true

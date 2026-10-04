@@ -50,7 +50,7 @@ namespace Graphics
   constexpr auto        system_zoom_preset_5            = 5000;
   constexpr auto        transition_time                 = 0.01;
   constexpr auto        ui_scale                        = 0.6;
-  constexpr auto        ui_scale_adjust                 = 0.05;
+  constexpr auto        ui_scale_step                   = 0.05;
   constexpr auto        ui_scale_ship                   = 1.0;
   constexpr auto        ui_scale_viewer                 = 1.2;
   constexpr bool        use_presets_as_default          = true;
@@ -225,7 +225,7 @@ namespace Sync
   constexpr bool        inventory          = true;
   constexpr bool        jobs               = true;
   constexpr bool        missions           = true;
-  constexpr bool        officer            = true;
+  constexpr bool        officers           = true;
   constexpr const char* proxy              = "";
   constexpr bool        research           = true;
   constexpr bool        resources          = true;
@@ -264,7 +264,7 @@ namespace UI
   constexpr bool        disable_exchange_all        = false;
   constexpr bool        double_click_to_assign_ship = false;
   constexpr bool        focus_search                = true;
-  constexpr bool        cargo_format                = true;
+  constexpr bool        format_cargo_values         = true;
   constexpr bool        officer_sort                = true;
   constexpr const char* disabled_banner_types       = "";
   constexpr const char* hud_daily_goals             = "auto";

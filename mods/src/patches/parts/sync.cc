@@ -2552,7 +2552,7 @@ static void HandleEntityGroup(EntityGroup* entity_group)
 
     // officer
     case EntityGroup::Type::Officers:
-      if (sync_options.officer) {
+      if (sync_options.officers) {
         submit_async(processors::officers);
       }
       break;
