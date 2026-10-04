@@ -1119,6 +1119,21 @@ static void away_assignment_event(const Digit::PrimeServer::Models::AwayAssignme
     }
   }
 
+  auto officer_traits = json::array();
+  for (const auto& trait : instance.officertraits()) {
+    officer_traits.push_back({{"tid", trait.traitid()}, {"max_level", trait.maxlevel()}});
+  }
+
+  // Same ordering concern as officer_ids: sort by trait id so the array and the de-dup hash are stable.
+  std::vector<std::pair<int64_t, int32_t>> critical_trait_pairs(instance.parameters().criticaltraitscores().begin(),
+                                                                instance.parameters().criticaltraitscores().end());
+  std::ranges::sort(critical_trait_pairs, {}, &std::pair<int64_t, int32_t>::first);
+
+  auto critical_trait_scores = json::array();
+  for (const auto& [tid, score] : critical_trait_pairs) {
+    critical_trait_scores.push_back({{"tid", tid}, {"score", score}});
+  }
+
   json event = {{"type", SyncConfig::Type::AwayAssignments},
                 {"aid", instance.id()},
                 {"template_id", instance.awayassignmenttemplateid()},
@@ -1126,7 +1141,17 @@ static void away_assignment_event(const Digit::PrimeServer::Models::AwayAssignme
                 {"officer_ids", officer_ids},
                 {"job_uuid", instance.jobuuid()},
                 {"duration", instance.parameters().duration()},
-                {"rarity", instance.rarity()}};
+                {"rarity", instance.rarity()},
+                {"officer_traits", officer_traits},
+                {"critical_trait_scores", critical_trait_scores},
+                {"success_chance", instance.parameters().successchance()},
+                {"critical_success_chance", instance.parameters().criticalsuccesschance()},
+                {"max_critical_success_chance", instance.maxcriticalsuccesschance()},
+                {"key_stat", instance.keystat()},
+                {"max_assignable_officers", instance.maxassignableofficerscount()},
+                {"attack_weight", instance.attackweight()},
+                {"defense_weight", instance.defenseweight()},
+                {"health_weight", instance.healthweight()}};
 
   const auto state_value = std::hash<json>{}(event);
 
