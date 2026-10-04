@@ -1116,8 +1116,8 @@ void Config::Load()
       get_mission_hud_visibility(config, parsed, "hud_daily_goals", DCU::hud_daily_goals, write_config));
   this->mission_hud_buttons.emplace(
       "missions", get_mission_hud_visibility(config, parsed, "hud_missions", DCU::hud_missions, write_config));
-  this->hide_artifact_exchange_all = get_config_or_default(
-      config, parsed, "ui", "hide_artifact_exchange_all", DCU::hide_artifact_exchange_all, write_config);
+  this->disable_exchange_all = get_config_or_default(
+      config, parsed, "ui", "disable_exchange_all", DCU::disable_exchange_all, write_config);
 
   spdlog::debug("");
 

@@ -15,7 +15,7 @@ const MethodInfo* set_active = nullptr;
 void InventoryUsePopup_Bind_Hook(auto original, void* controller)
 {
   original(controller);
-  if (!Config::Get().hide_artifact_exchange_all || !controller)
+  if (!Config::Get().disable_exchange_all || !controller)
     return;
   Il2CppObject* button = nullptr;
   il2cpp_field_get_value(static_cast<Il2CppObject*>(controller), convert_all_field, &button);
