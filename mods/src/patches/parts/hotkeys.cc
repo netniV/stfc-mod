@@ -30,15 +30,20 @@
 #include "prime/LanguageManager.h"
 #include "prime/NavigationInteractionUIViewController.h"
 #include "prime/NavigationSectionManager.h"
+#include "prime/OfficerAssignmentViewController.h"
+#include "prime/PlanetaryBaseManager.h"
 #include "prime/PreScanTargetWidget.h"
 #include "prime/ScanEngageButtonsWidget.h"
 #include "prime/ScreenManager.h"
 #include "prime/SelectableList.h"
+#include "prime/ShipManagementViewController.h"
+#include "prime/ShipManagementScreenStateViewController.h"
 #include "prime/ShortcutsManager.h"
 
 #include "patches/key.h"
 #include "patches/mapkey.h"
 #include "patches/parts/daily_faction_bulk_claim.h"
+#include "patches/parts/double_click_assign_ship.h"
 #include "patches/parts/focus_search.h"
 #include "str_utils.h"
 
@@ -63,8 +68,12 @@
 #include <Windows.h>
 #endif
 
-static bool reset_focus_next_frame = false;
-static int  show_info_pending      = 0;
+static bool reset_focus_next_frame             = false;
+static int  show_info_pending                  = 0;
+static int  show_officer_presets_pending       = 0;
+static int  show_officer_swap_pending          = 0;
+static int  show_ship_swap_pending             = 0;
+static bool officer_presets_assignment_opened = false;
 
 using GetShowKeybindingsFn     = bool(void*);
 using SetShowKeybindingsFn     = void(void*, bool);
@@ -442,6 +451,133 @@ bool MoveShipSelectionInDock(bool goLeft)
   return acted;
 }
 
+bool MoveDockInManagementView(bool goLeft)
+{
+  if (!Config::Get().arrow_keys_to_select_ship) {
+    return false;
+  }
+
+  auto* section_manager = Hub::get_SectionManager();
+  if (!section_manager || section_manager->CurrentSection != SectionID::ShipManagement_Details) {
+    return false;
+  }
+
+  bool acted = false;
+  for (auto controller : ObjectFinder<ShipManagementViewController>::GetAll()) {
+    if (!controller || !controller->isActiveAndEnabled) {
+      continue;
+    }
+
+    auto canvas = GetCanvasControllerFromComponent(controller);
+    if (!canvas || !canvas->Visible()) {
+      spdlog::trace("MoveDockInManagementView({}) - controller={} not visible", (int)goLeft, (void*)controller);
+      continue;
+    }
+
+    auto* context = controller->Context();
+    if (!context) {
+      spdlog::trace("MoveDockInManagementView({}) - controller={} has no context", (int)goLeft,
+                    (void*)controller);
+      continue;
+    }
+
+    const int32_t count   = context->ListCount();
+    const int32_t current = context->CurrentIndex();
+    if (count <= 1 || current < 0) {
+      spdlog::trace("MoveDockInManagementView({}) - context={} index={} count={}", (int)goLeft, (void*)context,
+                    current, count);
+      continue;
+    }
+
+    const auto next = current + (goLeft ? -1 : 1);
+    if (next < 0 || next >= count) {
+      spdlog::trace("MoveDockInManagementView({}) - no further dock (index={} count={})", (int)goLeft, current, count);
+      continue;
+    }
+
+    spdlog::debug("MoveDockInManagementView({}) - switching dock {} -> {}", (int)goLeft, current, next);
+    context->SetLastMovementWasToIncrement(!goLeft);
+    context->SetCurrentIndex(next);
+    acted = true;
+  }
+
+  return acted;
+}
+
+bool PressShipSwapButton()
+{
+  for (auto controller : ObjectFinder<ShipManagementScreenStateViewController>::GetAll()) {
+    if (!controller) {
+      continue;
+    }
+
+    auto canvas = GetCanvasControllerFromComponent(controller);
+    if (!canvas || !canvas->Visible() || !controller->isActiveAndEnabled) {
+      continue;
+    }
+
+    auto* button = controller->_swapShipButton;
+    if (button) {
+      spdlog::info("[ShipSwap] pressing swap button controller={} button={}", static_cast<void*>(controller),
+                   static_cast<void*>(button));
+      button->Press();
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool PressOfficerSwapButton()
+{
+  for (auto controller : ObjectFinder<ShipManagementScreenStateViewController>::GetAll()) {
+    if (!controller) {
+      continue;
+    }
+
+    auto canvas = GetCanvasControllerFromComponent(controller);
+    if (!canvas || !canvas->Visible() || !controller->isActiveAndEnabled) {
+      continue;
+    }
+
+    auto* button = controller->_officerIconButton;
+    if (button) {
+      spdlog::info("[OfficerSwap] pressing officer button controller={} button={}", static_cast<void*>(controller),
+                   static_cast<void*>(button));
+      button->Press();
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool PressOfficerPresetsButton()
+{
+  for (auto controller : ObjectFinder<OfficerAssignmentViewController>::GetAll()) {
+    if (!controller) {
+      continue;
+    }
+
+    auto canvas = GetCanvasControllerFromComponent(controller);
+    if (!canvas || !canvas->Visible() || !controller->isActiveAndEnabled) {
+      continue;
+    }
+
+    auto* button = controller->_officerPresetsButton;
+    auto* listener = button ? button->SemaphoreListener : nullptr;
+    auto* native_button = listener ? listener->TheButton : nullptr;
+    if (native_button) {
+      spdlog::info("[OfficerPresets] pressing presets button controller={} button={}",
+                   static_cast<void*>(controller), static_cast<void*>(button));
+      native_button->Press();
+      return true;
+    }
+  }
+
+  return false;
+}
+
 void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
 {
   dispatch_screen_manager_update_callbacks();
@@ -467,6 +603,50 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
     Config::Get().hotkeys_enabled = true;
     spdlog::warn("Setting hotkeys to ENABLED");
     return;
+  }
+
+  // Per-frame driver - must run every frame, before the hotkey-mode
+  // early-returns below (it must also run in Scopely-hotkey mode and
+  // while hotkeys are toggled off).
+  AssignShipEnterKeyUpdate();
+
+  if (show_officer_presets_pending > 0) {
+    if (PressOfficerPresetsButton()) {
+      show_officer_presets_pending       = 0;
+      officer_presets_assignment_opened = false;
+      return;
+    }
+
+    if (!officer_presets_assignment_opened && PressOfficerSwapButton()) {
+      officer_presets_assignment_opened = true;
+    }
+
+    if (--show_officer_presets_pending == 0) {
+      officer_presets_assignment_opened = false;
+      spdlog::warn("[Hotkeys] timed out waiting for the Officer Presets button");
+    }
+  }
+
+  if (show_officer_swap_pending > 0) {
+    if (PressOfficerSwapButton()) {
+      show_officer_swap_pending = 0;
+      return;
+    }
+
+    if (--show_officer_swap_pending == 0) {
+      spdlog::warn("[Hotkeys] timed out waiting for the Officer Swap button");
+    }
+  }
+
+  if (show_ship_swap_pending > 0) {
+    if (PressShipSwapButton()) {
+      show_ship_swap_pending = 0;
+      return;
+    }
+
+    if (--show_ship_swap_pending == 0) {
+      spdlog::warn("[Hotkeys] timed out waiting for the Ship Swap button");
+    }
   }
 
   if (Config::Get().use_scopely_hotkeys && Config::Get().hotkeys_enabled) {
@@ -626,20 +806,22 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
       }
 
       if (MapKey::IsDown(GameFunction::MoveLeft)) {
-        auto const result = MoveShipSelectionInDock(true) || MoveArtifactCanvas(true) || MoveOfficerCanvas(true);
+        auto const result = MoveDockInManagementView(true) || MoveShipSelectionInDock(true) || MoveArtifactCanvas(true)
+                            || MoveOfficerCanvas(true);
         if (result) {
           return;
         }
       }
 
       if (MapKey::IsDown(GameFunction::MoveRight)) {
-        auto const result = MoveShipSelectionInDock(false) || MoveArtifactCanvas(false) || MoveOfficerCanvas(false);
+        auto const result = MoveDockInManagementView(false) || MoveShipSelectionInDock(false)
+                            || MoveArtifactCanvas(false) || MoveOfficerCanvas(false);
         if (result) {
           return;
         }
       }
 
-      if (Config::Get().installFocusSearchHooks && MapKey::IsDown(GameFunction::FocusSearch)) {
+      if (Config::Get().focus_search && MapKey::IsDown(GameFunction::FocusSearch)) {
         if (FocusSearchBox()) {
           return;
         }
@@ -675,12 +857,53 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
         return ChangeNavigationSection(SectionID::Navigation_Galaxy);
       } else if (MapKey::IsDown(GameFunction::ShowStationInterior)) {
         return GotoSection(SectionID::Starbase_Interior);
+      } else if (MapKey::IsDown(GameFunction::ShowHaven)) {
+        return PlanetaryBaseManager::ViewOwnHaven();
       } else if (MapKey::IsDown(GameFunction::ShowSystem)) {
         return ChangeNavigationSection(SectionID::Navigation_System);
       } else if (MapKey::IsDown(GameFunction::ShowArtifacts)) {
         return GotoSection(SectionID::ArtifactHall_Inventory);
       } else if (MapKey::IsDown(GameFunction::ShowShipConstruction)) {
         InvokeNativeShortcut(show_shipconstruction_action, "Ship Construction");
+        return;
+      } else if (MapKey::IsDown(GameFunction::ShowOfficerSwap)) {
+        auto* section_manager = Hub::get_SectionManager();
+        spdlog::info("[OfficerSwap] shortcut pressed current_section={}",
+                     section_manager ? static_cast<int32_t>(section_manager->CurrentSection) : 0);
+        if (PressOfficerSwapButton()) {
+          return;
+        }
+
+        auto* fleet_bar        = ObjectFinder<FleetBarViewController>::Get();
+        auto* fleet_controller = fleet_bar ? fleet_bar->_fleetPanelController : nullptr;
+        auto* fleet            = fleet_controller ? fleet_controller->fleet : nullptr;
+        if (fleet) {
+          spdlog::info("[OfficerSwap] requesting Manage Ships before officer assignment fleet={}",
+                       static_cast<void*>(fleet));
+          fleet_controller->RequestAction(fleet, ActionType::Manage, 0, ActionBehaviour::Default);
+          show_officer_swap_pending = 300;
+        } else {
+          spdlog::warn("[Hotkeys] unable to open Manage Ships for Officer Swap");
+        }
+        return;
+      } else if (MapKey::IsDown(GameFunction::ShowShipSwap)) {
+        auto* section_manager = Hub::get_SectionManager();
+        spdlog::info("[ShipSwap] shortcut pressed current_section={}",
+                     section_manager ? static_cast<int32_t>(section_manager->CurrentSection) : 0);
+        if (PressShipSwapButton()) {
+          return;
+        }
+
+        auto* fleet_bar        = ObjectFinder<FleetBarViewController>::Get();
+        auto* fleet_controller = fleet_bar ? fleet_bar->_fleetPanelController : nullptr;
+        auto* fleet            = fleet_controller ? fleet_controller->fleet : nullptr;
+        if (fleet) {
+          spdlog::info("[ShipSwap] requesting Manage Ships before swap fleet={}", static_cast<void*>(fleet));
+          fleet_controller->RequestAction(fleet, ActionType::Manage, 0, ActionBehaviour::Default);
+          show_ship_swap_pending = 300;
+        } else {
+          spdlog::warn("[Hotkeys] unable to open Manage Ships for Ship Swap");
+        }
         return;
       } else if (MapKey::IsDown(GameFunction::ShowShields)) {
         InvokeNativeShortcut(show_shields_action, "Peace Shields");
@@ -698,6 +921,27 @@ void ScreenManager_Update_Hook(auto original, ScreenManager* _this)
         return GotoSection(SectionID::ShipScrapping_List);
       } else if (MapKey::IsDown(GameFunction::ShowOfficers)) {
         return GotoSection(SectionID::OfficerInventory);
+      } else if (MapKey::IsDown(GameFunction::ShowOfficerPresets)) {
+        if (PressOfficerPresetsButton()) {
+          return;
+        }
+
+        officer_presets_assignment_opened = PressOfficerSwapButton();
+        if (!officer_presets_assignment_opened) {
+          auto* fleet_bar        = ObjectFinder<FleetBarViewController>::Get();
+          auto* fleet_controller = fleet_bar ? fleet_bar->_fleetPanelController : nullptr;
+          auto* fleet            = fleet_controller ? fleet_controller->fleet : nullptr;
+          if (fleet) {
+            spdlog::info("[OfficerPresets] requesting Manage Ships before officer presets fleet={}",
+                         static_cast<void*>(fleet));
+            fleet_controller->RequestAction(fleet, ActionType::Manage, 0, ActionBehaviour::Default);
+          } else {
+            spdlog::warn("[Hotkeys] unable to open Manage Ships for Officer Presets");
+            return;
+          }
+        }
+        show_officer_presets_pending = 300;
+        return;
       } else if (MapKey::IsDown(GameFunction::ShowCommander)) {
         // TODO: Does not work properly, defaults to first FleetCommander (spock, rather than selected fleet
         // commander)

@@ -288,7 +288,9 @@ static RelocationResult do_far_relocations(
     relocation_offsets.emplace_back(std::pair{relo.address, relocation_offset});
     r_meta.gen_relo_code(target, relo, relocation_info, data_label, assembler);
     const auto relocated_size = assembler.offset();
-    relocation_offset +=
+    // assembler.offset() already includes every earlier expansion. Store the
+    // total displacement; adding it again misplaces later branch immediates.
+    relocation_offset =
         relocated_size - relo.address - relo.instruction.length;
   }
 
