@@ -16,6 +16,7 @@ class SyncConfig
 {
 public:
   enum class Type {
+    AwayAssignments,
     Battles,
     Buffs,
     Buildings,
@@ -42,26 +43,29 @@ public:
 
   std::string proxy;
 
-  bool verify_ssl = true;
-  bool battlelogs = false;
-  bool buffs      = false;
-  bool buildings  = true;
-  bool haven      = true;
-  bool inventory  = false;
-  bool jobs       = false;
-  bool missions   = false;
-  bool officer    = false;
-  bool research   = true;
-  bool resources  = false;
-  bool ships      = false;
-  bool slots      = false;
-  bool tech       = false;
-  bool traits     = false;
+  bool verify_ssl       = true;
+  bool away_assignments = false;
+  bool battlelogs       = false;
+  bool buffs            = false;
+  bool buildings        = true;
+  bool haven            = true;
+  bool inventory        = false;
+  bool jobs             = false;
+  bool missions         = false;
+  bool officers         = false;
+  bool research         = true;
+  bool resources        = false;
+  bool ships            = false;
+  bool slots            = false;
+  bool tech             = false;
+  bool traits           = false;
 
   [[nodiscard]] bool enabled(Type type) const;
 };
 
 constexpr std::array SyncOptions{
+    SyncConfig::Option{SyncConfig::Type::AwayAssignments, "away_assignment", "away_assignments",
+                       &SyncConfig::away_assignments},
     SyncConfig::Option{SyncConfig::Type::Battles, "battlelog", "battlelogs", &SyncConfig::battlelogs},
     SyncConfig::Option{SyncConfig::Type::Buffs, "buff", "buffs", &SyncConfig::buffs},
     SyncConfig::Option{SyncConfig::Type::Buildings, "module", "buildings", &SyncConfig::buildings},
@@ -70,7 +74,7 @@ constexpr std::array SyncOptions{
     SyncConfig::Option{SyncConfig::Type::Inventory, "inventory", "inventory", &SyncConfig::inventory},
     SyncConfig::Option{SyncConfig::Type::Jobs, "job", "jobs", &SyncConfig::jobs},
     SyncConfig::Option{SyncConfig::Type::Missions, "mission", "missions", &SyncConfig::missions},
-    SyncConfig::Option{SyncConfig::Type::Officer, "officer", "officer", &SyncConfig::officer},
+    SyncConfig::Option{SyncConfig::Type::Officer, "officer", "officers", &SyncConfig::officers},
     SyncConfig::Option{SyncConfig::Type::Research, "research", "research", &SyncConfig::research},
     SyncConfig::Option{SyncConfig::Type::Resources, "resource", "resources", &SyncConfig::resources},
     SyncConfig::Option{SyncConfig::Type::Ships, "ship", "ships", &SyncConfig::ships},
@@ -162,7 +166,7 @@ public:
   Config& operator=(Config&&)      = delete;
 
   float             ui_scale;
-  float             ui_scale_adjust;
+  float             ui_scale_step;
   float             ui_scale_ship;
   float             ui_scale_viewer;
   float             zoom;
@@ -235,7 +239,7 @@ public:
 
   bool double_click_to_assign_ship;
   bool focus_search;
-  bool cargo_format;
+  bool format_cargo_values;
   bool officer_sort;
   bool arrow_keys_to_select_ship;
 
@@ -267,6 +271,7 @@ public:
   bool installTestPatches;
   bool installMiscPatches;
   bool installMissionHudTweaksHooks;
+  bool disable_exchange_all;
   bool installChatPatches;
   bool installSyncPatches;
   bool installGameVersionHook;
@@ -279,6 +284,7 @@ public:
   bool installForbiddenTechConfirmationHooks;
   bool installInstantWarpConfirmationHooks;
   bool installAudioEventHooks;
+  bool installArtifactExchangeHooks;
 
   std::string config_settings_url;
   std::string config_assets_url_override;
