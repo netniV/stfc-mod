@@ -3,6 +3,7 @@
 #include <il2cpp/il2cpp_helper.h>
 #include <il2cpp/method_contract.h>
 #include <prime/Camera.h>
+#include <prime/Vector3.h>
 #include <spdlog/spdlog.h>
 #include <spud/detour.h>
 
@@ -25,9 +26,6 @@ FieldInfo        *frame_position = nullptr, *frame_rotation = nullptr, *frame_fo
 FieldInfo        *frame_far_clip = nullptr, *frame_orthographic = nullptr;
 const MethodInfo *curve_evaluate = nullptr;
 
-struct HavenVector {
-  float x, y, z;
-};
 struct HavenRotation {
   float x, y, z, w;
 };
@@ -106,7 +104,7 @@ void HavenCamera_UpdateCameraFrame_Hook(auto original, Il2CppObject *provider, C
       || !std::isfinite(maximum) || !std::isfinite(ratio) || minimum < 0.0f || maximum > 1.0f || maximum <= minimum)
     return;
 
-  auto       position        = ReadHavenField<HavenVector>(result, frame_position);
+  auto       position        = ReadHavenField<Vector3>(result, frame_position);
   const auto ar              = ReadHavenField<HavenRotation>(source_frame, frame_rotation);
   const auto br              = ReadHavenField<HavenRotation>(target_frame, frame_rotation);
   const auto af              = ReadHavenField<float>(source_frame, frame_fov);
