@@ -173,6 +173,7 @@ public:
   float             ui_scale_ship;
   float             ui_scale_viewer;
   float             zoom;
+  float             haven_zoom;
   float             fr_scale;
   FleetLabelProfile zoom_label_player;
   FleetLabelProfile zoom_label_non_player;
@@ -269,6 +270,7 @@ public:
 
   bool installUiScaleHooks;
   bool installZoomHooks;
+  bool installHavenZoomHooks;
   bool installBuffFixHooks;
   bool installToastBannerHooks;
   bool installPanHooks;
