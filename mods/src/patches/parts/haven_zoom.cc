@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <utility>
 
 void ApplyHavenRoadDepthBias();
 
@@ -30,43 +31,25 @@ struct HavenRotation {
   float x, y, z, w;
 };
 
-FieldInfo *HavenField(Il2CppClass *cls, const char *name, const char *type)
-{
-  auto *field = cls != nullptr ? il2cpp_class_get_field_from_name(cls, name) : nullptr;
-  return field != nullptr && !(il2cpp_field_get_flags(field) & FIELD_ATTRIBUTE_STATIC)
-                 && method_contract::Type(field->type, type)
-             ? field
-             : nullptr;
-}
-
-FieldInfo *HavenReferenceField(Il2CppClass *cls, const char *name, Il2CppClass *expected)
-{
-  auto *field = cls != nullptr ? il2cpp_class_get_field_from_name(cls, name) : nullptr;
-  return field != nullptr && field->type != nullptr && !field->type->byref && expected != nullptr
-                 && !(il2cpp_field_get_flags(field) & FIELD_ATTRIBUTE_STATIC) && !il2cpp_class_is_valuetype(expected)
-                 && il2cpp_class_from_type(field->type) == expected
-             ? field
-             : nullptr;
-}
-
-template <typename T> T ReadHavenField(Il2CppObject *object, FieldInfo *field)
-{
-  T value{};
-  il2cpp_field_get_value(object, field, &value);
-  return value;
-}
-
 bool ReadHavenRadius(Il2CppObject *provider, float &radius)
 {
   if (provider == nullptr || !il2cpp_class_is_assignable_from(planetary_provider_class, provider->klass))
     return false;
-  auto *constraint = ReadHavenField<Il2CppObject *>(provider, provider_constraint);
-  auto *data       = constraint != nullptr ? ReadHavenField<Il2CppObject *>(constraint, constraint_radius) : nullptr;
-  if (data == nullptr || !ReadHavenField<bool>(data, radius_enabled))
+  Il2CppObject *constraint = nullptr, *data = nullptr;
+  il2cpp_field_get_value(provider, provider_constraint, &constraint);
+  if (constraint == nullptr)
     return false;
-  const auto minimum = ReadHavenField<float>(data, radius_minimum);
-  const auto maximum = ReadHavenField<float>(data, radius_maximum);
-  radius             = ReadHavenField<float>(provider, provider_radius);
+  il2cpp_field_get_value(constraint, constraint_radius, &data);
+  if (data == nullptr)
+    return false;
+  bool enabled = false;
+  il2cpp_field_get_value(data, radius_enabled, &enabled);
+  if (!enabled)
+    return false;
+  float minimum = 0.0f, maximum = 0.0f;
+  il2cpp_field_get_value(data, radius_minimum, &minimum);
+  il2cpp_field_get_value(data, radius_maximum, &maximum);
+  il2cpp_field_get_value(provider, provider_radius, &radius);
   return std::isfinite(radius) && std::isfinite(maximum) && maximum > 0.0f && minimum == maximum
          && std::abs(radius - maximum) < 0.01f;
 }
@@ -80,35 +63,47 @@ void HavenCamera_UpdateCameraFrame_Hook(auto original, Il2CppObject *provider, C
   if (provider == nullptr || !std::isfinite(max_zoom) || max_zoom <= 0.0f)
     return;
 
-  auto *source        = ReadHavenField<Il2CppObject *>(provider, blend_source);
-  auto *target        = ReadHavenField<Il2CppObject *>(provider, blend_target);
+  Il2CppObject *source = nullptr, *target = nullptr;
+  il2cpp_field_get_value(provider, blend_source, &source);
+  il2cpp_field_get_value(provider, blend_target, &target);
   float source_radius = 0.0f, target_radius = 0.0f;
   if (!ReadHavenRadius(source, source_radius) || !ReadHavenRadius(target, target_radius)
       || source_radius == target_radius || max_zoom <= std::max(source_radius, target_radius))
     return;
 
-  auto *pivot = ReadHavenField<Il2CppObject *>(source, provider_pivot);
-  if (pivot == nullptr || ReadHavenField<Il2CppObject *>(target, provider_pivot) != pivot
-      || ReadHavenField<Il2CppObject *>(source, provider_look_target) != pivot
-      || ReadHavenField<Il2CppObject *>(target, provider_look_target) != pivot)
+  Il2CppObject *pivot = nullptr, *target_pivot = nullptr, *source_look_target = nullptr, *target_look_target = nullptr;
+  il2cpp_field_get_value(source, provider_pivot, &pivot);
+  il2cpp_field_get_value(target, provider_pivot, &target_pivot);
+  il2cpp_field_get_value(source, provider_look_target, &source_look_target);
+  il2cpp_field_get_value(target, provider_look_target, &target_look_target);
+  if (pivot == nullptr || target_pivot != pivot || source_look_target != pivot || target_look_target != pivot)
     return;
-  auto      *source_frame = ReadHavenField<Il2CppObject *>(provider, blend_source_frame);
-  auto      *target_frame = ReadHavenField<Il2CppObject *>(provider, blend_target_frame);
-  auto      *result       = ReadHavenField<Il2CppObject *>(provider, blend_result_frame);
-  auto      *curve        = ReadHavenField<Il2CppObject *>(provider, blend_curve);
-  const auto minimum      = ReadHavenField<float>(provider, blend_minimum);
-  const auto maximum      = ReadHavenField<float>(provider, blend_maximum);
-  const auto ratio        = ReadHavenField<float>(provider, blend_ratio);
+  Il2CppObject *source_frame = nullptr, *target_frame = nullptr, *result = nullptr, *curve = nullptr;
+  float         minimum = 0.0f, maximum = 0.0f, ratio = 0.0f;
+  il2cpp_field_get_value(provider, blend_source_frame, &source_frame);
+  il2cpp_field_get_value(provider, blend_target_frame, &target_frame);
+  il2cpp_field_get_value(provider, blend_result_frame, &result);
+  il2cpp_field_get_value(provider, blend_curve, &curve);
+  il2cpp_field_get_value(provider, blend_minimum, &minimum);
+  il2cpp_field_get_value(provider, blend_maximum, &maximum);
+  il2cpp_field_get_value(provider, blend_ratio, &ratio);
   if (source_frame == nullptr || target_frame == nullptr || result == nullptr || curve == nullptr
       || source_frame == target_frame || result == source_frame || result == target_frame || !std::isfinite(minimum)
       || !std::isfinite(maximum) || !std::isfinite(ratio) || minimum < 0.0f || maximum > 1.0f || maximum <= minimum)
     return;
 
-  auto       position        = ReadHavenField<Vector3>(result, frame_position);
-  const auto ar              = ReadHavenField<HavenRotation>(source_frame, frame_rotation);
-  const auto br              = ReadHavenField<HavenRotation>(target_frame, frame_rotation);
-  const auto af              = ReadHavenField<float>(source_frame, frame_fov);
-  const auto bf              = ReadHavenField<float>(target_frame, frame_fov);
+  Vector3       position{};
+  HavenRotation ar{}, br{};
+  float         af = 0.0f, bf = 0.0f;
+  bool          source_orthographic = false, target_orthographic = false, result_orthographic = false;
+  il2cpp_field_get_value(result, frame_position, &position);
+  il2cpp_field_get_value(source_frame, frame_rotation, &ar);
+  il2cpp_field_get_value(target_frame, frame_rotation, &br);
+  il2cpp_field_get_value(source_frame, frame_fov, &af);
+  il2cpp_field_get_value(target_frame, frame_fov, &bf);
+  il2cpp_field_get_value(source_frame, frame_orthographic, &source_orthographic);
+  il2cpp_field_get_value(target_frame, frame_orthographic, &target_orthographic);
+  il2cpp_field_get_value(result, frame_orthographic, &result_orthographic);
   const auto rotation_dot    = ar.x * br.x + ar.y * br.y + ar.z * br.z + ar.w * br.w;
   const auto gap             = std::abs(source_radius - target_radius);
   const auto rotation_length = ar.x * ar.x + ar.y * ar.y + ar.z * ar.z + ar.w * ar.w;
@@ -116,8 +111,7 @@ void HavenCamera_UpdateCameraFrame_Hook(auto original, Il2CppObject *provider, C
   // Preserve native output when a client changes that geometry or camera mode.
   if (!std::isfinite(rotation_length) || std::abs(rotation_length - 1.0f) > 0.0001f || !std::isfinite(rotation_dot)
       || std::abs(std::abs(rotation_dot) - 1.0f) > 0.0001f || !std::isfinite(af) || !std::isfinite(bf) || af <= 0.0f
-      || std::abs(af - bf) > 0.001f || ReadHavenField<bool>(source_frame, frame_orthographic)
-      || ReadHavenField<bool>(target_frame, frame_orthographic) || ReadHavenField<bool>(result, frame_orthographic))
+      || std::abs(af - bf) > 0.001f || source_orthographic || target_orthographic || result_orthographic)
     return;
 
   const auto evaluate =
@@ -151,7 +145,8 @@ void HavenCamera_UpdateCameraFrame_Hook(auto original, Il2CppObject *provider, C
   position.x += static_cast<float>(-2.0 * (ar.x * ar.z + ar.w * ar.y) * extra);
   position.y += static_cast<float>(-2.0 * (ar.y * ar.z - ar.w * ar.x) * extra);
   position.z += static_cast<float>((2.0 * (ar.x * ar.x + ar.y * ar.y) - 1.0) * extra);
-  auto clip = ReadHavenField<float>(result, frame_far_clip);
+  float clip = 0.0f;
+  il2cpp_field_get_value(result, frame_far_clip, &clip);
   if (!std::isfinite(clip) || clip <= 0.0f)
     return;
   clip += static_cast<float>(extra);
@@ -183,58 +178,114 @@ void InstallHavenZoomHooks()
   auto frame      = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.CameraController", "CameraFrame");
   auto editable   = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.CameraController", "EditableCameraFrame");
   auto curve      = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "AnimationCurve");
-  Il2CppClass *radius_class = nullptr;
-  if (constraint.get_cls() != nullptr) {
-    void *iterator = nullptr;
-    while (auto *nested = il2cpp_class_get_nested_types(constraint.get_cls(), &iterator)) {
-      if (std::strcmp(il2cpp_class_get_name(nested), "FloatData") == 0) {
-        radius_class = nested;
-        break;
-      }
+  for (const auto &[name, helper] : {std::pair{"BlendFrameProvider", &blend},
+                                     {"FrameProvider", &frame_provider},
+                                     {"AbstractOrbitFrameProvider", &orbit},
+                                     {"AbstractTargetController", &target},
+                                     {"PlanetaryOrbitFrameProvider", &planetary},
+                                     {"OrbitConstraint", &orbit_constraint},
+                                     {"Constraint", &constraint},
+                                     {"CameraFrame", &frame},
+                                     {"EditableCameraFrame", &editable},
+                                     {"AnimationCurve", &curve}}) {
+    if (helper->get_cls() == nullptr) {
+      spdlog::warn("[HavenZoom] class {} not found; skipping hook installation and keeping native zoom range", name);
+      return;
     }
   }
-  const auto *update =
+  Il2CppClass *radius_class = nullptr;
+  void        *iterator     = nullptr;
+  while (auto *nested = il2cpp_class_get_nested_types(constraint.get_cls(), &iterator)) {
+    if (std::strcmp(il2cpp_class_get_name(nested), "FloatData") == 0) {
+      radius_class = nested;
+      break;
+    }
+  }
+  if (radius_class == nullptr) {
+    spdlog::warn("[HavenZoom] nested class Constraint.FloatData not found; skipping hook installation and keeping "
+                 "native zoom range");
+    return;
+  }
+  IL2CppClassHelper radius(radius_class);
+  const auto       *update =
       method_contract::Resolve(blend.get_cls(), "UpdateCameraFrame", false, "System.Void", {"UnityEngine.Camera"});
   curve_evaluate = method_contract::Resolve(curve.get_cls(), "Evaluate", false, "System.Single", {"System.Single"});
   planetary_provider_class = planetary.get_cls();
-  blend_source             = HavenReferenceField(blend.get_cls(), "_sourceFrameProvider", frame_provider.get_cls());
-  blend_target             = HavenReferenceField(blend.get_cls(), "_targetFrameProvider", frame_provider.get_cls());
-  blend_curve              = HavenReferenceField(blend.get_cls(), "_blendCurve", curve.get_cls());
-  blend_minimum            = HavenField(blend.get_cls(), "_softLimitMin", "System.Single");
-  blend_maximum            = HavenField(blend.get_cls(), "_softLimitMax", "System.Single");
-  blend_ratio              = HavenField(blend.get_cls(), "_blendRatio", "System.Single");
-  blend_source_frame       = HavenReferenceField(blend.get_cls(), "_sourceFrame", frame.get_cls());
-  blend_target_frame       = HavenReferenceField(blend.get_cls(), "_targetFrame", frame.get_cls());
-  blend_result_frame       = HavenReferenceField(blend.get_cls(), "_blendedCameraFrame", editable.get_cls());
-  provider_constraint      = HavenReferenceField(orbit.get_cls(), "_constraint", orbit_constraint.get_cls());
-  provider_radius          = HavenField(orbit.get_cls(), "_radius", "System.Single");
-  provider_pivot           = HavenReferenceField(orbit.get_cls(), "_orbitPivot", target.get_cls());
-  provider_look_target     = HavenReferenceField(orbit.get_cls(), "_lookTarget", target.get_cls());
-  constraint_radius        = HavenReferenceField(orbit_constraint.get_cls(), "_radius", radius_class);
-  radius_enabled           = HavenField(radius_class, "_enabled", "System.Boolean");
-  radius_minimum           = HavenField(radius_class, "_min", "System.Single");
-  radius_maximum           = HavenField(radius_class, "_max", "System.Single");
-  frame_position           = HavenField(frame.get_cls(), "_position", "UnityEngine.Vector3");
-  frame_rotation           = HavenField(frame.get_cls(), "_rotation", "UnityEngine.Quaternion");
-  frame_fov                = HavenField(frame.get_cls(), "_FOV", "System.Single");
-  frame_far_clip           = HavenField(frame.get_cls(), "_farPlane", "System.Single");
-  frame_orthographic       = HavenField(frame.get_cls(), "_orthographic", "System.Boolean");
-  if (update == nullptr || update->has_full_generic_sharing_signature || curve_evaluate == nullptr
-      || curve_evaluate->has_full_generic_sharing_signature || planetary_provider_class == nullptr
-      || orbit.get_cls() == nullptr || !il2cpp_class_is_assignable_from(orbit.get_cls(), planetary_provider_class)) {
-    spdlog::warn("[HavenZoom] camera API unavailable; keeping native zoom range");
+  if (update == nullptr || update->has_full_generic_sharing_signature) {
+    spdlog::warn("[HavenZoom] BlendFrameProvider.UpdateCameraFrame(UnityEngine.Camera) instance void method "
+                 "unavailable or incompatible; skipping hook installation and keeping native zoom range");
     return;
   }
-  for (auto *field :
-       {blend_source,       blend_target,        blend_curve,          blend_minimum,      blend_maximum,
-        blend_ratio,        provider_pivot,      provider_look_target, blend_source_frame, blend_target_frame,
-        blend_result_frame, provider_constraint, provider_radius,      constraint_radius,  radius_enabled,
-        radius_minimum,     radius_maximum,      frame_position,       frame_rotation,     frame_fov,
-        frame_far_clip,     frame_orthographic}) {
-    if (field == nullptr) {
-      spdlog::warn("[HavenZoom] camera fields unavailable; keeping native zoom range");
+  if (curve_evaluate == nullptr || curve_evaluate->has_full_generic_sharing_signature) {
+    spdlog::warn("[HavenZoom] AnimationCurve.Evaluate(System.Single) instance float method unavailable or "
+                 "incompatible; skipping hook installation and keeping native zoom range");
+    return;
+  }
+  if (!il2cpp_class_is_assignable_from(orbit.get_cls(), planetary_provider_class)) {
+    spdlog::warn("[HavenZoom] PlanetaryOrbitFrameProvider no longer derives from AbstractOrbitFrameProvider; skipping "
+                 "hook installation and keeping native zoom range");
+    return;
+  }
+  struct FieldBinding {
+    FieldInfo        **destination;
+    IL2CppClassHelper *owner;
+    const char        *name, *value_type;
+    Il2CppClass       *reference_type;
+  };
+  const FieldBinding fields[] = {
+      {&blend_source, &blend, "_sourceFrameProvider", nullptr, frame_provider.get_cls()},
+      {&blend_target, &blend, "_targetFrameProvider", nullptr, frame_provider.get_cls()},
+      {&blend_curve, &blend, "_blendCurve", nullptr, curve.get_cls()},
+      {&blend_minimum, &blend, "_softLimitMin", "System.Single", nullptr},
+      {&blend_maximum, &blend, "_softLimitMax", "System.Single", nullptr},
+      {&blend_ratio, &blend, "_blendRatio", "System.Single", nullptr},
+      {&blend_source_frame, &blend, "_sourceFrame", nullptr, frame.get_cls()},
+      {&blend_target_frame, &blend, "_targetFrame", nullptr, frame.get_cls()},
+      {&blend_result_frame, &blend, "_blendedCameraFrame", nullptr, editable.get_cls()},
+      {&provider_constraint, &orbit, "_constraint", nullptr, orbit_constraint.get_cls()},
+      {&provider_radius, &orbit, "_radius", "System.Single", nullptr},
+      {&provider_pivot, &orbit, "_orbitPivot", nullptr, target.get_cls()},
+      {&provider_look_target, &orbit, "_lookTarget", nullptr, target.get_cls()},
+      {&constraint_radius, &orbit_constraint, "_radius", nullptr, radius_class},
+      {&radius_enabled, &radius, "_enabled", "System.Boolean", nullptr},
+      {&radius_minimum, &radius, "_min", "System.Single", nullptr},
+      {&radius_maximum, &radius, "_max", "System.Single", nullptr},
+      {&frame_position, &frame, "_position", "UnityEngine.Vector3", nullptr},
+      {&frame_rotation, &frame, "_rotation", "UnityEngine.Quaternion", nullptr},
+      {&frame_fov, &frame, "_FOV", "System.Single", nullptr},
+      {&frame_far_clip, &frame, "_farPlane", "System.Single", nullptr},
+      {&frame_orthographic, &frame, "_orthographic", "System.Boolean", nullptr},
+  };
+  for (const auto &binding : fields) {
+    auto       *field   = binding.owner->GetField(binding.name).get_info();
+    const char *failure = nullptr;
+    if (field == nullptr)
+      failure = "field not found";
+    else if (il2cpp_field_get_flags(field) & FIELD_ATTRIBUTE_STATIC)
+      failure = "field became static";
+    else if (field->type == nullptr || field->type->byref)
+      failure = "missing or by-reference field type";
+    else if (binding.reference_type != nullptr) {
+      if (il2cpp_class_is_valuetype(binding.reference_type)
+          || il2cpp_class_from_type(field->type) != binding.reference_type)
+        failure = "incompatible reference type";
+    } else if (!method_contract::Type(field->type, binding.value_type)) {
+      failure = "incompatible value type";
+    }
+    if (failure != nullptr) {
+      auto *actual = field && field->type ? il2cpp_type_get_name(field->type) : nullptr;
+      auto *expected =
+          binding.reference_type ? il2cpp_type_get_name(il2cpp_class_get_type(binding.reference_type)) : nullptr;
+      spdlog::warn(
+          "[HavenZoom] {}.{}: {}; expected instance {}, found {}. Skipping hook installation; native zoom retained",
+          il2cpp_class_get_name(binding.owner->get_cls()), binding.name, failure,
+          expected ? expected : (binding.value_type ? binding.value_type : "<reference type>"),
+          actual ? actual : "<unavailable>");
+      il2cpp_free(expected);
+      il2cpp_free(actual);
       return;
     }
+    *binding.destination = field;
   }
   // [patches].havenzoomhooks controls installation independently of haven_zoom.
   if (SPUD_STATIC_DETOUR(update->methodPointer, HavenCamera_UpdateCameraFrame_Hook)) {
