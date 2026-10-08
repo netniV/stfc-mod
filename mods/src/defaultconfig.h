@@ -104,6 +104,7 @@ namespace Patches
   constexpr bool cargoformathooks           = true; // on by default: cargo number precision override
   constexpr bool officersorthooks           = true; // restore Below Deck Ability sort option
   constexpr bool pinnedshiphooks            = true; // pin configured ships to front of fleet dock sort
+  constexpr bool havenhistoryhooks          = true; // reverse Haven help history into newest-first order
 } // namespace Patches
 
 namespace Shortcuts
@@ -271,6 +272,7 @@ namespace UI
   constexpr bool        focus_search                = true;
   constexpr bool        format_cargo_values         = true;
   constexpr bool        officer_sort                = true;
+  constexpr bool        reverse_haven_history       = true;
   constexpr const char* disabled_banner_types       = "";
   constexpr const char* hud_daily_goals             = "auto";
   constexpr const char* hud_field_training          = "auto";

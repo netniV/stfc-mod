@@ -275,6 +275,7 @@ galacticanomalytimerhooks = true
 game_version = true
 giftsbulkclaimhooks = true
 hotkeyhooks = true
+havenhistoryhooks = true
 
 # Show cargo totals immediately instead of counting up
 instantcargocounterhooks = true
@@ -661,6 +662,9 @@ zoom_reset = "="
 #  <[===================================================================]> 
 
 [ui]
+# Show the newest Haven help-history entries first
+reverse_haven_history = true
+
 # Skip the reveal box animation, and just open the boxes
 always_skip_reveal_sequence = true
 auto_confirm_discovery = true

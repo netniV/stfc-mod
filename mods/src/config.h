@@ -249,6 +249,7 @@ public:
   bool focus_search;
   bool format_cargo_values;
   bool officer_sort;
+  bool reverse_haven_history;
   bool arrow_keys_to_select_ship;
 
   bool show_cargo_default;
@@ -319,4 +320,7 @@ public:
 
   // Fleet management dock ship sort: pin configured ships to the front
   bool installPinnedShipSortHooks;
+
+  // Haven help-history list ordering
+  bool installHavenHistoryHooks;
 };
