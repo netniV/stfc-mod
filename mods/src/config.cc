@@ -950,6 +950,8 @@ void Config::Load()
       get_config_or_default(config, parsed, "patches", "officersorthooks", DCP::officersorthooks, write_config);
   this->installPinnedShipSortHooks =
       get_config_or_default(config, parsed, "patches", "pinnedshiphooks", DCP::pinnedshiphooks, write_config);
+  this->installHavenHistoryHooks =
+      get_config_or_default(config, parsed, "patches", "havenhistoryhooks", DCP::havenhistoryhooks, write_config);
   spdlog::debug("");
   this->queue_enabled =
       get_config_or_default(config, parsed, "control", "queue_enabled", DCC::queue_enabled, write_config);
@@ -1082,6 +1084,8 @@ void Config::Load()
   this->format_cargo_values = get_config_or_default_with_alias(
       config, parsed, "ui", "format_cargo_values", "cargo_format", DCU::format_cargo_values, write_config);
   this->officer_sort = get_config_or_default(config, parsed, "ui", "officer_sort", DCU::officer_sort, write_config);
+  this->reverse_haven_history = get_config_or_default(config, parsed, "ui", "reverse_haven_history",
+                                                       DCU::reverse_haven_history, write_config);
 
   this->arrow_keys_to_select_ship = get_config_or_default(config, parsed, "ui", "arrow_keys_to_select_ship",
                                                           DCU::arrow_keys_to_select_ship, write_config);
