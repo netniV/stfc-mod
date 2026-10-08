@@ -220,6 +220,7 @@ public:
   bool                     disable_first_popup;
   bool                     disable_toast_banners;
   bool                     trace_audio_events;
+  bool                     disable_all_audio_events;
   std::vector<std::string> disabled_audio_events;
   NotificationSound alert_victory            = NotificationSound::None;
   NotificationSound alert_defeat             = NotificationSound::None;
@@ -249,6 +250,7 @@ public:
   bool focus_search;
   bool format_cargo_values;
   bool officer_sort;
+  bool reverse_haven_history;
   bool arrow_keys_to_select_ship;
 
   bool show_cargo_default;
@@ -320,4 +322,7 @@ public:
 
   // Fleet management dock ship sort: pin configured ships to the front
   bool installPinnedShipSortHooks;
+
+  // Haven help-history list ordering
+  bool installHavenHistoryHooks;
 };

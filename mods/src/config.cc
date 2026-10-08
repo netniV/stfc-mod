@@ -34,6 +34,16 @@ namespace DCSH = DefaultConfig::Shortcuts;
 
 namespace
 {
+constexpr bool is_all_audio_wildcard(std::string_view value)
+{
+  return value.size() == 3 && (value[0] == 'a' || value[0] == 'A') && (value[1] == 'l' || value[1] == 'L')
+         && (value[2] == 'l' || value[2] == 'L');
+}
+
+static_assert(is_all_audio_wildcard("aLl"));
+static_assert(!is_all_audio_wildcard(std::string_view{"All\0suffix", 10}));
+static_assert(!is_all_audio_wildcard(std::string_view{"\xffll", 3}));
+  
 struct ToastAudioAlertConfig {
   int                       toast_state;
   std::string_view          config_name;
@@ -997,6 +1007,8 @@ void Config::Load()
       get_config_or_default(config, parsed, "patches", "officersorthooks", DCP::officersorthooks, write_config);
   this->installPinnedShipSortHooks =
       get_config_or_default(config, parsed, "patches", "pinnedshiphooks", DCP::pinnedshiphooks, write_config);
+  this->installHavenHistoryHooks =
+      get_config_or_default(config, parsed, "patches", "havenhistoryhooks", DCP::havenhistoryhooks, write_config);
   spdlog::debug("");
   this->queue_enabled =
       get_config_or_default(config, parsed, "control", "queue_enabled", DCC::queue_enabled, write_config);
@@ -1096,12 +1108,15 @@ void Config::Load()
       get_config_or_default(config, parsed, "ui", "disable_toast_banners", DCU::disable_toast_banners, write_config);
   this->trace_audio_events =
       get_config_or_default(config, parsed, "audio", "trace_events", DCA::trace_events, write_config);
-  auto disabled_audio_events = get_config_or_default<std::string>(config, parsed, "audio", "disabled_events",
-                                                                  DCA::disabled_events, write_config);
+  auto disabled_audio_events = get_config_or_default<std::string>(
+      config, parsed, "audio", "disabled_events", DCA::disabled_events, write_config);
+  this->disable_all_audio_events = false;
   this->disabled_audio_events.clear();
   for (const auto& event : StrSplit(disabled_audio_events, ',')) {
     auto stripped = StripAsciiWhitespace(event);
-    if (!stripped.empty()) {
+    if (is_all_audio_wildcard(stripped)) {
+      this->disable_all_audio_events = true;
+    } else if (!stripped.empty()) {
       this->disabled_audio_events.emplace_back(stripped);
     }
   }
@@ -1144,6 +1159,8 @@ void Config::Load()
   this->format_cargo_values = get_config_or_default_with_alias(
       config, parsed, "ui", "format_cargo_values", "cargo_format", DCU::format_cargo_values, write_config);
   this->officer_sort = get_config_or_default(config, parsed, "ui", "officer_sort", DCU::officer_sort, write_config);
+  this->reverse_haven_history = get_config_or_default(config, parsed, "ui", "reverse_haven_history",
+                                                       DCU::reverse_haven_history, write_config);
 
   this->arrow_keys_to_select_ship = get_config_or_default(config, parsed, "ui", "arrow_keys_to_select_ship",
                                                           DCU::arrow_keys_to_select_ship, write_config);
