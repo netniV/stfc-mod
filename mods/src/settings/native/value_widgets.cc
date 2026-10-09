@@ -130,7 +130,7 @@ void Clear(ValueWidget& view)
   try {
     Restore(view);
   } catch (...) {
-    Warn();
+    Warn("settings view restoration unavailable");
   }
   // Restoring interactability synchronously calls DoStateTransition. Suppress
   // presentation reentry until every override is restored and the slot detached.
@@ -172,7 +172,7 @@ bool OwnsValueContext(Il2CppObject* context)
 bool ChildOf(Il2CppObject* transform, Il2CppObject* parent)
 {
   void* args[] = {parent};
-  return Boolean(Call(transform, "IsChildOf", 1, args));
+  return Il2CppChecked::Boolean(Call(transform, "IsChildOf", 1, args));
 }
 ValueWidget& Track(Il2CppObject* widget, Il2CppObject* context)
 {
@@ -196,7 +196,7 @@ ValueWidget& Track(Il2CppObject* widget, Il2CppObject* context)
       Root transform(Call(selectionControl.get(), "get_transform"));
       if (!ChildOf(transform.get(), widgetTransform.get()) || !ChildOf(labelTransform.get(), widgetTransform.get()))
         throw std::runtime_error("selection control hierarchy");
-      (void)Boolean(Call(selectionControl.get(), "get_interactable"));
+      (void)Il2CppChecked::Boolean(Call(selectionControl.get(), "get_interactable"));
     } else {
       // Boolean rows suppress unknown ON/OFF by hiding only detached indicators.
       for (auto* indicator : indicators) {
@@ -374,7 +374,7 @@ void Render(ValueWidget& view, auto original, Il2CppObject* widget)
   TryStyleChoice(view);
   if (!view.state->enabled()) {
     if (auto* control = Target(view.selectionControl)) {
-      view.interactableBefore = Boolean(Call(control, "get_interactable"));
+      view.interactableBefore = Il2CppChecked::Boolean(Call(control, "get_interactable"));
       view.disabled           = true;
       bool  interactable      = false;
       void* controlArgs[]     = {&interactable};
@@ -384,7 +384,7 @@ void Render(ValueWidget& view, auto original, Il2CppObject* widget)
     }
     // Capture all native values first (the two components may share a node).
     for (std::size_t i = 0; i < view.indicators.size(); ++i)
-      view.activeBefore[i] = Boolean(Call(Target(view.indicators[i]), "get_activeSelf"));
+      view.activeBefore[i] = Il2CppChecked::Boolean(Call(Target(view.indicators[i]), "get_activeSelf"));
     view.hidden = true;
     for (auto handle : view.indicators)
       SetActive(Target(handle), false);
@@ -396,8 +396,9 @@ void HideUnsupported(Il2CppObject* widget)
     Root object(Call(widget, "get_gameObject"));
     SetActive(object.get(), false);
   } catch (...) {
+    Warn("unsupported settings widget hiding unavailable");
   }
-  Warn();
+  Warn("unsupported settings widget unavailable");
 }
 bool OnUIThread()
 { return active && std::this_thread::get_id() == uiThread; }
@@ -484,12 +485,12 @@ void AddGeneralHook(auto original, Il2CppObject* director, Il2CppObject* context
   try {
     AddRow(director, context);
   } catch (...) {
-    Warn();
+    Warn("confirmation row insertion unavailable");
   }
   try {
     AddPages(director, context);
   } catch (...) {
-    Warn();
+    Warn("settings page insertion unavailable");
   }
 }
 void RefreshHook(auto original, Il2CppObject* widget)
@@ -544,7 +545,7 @@ void RefreshHook(auto original, Il2CppObject* widget)
       return;
     }
   } catch (const std::exception& error) {
-    Warn(error.what());
+    Warn("settings widget refresh unavailable");
     if (owned) {
       HideUnsupported(widget);
       return;
@@ -554,7 +555,7 @@ void RefreshHook(auto original, Il2CppObject* widget)
       HideUnsupported(widget);
       return;
     }
-    Warn();
+    Warn("settings widget refresh unavailable");
   }
   original(widget);
 }
@@ -664,7 +665,7 @@ void ChangeValue(auto original, Il2CppObject* widget, auto desired)
       HideUnsupported(widget);
       return;
     }
-    Warn();
+    Warn("settings value change unavailable");
   }
   original(widget, desired);
 }
@@ -723,7 +724,7 @@ void ReleaseHook(auto original, Il2CppObject* widget)
       if (auto* view = FindValueWidget(widget))
         Clear(*view);
     } catch (...) {
-      Warn();
+      Warn("settings widget release unavailable");
     }
   }
   original(widget);
@@ -764,7 +765,7 @@ void SessionBoundary(auto original, Il2CppObject* owner)
     try {
       Invalidate();
     } catch (...) {
-      Warn();
+      Warn("settings session invalidation unavailable");
     }
   }
   original(owner);
@@ -897,28 +898,48 @@ bool InstallCoreValueWidgets()
   try {
     auto&            m = ToggleMeta();
     const std::array hooks{m.addGeneral, m.refresh, m.changed, m.release, m.reload, m.session, m.load};
+    const std::array names{"SettingsSectionDirector.AddGeneralSettings", "ToggleOptionWidget.SetWidgetData",
+                           "ToggleOptionWidget.OnToggleValueChanged", "ToggleOptionWidget.OnAboutToReleaseContext",
+                           "PersistentPrefsManager.RegisterEvents", "PersistentPrefsManager.GameSessionStartedEventHandler",
+                           "PersistentPrefsManager.LoadPersistentPrefsFromCloud"};
     for (std::size_t i = 0; i < hooks.size(); ++i) {
       if (!Instance(hooks[i], i == 0 || i == 2 ? 1 : 0, IL2CPP_TYPE_VOID))
-        throw std::runtime_error("settings hook metadata");
+        throw std::runtime_error(std::string(names[i]) + ": expected instance Void hook with "
+                                 + std::to_string(i == 0 || i == 2 ? 1 : 0) + " arguments");
       for (std::size_t j = 0; j < i; ++j)
         if (hooks[i]->methodPointer == hooks[j]->methodPointer)
-          throw std::runtime_error("settings shared hook");
+          throw std::runtime_error(std::string(names[i]) + " shares hook target with " + names[j]);
     }
     const auto* getSchema   = m.director.GetMethodInfo("IsBorgCubeCuttingBeamConfirmationOn", 0);
     const auto* setSchema   = m.director.GetMethodInfo("ToggleBorgCubeCuttingBeamConfirmation", 1);
     const auto* querySchema = m.director.GetMethodInfo("QueryShouldShowGenericPcSetting", 0);
-    if (!Instance(getSchema, 0, IL2CPP_TYPE_BOOLEAN) || !Instance(setSchema, 1, IL2CPP_TYPE_VOID)
-        || !Type(setSchema->parameters[0], IL2CPP_TYPE_BOOLEAN) || !querySchema
+    if (!Instance(getSchema, 0, IL2CPP_TYPE_BOOLEAN))
+      throw std::runtime_error("SettingsSectionDirector.IsBorgCubeCuttingBeamConfirmationOn: expected instance Boolean()");
+    if (!Instance(setSchema, 1, IL2CPP_TYPE_VOID) || !Type(setSchema->parameters[0], IL2CPP_TYPE_BOOLEAN))
+      throw std::runtime_error("SettingsSectionDirector.ToggleBorgCubeCuttingBeamConfirmation: expected instance Void(Boolean)");
+    if (!querySchema
         || !il2cpp_class_is_enum(il2cpp_class_from_type(querySchema->return_type))
         || !Type(il2cpp_class_enum_basetype(il2cpp_class_from_type(querySchema->return_type)), IL2CPP_TYPE_I4)
-        || !Instance(querySchema, 0, IL2CPP_TYPE_VALUETYPE) || !Instance(m.addToggle, 4, IL2CPP_TYPE_VOID)
+        || !Instance(querySchema, 0, IL2CPP_TYPE_VALUETYPE))
+      throw std::runtime_error("SettingsSectionDirector.QueryShouldShowGenericPcSetting: expected instance Int32 enum()");
+    if (!Instance(m.addToggle, 4, IL2CPP_TYPE_VOID)
         || !Type(m.addToggle->parameters[1], IL2CPP_TYPE_STRING) || !Reference(m.addToggle->parameters[0])
-        || !Reference(m.addToggle->parameters[2]) || !Reference(m.addToggle->parameters[3])
-        || !Type(m.changed->parameters[0], IL2CPP_TYPE_BOOLEAN) || !Reference(m.addGeneral->parameters[0])
-        || !m.getContext || !Reference(m.getContext->return_type) || !Instance(m.querySetter, 1, IL2CPP_TYPE_VOID)
-        || !Reference(m.querySetter->parameters[0]) || !getter.Initialize(getSchema, GetEnabled)
-        || !setter.Initialize(setSchema, SetEnabled) || !query.Initialize(querySchema, QueryState))
-      throw std::runtime_error("settings callback schema");
+        || !Reference(m.addToggle->parameters[2]) || !Reference(m.addToggle->parameters[3]))
+      throw std::runtime_error("SettingsContext.AddToggle: expected Void(reference, String, reference, reference)");
+    if (!Type(m.changed->parameters[0], IL2CPP_TYPE_BOOLEAN))
+      throw std::runtime_error("ToggleOptionWidget.OnToggleValueChanged: expected Boolean parameter");
+    if (!Reference(m.addGeneral->parameters[0]))
+      throw std::runtime_error("SettingsSectionDirector.AddGeneralSettings: expected reference parameter");
+    if (!m.getContext || !Reference(m.getContext->return_type))
+      throw std::runtime_error("ToggleOptionWidget.get_Context: expected reference result");
+    if (!Instance(m.querySetter, 1, IL2CPP_TYPE_VOID) || !Reference(m.querySetter->parameters[0]))
+      throw std::runtime_error("ToggleOptionContext.set_QueryOptionState: expected instance Void(reference)");
+    if (!getter.Initialize(getSchema, GetEnabled))
+      throw std::runtime_error("FC confirmation getter: incompatible native callback schema");
+    if (!setter.Initialize(setSchema, SetEnabled))
+      throw std::runtime_error("FC confirmation setter: incompatible native callback schema");
+    if (!query.Initialize(querySchema, QueryState))
+      throw std::runtime_error("FC confirmation query: incompatible native callback schema");
     uiThread = std::this_thread::get_id();
     if (!FleetCommanderConfirmationSetting().SetChangeObserver(RefreshViews))
       throw std::runtime_error("settings observer ownership");
@@ -926,18 +947,24 @@ bool InstallCoreValueWidgets()
       throw std::runtime_error("settings observer ownership");
     // A rejected target need not throw. Keep any installed hooks on their native
     // path until the complete adapter is ready; do not retry a partial install.
-    if (!SPUD_STATIC_DETOUR(m.refresh->methodPointer, RefreshHook)
-        || !SPUD_STATIC_DETOUR(m.changed->methodPointer, ChangedHook)
-        || !SPUD_STATIC_DETOUR(m.release->methodPointer, ReleaseHook)
-        || !SPUD_STATIC_DETOUR(m.reload->methodPointer, ReloadHook)
-        || !SPUD_STATIC_DETOUR(m.session->methodPointer, SessionHook)
-        || !SPUD_STATIC_DETOUR(m.load->methodPointer, LoadHook)
-        || !SPUD_STATIC_DETOUR(m.addGeneral->methodPointer, AddGeneralHook))
-      throw std::runtime_error("settings hook installation");
+    if (!SPUD_STATIC_DETOUR(m.refresh->methodPointer, RefreshHook))
+      throw std::runtime_error("ToggleOptionWidget.SetWidgetData: hook installation failed");
+    if (!SPUD_STATIC_DETOUR(m.changed->methodPointer, ChangedHook))
+      throw std::runtime_error("ToggleOptionWidget.OnToggleValueChanged: hook installation failed");
+    if (!SPUD_STATIC_DETOUR(m.release->methodPointer, ReleaseHook))
+      throw std::runtime_error("ToggleOptionWidget.OnAboutToReleaseContext: hook installation failed");
+    if (!SPUD_STATIC_DETOUR(m.reload->methodPointer, ReloadHook))
+      throw std::runtime_error("PersistentPrefsManager.RegisterEvents: hook installation failed");
+    if (!SPUD_STATIC_DETOUR(m.session->methodPointer, SessionHook))
+      throw std::runtime_error("PersistentPrefsManager.GameSessionStartedEventHandler: hook installation failed");
+    if (!SPUD_STATIC_DETOUR(m.load->methodPointer, LoadHook))
+      throw std::runtime_error("PersistentPrefsManager.LoadPersistentPrefsFromCloud: hook installation failed");
+    if (!SPUD_STATIC_DETOUR(m.addGeneral->methodPointer, AddGeneralHook))
+      throw std::runtime_error("SettingsSectionDirector.AddGeneralSettings: hook installation failed");
     active = true;
     return true;
   } catch (...) {
-    Warn();
+    Warn("core value widget installation unavailable");
   }
   return false;
 }
