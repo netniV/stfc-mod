@@ -355,7 +355,9 @@ jobs:
     runs-on: ${{ matrix.runner }}
     env:
       MACOSX_DEPLOYMENT_TARGET: "14.6"
-      SWIFT_MODULE_CACHE_SCHEMA: "v1"
+      # Swift PCM files embed their absolute module-cache path. Invalidate the
+      # cache when the repository checkout path changes (for example, on rename).
+      SWIFT_MODULE_CACHE_SCHEMA: "v2"
       SCCACHE_DIR: ${{ github.workspace }}/build/.protobuf-sccache
       SCCACHE_CACHE_SIZE: "1G"
 
