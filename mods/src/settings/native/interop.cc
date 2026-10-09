@@ -3,21 +3,37 @@
 #include <il2cpp/runtime.h>
 #include "settings/page_catalog.h"
 #include <cstring>
+#include <exception>
+#include <mutex>
+#include <string>
+#include <unordered_set>
 #include <spdlog/spdlog.h>
 
 namespace mod_settings::native
 {
-namespace
+void Warn(const char* operation)
 {
-  bool warned = false;
-}
-void Warn(const char* reason)
-{
-  if (!warned) {
-    warned = true;
-    spdlog::warn("[ModSettings] {}", reason);
+  std::string message(operation);
+  if (auto exception = std::current_exception()) {
+    try {
+      std::rethrow_exception(exception);
+    } catch (const std::exception& error) {
+      message += ": ";
+      message += error.what();
+    } catch (...) {
+      message += ": non-standard C++ exception";
+    }
   }
+  static std::mutex                      mutex;
+  static std::unordered_set<std::string> reported;
+  {
+    std::lock_guard lock(mutex);
+    if (!reported.insert(message).second)
+      return;
+  }
+  spdlog::warn("[ModSettings] {}", message);
 }
+
 bool Type(const Il2CppType* type, int expected)
 { return type && !type->byref && type->type == expected; }
 
@@ -37,8 +53,16 @@ bool Instance(const MethodInfo* method, int count, int result)
 FieldInfo* Field(Il2CppClass* cls, const char* name)
 {
   auto* field = cls ? il2cpp_class_get_field_from_name(cls, name) : nullptr;
-  if (!field || !Reference(field->type) || (field->type->attrs & FIELD_ATTRIBUTE_STATIC))
-    throw std::runtime_error("settings reference field");
+  if (!field || !field->type || !Reference(field->type) || (field->type->attrs & FIELD_ATTRIBUTE_STATIC)) {
+    const std::string member = std::string(cls ? cls->namespaze : "") + "."
+                               + (cls ? cls->name : "<missing class>") + "." + name;
+    throw std::runtime_error(member + ": expected instance reference field; "
+                             + (!field ? "field missing" : !field->type ? "type missing"
+                                               : "actual type=" + std::to_string(field->type->type)
+                                                     + ", static="
+                                                     + std::to_string(bool(field->type->attrs & FIELD_ATTRIBUTE_STATIC))
+                                                     + ", byref=" + std::to_string(field->type->byref)));
+  }
   return field;
 }
 Il2CppObject* ReadField(Il2CppObject* object, FieldInfo* field)
@@ -51,21 +75,22 @@ Il2CppObject* ReadField(Il2CppObject* object, FieldInfo* field)
 Il2CppObject* Invoke(const MethodInfo* method, Il2CppObject* object, void** args)
 {
   if (!method || !object)
-    throw std::runtime_error("settings invocation");
+    throw std::runtime_error(std::string("settings invocation: ")
+                             + (method ? method->klass->name : "<missing method>") + "."
+                             + (method ? method->name : "?") + (object ? "" : ": missing receiver"));
   Il2CppObject* result = nullptr;
   if (!Il2CppRuntime::TryInvoke(method, object, args, &result))
-    throw std::runtime_error("settings managed exception");
+    throw std::runtime_error(std::string(method->klass->name) + "." + method->name + ": managed invocation failed");
   return result;
 }
 // Bounded discovery helpers used only while opening a page or binding a row.
 Il2CppObject* Call(Il2CppObject* object, const char* name, int count, void** args)
-{ return Invoke(object ? IL2CppClassHelper(object->klass).GetMethodInfo(name, count) : nullptr, object, args); }
-bool Boolean(Il2CppObject* boxed)
 {
-  bool value = false;
-  if (!Il2CppRuntime::TryBoolean(boxed, value))
-    throw std::runtime_error("settings boolean result");
-  return value;
+  auto* method = object ? IL2CppClassHelper(object->klass).GetMethodInfo(name, count) : nullptr;
+  if (!method)
+    throw std::runtime_error(std::string(object ? object->klass->name : "<missing receiver>") + "." + name + "("
+                             + std::to_string(count) + " arguments): method unavailable");
+  return Invoke(method, object, args);
 }
 bool Equals(Il2CppObject* value, const char* ascii)
 {

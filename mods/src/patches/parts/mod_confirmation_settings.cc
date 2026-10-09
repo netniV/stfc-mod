@@ -14,11 +14,11 @@ void InstallModConfirmationSettings()
       InstallPages();
     } catch (...) {
       DisablePages();
-      spdlog::warn("[ModSettings] Navigation unavailable; native confirmation control remains available");
+      Warn("Navigation unavailable; native confirmation control remains available");
     }
     spdlog::info("[ModSettings] Native settings adapter installed");
   } catch (...) {
-    Warn();
+    Warn("settings installation unavailable");
   }
 #endif
 }
