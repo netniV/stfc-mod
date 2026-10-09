@@ -361,47 +361,59 @@ void InstallActionWidgets()
       if (!Instance(action.add, 6, IL2CPP_TYPE_VOID) || !Reference(action.add->parameters[0])
           || !Type(action.add->parameters[1], IL2CPP_TYPE_STRING)
           || !Type(action.add->parameters[2], IL2CPP_TYPE_STRING) || !Reference(action.add->parameters[3])
-          || !Reference(action.add->parameters[4]) || !Type(action.add->parameters[5], IL2CPP_TYPE_STRING)
-          || !action.getContext || !Reference(action.getContext->return_type)
-          || !Instance(action.getContext, 0, action.getContext->return_type->type)
-          || !Instance(clickSchema, 0, IL2CPP_TYPE_VOID) || !Instance(getSchema, 0, IL2CPP_TYPE_STRING)
-          || !actionCallback.Initialize(clickSchema, InvokeAction)
-          || !actionGetter.Initialize(getSchema, EmptyHeadingValue))
-        throw std::runtime_error("settings command schema");
+          || !Reference(action.add->parameters[4]) || !Type(action.add->parameters[5], IL2CPP_TYPE_STRING))
+        throw std::runtime_error("SettingsContext.AddButtonAndText: expected instance Void(reference, String, String, reference, reference, String)");
+      if (!action.getContext || !Reference(action.getContext->return_type)
+          || !Instance(action.getContext, 0, action.getContext->return_type->type))
+        throw std::runtime_error("ButtonAndTextOptionWidget.get_Context: expected instance reference result");
+      if (!Instance(clickSchema, 0, IL2CPP_TYPE_VOID))
+        throw std::runtime_error("System.Object..ctor: expected instance Void() callback donor");
+      if (!Instance(getSchema, 0, IL2CPP_TYPE_STRING))
+        throw std::runtime_error("SettingsSectionDirector.GetClientVersion: expected instance String()");
+      if (!actionCallback.Initialize(clickSchema, InvokeAction))
+        throw std::runtime_error("command callback: incompatible native callback schema");
+      if (!actionGetter.Initialize(getSchema, EmptyHeadingValue))
+        throw std::runtime_error("command text getter: incompatible native callback schema");
       // build261 x64 GameAssembly 487af4bb: SetWidgetData CFD5F0..CFD8A5 (693)
       // and OnAboutToReleaseContext CFD430..CFD53F (271), vs SPUD's 24 bytes.
       // Resolve current addresses through managed metadata.
-      for (auto* target : {action.refresh, action.release}) {
-        if (!Instance(target, 0, IL2CPP_TYPE_VOID)
-            || action.refresh->methodPointer == action.release->methodPointer)
-          throw std::runtime_error("settings command hook metadata or shared target");
+      const std::array targets{action.refresh, action.release};
+      const std::array names{"ButtonAndTextOptionWidget.SetWidgetData",
+                             "ButtonAndTextOptionWidget.OnAboutToReleaseContext"};
+      for (std::size_t i = 0; i < targets.size(); ++i)
+        if (!Instance(targets[i], 0, IL2CPP_TYPE_VOID))
+          throw std::runtime_error(std::string(names[i]) + ": expected instance Void()");
+      if (targets[0]->methodPointer == targets[1]->methodPointer)
+        throw std::runtime_error("ButtonAndTextOptionWidget.SetWidgetData and OnAboutToReleaseContext share a native hook target");
+      for (auto* target : targets) {
         for (auto* existing :
              {ToggleMeta().refresh, ToggleMeta().changed, ToggleMeta().release, ToggleMeta().addGeneral,
               ToggleMeta().reload, ToggleMeta().session, ToggleMeta().load, m.bind, m.release, m.selected, m.destroyed})
           if (target->methodPointer == existing->methodPointer)
-            throw std::runtime_error("settings command hook overlap");
+            throw std::runtime_error(std::string("ButtonAndTextOptionWidget.") + target->name + " shares target with " + existing->klass->name + "." + existing->name);
         if (SelectionActive())
           for (auto* existing : {SelectionMeta().refresh, SelectionMeta().changed, SelectionMeta().release})
             if (target->methodPointer == existing->methodPointer)
-              throw std::runtime_error("settings command selection overlap");
+              throw std::runtime_error(std::string("ButtonAndTextOptionWidget.") + target->name + " shares target with " + existing->klass->name + "." + existing->name);
         if (SliderActive())
           for (auto* existing :
                {SliderMeta().refresh, SliderMeta().changed, SliderMeta().release, SliderMeta().valueLabel})
             if (target->methodPointer == existing->methodPointer)
-              throw std::runtime_error("settings command slider overlap");
+              throw std::runtime_error(std::string("ButtonAndTextOptionWidget.") + target->name + " shares target with " + existing->klass->name + "." + existing->name);
         if (HeadingsActive())
           for (auto* existing : {HeadingMeta().refresh, HeadingMeta().clear})
             if (target->methodPointer == existing->methodPointer)
-              throw std::runtime_error("settings command heading overlap");
+              throw std::runtime_error(std::string("ButtonAndTextOptionWidget.") + target->name + " shares target with " + existing->klass->name + "." + existing->name);
       }
-      if (!SPUD_STATIC_DETOUR(action.refresh->methodPointer, ActionRefreshHook)
-          || !SPUD_STATIC_DETOUR(action.release->methodPointer, ActionReleaseHook))
-        throw std::runtime_error("settings command hook installation");
+      if (!SPUD_STATIC_DETOUR(action.refresh->methodPointer, ActionRefreshHook))
+        throw std::runtime_error("ButtonAndTextOptionWidget.SetWidgetData: hook installation failed");
+      if (!SPUD_STATIC_DETOUR(action.release->methodPointer, ActionReleaseHook))
+        throw std::runtime_error("ButtonAndTextOptionWidget.OnAboutToReleaseContext: hook installation failed");
       actionsActive = true;
       InstallShortcutPopup();
       SetShortcutPresentationObserver(RefreshActions);
-    } catch (const std::exception& error) {
-      spdlog::warn("[ModSettings] Commands unavailable: {}", error.what());
+    } catch (const std::exception&) {
+      Warn("settings command installation unavailable");
     }
   }
 }
