@@ -1520,8 +1520,8 @@ static void planetary_map_building_data(const google::protobuf::Map<int64_t, Dig
   // TODO: use PlanetaryMapBuildingDiff for updates during game session
 
   auto structure_array = nlohmann::json::array();
-  for (const auto& building : buildings | std::views::values) {
-    structure_array.push_back({{"type", SyncConfig::Type::Haven + "_map"}, {"sid", building.specid()}, {"level", building.level()}, {"status", building.status()}, {"position", building.position()}});
+  for (const auto& [id, building] : buildings) {
+    structure_array.push_back({{"type", SyncConfig::Type::Haven + "_map"}, {"sid", building.specid()}, {"id", id}, {"level", building.level()}, {"status", building.status()}, {"position", building.position()}});
   }
 
   if (!structure_array.empty()) {
