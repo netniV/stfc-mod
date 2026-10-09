@@ -34,6 +34,16 @@ namespace DCSH = DefaultConfig::Shortcuts;
 
 namespace
 {
+constexpr bool is_all_audio_wildcard(std::string_view value)
+{
+  return value.size() == 3 && (value[0] == 'a' || value[0] == 'A') && (value[1] == 'l' || value[1] == 'L')
+         && (value[2] == 'l' || value[2] == 'L');
+}
+
+static_assert(is_all_audio_wildcard("aLl"));
+static_assert(!is_all_audio_wildcard(std::string_view{"All\0suffix", 10}));
+static_assert(!is_all_audio_wildcard(std::string_view{"\xffll", 3}));
+
 struct ToastAudioAlertConfig {
   int                       toast_state;
   std::string_view          config_name;
@@ -245,7 +255,7 @@ void Config::AdjustUiScale(bool scaleUp)
 {
   if (this->ui_scale != 0.0f) {
     auto old_scale    = this->ui_scale;
-    auto scale_factor = (scaleUp ? 1.0f : -1.0f) * this->ui_scale_adjust;
+    auto scale_factor = (scaleUp ? 1.0f : -1.0f) * this->ui_scale_step;
     auto new_scale    = this->ui_scale + scale_factor;
     this->ui_scale    = std::clamp(new_scale, 0.1f, 2.0f);
 
@@ -259,7 +269,7 @@ void Config::AdjustUiViewerScale(bool scaleUp)
 {
   if (this->ui_scale_viewer != 0.0f) {
     auto old_scale        = this->ui_scale_viewer;
-    auto scale_factor     = (scaleUp ? 1.0f : -1.0f) * this->ui_scale_adjust;
+    auto scale_factor     = (scaleUp ? 1.0f : -1.0f) * this->ui_scale_step;
     auto new_scale        = this->ui_scale_viewer + (scale_factor * 0.25f);
     this->ui_scale_viewer = std::clamp(new_scale, 0.1f, 2.0f);
 
@@ -271,7 +281,7 @@ void Config::AdjustUiViewerScale(bool scaleUp)
 void Config::AdjustUiShipScale(bool scaleUp)
 {
   const auto old_scale    = this->ui_scale_ship;
-  const auto scale_factor = (scaleUp ? 1.0f : -1.0f) * this->ui_scale_adjust;
+  const auto scale_factor = (scaleUp ? 1.0f : -1.0f) * this->ui_scale_step;
   const auto new_scale    = this->ui_scale_ship + scale_factor;
   this->ui_scale_ship     = std::clamp(new_scale, 0.1f, 20.0f);
 
@@ -367,6 +377,17 @@ NotificationSound get_notification_sound(toml::table& config, toml::table& new_c
     spdlog::debug("config value audio.{} value: {}", item, notification_sound_name(result));
   }
   return result;
+}
+
+template <typename T>
+T get_config_or_default_with_alias(toml::table& config, toml::table& new_config, std::string_view section,
+                                   std::string_view item, std::string_view alias, T default_value, bool write_log)
+{
+  if (!config[section][item] && config[section][alias]) {
+    config[section].as_table()->insert_or_assign(item, config[section][alias]);
+  }
+
+  return get_config_or_default(config, new_config, section, item, default_value, write_log);
 }
 
 std::string_view to_string(MissionHudVisibility visibility)
@@ -660,7 +681,11 @@ void read_sync_targets(toml::table& config, toml::table& new_config,
     }
 
     for (const auto& opt : SyncOptions) {
-      target.*opt.option = values[opt.option_str].value<bool>().value_or(defaults.*opt.option);
+      if (opt.type == SyncConfig::Type::Officer && !values.contains(opt.option_str)) {
+        target.*opt.option = values["officer"].value<bool>().value_or(defaults.*opt.option);
+      } else {
+        target.*opt.option = values[opt.option_str].value<bool>().value_or(defaults.*opt.option);
+      }
       parsed_target.insert(opt.option_str, target.*opt.option);
     }
 
@@ -972,6 +997,8 @@ void Config::Load()
       get_config_or_default(config, parsed, "patches", "opcindicatorhooks", DCP::opcindicatorhooks, write_config);
   this->installFleetNotificationHooks =
       get_config_or_default(config, parsed, "patches", "fleetnotificationhooks", DCP::fleetnotificationhooks, write_config);
+  this->installArtifactExchangeHooks =
+      get_config_or_default(config, parsed, "patches", "artifactexchangehooks", DCP::artifactexchangehooks, write_config);
   this->installAudioEventHooks =
       get_config_or_default(config, parsed, "patches", "audioeventhooks", DCP::audioeventhooks, write_config);
   this->installInstantCargoCounterHooks =
@@ -982,6 +1009,8 @@ void Config::Load()
       get_config_or_default(config, parsed, "patches", "officersorthooks", DCP::officersorthooks, write_config);
   this->installPinnedShipSortHooks =
       get_config_or_default(config, parsed, "patches", "pinnedshiphooks", DCP::pinnedshiphooks, write_config);
+  this->installHavenHistoryHooks =
+      get_config_or_default(config, parsed, "patches", "havenhistoryhooks", DCP::havenhistoryhooks, write_config);
   spdlog::debug("");
   this->queue_enabled =
       get_config_or_default(config, parsed, "control", "queue_enabled", DCC::queue_enabled, write_config);
@@ -999,8 +1028,8 @@ void Config::Load()
   spdlog::debug("");
 
   this->ui_scale = get_config_or_default(config, parsed, "graphics", "ui_scale", DCG::ui_scale, write_config);
-  this->ui_scale_adjust =
-      get_config_or_default(config, parsed, "graphics", "ui_scale_adjust", DCG::ui_scale_adjust, write_config);
+  this->ui_scale_step = get_config_or_default_with_alias(config, parsed, "graphics", "ui_scale_step", "ui_scale_adjust",
+                                                         DCG::ui_scale_step, write_config);
   this->ui_scale_ship =
       get_config_or_default(config, parsed, "graphics", "ui_scale_ship", DCG::ui_scale_ship, write_config);
   this->ui_scale_viewer =
@@ -1075,12 +1104,15 @@ void Config::Load()
       get_config_or_default(config, parsed, "ui", "disable_toast_banners", DCU::disable_toast_banners, write_config);
   this->trace_audio_events =
       get_config_or_default(config, parsed, "audio", "trace_events", DCA::trace_events, write_config);
-  auto disabled_audio_events = get_config_or_default<std::string>(config, parsed, "audio", "disabled_events",
-                                                                  DCA::disabled_events, write_config);
+  auto disabled_audio_events = get_config_or_default<std::string>(
+      config, parsed, "audio", "disabled_events", DCA::disabled_events, write_config);
+  this->disable_all_audio_events = false;
   this->disabled_audio_events.clear();
   for (const auto& event : StrSplit(disabled_audio_events, ',')) {
     auto stripped = StripAsciiWhitespace(event);
-    if (!stripped.empty()) {
+    if (is_all_audio_wildcard(stripped)) {
+      this->disable_all_audio_events = true;
+    } else if (!stripped.empty()) {
       this->disabled_audio_events.emplace_back(stripped);
     }
   }
@@ -1129,8 +1161,11 @@ void Config::Load()
   this->double_click_to_assign_ship = get_config_or_default(config, parsed, "ui", "double_click_to_assign_ship",
                                                             DCU::double_click_to_assign_ship, write_config);
   this->focus_search = get_config_or_default(config, parsed, "ui", "focus_search", DCU::focus_search, write_config);
-  this->cargo_format = get_config_or_default(config, parsed, "ui", "cargo_format", DCU::cargo_format, write_config);
+  this->format_cargo_values = get_config_or_default_with_alias(
+      config, parsed, "ui", "format_cargo_values", "cargo_format", DCU::format_cargo_values, write_config);
   this->officer_sort = get_config_or_default(config, parsed, "ui", "officer_sort", DCU::officer_sort, write_config);
+  this->reverse_haven_history = get_config_or_default(config, parsed, "ui", "reverse_haven_history",
+                                                       DCU::reverse_haven_history, write_config);
 
   this->arrow_keys_to_select_ship = get_config_or_default(config, parsed, "ui", "arrow_keys_to_select_ship",
                                                           DCU::arrow_keys_to_select_ship, write_config);
@@ -1181,6 +1216,9 @@ void Config::Load()
       get_mission_hud_visibility(config, parsed, "hud_daily_goals", DCU::hud_daily_goals, write_config));
   this->mission_hud_buttons.emplace(
       "missions", get_mission_hud_visibility(config, parsed, "hud_missions", DCU::hud_missions, write_config));
+  this->disable_exchange_all = get_config_or_default_with_alias(
+      config, parsed, "ui", "disable_exchange_all", "hide_artifact_exchange_all", DCU::disable_exchange_all, write_config);
+
   spdlog::debug("");
 
   this->sync_debug   = get_config_or_default(config, parsed, "sync", "debug", DCS::debug, write_config);
@@ -1193,7 +1231,12 @@ void Config::Load()
   sync_defaults.verify_ssl = get_config_or_default(config, parsed, "sync", "verify_ssl", DCS::verify_ssl, write_config);
 
   for (const auto& opt : SyncOptions) {
-    sync_defaults.*opt.option = get_config_or_default(config, parsed, "sync", opt.option_str, false, write_config);
+    if (opt.type == SyncConfig::Type::Officer) {
+      sync_defaults.*opt.option = get_config_or_default_with_alias(
+          config, parsed, "sync", opt.option_str, "officer", false, write_config);
+    } else {
+      sync_defaults.*opt.option = get_config_or_default(config, parsed, "sync", opt.option_str, false, write_config);
+    }
   }
 
   spdlog::debug("");

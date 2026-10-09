@@ -7,7 +7,7 @@
 #  |    #***     #    #       #***         #   *   #**    #***    | 
 #  |                                                              | 
 #  +--------------------------------------------------------------+ 
-#   Generado el 2026-09-27T19:44:17.187Z
+#   Generado el 2026-10-04T20:00:48.807Z
 #   
 #   Este archivo de configuración fue generado por https://modconfig.pages.dev
 #   y se proporciona tal cual. Si hay algún problema con el Mod Comunitario de STFC
@@ -17,7 +17,7 @@
 #       Discord : https://discord.gg/PrpHgs7Vjs
 #       GitHub  : https://github.com/netniV/stfc-mod
 #   
-#   El archivo de configuración de hoy está patrocinado por la letra S y el número 3
+#   El archivo de configuración de hoy está patrocinado por la letra D y el número 3
 #   
 
 #  <[=======================================]> 
@@ -31,7 +31,7 @@
 #  <[=======================================]> 
 
 [audio]
-# Comma-separated audio event names to suppress; leave blank to allow all audio events
+# Comma-separated audio event names to suppress; use "All" as a wildcard for named events handled by this filter
 disabled_events = ""
 
 # Write audio event names to the trace log for troubleshooting
@@ -133,9 +133,6 @@ enable_experimental = false
 #  <[====================================================================================================================]> 
 
 [graphics]
-# Mostrar el tiempo restante de la anomalía galáctica debajo de Ayudar / Participar / Reclamar.
-galactic_anomaly_timer = false
-
 
 # Subgroup: Display
 # -----------------
@@ -149,11 +146,11 @@ transition_time = 0.01
 # Especifica cuánto se escala la interfaz; el valor predeterminado es 1,0
 ui_scale = 0.6
 
-# Especifica cuánto se ajusta la escala; el valor predeterminado es 0,05
-ui_scale_adjust = 0.05
-
 # Especifica la escala de los modelos de barcos en la vista del sistema; el valor predeterminado es 1,0
 ui_scale_ship = 1.0
+
+# This specifies the amount to adjust the scale by, 0.05 being default
+ui_scale_step = 0.05
 
 # Especifica la escala de los visores de objetos de la interfaz; el valor predeterminado es 1,0
 ui_scale_viewer = 1.2
@@ -226,6 +223,9 @@ borderless_fullscreen = true
 # Permite cambiar el tamaño libremente; establece el valor en falso para desactivarlo
 free_resize = true
 
+# Show the remaining Galactic Anomaly time below Help All, Engage, and Claim
+galactic_anomaly_timer = false
+
 # Después de usar un preajuste de zoom, este se establecerá como zoom predeterminado
 use_presets_as_default = true
 
@@ -268,21 +268,30 @@ zoom = 5000.0
 # Subgroup: Leave Well Alone
 # --------------------------
 
+artifactexchangehooks = true
+audioeventhooks = true
+
 # Activa las correcciones de mejoras
 bufffixhooks = true
 cargoformathooks = true
-instantcargocounterhooks = true
 chatpatches = true
 
 # Activa la reclamación masiva por facción para los objetivos diarios
 dailyfactionbulkclaimhooks = true
-focussearch = true
+doubleclickassignshiphooks = true
+forbiddentechconfirmhooks = true
 freeresizehooks = true
+galacticanomalytimerhooks = true
 game_version = true
 giftsbulkclaimhooks = true
 hotkeyhooks = true
+
+# Show cargo totals immediately instead of counting up
+instantcargocounterhooks = true
 loadingscreenhooks = true
+loadingtiphooks = true
 miscpatches = true
+missionhudtweakshooks = true
 objecttracker = true
 officersorthooks = true
 panhooks = true
@@ -534,8 +543,14 @@ show_inventory = "I"
 # Ir a misiones
 show_missions = "M"
 
+# Go directly to Officer Presets
+show_officerpresets = "CTRL-O"
+
 # Ir a oficiales
 show_officers = "SHIFT-O"
+
+# Go directly to Officer Swap
+show_officerswap = "ALT-O"
 
 # Ir a las pruebas de Q
 show_qtrials = "SHIFT-Q"
@@ -558,11 +573,11 @@ show_shields = "CTRL-S"
 # Abrir la pantalla Construir nave del astillero
 show_shipconstruction = "SHIFT-N"
 
-# Ir directamente a Intercambiar nave
-show_shipswap = "ALT-N"
-
 # Ir a administrar barcos
 show_ships = "N"
+
+# Go directly to Ship Swap
+show_shipswap = "ALT-N"
 
 # Exterior de la estación
 show_stationexterior = "SHIFT-G"
@@ -796,21 +811,35 @@ hud_outposts = "auto"
 #   "hide" - Always hide this HUD item
 hud_q_trials = "auto"
 
+# Subgroup: Options
+# -----------------
+
+# Hide the Exchange All button in the Artifact Gallery
+disable_exchange_all = false
+
+# Enable the shortcut that focuses the search box on supported screens
+focus_search = true
+
+# Format abbreviated cargo values using Cargo Significant Decimals
+format_cargo_values = true
+
+# Restore the Below Deck Ability officer sort option
+officer_sort = true
+
 # Subgroup: Previews
 # ------------------
 
 # Decimal places used for abbreviated cargo values
 cargo_significant_decimals = 2
 
-# Mostrar carga/capacidad al instante, sin recuento animado. Reiniciar tras cambiar.
-# Solo cliente Windows 263; otras versiones conservan el comportamiento normal.
-instant_cargo_counter = true
-
 # Impide localizar cuando se muestran vistas previas de barcos o nodos
 disable_preview_locate = false
 
 # Impide retirar cuando se muestran vistas previas de barcos o nodos
 disable_preview_recall = false
+
+# Show cargo used and capacity immediately instead of counting up. Restart after changing. Windows client 263 only; other builds keep native behavior
+instant_cargo_counter = true
 
 # Establece el valor en verdadero para mostrar siempre las recompensas de los barcos/estaciones seleccionados
 show_armada_cargo = true
@@ -842,6 +871,9 @@ show_station_cargo = true
 # Subgroup: Data
 # --------------
 
+# Do you want to sync away team assignment data?
+away_assignments = true
+
 # ¿Quieres sincronizar los registros de batalla?
 battlelogs = true
 
@@ -860,8 +892,8 @@ jobs = true
 # ¿Quieres sincronizar los datos de misiones?
 missions = true
 
-# ¿Quieres sincronizar los datos de los oficiales que posees?
-officer = true
+# Do you want to sync owned officer data?
+officers = true
 
 # ¿Quieres sincronizar los datos de investigación?
 research = true
