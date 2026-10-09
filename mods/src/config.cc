@@ -952,6 +952,8 @@ void Config::Load()
   this->installUiScaleHooks =
       get_config_or_default(config, parsed, "patches", "uiscalehooks", DCP::uiscalehooks, write_config);
   this->installZoomHooks = get_config_or_default(config, parsed, "patches", "zoomhooks", DCP::zoomhooks, write_config);
+  this->installHavenZoomHooks =
+      get_config_or_default(config, parsed, "patches", "havenzoomhooks", DCP::havenzoomhooks, write_config);
   this->installBuffFixHooks =
       get_config_or_default(config, parsed, "patches", "bufffixhooks", DCP::bufffixhooks, write_config);
   this->installToastBannerHooks =
@@ -1031,6 +1033,12 @@ void Config::Load()
   this->ui_scale_viewer =
       get_config_or_default(config, parsed, "graphics", "ui_scale_viewer", DCG::ui_scale_viewer, write_config);
   this->zoom     = get_config_or_default(config, parsed, "graphics", "zoom", DCG::zoom, write_config);
+  this->haven_zoom = get_config_or_default(config, parsed, "graphics", "haven_zoom", DCG::haven_zoom, write_config);
+  if (!std::isfinite(this->haven_zoom) || this->haven_zoom < 0.0f) {
+    spdlog::warn("Invalid haven_zoom {}; using {}", this->haven_zoom, DCG::haven_zoom);
+    this->haven_zoom = DCG::haven_zoom;
+    parsed["graphics"].as_table()->insert_or_assign("haven_zoom", this->haven_zoom);
+  }
   this->fr_scale = get_config_or_default(config, parsed, "graphics", "fr_scale", DCG::fr_scale, write_config);
   this->zoom_label_player.detail =
       get_fleet_label_detail(config, parsed, "zoom_label_player_detail", DCG::zoom_label_player_detail, write_config);
