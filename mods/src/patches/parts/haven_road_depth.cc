@@ -8,6 +8,7 @@
 #include <chrono>
 #include <cmath>
 #include <string>
+#include <utility>
 
 namespace
 {
@@ -89,7 +90,21 @@ void ApplyHavenRoadDepthBias()
   if (!api.Valid()) {
     static bool warned = false;
     if (!warned) {
-      spdlog::warn("[HavenZoom] road material API unavailable; keeping native road depth");
+      if (!api.renderer)
+        spdlog::warn("[HavenZoom] road depth unavailable: missing UnityEngine.Renderer class");
+      for (const auto& [method, signature] :
+           std::array<std::pair<const MethodInfo*, const char*>, 8>{{
+               {api.find, "GameObject.Find(String) -> GameObject [static]"},
+               {api.children, "GameObject.GetComponentsInChildren(Type, Boolean) -> Component[]"},
+               {api.materials, "Renderer.get_sharedMaterials() -> Material[]"},
+               {api.name, "Object.get_name() -> String"},
+               {api.shader, "Material.get_shader() -> Shader"},
+               {api.has, "Material.HasProperty(String) -> Boolean"},
+               {api.get, "Material.GetFloat(String) -> Single"},
+               {api.set, "Material.SetFloat(String, Single) -> Void"}}}) {
+        if (!method)
+          spdlog::warn("[HavenZoom] keeping native road depth: missing or incompatible UnityEngine.{}", signature);
+      }
       warned = true;
     }
     return;
