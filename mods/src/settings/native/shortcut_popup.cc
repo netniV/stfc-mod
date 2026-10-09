@@ -3,6 +3,7 @@
 #include "action_widgets.h"
 #include "patches/key.h"
 #include "patches/screen_update_hook.h"
+#include "prime/Vector3.h"
 #include "row_style.h"
 #include "settings/native_boolean_callback.h"
 #include "settings/shortcut_popup_keys.h"
@@ -19,9 +20,6 @@ namespace
 {
   struct Vec2 {
     float x, y;
-  };
-  struct Vec3 {
-    float x, y, z;
   };
   struct Color {
     float r, g, b, a;
@@ -76,7 +74,7 @@ namespace
     static const auto* method = IL2CppClassHelper(UnityClass("Object")).GetMethodInfo("op_Implicit", 1);
     void*              args[] = {object};
     Root               result(Static(method, args));
-    return Boolean(result.get());
+    return Il2CppChecked::Boolean(result.get());
   }
   void Retain(Il2CppGCHandle& handle, Il2CppObject* object)
   {
@@ -96,13 +94,13 @@ namespace
   {
     if (Alive(Target(backController))) {
       Value(Target(backController), "set_enabled", previousBackEnabled);
-      if (Boolean(UiCall(Target(backController), "get_enabled")) != previousBackEnabled)
+      if (Il2CppChecked::Boolean(UiCall(Target(backController), "get_enabled")) != previousBackEnabled)
         throw std::runtime_error("shortcut popup Back controller restore failed");
     }
     Free(backController);
     if (Alive(Target(navigationSystem))) {
       Value(Target(navigationSystem), "set_sendNavigationEvents", previousNavigation);
-      if (Boolean(UiCall(Target(navigationSystem), "get_sendNavigationEvents")) != previousNavigation)
+      if (Il2CppChecked::Boolean(UiCall(Target(navigationSystem), "get_sendNavigationEvents")) != previousNavigation)
         throw std::runtime_error("shortcut popup navigation restore failed");
     }
     Free(navigationSystem);
@@ -116,9 +114,9 @@ namespace
       throw std::runtime_error("shortcut popup navigation owner unavailable");
     if (current.get() != Target(navigationSystem) || settingsBack != Target(backController)) {
       ReleaseNavigation();
-      previousNavigation = Boolean(UiCall(current.get(), "get_sendNavigationEvents"));
+      previousNavigation = Il2CppChecked::Boolean(UiCall(current.get(), "get_sendNavigationEvents"));
       Retain(navigationSystem, current.get());
-      previousBackEnabled = Boolean(UiCall(settingsBack, "get_enabled"));
+      previousBackEnabled = Il2CppChecked::Boolean(UiCall(settingsBack, "get_enabled"));
       Retain(backController, settingsBack);
     }
     releaseNavigationNextTick = false;
@@ -248,7 +246,7 @@ namespace
     } scope;
     try {
       if (!focused() || !Alive(Target(popup.object)) || !Alive(Target(popup.owner))
-          || !Boolean(UiCall(Target(popup.owner), "get_activeInHierarchy"))) {
+          || !Il2CppChecked::Boolean(UiCall(Target(popup.owner), "get_activeInHierarchy"))) {
         Cancel();
         return;
       }
@@ -309,7 +307,7 @@ namespace
         return;
       }
       if (!focused() || !Alive(Target(popup.object)) || !Alive(Target(popup.owner))
-          || !Boolean(UiCall(Target(popup.owner), "get_activeInHierarchy"))) {
+          || !Il2CppChecked::Boolean(UiCall(Target(popup.owner), "get_activeInHierarchy"))) {
         Cancel();
         return;
       }
@@ -409,7 +407,7 @@ bool OpenShortcutPopup(ShortcutPopupCommands commands)
       const auto scale = std::min({1.f, value.width / 650.f, value.height / 570.f});
       if (scale <= 0)
         throw std::runtime_error("shortcut popup canvas size");
-      Value(panelTransform.get(), "set_localScale", Vec3{scale, scale, 1});
+      Value(panelTransform.get(), "set_localScale", Vector3{scale, scale, 1});
     }
     Retain(popup.title, Label(panelTransform.get(), font.get(), "Title", {560, 58}, {0, 214}, 29, ""));
     Retain(popup.current, Label(panelTransform.get(), font.get(), "Current", {560, 45}, {0, 157}, 21, ""));
