@@ -7,7 +7,7 @@
 #  |    #***     #    #       #***         #   *   #**    #***    | 
 #  |                                                              | 
 #  +--------------------------------------------------------------+ 
-#   Généré le 2026-09-27T19:44:17.179Z
+#   Généré le 2026-10-04T20:00:48.794Z
 #   
 #   Ce fichier de configuration a été généré par https://modconfig.pages.dev
 #   et est fourni tel quel. En cas de problème avec le STFC Community Mod,
@@ -17,7 +17,7 @@
 #       Discord : https://discord.gg/PrpHgs7Vjs
 #       GitHub  : https://github.com/netniV/stfc-mod
 #   
-#   Le fichier de configuration du jour vous est présenté par la lettre Y et le nombre 7
+#   Le fichier de configuration du jour vous est présenté par la lettre X et le nombre 6
 #   
 
 #  <[=======================================]> 
@@ -31,11 +31,20 @@
 #  <[=======================================]> 
 
 [audio]
-# Comma-separated audio event names to suppress; leave blank to allow all audio events
+# Comma-separated audio event names to suppress; use "All" as a wildcard for named events handled by this filter
 disabled_events = ""
 
 # Write audio event names to the trace log for troubleshooting
 trace_events = false
+
+# Optional generated notification cues; "none" disables an alert.
+# Available sounds: default, info, success, warning, alarm, arrival, soft, ping, repair
+# Requires patches.toastbannerhooks = true.
+alert_victory = "none"
+alert_defeat = "none"
+alert_armada_created = "none"
+alert_armada_battle_won = "none"
+alert_armada_battle_lost = "none"
 
 #  <[=======================================]> 
 #                                              
@@ -114,9 +123,6 @@ enable_experimental = false
 #  <[=======================================================================================================================================================]> 
 
 [graphics]
-# Afficher le temps restant de l’anomalie galactique sous les boutons Aider / Participer / Récupérer.
-galactic_anomaly_timer = false
-
 
 # Subgroup: Display
 # -----------------
@@ -130,11 +136,11 @@ transition_time = 0.01
 # Ceci spécifie le montant à mettre à l’échelle de l’interface utilisateur, 1.0 étant la valeur par défaut
 ui_scale = 0.6
 
-# Cela spécifie le montant à ajuster dans l’échelle, 0,05 étant la valeur par défaut
-ui_scale_adjust = 0.05
-
 # Cela spécifie le facteur de mise à l’échelle des modèles de vaisseaux dans la vue système, 1,0 étant la valeur par défaut
 ui_scale_ship = 1.0
+
+# This specifies the amount to adjust the scale by, 0.05 being default
+ui_scale_step = 0.05
 
 # Ceci spécifie le montant à mettre à l’échelle des visualiseurs d’objets de l’interface utilisateur, 1.0 étant la valeur par défaut
 ui_scale_viewer = 1.2
@@ -207,6 +213,9 @@ borderless_fullscreen = true
 # Autorise le redimensionnement libre, mettez désactiver pour désactiver
 free_resize = true
 
+# Show the remaining Galactic Anomaly time below Help All, Engage, and Claim
+galactic_anomaly_timer = false
+
 # Après avoir utilisé un préréglage de zoom, il sera défini comme zoom par défaut
 use_presets_as_default = true
 
@@ -249,21 +258,30 @@ zoom = 5000.0
 # Subgroup: Leave Well Alone
 # --------------------------
 
+artifactexchangehooks = true
+audioeventhooks = true
+
 # Activez les corrections de buffs
 bufffixhooks = true
 cargoformathooks = true
-instantcargocounterhooks = true
 chatpatches = true
 
 # Active la réclamation groupée par faction pour les objectifs quotidiens
 dailyfactionbulkclaimhooks = true
-focussearch = true
+doubleclickassignshiphooks = true
+forbiddentechconfirmhooks = true
 freeresizehooks = true
+galacticanomalytimerhooks = true
 game_version = true
 giftsbulkclaimhooks = true
 hotkeyhooks = true
+
+# Show cargo totals immediately instead of counting up
+instantcargocounterhooks = true
 loadingscreenhooks = true
+loadingtiphooks = true
 miscpatches = true
+missionhudtweakshooks = true
 objecttracker = true
 officersorthooks = true
 panhooks = true
@@ -515,8 +533,14 @@ show_inventory = "I"
 # Aller aux missions
 show_missions = "M"
 
+# Go directly to Officer Presets
+show_officerpresets = "CTRL-O"
+
 # Aller aux officiers
 show_officers = "SHIFT-O"
+
+# Go directly to Officer Swap
+show_officerswap = "ALT-O"
 
 # Aller aux épreuves de Q
 show_qtrials = "SHIFT-Q"
@@ -539,11 +563,11 @@ show_shields = "CTRL-S"
 # Ouvrir la construction de vaisseaux du chantier spatial
 show_shipconstruction = "SHIFT-N"
 
-# Aller directement à Échanger un vaisseau
-show_shipswap = "ALT-N"
-
 # Aller aux vaisseaux
 show_ships = "N"
+
+# Go directly to Ship Swap
+show_shipswap = "ALT-N"
 
 # Extérieur de la station
 show_stationexterior = "SHIFT-G"
@@ -772,21 +796,35 @@ hud_outposts = "auto"
 #   "hide" - Always hide this HUD item
 hud_q_trials = "auto"
 
+# Subgroup: Options
+# -----------------
+
+# Hide the Exchange All button in the Artifact Gallery
+disable_exchange_all = false
+
+# Enable the shortcut that focuses the search box on supported screens
+focus_search = true
+
+# Format abbreviated cargo values using Cargo Significant Decimals
+format_cargo_values = true
+
+# Restore the Below Deck Ability officer sort option
+officer_sort = true
+
 # Subgroup: Previews
 # ------------------
 
 # Decimal places used for abbreviated cargo values
 cargo_significant_decimals = 2
 
-# Afficher immediatement la cargaison/capacite sans animation. Redemarrer apres modification.
-# Client Windows 263 uniquement ; les autres versions gardent le comportement normal.
-instant_cargo_counter = true
-
 # Empêcher la localisation de fonctionner quand les aperçus de vaisseaux ou de nœuds sont affichés
 disable_preview_locate = false
 
 # Empêcher le rappel de fonctionner quand les aperçus de vaisseaux ou de nœuds sont affichés
 disable_preview_recall = false
+
+# Show cargo used and capacity immediately instead of counting up. Restart after changing. Windows client 263 only; other builds keep native behavior
+instant_cargo_counter = true
 
 # Mettre sur true pour toujours afficher les récompenses des vaisseaux/stations sélectionnés
 show_armada_cargo = true
@@ -818,6 +856,9 @@ show_station_cargo = true
 # Subgroup: Data
 # --------------
 
+# Do you want to sync away team assignment data?
+away_assignments = true
+
 # Voulez-vous synchroniser les journaux de combat ?
 battlelogs = true
 
@@ -836,8 +877,8 @@ jobs = true
 # Voulez-vous synchroniser les données des missions ?
 missions = true
 
-# Voulez-vous synchroniser les données des officiers possédés ?
-officer = true
+# Do you want to sync owned officer data?
+officers = true
 
 # Voulez-vous synchroniser les données de recherche ?
 research = true
