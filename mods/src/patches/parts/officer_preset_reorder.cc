@@ -13,6 +13,7 @@
 #include <spud/detour.h>
 
 #include <algorithm>
+#include <array>
 #include <charconv>
 #include <cstddef>
 #include <cstdint>
@@ -78,8 +79,16 @@ FieldInfo* reference_field(Il2CppClass* owner, const char* name, Il2CppClass* ex
 {
   auto* field = owner ? il2cpp_class_get_field_from_name(owner, name) : nullptr;
   auto* cls = field && field->type ? il2cpp_class_from_type(field->type) : nullptr;
-  return instance_field(field) && cls && !il2cpp_class_is_valuetype(cls)
-         && (!expected || il2cpp_class_is_assignable_from(expected, cls)) ? field : nullptr;
+  const bool valid = instance_field(field) && cls && !il2cpp_class_is_valuetype(cls)
+                     && (!expected || il2cpp_class_is_assignable_from(expected, cls));
+  if (!valid)
+    spdlog::warn("[OfficerPresetReorder] {}.{}: expected instance reference assignable to {}; actual type={} "
+                   "offset={} static={} byref={}",
+                   owner ? owner->name : "<missing owner>", name, expected ? expected->name : "reference",
+                   cls ? cls->name : "<missing field/type>", field ? field->offset : -1,
+                   field && field->type && bool(field->type->attrs & FIELD_ATTRIBUTE_STATIC),
+                   field && field->type && bool(field->type->byref));
+  return valid ? field : nullptr;
 }
 
 Il2CppObject* read_reference(void* object, FieldInfo* field)
@@ -205,12 +214,20 @@ bool validate_context_layout(Il2CppClass* context_class)
   auto* owner_field = context_class ? reference_field(context_class, "_officerPresetsViewContext", view_context_class) : nullptr;
   auto* officers_field = context_class ? il2cpp_class_get_field_from_name(context_class, "Officers") : nullptr;
   auto* officers_array = officers_field && officers_field->type ? il2cpp_class_from_type(officers_field->type) : nullptr;
-  return context_class != nullptr && enum_class && enum_class->declaringType == context_class
-         && std::strcmp(enum_class->name, "PresentationType") == 0
-         && underlying && !underlying->byref && underlying->type == IL2CPP_TYPE_I4
-         && owner_field && officers_array && officers_array->element_class
-         && !il2cpp_class_is_valuetype(officers_array->element_class)
-         && validate_context_field(context_class, "Presentation", offsetof(OfficerPresetItemContext, presentation),
+  if (!context_class || !enum_class || enum_class->declaringType != context_class
+      || std::strcmp(enum_class->name, "PresentationType") != 0
+      || !underlying || underlying->byref || underlying->type != IL2CPP_TYPE_I4) {
+    spdlog::warn("[OfficerPresetReorder] OfficerPresetItemContext.Presentation: expected nested PresentationType Int32 enum");
+    return false;
+  }
+  if (!owner_field)
+    return false; // reference_field names the failed member.
+  if (!officers_array || !officers_array->element_class
+      || il2cpp_class_is_valuetype(officers_array->element_class)) {
+    spdlog::warn("[OfficerPresetReorder] OfficerPresetItemContext.Officers: expected array of references");
+    return false;
+  }
+  return validate_context_field(context_class, "Presentation", offsetof(OfficerPresetItemContext, presentation),
                                    IL2CPP_TYPE_VALUETYPE)
          && validate_context_field(context_class, "IsOccupied", offsetof(OfficerPresetItemContext, is_occupied),
                                    IL2CPP_TYPE_BOOLEAN)
@@ -668,7 +685,17 @@ const MethodInfo* resolve(Il2CppClass* cls, const char* name, const char* result
                           std::initializer_list<const char*> parameters)
 {
   auto* method = method_contract::Resolve(cls, name, false, result, parameters);
-  return method && !method->has_full_generic_sharing_signature ? method : nullptr;
+  if (!method || method->has_full_generic_sharing_signature) {
+    std::string signature;
+    for (const auto* parameter : parameters) {
+      if (!signature.empty()) signature += ", ";
+      signature += parameter;
+    }
+    spdlog::warn("[OfficerPresetReorder] {}.{}({}) -> {}: {}", cls ? cls->name : "<missing class>",
+                   name, signature, result, method ? "unsupported generic sharing" : "instance method unavailable");
+    return nullptr;
+  }
+  return method;
 }
 
 const MethodInfo* resolve_manager(Il2CppClass* cls)
@@ -702,14 +729,31 @@ void InstallOfficerPresetReorderHooks()
   auto scroller = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.UI", "SmartScrollerBase");
   auto list_interface = il2cpp_get_class_helper("mscorlib", "System.Collections", "IList");
   auto provider = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.UI", "IDataContextProvider");
-  if (!manager.isValidHelper() || !widget.isValidHelper() || !controller.isValidHelper()
-      || !view.isValidHelper() || !item.isValidHelper() || !scroller.isValidHelper()
-      || !list_interface.isValidHelper() || !provider.isValidHelper()) {
-    ErrorMsg::MissingHelper("OfficerPresetReorder", "required UI surface");
-    return;
+  const struct {
+    IL2CppClassHelper* helper;
+    const char* namespaze;
+    const char* name;
+  } classes[] = {{&manager, "Digit.Prime.Officers", "OfficerManager"},
+                 {&widget, "Digit.Prime.OfficerPresets", "OfficerPresetItemWidget"},
+                 {&controller, "Digit.Prime.OfficerPresets", "OfficerPresetsViewController"},
+                 {&view, "Digit.Prime.OfficerPresets", "OfficerPresetsViewContext"},
+                 {&item, "Digit.Prime.OfficerPresets", "OfficerPresetItemContext"},
+                 {&scroller, "Digit.Client.UI", "SmartScrollerBase"},
+                 {&list_interface, "System.Collections", "IList"},
+                 {&provider, "Digit.Client.UI", "IDataContextProvider"}};
+  for (const auto& entry : classes) {
+    if (!entry.helper->isValidHelper()) {
+      ErrorMsg::MissingHelper(entry.namespaze, entry.name);
+      return;
+    }
   }
 #ifdef __APPLE__
-  if (!il2cpp_field_set_value_object || !il2cpp_field_get_value || !il2cpp_class_enum_basetype) return;
+  if (!il2cpp_field_set_value_object || !il2cpp_field_get_value || !il2cpp_class_enum_basetype) {
+    spdlog::warn("[OfficerPresetReorder] missing IL2CPP export {}",
+                   !il2cpp_field_set_value_object ? "il2cpp_field_set_value_object"
+                   : !il2cpp_field_get_value ? "il2cpp_field_get_value" : "il2cpp_class_enum_basetype");
+    return;
+  }
 #endif
   item_context_class = item.get_cls();
   view_context_class = view.get_cls();
@@ -722,10 +766,19 @@ void InstallOfficerPresetReorderHooks()
   scroller_data_field = reference_field(scroller_class, "_data", list_interface.get_cls());
   scroller_held_data_field = reference_field(scroller_class, "_dataHeldWhilstInitializing", list_interface.get_cls());
   if (!widget_context_field || !controller_context_field || !controller_scroller_field || !presets_items_field
-      || !scroller_data_field || !scroller_held_data_field
-      || il2cpp_class_from_type(scroller_data_field->type) != list_interface.get_cls()
-      || il2cpp_class_from_type(scroller_held_data_field->type) != list_interface.get_cls()
-      || !il2cpp_class_is_assignable_from(provider.get_cls(), controller.get_cls())) return;
+      || !scroller_data_field || !scroller_held_data_field) return;
+  for (auto* field : {scroller_data_field, scroller_held_data_field}) {
+    auto* actual = il2cpp_class_from_type(field->type);
+    if (actual != list_interface.get_cls()) {
+      spdlog::warn("[OfficerPresetReorder] SmartScrollerBase.{}: expected exact System.Collections.IList; actual={}",
+                     field->name, actual->name);
+      return;
+    }
+  }
+  if (!il2cpp_class_is_assignable_from(provider.get_cls(), controller.get_cls())) {
+    spdlog::warn("[OfficerPresetReorder] OfficerPresetsViewController no longer implements IDataContextProvider");
+    return;
+  }
 
   clear_and_generate = resolve(scroller_class, "ClearAndGenerateContents", "System.Void",
                                 {"Digit.Client.UI.IDataContextProvider", "System.Collections.IList"});
@@ -738,18 +791,30 @@ void InstallOfficerPresetReorderHooks()
   const auto* save = resolve(controller.get_cls(), "OnSaveSlotsSuccess", "System.Void", {"System.Boolean"});
   if (!clear_and_generate || !get_scroll_position || !restore_scroll_position
       || !method || !edit || !bind || !release || !save) {
-    ErrorMsg::MissingMethod("OfficerPresetReorder", "full signature");
+    if (!method)
+      ErrorMsg::MissingMethod("OfficerManager", "TryGetPresetItemContext(ref OfficerPresetItemContext[], OfficerPresetsViewContext) -> Boolean");
     return;
   }
   const MethodInfo* targets[]{method, edit, bind, release, save};
+  const std::array names{"OfficerManager.TryGetPresetItemContext", "OfficerPresetItemWidget.OnEditNameButtonClicked",
+                         "OfficerPresetsViewController.OnDidBindCanvasContext",
+                         "OfficerPresetsViewController.OnAboutToReleaseCanvasContext",
+                         "OfficerPresetsViewController.OnSaveSlotsSuccess"};
   for (size_t i = 0; i < std::size(targets); ++i)
     for (size_t j = 0; j < i; ++j)
-      if (targets[i]->methodPointer == targets[j]->methodPointer) return;
+      if (targets[i]->methodPointer == targets[j]->methodPointer) {
+        spdlog::warn("[OfficerPresetReorder] {} and {} share native hook target; feature unavailable", names[i], names[j]);
+        return;
+      }
   const bool manager_ok = SPUD_STATIC_DETOUR(method->methodPointer, OfficerManager_TryGetPresetItemContext_Hook) != nullptr;
   const bool edit_ok = SPUD_STATIC_DETOUR(edit->methodPointer, OfficerPresetItemWidget_OnEditNameButtonClicked_Hook) != nullptr;
   const bool bind_ok = SPUD_STATIC_DETOUR(bind->methodPointer, OfficerPresetsViewController_OnDidBindCanvasContext_Hook) != nullptr;
   const bool release_ok = SPUD_STATIC_DETOUR(release->methodPointer, OfficerPresetsViewController_OnAboutToReleaseCanvasContext_Hook) != nullptr;
   const bool save_ok = SPUD_STATIC_DETOUR(save->methodPointer, OfficerPresetsViewController_OnSaveSlotsSuccess_Hook) != nullptr;
+  const std::array installed{manager_ok, edit_ok, bind_ok, release_ok, save_ok};
+  for (size_t i = 0; i < installed.size(); ++i)
+    if (!installed[i])
+      spdlog::warn("[OfficerPresetReorder] failed to install {}; feature retains native behavior", names[i]);
   hooks_ready = manager_ok && edit_ok && bind_ok && release_ok && save_ok;
   if (!hooks_ready) spdlog::warn("[OfficerPresetReorder] incomplete hook family; callbacks retain native behavior");
 }
