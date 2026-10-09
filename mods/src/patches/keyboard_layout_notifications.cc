@@ -3,6 +3,7 @@
 // Use the tested Windows x64 delegate ABI.
 #if defined(_WIN32) && (defined(_M_X64) || defined(__x86_64__))
 #include "il2cpp/il2cpp_helper.h"
+#include "il2cpp/runtime.h"
 
 namespace keyboard_layout::notifications
 {
@@ -34,13 +35,6 @@ namespace
     // conservatively invalidate without polling or touching Unity in the callback.
     if ((change >= 0 && change <= 5) || change == 7)
       state.refresh->Invalidate();
-  }
-
-  bool Invoke(const MethodInfo* method, void* self, void** args)
-  {
-    Il2CppException* exception = nullptr;
-    il2cpp_runtime_invoke(method, self, args, &exception);
-    return exception == nullptr;
   }
 
   bool Create()
@@ -110,7 +104,7 @@ namespace
     state.accepting  = true;
     state.subscribed = true; // An exception need not mean the event was untouched.
     void* args[]{delegate};
-    return Invoke(state.add, nullptr, args);
+    return Il2CppRuntime::TryInvoke(state.add, nullptr, args);
   }
 } // namespace
 
@@ -135,7 +129,7 @@ void Stop()
   if (state.subscribed) {
     auto* delegate = il2cpp_gchandle_get_target(state.root);
     void* args[]{delegate};
-    if (!delegate || !Invoke(state.remove, nullptr, args))
+    if (!delegate || !Il2CppRuntime::TryInvoke(state.remove, nullptr, args))
       return; // Preserve the root and metadata if listener removal is uncertain.
     state.subscribed = false;
   }
