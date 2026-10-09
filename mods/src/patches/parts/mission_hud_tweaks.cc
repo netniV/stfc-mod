@@ -219,23 +219,34 @@ void InstallMissionHudTweaksHooks()
       controller_helper.get_cls(), "SetupOutpostsButton", false, "System.Void", {"System.Boolean"});
   const auto* combined = method_contract::Resolve(
       controller_helper.get_cls(), "HandleOutpostsAndChallengesHUD", false, "System.Void", {});
-  if (!on_enable || !achievements || !challenges || !outposts || !combined) {
-    spdlog::error("MissionHudTweaks: current HUD lifecycle/setup methods are missing; overrides disabled");
-    return;
-  }
-
   const std::array targets{on_enable, achievements, challenges, outposts, combined};
+  const std::array names{"OnEnable()", "SetupAchievementsButton()", "SetupChallengesButton(Boolean)",
+                         "SetupOutpostsButton(Boolean)", "HandleOutpostsAndChallengesHUD()"};
   for (std::size_t i = 0; i < targets.size(); ++i) {
-    if (targets[i]->has_full_generic_sharing_signature)
+    if (!targets[i]) {
+      ErrorMsg::MissingMethod("MissionsHudViewController", names[i]);
       return;
+    }
+  }
+  for (std::size_t i = 0; i < targets.size(); ++i) {
+    if (targets[i]->has_full_generic_sharing_signature) {
+      spdlog::error("MissionHudTweaks: MissionsHudViewController.{} uses unsupported generic sharing; overrides disabled",
+                     names[i]);
+      return;
+    }
     for (std::size_t j = 0; j < i; ++j)
       if (targets[i]->methodPointer == targets[j]->methodPointer) {
-        spdlog::error("MissionHudTweaks: lifecycle/setup targets overlap; overrides disabled");
+        spdlog::error("MissionHudTweaks: MissionsHudViewController.{} and {} share a native target; overrides disabled",
+                       names[i], names[j]);
         return;
       }
   }
-  if (get_game_object->has_full_generic_sharing_signature || set_active->has_full_generic_sharing_signature)
+  if (get_game_object->has_full_generic_sharing_signature || set_active->has_full_generic_sharing_signature) {
+    spdlog::error("MissionHudTweaks: {} uses unsupported generic sharing; overrides disabled",
+                   get_game_object->has_full_generic_sharing_signature ? "Component.get_gameObject()"
+                                                                       : "GameObject.SetActive(Boolean)");
     return;
+  }
   const auto modes = ConfiguredButtonModes();
   if (!modes.empty())
     spdlog::info("MissionHudTweaks: applying {}", modes);
@@ -244,6 +255,10 @@ void InstallMissionHudTweaksHooks()
   const bool challenge_hook = SPUD_STATIC_DETOUR(challenges->methodPointer, MissionsHudViewController_SetupChallengesButton_Hook);
   const bool outpost_hook = SPUD_STATIC_DETOUR(outposts->methodPointer, MissionsHudViewController_SetupOutpostsButton_Hook);
   const bool combined_hook = SPUD_STATIC_DETOUR(combined->methodPointer, MissionsHudViewController_HandleOutpostsAndChallengesHUD_Hook);
+  const std::array installed{enabled, achievement_hook, challenge_hook, outpost_hook, combined_hook};
+  for (std::size_t i = 0; i < installed.size(); ++i)
+    if (!installed[i])
+      spdlog::error("MissionHudTweaks: failed to install MissionsHudViewController.{}; overrides disabled", names[i]);
   g_ready = enabled && achievement_hook && challenge_hook && outpost_hook && combined_hook;
   if (g_ready) {
     spdlog::info("MissionHudTweaks: installed current HUD lifecycle/setup hooks");
