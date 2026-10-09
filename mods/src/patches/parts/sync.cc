@@ -802,6 +802,9 @@ static std::mutex                          away_assignment_states_mtx;
 static std::unordered_map<int64_t, int64_t> structure_states;
 static std::mutex                           structure_states_mtx;
 
+static std::unordered_map<int64_t, int64_t> pieces_states;
+static std::mutex                           pieces_states_mtx;
+
 static eastl::ring_buffer<uint64_t> previously_sent_battlelogs;
 static std::mutex                   previously_sent_battlelogs_mtx;
 
@@ -1469,6 +1472,8 @@ static void planetary_base_data(std::unique_ptr<std::string>&& bytes)
   using json = nlohmann::json;
   using trackers::structure_states;
   using trackers::structure_states_mtx;
+  using trackers::pieces_states;
+  using trackers::pieces_states_mtx;
 
   if (auto response = Digit::PrimeServer::Models::PlanetaryBase(); response.ParseFromString(*bytes)) {
     http::logging::trace("PROCESS", "planetary base data", STR_FORMAT("Processing {} buildings", response.buildings_size()));
@@ -1488,8 +1493,24 @@ static void planetary_base_data(std::unique_ptr<std::string>&& bytes)
       }
     }
 
+    auto pieces_array = json::array();
+    {
+      std::scoped_lock lk(pieces_states_mtx);
+
+      for (const auto& [piece, count] : response.pieces()) {
+        if (const auto& it = pieces_states.find(piece); it == pieces_states.end() || it->second != count) {
+          pieces_states[piece] = piece;
+          pieces_array.push_back({{"type", SyncConfig::Type::Haven + "_pieces"}, {"sid", piece}, {"count", piece}});
+        }
+      }
+    }
+
     if (!structure_array.empty()) {
       workers::queue_data(SyncConfig::Type::Haven, structure_array);
+    }
+
+    if (!pieces_array.empty()) {
+      workers::queue_data(SyncConfig::Type::Haven, pieces_array);
     }
   }
 }

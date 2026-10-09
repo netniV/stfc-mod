@@ -225,9 +225,10 @@ namespace Sync
   constexpr const char* nextspocksclub_url = "https://next.spocks.club/sync/ingress/";
 
   constexpr bool        away_assignments   = true;
-  constexpr bool        battlelogs         = true;
+  constexpr bool        battlelogs         = false;
   constexpr bool        buffs              = true;
   constexpr bool        buildings          = true;
+  constexpr bool        haven              = true;
   constexpr bool        inventory          = true;
   constexpr bool        jobs               = true;
   constexpr bool        missions           = true;
