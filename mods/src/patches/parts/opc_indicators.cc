@@ -1440,6 +1440,12 @@ void InstallOpcIndicatorHooks()
   auto state = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.HUD", "FleetStateWidget");
   auto flag = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.HUD", "FleetbarFlagWidget");
   auto bar = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.HUD", "FleetBarViewController");
+  for (const auto& [helper, name] : std::array{
+           std::pair{&local, "Digit.Prime.Ships.FleetLocalViewController"},
+           std::pair{&state, "Digit.Prime.HUD.FleetStateWidget"},
+           std::pair{&flag, "Digit.Prime.HUD.FleetbarFlagWidget"},
+           std::pair{&bar, "Digit.Prime.HUD.FleetBarViewController"}})
+    if (!helper->isValidHelper()) spdlog::warn("[OpcIndicators] missing class {}", name);
   const auto* bind = resolve_instance_void(local, "BindDataContext",
       {"Digit.Client.UI.IDataContextProvider", "System.Object"});
   const auto* cargo = resolve_instance_void(local, "OnCurrentCargoReactiveEvent", {"System.Int32"});
@@ -1468,11 +1474,14 @@ void InstallOpcIndicatorHooks()
   for (const auto& [field, owner] : std::array{
            std::pair{s_state_context_field, "ETA: FleetStateWidget"},
            std::pair{s_flag_context_field, "highlight: FleetbarFlagWidget"}}) {
+    auto* type = field && field->type && field->type->type == IL2CPP_TYPE_CLASS
+                     ? il2cpp_class_from_type(field->type) : nullptr;
     if (!is_instance_class_field(field, "Digit.PrimeServer.Models", "FleetPlayerData"))
       spdlog::warn("[OpcIndicators] {}.m_context: expected instance FleetPlayerData class field, offset >= {}; "
-                     "actual offset={} type={} static={} byref={}",
+                     "actual offset={} type={} class={} static={} byref={}",
                      owner, sizeof(Il2CppObject), field ? field->offset : -1,
                      field && field->type ? static_cast<int>(field->type->type) : -1,
+                     type ? type->name : "<missing class type>",
                      field && field->type && bool(field->type->attrs & FIELD_ATTRIBUTE_STATIC),
                      field && field->type && bool(field->type->byref));
   }
