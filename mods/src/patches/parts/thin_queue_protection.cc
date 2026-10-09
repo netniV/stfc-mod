@@ -205,7 +205,7 @@ bool Field(Il2CppClass* cls, const char* name, std::ptrdiff_t offset, Il2CppType
                    "actual offset={} type={} static={} byref={}",
                    cls ? cls->name : "<missing class>", name, offset, static_cast<int>(type),
                    f ? f->offset : -1, f && f->type ? static_cast<int>(f->type->type) : -1,
-                   f && bool(il2cpp_field_get_flags(f) & FIELD_ATTRIBUTE_STATIC),
+                   f && f->type && bool(il2cpp_field_get_flags(f) & FIELD_ATTRIBUTE_STATIC),
                    f && f->type && bool(f->type->byref));
   return valid;
 }
