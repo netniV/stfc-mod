@@ -108,7 +108,6 @@ void InstallForbiddenTechConfirmationHooks()
     ErrorMsg::MissingMethod("MessageBox", "Show");
     return;
   }
-#if defined(_WIN32) && defined(_M_X64)
   for (auto* method : {show, show_with_callback}) {
     bool valid = (method->flags & METHOD_ATTRIBUTE_STATIC) && !method->is_generic && !method->is_inflated
                  && !method->has_full_generic_sharing_signature && method->return_type
@@ -123,7 +122,6 @@ void InstallForbiddenTechConfirmationHooks()
       return;
     }
   }
-#endif
   if (!SPUD_STATIC_DETOUR(show->methodPointer, MessageBox_Show_Hook)
       || !SPUD_STATIC_DETOUR(show_with_callback->methodPointer, MessageBox_ShowWithCallback_Hook)) {
     spdlog::warn("Forbidden Tech confirmation unavailable: hook installation");

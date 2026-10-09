@@ -195,7 +195,7 @@ void RenderCategory(Il2CppObject* widget)
                  true, !Collapsed(*heading));
     }
   } catch (...) {
-    Warn();
+    Warn("settings category rendering unavailable");
   }
 }
 void ForgetCategory(Il2CppObject* widget)
@@ -283,7 +283,7 @@ void PageSelectedHook(auto original, Il2CppObject* controller, Il2CppObject* con
       // Invoke converts managed failures to fixed messages, without game data.
       // Keep the concrete lookup/binding reason; a generic warning hid the
       // incorrect SetContext lookup that prevented sections from folding.
-      Warn(error.what());
+      Warn("settings section unavailable");
       if (sectionClick)
         return;
     } catch (...) {
@@ -345,7 +345,7 @@ void PageSelectedHook(auto original, Il2CppObject* controller, Il2CppObject* con
       }
     }
   } catch (...) {
-    Warn();
+    Warn("selected settings page rendering unavailable");
   }
 }
 void PageDestroyedHook(auto original, Il2CppObject* controller)
@@ -557,22 +557,26 @@ void InstallPages()
     return;
   auto&            m = PageMeta();
   const std::array hooks{m.bind, m.release, m.selected, m.destroyed};
+  const std::array hookNames{"CategoryOptionWidget.OnDidBindContext", "CategoryOptionWidget.OnAboutToReleaseContext",
+                             "GameSettingsViewController.OnCategorySelected", "GameSettingsViewController.OnDestroy"};
   for (std::size_t i = 0; i < hooks.size(); ++i) {
     if (!Instance(hooks[i], i == 2 ? 1 : 0, IL2CPP_TYPE_VOID))
-      throw std::runtime_error("settings page hook metadata");
+      throw std::runtime_error(std::string(hookNames[i]) + ": incompatible instance Void hook signature");
     for (std::size_t j = 0; j < i; ++j)
       if (hooks[i]->methodPointer == hooks[j]->methodPointer)
-        throw std::runtime_error("settings page shared hook");
+        throw std::runtime_error(std::string(hookNames[i]) + " shares target with " + hookNames[j]);
     const auto& core = ToggleMeta();
     for (auto* owned :
          {core.addGeneral, core.refresh, core.changed, core.release, core.reload, core.session, core.load})
       if (hooks[i]->methodPointer == owned->methodPointer)
-        throw std::runtime_error("settings page overlaps existing hook");
+        throw std::runtime_error(std::string(hookNames[i]) + " shares target with " + owned->klass->name + "." + owned->name);
   }
   if (!Instance(m.add, 4, IL2CPP_TYPE_CLASS) || !Reference(m.add->parameters[0])
       || !Type(m.add->parameters[1], IL2CPP_TYPE_STRING) || !Type(m.add->parameters[2], IL2CPP_TYPE_STRING)
-      || !Reference(m.add->parameters[3]) || !Reference(m.selected->parameters[0]))
-    throw std::runtime_error("settings category signature");
+      || !Reference(m.add->parameters[3]))
+    throw std::runtime_error("SettingsContext.AddCategory: expected instance reference result and (reference, String, String, reference)");
+  if (!Reference(m.selected->parameters[0]))
+    throw std::runtime_error("GameSettingsViewController.OnCategorySelected: expected reference parameter");
   InstallChoiceAndSliderWidgets();
   if (std::any_of(Pages().begin(), Pages().end(), [](const auto& page) {
         return std::any_of(page.items.begin(), page.items.end(), [](const auto& item) {
@@ -582,36 +586,44 @@ void InstallPages()
       })) {
     auto&       heading = HeadingMeta();
     const auto* get     = ToggleMeta().director.GetMethodInfo("GetClientVersion", 0);
-    if (!Instance(get, 0, IL2CPP_TYPE_STRING) || !Instance(heading.add, 4, IL2CPP_TYPE_VOID)
-        || !Reference(heading.add->parameters[0]) || !Type(heading.add->parameters[1], IL2CPP_TYPE_STRING)
-        || !Reference(heading.add->parameters[2]) || !Reference(heading.add->parameters[3]) || !heading.getContext
-        || !Reference(heading.getContext->return_type)
-        || !Instance(heading.getContext, 0, heading.getContext->return_type->type)
-        || !headingGetter.Initialize(get, EmptyHeadingValue))
-      throw std::runtime_error("heading callback schema");
+    if (!Instance(get, 0, IL2CPP_TYPE_STRING))
+      throw std::runtime_error("SettingsSectionDirector.GetClientVersion: expected instance String()");
+    if (!Instance(heading.add, 4, IL2CPP_TYPE_VOID) || !Reference(heading.add->parameters[0])
+        || !Type(heading.add->parameters[1], IL2CPP_TYPE_STRING) || !Reference(heading.add->parameters[2])
+        || !Reference(heading.add->parameters[3]))
+      throw std::runtime_error("SettingsContext.AddText: expected instance Void(reference, String, reference, reference)");
+    if (!heading.getContext || !Reference(heading.getContext->return_type)
+        || !Instance(heading.getContext, 0, heading.getContext->return_type->type))
+      throw std::runtime_error("TextOptionWidget.get_Context: expected instance reference result");
+    if (!headingGetter.Initialize(get, EmptyHeadingValue))
+      throw std::runtime_error("heading getter: incompatible native callback schema");
     const std::array targets{heading.refresh, heading.clear};
+    const std::array names{"TextOptionWidget.SetWidgetData", "TextOptionWidget.ClearWidgetData"};
+    for (std::size_t i = 0; i < targets.size(); ++i)
+      if (!Instance(targets[i], 0, IL2CPP_TYPE_VOID))
+        throw std::runtime_error(std::string(names[i]) + ": expected instance Void()");
+    if (targets[0]->methodPointer == targets[1]->methodPointer)
+      throw std::runtime_error("TextOptionWidget.SetWidgetData and ClearWidgetData share a native hook target");
     for (auto* target : targets) {
-      if (!Instance(target, 0, IL2CPP_TYPE_VOID)
-          || targets[0]->methodPointer == targets[1]->methodPointer)
-        throw std::runtime_error("heading hook metadata");
       const auto& core = ToggleMeta();
       for (auto* existing : {core.refresh, core.changed, core.release, core.addGeneral, core.reload, core.session,
                              core.load, m.bind, m.release, m.selected, m.destroyed})
         if (target->methodPointer == existing->methodPointer)
-          throw std::runtime_error("heading hook overlap");
+          throw std::runtime_error(std::string("TextOptionWidget.") + target->name + " shares target with " + existing->klass->name + "." + existing->name);
       if (SelectionActive())
         for (auto* existing : {SelectionMeta().refresh, SelectionMeta().changed, SelectionMeta().release})
           if (target->methodPointer == existing->methodPointer)
-            throw std::runtime_error("heading selection overlap");
+            throw std::runtime_error(std::string("TextOptionWidget.") + target->name + " shares target with " + existing->klass->name + "." + existing->name);
       if (SliderActive())
         for (auto* existing :
              {SliderMeta().refresh, SliderMeta().changed, SliderMeta().release, SliderMeta().valueLabel})
           if (target->methodPointer == existing->methodPointer)
-            throw std::runtime_error("heading slider overlap");
+            throw std::runtime_error(std::string("TextOptionWidget.") + target->name + " shares target with " + existing->klass->name + "." + existing->name);
     }
-    if (!SPUD_STATIC_DETOUR(heading.refresh->methodPointer, HeadingRefreshHook)
-        || !SPUD_STATIC_DETOUR(heading.clear->methodPointer, HeadingClearHook))
-      throw std::runtime_error("heading hook installation");
+    if (!SPUD_STATIC_DETOUR(heading.refresh->methodPointer, HeadingRefreshHook))
+      throw std::runtime_error("TextOptionWidget.SetWidgetData: hook installation failed");
+    if (!SPUD_STATIC_DETOUR(heading.clear->methodPointer, HeadingClearHook))
+      throw std::runtime_error("TextOptionWidget.ClearWidgetData: hook installation failed");
     headingsActive = true;
   }
   InstallActionWidgets();
@@ -624,11 +636,14 @@ void InstallPages()
       if (!setting->SetChangeObserver(RefreshViews))
         throw std::runtime_error("settings observer ownership");
     }
-  if (!SPUD_STATIC_DETOUR(m.bind->methodPointer, CategoryBindHook)
-      || !SPUD_STATIC_DETOUR(m.release->methodPointer, CategoryReleaseHook)
-      || !SPUD_STATIC_DETOUR(m.selected->methodPointer, PageSelectedHook)
-      || !SPUD_STATIC_DETOUR(m.destroyed->methodPointer, PageDestroyedHook))
-    throw std::runtime_error("settings page hook installation");
+  if (!SPUD_STATIC_DETOUR(m.bind->methodPointer, CategoryBindHook))
+    throw std::runtime_error("CategoryOptionWidget.OnDidBindContext: hook installation failed");
+  if (!SPUD_STATIC_DETOUR(m.release->methodPointer, CategoryReleaseHook))
+    throw std::runtime_error("CategoryOptionWidget.OnAboutToReleaseContext: hook installation failed");
+  if (!SPUD_STATIC_DETOUR(m.selected->methodPointer, PageSelectedHook))
+    throw std::runtime_error("GameSettingsViewController.OnCategorySelected: hook installation failed");
+  if (!SPUD_STATIC_DETOUR(m.destroyed->methodPointer, PageDestroyedHook))
+    throw std::runtime_error("GameSettingsViewController.OnDestroy: hook installation failed");
   pagesActive = true;
   spdlog::info("[ModSettings] Native navigation installed: {} registered pages", Pages().size());
 }
