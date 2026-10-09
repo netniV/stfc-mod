@@ -764,7 +764,7 @@ public:
   {
     if (!GalaxyLabelsRequested()) return;
     if (!GalaxyLabelZoomHooksReady()) {
-      spdlog::warn("[GalaxyLabels] shared zoom hooks unavailable");
+      spdlog::warn("[GalaxyLabels] unavailable: shared NavigationZoom/NavigationLOD hooks not ready");
       return;
     }
     auto star = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Navigation", "NavigationStarEntityWidget");
@@ -775,9 +775,20 @@ public:
     auto component = il2cpp_get_class_helper("UnityEngine.CoreModule", "UnityEngine", "Component");
     auto filter = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.Core.Systems", "GalaxyDataFilterSystem");
     auto world = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Prime.Navigation", "GameWorldManager");
-    if (!star.isValidHelper() || !hud.isValidHelper() || !toggle.isValidHelper() || !director.isValidHelper()
-        || !zoom.isValidHelper() || !filter.isValidHelper() || !world.isValidHelper()
-        || !component.isValidHelper()) return;
+    for (const auto& [helper, name] : std::array{
+             std::pair{&star, "Assembly-CSharp: Digit.Prime.Navigation.NavigationStarEntityWidget"},
+             std::pair{&hud, "Assembly-CSharp: Digit.Prime.Navigation.UI.HudNavigationViewController"},
+             std::pair{&toggle, "Assembly-CSharp: Digit.Prime.Navigation.UI.GalaxyToggleHandler"},
+             std::pair{&director, "Assembly-CSharp: Digit.Prime.Navigation.NavigationDirector"},
+             std::pair{&zoom, "Assembly-CSharp: Digit.Prime.Navigation.NavigationZoomEventHandler"},
+             std::pair{&filter, "Assembly-CSharp: Digit.Client.Core.Systems.GalaxyDataFilterSystem"},
+             std::pair{&world, "Assembly-CSharp: Digit.Prime.Navigation.GameWorldManager"},
+             std::pair{&component, "UnityEngine.CoreModule: UnityEngine.Component"}}) {
+      if (!helper->isValidHelper()) {
+        spdlog::warn("[GalaxyLabels] unavailable: missing class {}", name);
+        return;
+      }
+    }
     world_instance = il2cpp_class_get_method_from_name(il2cpp_class_get_parent(world.get_cls()), "get_Instance", 0);
     is_minor = world.GetMethodInfo("IsMinorNode");
     using method_contract::Resolve;
@@ -786,8 +797,22 @@ public:
     auto* dirty = il2cpp_class_get_field_from_name(filter.get_cls(), "_cullingDirty");
     auto* current = il2cpp_class_get_field_from_name(filter.get_cls(), "_currentLevel");
     auto* context = il2cpp_class_get_field_from_name(star.get_cls(), "m_context");
-    if (!world_instance || !is_minor || !dirty || dirty->offset != 0x80 || !current || current->offset != 0x7c
-        || !context || context->offset != 0x50) return;
+    if (!world_instance || !is_minor) {
+      spdlog::warn("[GalaxyLabels] unavailable: missing {}",
+                     !world_instance ? "GameWorldManager parent get_Instance()" : "GameWorldManager.IsMinorNode");
+      return;
+    }
+    const struct { const FieldInfo* field; const char* name; int32_t offset; } fields[] = {
+        {dirty, "GalaxyDataFilterSystem._cullingDirty", 0x80},
+        {current, "GalaxyDataFilterSystem._currentLevel", 0x7c},
+        {context, "NavigationStarEntityWidget.m_context", 0x50}};
+    for (const auto& entry : fields) {
+      if (!entry.field || entry.field->offset != entry.offset) {
+        spdlog::warn("[GalaxyLabels] unavailable: {} expected offset=0x{:X}; actual={}",
+                       entry.name, entry.offset, entry.field ? entry.field->offset : -1);
+        return;
+      }
+    }
     const auto* data_info = Resolve(star.get_cls(), "UpdateStarData", false, "System.Void",
                                     {"Digit.Prime.Navigation.ZoomLevels"});
     auto data = Pointer(data_info);
@@ -823,10 +848,18 @@ public:
       return count == 1 && params[0]->type == IL2CPP_TYPE_CLASS;
     });
     const auto* lod_field = il2cpp_class_get_field_from_name(zoom.get_cls(), "_navigationLod");
-    if (!lod_field || lod_field->offset != 0x40) return;
+    if (!lod_field || lod_field->offset != 0x40) {
+      spdlog::warn("[GalaxyLabels] unavailable: NavigationZoomEventHandler._navigationLod expected offset=0x40; actual={}",
+                     lod_field ? lod_field->offset : -1);
+      return;
+    }
     auto list = il2cpp_get_class_helper("Assembly-CSharp", "Digit.Client.UI", "BaseListContainer");
     const auto* container = list.isValidHelper() ? il2cpp_class_get_field_from_name(list.get_cls(), "m_container") : nullptr;
-    if (!container || container->offset != 0x28) return;
+    if (!container || container->offset != 0x28) {
+      spdlog::warn("[GalaxyLabels] unavailable: BaseListContainer.m_container expected offset=0x28; actual={}; class available={}",
+                     container ? container->offset : -1, list.isValidHelper());
+      return;
+    }
 #if __APPLE__
     const auto instance = [](const FieldInfo* field) {
       return field && field->type && !(field->type->attrs & FIELD_ATTRIBUTE_STATIC);
@@ -840,45 +873,75 @@ public:
       const auto* base = cls && il2cpp_class_is_enum(cls) ? il2cpp_class_enum_basetype(cls) : nullptr;
       return base && base->type == IL2CPP_TYPE_I4;
     };
-    if (!instance(dirty) || dirty->type->type != IL2CPP_TYPE_BOOLEAN
-        || !instance(current) || !enum32(current->type)
-        || !instance(context) || context->type->type != IL2CPP_TYPE_VALUETYPE
-        || !reference(lod_field) || !reference(container)
-        || !mode_field || !(mode_field->type->attrs & FIELD_ATTRIBUTE_STATIC) || !enum32(mode_field->type)
-        || is_minor->flags & METHOD_ATTRIBUTE_STATIC || is_minor->parameters_count != 1
-        || !is_minor->parameters[0]->byref
-        || il2cpp_class_from_type(is_minor->parameters[0]) != il2cpp_class_from_type(context->type)
-        || !method_contract::Type(is_minor->return_type, "System.Boolean")) {
-      spdlog::warn("[GalaxyLabels] incompatible Mac field or helper layout");
-      return;
+    const struct { bool valid; const char* member; const char* expected; } contracts[] = {
+        {instance(dirty) && dirty->type->type == IL2CPP_TYPE_BOOLEAN,
+         "GalaxyDataFilterSystem._cullingDirty", "instance Boolean field"},
+        {instance(current) && enum32(current->type), "GalaxyDataFilterSystem._currentLevel", "instance Int32 enum field"},
+        {instance(context) && context->type->type == IL2CPP_TYPE_VALUETYPE,
+         "NavigationStarEntityWidget.m_context", "instance value-type field"},
+        {reference(lod_field), "NavigationZoomEventHandler._navigationLod", "instance reference field"},
+        {reference(container), "BaseListContainer.m_container", "instance reference field"},
+        {mode_field && mode_field->type && (mode_field->type->attrs & FIELD_ATTRIBUTE_STATIC) && enum32(mode_field->type),
+         "NavigationDirector.GalaxyViewMode", "static Int32 enum field"},
+        {instance(context) && context->type->type == IL2CPP_TYPE_VALUETYPE
+             && !(is_minor->flags & METHOD_ATTRIBUTE_STATIC) && is_minor->parameters_count == 1
+             && is_minor->parameters[0]->byref
+             && il2cpp_class_from_type(is_minor->parameters[0]) == il2cpp_class_from_type(context->type)
+             && method_contract::Type(is_minor->return_type, "System.Boolean"),
+         "GameWorldManager.IsMinorNode", "instance Boolean(ref NavigationStarEntityWidget context)"}};
+    for (const auto& contract : contracts) {
+      if (!contract.valid) {
+        spdlog::warn("[GalaxyLabels] unavailable on Mac: {} expected {}", contract.member, contract.expected);
+        return;
+      }
     }
 #endif
     // The small selection callback requires native inspection when reviewing client
     // updates. Other bindings follow the normal IL2CPP resolution/SPUD hook path.
-    if (!mode_field || !get_component || !star_type || !underlying || underlying->type != IL2CPP_TYPE_I4
-        || !bind || !release || !should_filter || !data || !name || !select || !animation || !zoom_changed) {
-      spdlog::warn("[GalaxyLabels] incompatible native bindings"); return;
+    if (!mode_field || !get_component || !star_type || !underlying || underlying->type != IL2CPP_TYPE_I4) {
+      spdlog::warn("[GalaxyLabels] unavailable: {}",
+                     !mode_field ? "missing NavigationDirector.GalaxyViewMode field"
+                     : !get_component ? "missing Component.GetComponent(Type)"
+                     : !star_type ? "missing NavigationStarEntityWidget System.Type"
+                                  : "ZoomLevels must be an Int32 enum");
+      return;
+    }
+    const std::array targets{data, name, select, animation, zoom_changed, should_filter, bind, release};
+    const std::array names{"NavigationStarEntityWidget.UpdateStarData(ZoomLevels)",
+                           "NavigationStarEntityWidget.UpdateStarName(Boolean, Boolean, Boolean, Boolean)",
+                           "HudNavigationViewController.ChangeGalaxyViewInfo(Int32)",
+                           "GalaxyToggleHandler.UpdateSelectedAnimation(Boolean, Boolean, Boolean, Boolean)",
+                           "NavigationZoomEventHandler.OnZoomChanged(ZoomLevels)",
+                           "GalaxyDataFilterSystem.RebuildCullingGroup()", "NavigationStarEntityWidget.OnDidBindContext()",
+                           "NavigationStarEntityWidget.OnAboutToReleaseContext()"};
+    for (std::size_t i = 0; i < targets.size(); ++i) {
+      if (!targets[i]) {
+        spdlog::warn("[GalaxyLabels] unavailable: missing or incompatible instance Void {}", names[i]);
+        return;
+      }
     }
     for (auto [field, offset] : {std::pair{"_resourceList", 0xf0}, {"_resourceListContainer", 0x100},
                                   {"_hostilesListContainer", 0x108}, {"_hazardsListContainer", 0x118}, {"_hazardsWidget", 0x110},
                                   {"_hostilesLevelText", 0x90}, {"_starName", 0x80}, {"_hostilesList", 0xf8}, {"_galacticAnomalyIcon", 0x1d0}}) {
       auto* info = il2cpp_class_get_field_from_name(star.get_cls(), field);
-      if (!info || info->offset != offset) return;
+      if (!info || info->offset != offset) {
+        spdlog::warn("[GalaxyLabels] unavailable: NavigationStarEntityWidget.{} expected offset=0x{:X}; actual={}",
+                       field, offset, info ? info->offset : -1);
+        return;
+      }
 #if __APPLE__
-      if (!reference(info)) return;
+      if (!reference(info)) {
+        spdlog::warn("[GalaxyLabels] unavailable on Mac: NavigationStarEntityWidget.{} expected instance reference field", field);
+        return;
+      }
 #endif
     }
 #if __APPLE__
     // Resolve distinct targets before installing the hook family.
-    const std::array targets{data, name, select, animation, zoom_changed, should_filter, bind, release};
     for (std::size_t i = 0; i < targets.size(); ++i) {
-      if (!targets[i]) {
-        spdlog::warn("[GalaxyLabels] missing Mac hook target {}", i);
-        return;
-      }
       for (std::size_t j = 0; j < i; ++j) {
         if (targets[i] == targets[j]) {
-          spdlog::warn("[GalaxyLabels] aliased Mac hook targets {} and {}", i, j);
+          spdlog::warn("[GalaxyLabels] unavailable on Mac: {} and {} share a native hook target", names[i], names[j]);
           return;
         }
       }
@@ -890,6 +953,9 @@ public:
     const bool e = SPUD_STATIC_DETOUR(zoom_changed, ZoomHook);
     const bool f = SPUD_STATIC_DETOUR(should_filter, FilterHook);
     const bool g = SPUD_STATIC_DETOUR(bind, BindHook), h = SPUD_STATIC_DETOUR(release, ReleaseHook);
+    const std::array installed{a, b, c, d, e, f, g, h};
+    for (std::size_t i = 0; i < installed.size(); ++i)
+      if (!installed[i]) spdlog::warn("[GalaxyLabels] hook installation failed: {}; native labels retained", names[i]);
     ready = a && b && c && d && e && f && g && h;
     if (ready) ApplySettings();
     spdlog::info("[GalaxyLabels] hooks ready={} data={} name={} select={} animation={} zoom={} filter={} bind={} release={}",
