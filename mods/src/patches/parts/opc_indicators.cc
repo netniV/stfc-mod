@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <array>
+#include <utility>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
@@ -282,7 +283,17 @@ const MethodInfo* resolve_instance_void(IL2CppClassHelper& helper, const char* n
                                         std::initializer_list<const char*> parameters = {})
 {
   const auto* method = method_contract::Resolve(helper.get_cls(), name, false, "System.Void", parameters);
-  return method && !method->has_full_generic_sharing_signature ? method : nullptr;
+  if (!method || method->has_full_generic_sharing_signature) {
+    std::string signature;
+    for (const auto* parameter : parameters) {
+      if (!signature.empty()) signature += ", ";
+      signature += parameter;
+    }
+    spdlog::warn("[OpcIndicators] {}.{}({}) -> Void: {}", helper.get_cls() ? helper.get_cls()->name : "<missing class>",
+                   name, signature, method ? "unsupported generic sharing" : "instance method unavailable");
+    return nullptr;
+  }
+  return method;
 }
 
 void destroy_game_object(GameObject* game_object)
@@ -1448,33 +1459,65 @@ void InstallOpcIndicatorHooks()
       && is_instance_class_field(s_state_context_field, "Digit.PrimeServer.Models", "FleetPlayerData");
   const bool highlight_ready = local_ready && flag_set && flag_clear
       && is_instance_class_field(s_flag_context_field, "Digit.PrimeServer.Models", "FleetPlayerData");
+  if (!s_local_get_fleet || s_local_get_fleet->has_full_generic_sharing_signature)
+    spdlog::warn("[OpcIndicators] both families unavailable: FleetLocalViewController.get_fleet() -> FleetPlayerData: {}",
+                   s_local_get_fleet ? "unsupported generic sharing" : "instance method unavailable");
+  if (!s_is_index_selected || s_is_index_selected->has_full_generic_sharing_signature)
+    spdlog::warn("[OpcIndicators] ETA unavailable: FleetBarViewController.IsIndexSelected(Int32) -> Boolean: {}",
+                   s_is_index_selected ? "unsupported generic sharing" : "instance method unavailable");
+  for (const auto& [field, owner] : std::array{
+           std::pair{s_state_context_field, "ETA: FleetStateWidget"},
+           std::pair{s_flag_context_field, "highlight: FleetbarFlagWidget"}}) {
+    if (!is_instance_class_field(field, "Digit.PrimeServer.Models", "FleetPlayerData"))
+      spdlog::warn("[OpcIndicators] {}.m_context: expected instance FleetPlayerData class field, offset >= {}; "
+                     "actual offset={} type={} static={} byref={}",
+                     owner, sizeof(Il2CppObject), field ? field->offset : -1,
+                     field && field->type ? static_cast<int>(field->type->type) : -1,
+                     field && field->type && bool(field->type->attrs & FIELD_ATTRIBUTE_STATIC),
+                     field && field->type && bool(field->type->byref));
+  }
+  if (!eta_ready) spdlog::warn("[OpcIndicators] ETA unavailable; retaining native ETA labels");
+  if (!highlight_ready) spdlog::warn("[OpcIndicators] highlight unavailable; retaining native fleet flags");
   if (!eta_ready && !highlight_ready) {
     spdlog::warn("[OpcIndicators] unavailable: required method/context contracts");
     return;
   }
   std::vector<const MethodInfo*> targets{bind, cargo};
-  if (eta_ready) { targets.push_back(state_set); targets.push_back(state_clear); }
-  if (highlight_ready) { targets.push_back(flag_set); targets.push_back(flag_clear); }
+  std::vector<const char*> names{"FleetLocalViewController.BindDataContext", "FleetLocalViewController.OnCurrentCargoReactiveEvent"};
+  if (eta_ready) {
+    targets.push_back(state_set); targets.push_back(state_clear);
+    names.push_back("FleetStateWidget.SetWidgetData"); names.push_back("FleetStateWidget.ClearWidgetData");
+  }
+  if (highlight_ready) {
+    targets.push_back(flag_set); targets.push_back(flag_clear);
+    names.push_back("FleetbarFlagWidget.SetWidgetData"); names.push_back("FleetbarFlagWidget.ClearWidgetData");
+  }
   for (size_t i = 0; i < targets.size(); ++i)
     for (size_t j = 0; j < i; ++j)
       if (targets[i]->methodPointer == targets[j]->methodPointer) {
-        spdlog::warn("[OpcIndicators] unavailable: shared native hook target");
+        spdlog::warn("[OpcIndicators] unavailable: {} and {} share a native hook target", names[i], names[j]);
         return;
       }
   bool installed = true;
   if (eta_ready) {
     const bool a = SPUD_STATIC_DETOUR(state_clear->methodPointer, FleetStateWidget_ClearWidgetData_Hook) != nullptr;
     const bool b = SPUD_STATIC_DETOUR(state_set->methodPointer, FleetStateWidget_SetWidgetData_Hook) != nullptr;
+    if (!a) spdlog::warn("[OpcIndicators] hook installation failed: FleetStateWidget.ClearWidgetData; both families retain native behavior");
+    if (!b) spdlog::warn("[OpcIndicators] hook installation failed: FleetStateWidget.SetWidgetData; both families retain native behavior");
     installed = a && b;
   }
   if (installed && highlight_ready) {
     const bool a = SPUD_STATIC_DETOUR(flag_clear->methodPointer, FleetbarFlagWidget_ClearWidgetData_Hook) != nullptr;
     const bool b = SPUD_STATIC_DETOUR(flag_set->methodPointer, FleetbarFlagWidget_SetWidgetData_Hook) != nullptr;
+    if (!a) spdlog::warn("[OpcIndicators] hook installation failed: FleetbarFlagWidget.ClearWidgetData; both families retain native behavior");
+    if (!b) spdlog::warn("[OpcIndicators] hook installation failed: FleetbarFlagWidget.SetWidgetData; both families retain native behavior");
     installed = a && b;
   }
   if (installed) {
     const bool a = SPUD_STATIC_DETOUR(bind->methodPointer, FleetLocalViewController_BindDataContext_Hook) != nullptr;
     const bool b = SPUD_STATIC_DETOUR(cargo->methodPointer, FleetLocalViewController_OnCurrentCargoReactiveEvent_Hook) != nullptr;
+    if (!a) spdlog::warn("[OpcIndicators] hook installation failed: FleetLocalViewController.BindDataContext; both families retain native behavior");
+    if (!b) spdlog::warn("[OpcIndicators] hook installation failed: FleetLocalViewController.OnCurrentCargoReactiveEvent; both families retain native behavior");
     installed = a && b;
   }
   // A partial installation remains native; do not retry the same targets.
