@@ -5,11 +5,16 @@
 #include "settings/native_boolean_callback.h"
 #include <array>
 #include <cstring>
+#include <exception>
+#include <il2cpp/il2cpp_checked.h>
 #include <il2cpp/runtime.h>
+#include <mutex>
 #include <spdlog/spdlog.h>
 #include <spud/detour.h>
 #include <stdexcept>
+#include <string>
 #include <thread>
+#include <unordered_set>
 
 namespace
 {
@@ -18,18 +23,32 @@ constexpr const char*      CategoryKey = "game_settings_category_7";
 constexpr std::size_t      ViewLimit   = 8;
 bool                       active      = false;
 bool                       installing  = false;
-bool                       warned      = false;
 std::thread::id            uiThread;
 NativeCallback<bool>       getter;
 NativeCallback<void, bool> setter;
 NativeCallback<int>        query;
 
-void Warn()
+void Warn(const char* operation)
 {
-  if (!warned) {
-    warned = true;
-    spdlog::warn("[ModSettings] Native confirmation UI unavailable; no mod control added");
+  std::string message(operation);
+  if (auto exception = std::current_exception()) {
+    try {
+      std::rethrow_exception(exception);
+    } catch (const std::exception& error) {
+      message += ": ";
+      message += error.what();
+    } catch (...) {
+      message += ": non-standard C++ exception";
+    }
   }
+  static std::mutex                      mutex;
+  static std::unordered_set<std::string> reported;
+  {
+    std::lock_guard lock(mutex);
+    if (!reported.insert(message).second)
+      return;
+  }
+  spdlog::warn("[ModSettings] {}", message);
 }
 
 struct Root {
@@ -69,8 +88,16 @@ bool Instance(const MethodInfo* method, int count, int result)
 FieldInfo* Field(Il2CppClass* cls, const char* name)
 {
   auto* field = cls ? il2cpp_class_get_field_from_name(cls, name) : nullptr;
-  if (!field || !Reference(field->type) || (field->type->attrs & FIELD_ATTRIBUTE_STATIC))
-    throw std::runtime_error("settings reference field");
+  if (!field || !field->type || !Reference(field->type) || (field->type->attrs & FIELD_ATTRIBUTE_STATIC)) {
+    const std::string member = std::string(cls ? cls->namespaze : "") + "."
+                               + (cls ? cls->name : "<missing class>") + "." + name;
+    throw std::runtime_error(member + ": expected instance reference field; "
+                             + (!field ? "field missing" : !field->type ? "type missing"
+                                               : "actual type=" + std::to_string(field->type->type)
+                                                     + ", static="
+                                                     + std::to_string(bool(field->type->attrs & FIELD_ATTRIBUTE_STATIC))
+                                                     + ", byref=" + std::to_string(field->type->byref)));
+  }
   return field;
 }
 Il2CppObject* ReadField(Il2CppObject* object, FieldInfo* field)
@@ -83,21 +110,22 @@ Il2CppObject* ReadField(Il2CppObject* object, FieldInfo* field)
 Il2CppObject* Invoke(const MethodInfo* method, Il2CppObject* object, void** args = nullptr)
 {
   if (!method || !object)
-    throw std::runtime_error("settings invocation");
+    throw std::runtime_error(std::string("settings invocation: ")
+                             + (method ? method->klass->name : "<missing method>") + "."
+                             + (method ? method->name : "?") + (object ? "" : ": missing receiver"));
   Il2CppObject* result = nullptr;
   if (!Il2CppRuntime::TryInvoke(method, object, args, &result))
-    throw std::runtime_error("settings managed exception");
+    throw std::runtime_error(std::string(method->klass->name) + "." + method->name + ": managed invocation failed");
   return result;
 }
 // Bounded discovery helpers used only while opening a page or binding a row.
 Il2CppObject* Call(Il2CppObject* object, const char* name, int count = 0, void** args = nullptr)
-{ return Invoke(object ? IL2CppClassHelper(object->klass).GetMethodInfo(name, count) : nullptr, object, args); }
-bool Boolean(Il2CppObject* boxed)
 {
-  bool value = false;
-  if (!Il2CppRuntime::TryBoolean(boxed, value))
-    throw std::runtime_error("settings boolean result");
-  return value;
+  auto* method = object ? IL2CppClassHelper(object->klass).GetMethodInfo(name, count) : nullptr;
+  if (!method)
+    throw std::runtime_error(std::string(object ? object->klass->name : "<missing receiver>") + "." + name + "("
+                             + std::to_string(count) + " arguments): method unavailable");
+  return Invoke(method, object, args);
 }
 bool Equals(Il2CppObject* value, const char* ascii)
 {
@@ -204,7 +232,7 @@ void Clear(View& view)
   try {
     Restore(view);
   } catch (...) {
-    Warn();
+    Warn("confirmation view restoration unavailable");
   }
   Free(view.widget);
   Free(view.context);
@@ -231,7 +259,7 @@ bool Owned(Il2CppObject* context)
 bool ChildOf(Il2CppObject* transform, Il2CppObject* parent)
 {
   void* args[] = {parent};
-  return Boolean(Call(transform, "IsChildOf", 1, args));
+  return Il2CppChecked::Boolean(Call(transform, "IsChildOf", 1, args));
 }
 View& Track(Il2CppObject* widget, Il2CppObject* context)
 {
@@ -436,7 +464,7 @@ void Render(View& view, auto original, Il2CppObject* widget)
   if (!view.state.value()) {
     // Capture all native values first (the two components may share a node).
     for (std::size_t i = 0; i < view.indicators.size(); ++i)
-      view.activeBefore[i] = Boolean(Call(Target(view.indicators[i]), "get_activeSelf"));
+      view.activeBefore[i] = Il2CppChecked::Boolean(Call(Target(view.indicators[i]), "get_activeSelf"));
     view.hidden = true;
     for (auto handle : view.indicators)
       SetActive(Target(handle), false);
@@ -448,8 +476,9 @@ void HideUnsupported(Il2CppObject* widget)
     Root object(Call(widget, "get_gameObject"));
     SetActive(object.get(), false);
   } catch (...) {
+    Warn("unsupported confirmation widget hiding unavailable");
   }
-  Warn();
+  Warn("confirmation widget unavailable");
 }
 bool OnThread()
 { return active && std::this_thread::get_id() == uiThread; }
@@ -462,7 +491,7 @@ void AddGeneralHook(auto original, Il2CppObject* director, Il2CppObject* context
   try {
     AddRow(director, context);
   } catch (...) {
-    Warn();
+    Warn("confirmation row insertion unavailable");
   }
 }
 void RefreshHook(auto original, Il2CppObject* widget)
@@ -508,7 +537,7 @@ void RefreshHook(auto original, Il2CppObject* widget)
       HideUnsupported(widget);
       return;
     }
-    Warn();
+    Warn("confirmation widget refresh unavailable");
   }
   original(widget);
 }
@@ -570,7 +599,7 @@ void ChangedHook(auto original, Il2CppObject* widget, bool desired)
       HideUnsupported(widget);
       return;
     }
-    Warn();
+    Warn("confirmation value change unavailable");
   }
   original(widget, desired);
 }
@@ -581,7 +610,7 @@ void ReleaseHook(auto original, Il2CppObject* widget)
       if (auto* view = Find(widget))
         Clear(*view);
     } catch (...) {
-      Warn();
+      Warn("confirmation widget release unavailable");
     }
   }
   original(widget);
@@ -608,7 +637,7 @@ void SessionBoundary(auto original, Il2CppObject* owner)
     try {
       Invalidate();
     } catch (...) {
-      Warn();
+      Warn("confirmation session invalidation unavailable");
     }
   }
   original(owner);
@@ -629,45 +658,71 @@ void InstallModConfirmationSettings()
   try {
     auto&            m = Meta();
     const std::array hooks{m.addGeneral, m.refresh, m.changed, m.release, m.reload, m.session, m.load};
+    const std::array names{"SettingsSectionDirector.AddGeneralSettings", "ToggleOptionWidget.SetWidgetData",
+                           "ToggleOptionWidget.OnToggleValueChanged", "ToggleOptionWidget.OnAboutToReleaseContext",
+                           "PersistentPrefsManager.RegisterEvents", "PersistentPrefsManager.GameSessionStartedEventHandler",
+                           "PersistentPrefsManager.LoadPersistentPrefsFromCloud"};
     for (std::size_t i = 0; i < hooks.size(); ++i) {
       if (!Instance(hooks[i], i == 0 || i == 2 ? 1 : 0, IL2CPP_TYPE_VOID))
-        throw std::runtime_error("settings hook metadata");
+        throw std::runtime_error(std::string(names[i]) + ": expected instance Void hook with "
+                                 + std::to_string(i == 0 || i == 2 ? 1 : 0) + " arguments");
       for (std::size_t j = 0; j < i; ++j)
         if (hooks[i]->methodPointer == hooks[j]->methodPointer)
-          throw std::runtime_error("settings shared hook");
+          throw std::runtime_error(std::string(names[i]) + " shares hook target with " + names[j]);
     }
     const auto* getSchema   = m.director.GetMethodInfo("IsBorgCubeCuttingBeamConfirmationOn", 0);
     const auto* setSchema   = m.director.GetMethodInfo("ToggleBorgCubeCuttingBeamConfirmation", 1);
     const auto* querySchema = m.director.GetMethodInfo("QueryShouldShowGenericPcSetting", 0);
-    if (!Instance(getSchema, 0, IL2CPP_TYPE_BOOLEAN) || !Instance(setSchema, 1, IL2CPP_TYPE_VOID)
-        || !Type(setSchema->parameters[0], IL2CPP_TYPE_BOOLEAN) || !querySchema
+    if (!Instance(getSchema, 0, IL2CPP_TYPE_BOOLEAN))
+      throw std::runtime_error("SettingsSectionDirector.IsBorgCubeCuttingBeamConfirmationOn: expected instance Boolean()");
+    if (!Instance(setSchema, 1, IL2CPP_TYPE_VOID) || !Type(setSchema->parameters[0], IL2CPP_TYPE_BOOLEAN))
+      throw std::runtime_error("SettingsSectionDirector.ToggleBorgCubeCuttingBeamConfirmation: expected instance Void(Boolean)");
+    if (!querySchema
         || !il2cpp_class_is_enum(il2cpp_class_from_type(querySchema->return_type))
         || !Type(il2cpp_class_enum_basetype(il2cpp_class_from_type(querySchema->return_type)), IL2CPP_TYPE_I4)
-        || !Instance(querySchema, 0, IL2CPP_TYPE_VALUETYPE) || !Instance(m.addToggle, 4, IL2CPP_TYPE_VOID)
+        || !Instance(querySchema, 0, IL2CPP_TYPE_VALUETYPE))
+      throw std::runtime_error("SettingsSectionDirector.QueryShouldShowGenericPcSetting: expected instance Int32 enum()");
+    if (!Instance(m.addToggle, 4, IL2CPP_TYPE_VOID)
         || !Type(m.addToggle->parameters[1], IL2CPP_TYPE_STRING) || !Reference(m.addToggle->parameters[0])
-        || !Reference(m.addToggle->parameters[2]) || !Reference(m.addToggle->parameters[3])
-        || !Type(m.changed->parameters[0], IL2CPP_TYPE_BOOLEAN) || !Reference(m.addGeneral->parameters[0])
-        || !m.getContext || !Reference(m.getContext->return_type) || !Instance(m.querySetter, 1, IL2CPP_TYPE_VOID)
-        || !Reference(m.querySetter->parameters[0]) || !getter.Initialize(getSchema, GetEnabled)
-        || !setter.Initialize(setSchema, SetEnabled) || !query.Initialize(querySchema, QueryState))
-      throw std::runtime_error("settings callback schema");
+        || !Reference(m.addToggle->parameters[2]) || !Reference(m.addToggle->parameters[3]))
+      throw std::runtime_error("SettingsContext.AddToggle: expected Void(reference, String, reference, reference)");
+    if (!Type(m.changed->parameters[0], IL2CPP_TYPE_BOOLEAN))
+      throw std::runtime_error("ToggleOptionWidget.OnToggleValueChanged: expected Boolean parameter");
+    if (!Reference(m.addGeneral->parameters[0]))
+      throw std::runtime_error("SettingsSectionDirector.AddGeneralSettings: expected reference parameter");
+    if (!m.getContext || !Reference(m.getContext->return_type))
+      throw std::runtime_error("ToggleOptionWidget.get_Context: expected reference result");
+    if (!Instance(m.querySetter, 1, IL2CPP_TYPE_VOID) || !Reference(m.querySetter->parameters[0]))
+      throw std::runtime_error("ToggleOptionContext.set_QueryOptionState: expected instance Void(reference)");
+    if (!getter.Initialize(getSchema, GetEnabled))
+      throw std::runtime_error("FC confirmation getter: incompatible native callback schema");
+    if (!setter.Initialize(setSchema, SetEnabled))
+      throw std::runtime_error("FC confirmation setter: incompatible native callback schema");
+    if (!query.Initialize(querySchema, QueryState))
+      throw std::runtime_error("FC confirmation query: incompatible native callback schema");
     uiThread = std::this_thread::get_id();
     if (!FleetCommanderConfirmationSetting().SetChangeObserver(RefreshViews))
       throw std::runtime_error("settings observer ownership");
     // A rejected target need not throw. Keep any installed hooks on their native
     // path until the complete adapter is ready; do not retry a partial install.
-    if (!SPUD_STATIC_DETOUR(m.refresh->methodPointer, RefreshHook)
-        || !SPUD_STATIC_DETOUR(m.changed->methodPointer, ChangedHook)
-        || !SPUD_STATIC_DETOUR(m.release->methodPointer, ReleaseHook)
-        || !SPUD_STATIC_DETOUR(m.reload->methodPointer, ReloadHook)
-        || !SPUD_STATIC_DETOUR(m.session->methodPointer, SessionHook)
-        || !SPUD_STATIC_DETOUR(m.load->methodPointer, LoadHook)
-        || !SPUD_STATIC_DETOUR(m.addGeneral->methodPointer, AddGeneralHook))
-      throw std::runtime_error("settings hook installation");
+    if (!SPUD_STATIC_DETOUR(m.refresh->methodPointer, RefreshHook))
+      throw std::runtime_error("ToggleOptionWidget.SetWidgetData: hook installation failed");
+    if (!SPUD_STATIC_DETOUR(m.changed->methodPointer, ChangedHook))
+      throw std::runtime_error("ToggleOptionWidget.OnToggleValueChanged: hook installation failed");
+    if (!SPUD_STATIC_DETOUR(m.release->methodPointer, ReleaseHook))
+      throw std::runtime_error("ToggleOptionWidget.OnAboutToReleaseContext: hook installation failed");
+    if (!SPUD_STATIC_DETOUR(m.reload->methodPointer, ReloadHook))
+      throw std::runtime_error("PersistentPrefsManager.RegisterEvents: hook installation failed");
+    if (!SPUD_STATIC_DETOUR(m.session->methodPointer, SessionHook))
+      throw std::runtime_error("PersistentPrefsManager.GameSessionStartedEventHandler: hook installation failed");
+    if (!SPUD_STATIC_DETOUR(m.load->methodPointer, LoadHook))
+      throw std::runtime_error("PersistentPrefsManager.LoadPersistentPrefsFromCloud: hook installation failed");
+    if (!SPUD_STATIC_DETOUR(m.addGeneral->methodPointer, AddGeneralHook))
+      throw std::runtime_error("SettingsSectionDirector.AddGeneralSettings: hook installation failed");
     active = true;
     spdlog::info("[ModSettings] Native FC confirmation adapter installed");
   } catch (...) {
-    Warn();
+    Warn("confirmation installation unavailable");
   }
 }
 #else
