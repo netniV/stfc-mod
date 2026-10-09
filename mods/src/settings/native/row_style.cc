@@ -192,13 +192,13 @@ void                         ClearRowText(Il2CppObject* owner)
         Call(arrow, "set_localEulerAngles", 1, args);
       }
     } catch (...) {
-      Warn();
+      Warn("settings arrow rotation restoration unavailable");
     }
     try {
       if (auto* label = Target(it->label))
         Call(label, "ClearTextOverride");
     } catch (...) {
-      Warn();
+      Warn("settings label restoration unavailable");
     }
     Free(it->owner);
     Free(it->label);
@@ -249,7 +249,7 @@ void SetRowText(Il2CppObject* owner, Il2CppObject* label, const std::string& tex
         void* args[] = {&record.arrowBefore};
         Call(arrow, "set_localEulerAngles", 1, args);
       } catch (...) {
-        Warn();
+        Warn("settings arrow rollback unavailable");
       }
     }
     Free(record.arrow);

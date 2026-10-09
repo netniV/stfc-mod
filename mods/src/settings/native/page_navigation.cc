@@ -195,7 +195,7 @@ void RenderCategory(Il2CppObject* widget)
                  true, !Collapsed(*heading));
     }
   } catch (...) {
-    Warn();
+    Warn("settings category rendering unavailable");
   }
 }
 void ForgetCategory(Il2CppObject* widget)
@@ -283,7 +283,7 @@ void PageSelectedHook(auto original, Il2CppObject* controller, Il2CppObject* con
       // Invoke converts managed failures to fixed messages, without game data.
       // Keep the concrete lookup/binding reason; a generic warning hid the
       // incorrect SetContext lookup that prevented sections from folding.
-      Warn(error.what());
+      Warn("settings section unavailable");
       if (sectionClick)
         return;
     } catch (...) {
@@ -345,7 +345,7 @@ void PageSelectedHook(auto original, Il2CppObject* controller, Il2CppObject* con
       }
     }
   } catch (...) {
-    Warn();
+    Warn("selected settings page rendering unavailable");
   }
 }
 void PageDestroyedHook(auto original, Il2CppObject* controller)

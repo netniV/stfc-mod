@@ -108,7 +108,7 @@ void                   ClearAction(ActionView& view)
     if (view.buttonHidden)
       SetActive(Target(view.buttonObject), view.buttonBefore);
   } catch (...) {
-    Warn();
+    Warn("command view restoration unavailable");
   }
   Free(view.widget);
   Free(view.context);
@@ -150,7 +150,7 @@ void RenderAction(ActionView& view)
     view.buttonHidden = false;
   }
   if (presentation.button.empty()) {
-    view.buttonBefore = Boolean(Call(Target(view.buttonObject), "get_activeSelf"));
+    view.buttonBefore = Il2CppChecked::Boolean(Call(Target(view.buttonObject), "get_activeSelf"));
     view.buttonHidden = true;
     SetActive(Target(view.buttonObject), false);
   }
