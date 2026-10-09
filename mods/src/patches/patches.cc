@@ -34,6 +34,7 @@ void InstallDailyFactionBulkClaimHooks();
 void InstallTestPatches();
 void InstallMiscPatches();
 void InstallMissionHudTweaksHooks();
+void InstallArtifactExchangeHooks();
 void InstallChatPatches();
 void InstallTempCrashFixes();
 void InstallSyncPatches();
@@ -51,6 +52,7 @@ void InstallInstantWarpConfirmationHooks();
 void InstallForbiddenTechConfirmationHooks();
 void InstallAudioEventHooks();
 void InstallNativeSettings();
+void InstallHavenHistoryHooks();
 
 __int64 il2cpp_init_hook(auto original, const char* domain_name)
 {
@@ -139,6 +141,7 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
       {"TestPatches", {InstallTestPatches, &cfg.installTestPatches}},
       {"MiscPatches", {InstallMiscPatches, &cfg.installMiscPatches}},
       {"MissionHudTweaksHooks", {InstallMissionHudTweaksHooks, &cfg.installMissionHudTweaksHooks}},
+      {"ArtifactExchangeHooks", {InstallArtifactExchangeHooks, &cfg.installArtifactExchangeHooks}},
       {"ChatPatches", {InstallChatPatches, &cfg.installChatPatches}},
       {"SyncPatches", {InstallSyncPatches, &cfg.installSyncPatches}},
       {"ObjectTracker", {InstallObjectTrackers, &cfg.installObjectTracker}},
@@ -156,6 +159,7 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
       {"AudioEvents", {InstallAudioEventHooks, &cfg.installAudioEventHooks}},
       {"ModConfirmationSettings", {InstallNativeSettings, &cfg.installNativeSettings}},
       {"RuntimeConfigHooks", {runtime_config::Install, &cfg.installRuntimeConfigHooks}},
+      {"HavenHistory", {InstallHavenHistoryHooks, &cfg.installHavenHistoryHooks}},
   };
   printf("il2cpp_init_hook(%s)\n", domain_name);
 

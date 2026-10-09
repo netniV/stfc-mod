@@ -7,7 +7,7 @@
 #  |    #***     #    #       #***         #   *   #**    #***    | 
 #  |                                                              | 
 #  +--------------------------------------------------------------+ 
-#   Oprettet den 2026-09-27T19:44:17.203Z
+#   Oprettet den 2026-10-04T20:00:48.831Z
 #   
 #   Denne konfigurationsfil blev oprettet af https://modconfig.pages.dev
 #   og leveres, som den er. Hvis der er problemer med STFC Community Mod
@@ -17,7 +17,7 @@
 #       Discord : https://discord.gg/PrpHgs7Vjs
 #       GitHub  : https://github.com/netniV/stfc-mod
 #   
-#   Dagens konfigurationsfil præsenteres af bogstavet U og tallet 7
+#   Dagens konfigurationsfil præsenteres af bogstavet Q og tallet 3
 #   
 
 #  <[=======================================]> 
@@ -31,11 +31,20 @@
 #  <[=======================================]> 
 
 [audio]
-# Comma-separated audio event names to suppress; leave blank to allow all audio events
+# Comma-separated audio event names to suppress; use "All" as a wildcard for named events handled by this filter
 disabled_events = ""
 
 # Write audio event names to the trace log for troubleshooting
 trace_events = false
+
+# Optional generated notification cues; "none" disables an alert.
+# Available sounds: default, info, success, warning, alarm, arrival, soft, ping, repair
+# Requires patches.toastbannerhooks = true.
+alert_victory = "none"
+alert_defeat = "none"
+alert_armada_created = "none"
+alert_armada_battle_won = "none"
+alert_armada_battle_lost = "none"
 
 #  <[======================================================================================================]> 
 #                                                                                                             
@@ -119,9 +128,6 @@ enable_experimental = false
 #  <[=========================================================================================================================================]> 
 
 [graphics]
-# Vis den resterende tid for den galaktiske anomali under Help All / Engage / Claim.
-galactic_anomaly_timer = false
-
 
 # Subgroup: Display
 # -----------------
@@ -135,11 +141,11 @@ transition_time = 0.01
 # Angiver, hvor meget brugerfladen skal skaleres; standard er 1,0
 ui_scale = 0.6
 
-# Angiver, hvor meget skaleringen justeres med; standard er 0,05
-ui_scale_adjust = 0.05
-
 # Angiver skaleringen af skibsmodeller i systemvisningen; standard er 1,0
 ui_scale_ship = 1.0
+
+# This specifies the amount to adjust the scale by, 0.05 being default
+ui_scale_step = 0.05
 
 # Angiver skaleringen af objektvisninger i brugerfladen; standard er 1,0
 ui_scale_viewer = 1.2
@@ -212,6 +218,9 @@ borderless_fullscreen = true
 # Tillad fri størrelsesændring; sæt til falsk for at deaktivere
 free_resize = true
 
+# Show the remaining Galactic Anomaly time below Help All, Engage, and Claim
+galactic_anomaly_timer = false
+
 # Når et zoomforvalg bruges, indstilles det som standardzoom
 use_presets_as_default = true
 
@@ -254,21 +263,30 @@ zoom = 5000.0
 # Subgroup: Leave Well Alone
 # --------------------------
 
+artifactexchangehooks = true
+audioeventhooks = true
+
 # Aktivér rettelserne til forstærkninger
 bufffixhooks = true
 cargoformathooks = true
-instantcargocounterhooks = true
 chatpatches = true
 
 # Aktivér massekrav pr. fraktion for daglige mål
 dailyfactionbulkclaimhooks = true
-focussearch = true
+doubleclickassignshiphooks = true
+forbiddentechconfirmhooks = true
 freeresizehooks = true
+galacticanomalytimerhooks = true
 game_version = true
 giftsbulkclaimhooks = true
 hotkeyhooks = true
+
+# Show cargo totals immediately instead of counting up
+instantcargocounterhooks = true
 loadingscreenhooks = true
+loadingtiphooks = true
 miscpatches = true
+missionhudtweakshooks = true
 objecttracker = true
 officersorthooks = true
 panhooks = true
@@ -520,8 +538,14 @@ show_inventory = "I"
 # Gå til missioner
 show_missions = "M"
 
+# Go directly to Officer Presets
+show_officerpresets = "CTRL-O"
+
 # Gå til officerer
 show_officers = "SHIFT-O"
+
+# Go directly to Officer Swap
+show_officerswap = "ALT-O"
 
 # Gå til Q-prøver
 show_qtrials = "SHIFT-Q"
@@ -544,11 +568,11 @@ show_shields = "CTRL-S"
 # Åbn skibsværftets Byg skib-skærm
 show_shipconstruction = "SHIFT-N"
 
-# Gå direkte til skibsbytte
-show_shipswap = "ALT-N"
-
 # Gå til administration af skibe
 show_ships = "N"
+
+# Go directly to Ship Swap
+show_shipswap = "ALT-N"
 
 # Stationens ydre
 show_stationexterior = "SHIFT-G"
@@ -774,21 +798,35 @@ hud_outposts = "auto"
 #   "hide" - Always hide this HUD item
 hud_q_trials = "auto"
 
+# Subgroup: Options
+# -----------------
+
+# Hide the Exchange All button in the Artifact Gallery
+disable_exchange_all = false
+
+# Enable the shortcut that focuses the search box on supported screens
+focus_search = true
+
+# Format abbreviated cargo values using Cargo Significant Decimals
+format_cargo_values = true
+
+# Restore the Below Deck Ability officer sort option
+officer_sort = true
+
 # Subgroup: Previews
 # ------------------
 
 # Decimal places used for abbreviated cargo values
 cargo_significant_decimals = 2
 
-# Vis last/kapacitet med det samme uden optaelling. Genstart efter aendringer.
-# Kun Windows-klient 263; andre versioner bevarer normal adfaerd.
-instant_cargo_counter = true
-
 # Stop lokalisering, når forhåndsvisninger af skibe eller knudepunkter vises
 disable_preview_locate = false
 
 # Stop tilbagekaldelse, når forhåndsvisninger af skibe eller knudepunkter vises
 disable_preview_recall = false
+
+# Show cargo used and capacity immediately instead of counting up. Restart after changing. Windows client 263 only; other builds keep native behavior
+instant_cargo_counter = true
 
 # Sæt til sand for altid at vise belønningerne for valgte skibe/stationer
 show_armada_cargo = true
@@ -820,6 +858,9 @@ show_station_cargo = true
 # Subgroup: Data
 # --------------
 
+# Do you want to sync away team assignment data?
+away_assignments = true
+
 # Vil du synkronisere kamplogge?
 battlelogs = true
 
@@ -838,8 +879,8 @@ jobs = true
 # Vil du synkronisere missionsdata?
 missions = true
 
-# Vil du synkronisere data om ejede officerer?
-officer = true
+# Do you want to sync owned officer data?
+officers = true
 
 # Vil du synkronisere forskningsdata?
 research = true
