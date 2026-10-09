@@ -795,47 +795,60 @@ void InstallChoiceAndSliderWidgets()
     const auto* get       = selection.director.GetMethodInfo("GetQualityOptionSelectedIndex", 0);
     const auto* set       = selection.director.GetMethodInfo("OnQualityOptionSelected", 1);
     const auto* add       = selection.context.GetMethodInfo("AddSelection", 6);
-    if (!Instance(get, 0, IL2CPP_TYPE_I4) || !Instance(set, 1, IL2CPP_TYPE_VOID)
-        || !Type(set->parameters[0], IL2CPP_TYPE_I4) || !Instance(add, 6, IL2CPP_TYPE_VOID)
+    if (!Instance(get, 0, IL2CPP_TYPE_I4))
+      throw std::runtime_error("SettingsSectionDirector.GetQualityOptionSelectedIndex: expected instance Int32()");
+    if (!Instance(set, 1, IL2CPP_TYPE_VOID) || !Type(set->parameters[0], IL2CPP_TYPE_I4))
+      throw std::runtime_error("SettingsSectionDirector.OnQualityOptionSelected: expected instance Void(Int32)");
+    if (!Instance(add, 6, IL2CPP_TYPE_VOID)
         || !Reference(add->parameters[0]) || !Type(add->parameters[1], IL2CPP_TYPE_STRING)
         || !Type(add->parameters[2], IL2CPP_TYPE_SZARRAY) || !Reference(add->parameters[3])
-        || !Reference(add->parameters[4]) || !Type(add->parameters[5], IL2CPP_TYPE_STRING)
-        || !Instance(selection.querySetter, 1, IL2CPP_TYPE_VOID) || !Reference(selection.querySetter->parameters[0])
-        || !selection.getContext || !Reference(selection.getContext->return_type)
-        || !Instance(selection.getContext, 0, selection.getContext->return_type->type)
-        || !selectionGetter.Initialize(get, GetSelected) || !selectionSetter.Initialize(set, SetSelected))
-      throw std::runtime_error("selection callback schema");
+        || !Reference(add->parameters[4]) || !Type(add->parameters[5], IL2CPP_TYPE_STRING))
+      throw std::runtime_error("SettingsContext.AddSelection: expected instance Void(reference, String, array, reference, reference, String)");
+    if (!Instance(selection.querySetter, 1, IL2CPP_TYPE_VOID) || !Reference(selection.querySetter->parameters[0]))
+      throw std::runtime_error("SelectionItemOptionContext.set_QueryOptionState: expected instance Void(reference)");
+    if (!selection.getContext || !Reference(selection.getContext->return_type)
+        || !Instance(selection.getContext, 0, selection.getContext->return_type->type))
+      throw std::runtime_error("SelectionItemOptionWidget.get_Context: expected instance reference result");
+    if (!selectionGetter.Initialize(get, GetSelected))
+      throw std::runtime_error("selection getter: incompatible native callback schema");
+    if (!selectionSetter.Initialize(set, SetSelected))
+      throw std::runtime_error("selection setter: incompatible native callback schema");
     static auto selectable = il2cpp_get_class_helper("UnityEngine.UI", "UnityEngine.UI", "Selectable");
     const auto* transition = selectable.GetMethodInfo("DoStateTransition", 2);
     if (!Instance(transition, 2, IL2CPP_TYPE_VOID) || !Type(transition->parameters[0], IL2CPP_TYPE_VALUETYPE)
         || !il2cpp_class_is_enum(il2cpp_class_from_type(transition->parameters[0]))
         || !Type(il2cpp_class_enum_basetype(il2cpp_class_from_type(transition->parameters[0])), IL2CPP_TYPE_I4)
         || !Type(transition->parameters[1], IL2CPP_TYPE_BOOLEAN))
-      throw std::runtime_error("selection transition signature");
+      throw std::runtime_error("Selectable.DoStateTransition: expected instance Void(Int32 enum, Boolean)");
     const std::array targets{selection.refresh, selection.changed, selection.release, transition};
+    const std::array names{"SelectionItemOptionWidget.SetWidgetData", "SelectionItemOptionWidget.OnToggleValueChanged",
+                           "SelectionItemOptionWidget.OnAboutToReleaseContext", "Selectable.DoStateTransition"};
     for (std::size_t i = 0; i < targets.size(); ++i) {
       if (!Instance(targets[i], i == 3 ? 2 : i == 1 ? 1 : 0, IL2CPP_TYPE_VOID))
-        throw std::runtime_error("selection hook metadata");
+        throw std::runtime_error(std::string(names[i]) + ": incompatible instance Void hook signature");
       if (i == 1 && !Type(targets[i]->parameters[0], IL2CPP_TYPE_BOOLEAN))
-        throw std::runtime_error("selection changed signature");
+        throw std::runtime_error(std::string(names[i]) + ": incompatible value parameter");
       for (std::size_t j = 0; j < i; ++j)
         if (targets[i]->methodPointer == targets[j]->methodPointer)
-          throw std::runtime_error("selection shared hook");
+          throw std::runtime_error(std::string(names[i]) + " shares target with " + names[j]);
       const auto& core = ToggleMeta();
       for (auto* existing : {core.refresh, core.changed, core.release, core.addGeneral, core.reload, core.session,
                              core.load, m.bind, m.release, m.selected, m.destroyed})
         if (targets[i]->methodPointer == existing->methodPointer)
-          throw std::runtime_error("selection hook overlap");
+          throw std::runtime_error(std::string(names[i]) + " shares target with " + existing->klass->name + "." + existing->name);
     }
     for (const auto& page : Pages())
       for (auto* choice : page.Controls<ChoiceSetting>())
         if (!choice->state().SetChangeObserver(RefreshViews))
           throw std::runtime_error("selection observer ownership");
-    if (!SPUD_STATIC_DETOUR(selection.refresh->methodPointer, SelectionRefreshHook)
-        || !SPUD_STATIC_DETOUR(selection.changed->methodPointer, SelectionChangedHook)
-        || !SPUD_STATIC_DETOUR(selection.release->methodPointer, ReleaseHook)
-        || !SPUD_STATIC_DETOUR(transition->methodPointer, SelectionTransitionHook))
-      throw std::runtime_error("selection hook installation");
+    if (!SPUD_STATIC_DETOUR(selection.refresh->methodPointer, SelectionRefreshHook))
+      throw std::runtime_error("SelectionItemOptionWidget.SetWidgetData: hook installation failed");
+    if (!SPUD_STATIC_DETOUR(selection.changed->methodPointer, SelectionChangedHook))
+      throw std::runtime_error("SelectionItemOptionWidget.OnToggleValueChanged: hook installation failed");
+    if (!SPUD_STATIC_DETOUR(selection.release->methodPointer, ReleaseHook))
+      throw std::runtime_error("SelectionItemOptionWidget.OnAboutToReleaseContext: hook installation failed");
+    if (!SPUD_STATIC_DETOUR(transition->methodPointer, SelectionTransitionHook))
+      throw std::runtime_error("Selectable.DoStateTransition: hook installation failed");
     selectionActive = true;
   }
   if (std::any_of(Pages().begin(), Pages().end(),
@@ -845,48 +858,61 @@ void InstallChoiceAndSliderWidgets()
     const auto* set       = slider.director.GetMethodInfo("OnShadowsSettingChanged", 1);
     const auto* add       = slider.context.GetMethodInfo("AddSlider", 9);
     const auto* labelType = slider.row.GetMethodInfo("set_LabelType", 1);
-    if (!Instance(get, 0, IL2CPP_TYPE_R4) || !Instance(set, 1, IL2CPP_TYPE_VOID)
-        || !Type(set->parameters[0], IL2CPP_TYPE_R4) || !Instance(add, 9, IL2CPP_TYPE_VOID)
+    if (!Instance(get, 0, IL2CPP_TYPE_R4))
+      throw std::runtime_error("SettingsSectionDirector.GetCurrentShadowsIndex: expected instance Single()");
+    if (!Instance(set, 1, IL2CPP_TYPE_VOID) || !Type(set->parameters[0], IL2CPP_TYPE_R4))
+      throw std::runtime_error("SettingsSectionDirector.OnShadowsSettingChanged: expected instance Void(Single)");
+    if (!Instance(add, 9, IL2CPP_TYPE_VOID)
         || !Reference(add->parameters[0]) || !Type(add->parameters[1], IL2CPP_TYPE_STRING)
         || !Reference(add->parameters[2]) || !Reference(add->parameters[3]) || !Reference(add->parameters[4])
         || !Type(add->parameters[5], IL2CPP_TYPE_SZARRAY) || !Type(add->parameters[6], IL2CPP_TYPE_BOOLEAN)
-        || !Type(add->parameters[7], IL2CPP_TYPE_R4) || !Type(add->parameters[8], IL2CPP_TYPE_R4)
-        || !Instance(labelType, 1, IL2CPP_TYPE_VOID) || !Type(labelType->parameters[0], IL2CPP_TYPE_VALUETYPE)
+        || !Type(add->parameters[7], IL2CPP_TYPE_R4) || !Type(add->parameters[8], IL2CPP_TYPE_R4))
+      throw std::runtime_error("SettingsContext.AddSlider: expected instance Void(reference, String, reference, reference, reference, array, Boolean, Single, Single)");
+    if (!Instance(labelType, 1, IL2CPP_TYPE_VOID) || !Type(labelType->parameters[0], IL2CPP_TYPE_VALUETYPE)
         || !il2cpp_class_is_enum(il2cpp_class_from_type(labelType->parameters[0]))
-        || !Type(il2cpp_class_enum_basetype(il2cpp_class_from_type(labelType->parameters[0])), IL2CPP_TYPE_I4)
-        || !slider.getContext || !Reference(slider.getContext->return_type)
-        || !Instance(slider.getContext, 0, slider.getContext->return_type->type)
-        || !sliderGetter.Initialize(get, GetNumber) || !sliderSetter.Initialize(set, SetNumber))
-      throw std::runtime_error("slider callback schema");
+        || !Type(il2cpp_class_enum_basetype(il2cpp_class_from_type(labelType->parameters[0])), IL2CPP_TYPE_I4))
+      throw std::runtime_error("SliderOptionContext.set_LabelType: expected instance Void(Int32 enum)");
+    if (!slider.getContext || !Reference(slider.getContext->return_type)
+        || !Instance(slider.getContext, 0, slider.getContext->return_type->type))
+      throw std::runtime_error("SliderOptionWidget.get_Context: expected instance reference result");
+    if (!sliderGetter.Initialize(get, GetNumber))
+      throw std::runtime_error("slider getter: incompatible native callback schema");
+    if (!sliderSetter.Initialize(set, SetNumber))
+      throw std::runtime_error("slider setter: incompatible native callback schema");
     const std::array targets{slider.refresh, slider.changed, slider.release, slider.valueLabel};
+    const std::array names{"SliderOptionWidget.SetWidgetData", "SliderOptionWidget.OnSliderValueChanged",
+                           "SliderOptionWidget.OnAboutToReleaseContext", "SliderOptionWidget.UpdateValueLabel"};
     for (std::size_t i = 0; i < targets.size(); ++i) {
       const bool takesValue = i == 1 || i == 3;
       if (!Instance(targets[i], takesValue ? 1 : 0, IL2CPP_TYPE_VOID))
-        throw std::runtime_error("slider hook metadata");
+        throw std::runtime_error(std::string(names[i]) + ": incompatible instance Void hook signature");
       if (takesValue && !Type(targets[i]->parameters[0], IL2CPP_TYPE_R4))
-        throw std::runtime_error("slider changed signature");
+        throw std::runtime_error(std::string(names[i]) + ": incompatible value parameter");
       for (std::size_t j = 0; j < i; ++j)
         if (targets[i]->methodPointer == targets[j]->methodPointer)
-          throw std::runtime_error("slider shared hook");
+          throw std::runtime_error(std::string(names[i]) + " shares target with " + names[j]);
       const auto& core = ToggleMeta();
       for (auto* existing : {core.refresh, core.changed, core.release, core.addGeneral, core.reload, core.session,
                              core.load, m.bind, m.release, m.selected, m.destroyed})
         if (targets[i]->methodPointer == existing->methodPointer)
-          throw std::runtime_error("slider hook overlap");
+          throw std::runtime_error(std::string(names[i]) + " shares target with " + existing->klass->name + "." + existing->name);
       if (selectionActive)
         for (auto* existing : {SelectionMeta().refresh, SelectionMeta().changed, SelectionMeta().release})
           if (targets[i]->methodPointer == existing->methodPointer)
-            throw std::runtime_error("slider selection overlap");
+            throw std::runtime_error(std::string(names[i]) + " shares target with " + existing->klass->name + "." + existing->name);
     }
     for (const auto& page : Pages())
       for (auto* setting : page.Controls<SliderSetting>())
         if (!setting->state().SetChangeObserver(RefreshViews))
           throw std::runtime_error("slider observer ownership");
-    if (!SPUD_STATIC_DETOUR(slider.refresh->methodPointer, SliderRefreshHook)
-        || !SPUD_STATIC_DETOUR(slider.changed->methodPointer, SliderChangedHook)
-        || !SPUD_STATIC_DETOUR(slider.release->methodPointer, ReleaseHook)
-        || !SPUD_STATIC_DETOUR(slider.valueLabel->methodPointer, SliderValueLabelHook))
-      throw std::runtime_error("slider hook installation");
+    if (!SPUD_STATIC_DETOUR(slider.refresh->methodPointer, SliderRefreshHook))
+      throw std::runtime_error("SliderOptionWidget.SetWidgetData: hook installation failed");
+    if (!SPUD_STATIC_DETOUR(slider.changed->methodPointer, SliderChangedHook))
+      throw std::runtime_error("SliderOptionWidget.OnSliderValueChanged: hook installation failed");
+    if (!SPUD_STATIC_DETOUR(slider.release->methodPointer, ReleaseHook))
+      throw std::runtime_error("SliderOptionWidget.OnAboutToReleaseContext: hook installation failed");
+    if (!SPUD_STATIC_DETOUR(slider.valueLabel->methodPointer, SliderValueLabelHook))
+      throw std::runtime_error("SliderOptionWidget.UpdateValueLabel: hook installation failed");
     sliderActive = true;
   }
 }
