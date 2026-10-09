@@ -5,6 +5,8 @@
 #if defined(_WIN32) && defined(_M_X64)
 #include <Windows.h>
 #include <atomic>
+#include <array>
+#include <utility>
 #include <cstring>
 #include <il2cpp/il2cpp_helper.h>
 #include <il2cpp/method_contract.h>
@@ -219,8 +221,16 @@ void ClearAll(auto original, Il2CppObject* manager)
 bool Field(Il2CppClass* cls, const char* name, std::ptrdiff_t offset, Il2CppTypeEnum type)
 {
   auto* field = cls ? il2cpp_class_get_field_from_name(cls, name) : nullptr;
-  return field && field->offset == offset && field->type && !field->type->byref
-         && !(il2cpp_field_get_flags(field) & FIELD_ATTRIBUTE_STATIC) && field->type->type == type;
+  const bool valid = field && field->offset == offset && field->type && !field->type->byref
+                     && !(il2cpp_field_get_flags(field) & FIELD_ATTRIBUTE_STATIC) && field->type->type == type;
+  if (!valid)
+    spdlog::warn("[FasterQueueRecovery] {}.{}: expected instance field offset=0x{:X} type={}; "
+                   "actual offset={} type={} static={} byref={}",
+                   cls ? cls->name : "<missing class>", name, offset, static_cast<int>(type),
+                   field ? field->offset : -1, field && field->type ? static_cast<int>(field->type->type) : -1,
+                   field && bool(il2cpp_field_get_flags(field) & FIELD_ATTRIBUTE_STATIC),
+                   field && field->type && bool(field->type->byref));
+  return valid;
 }
 } // namespace
 
@@ -234,7 +244,11 @@ void InstallActionQueueRecovery()
   actionClass = il2cpp_get_class_helper("Assembly-CSharp", "Prime.ActionQueue", "QueueableAction").get_cls();
   int64Class  = il2cpp_get_class_helper("mscorlib", "System", "Int64").get_cls();
   if (!cls || !queueClass || !actionClass || !int64Class) {
-    spdlog::warn("[FasterQueueRecovery] unavailable: native types not found");
+    for (const auto& [type, name] : std::array{
+             std::pair{cls, "Prime.ActionQueue.ActionQueueManager"},
+             std::pair{queueClass, "Prime.ActionQueue.ActionQueueInstance"},
+             std::pair{actionClass, "Prime.ActionQueue.QueueableAction"}, std::pair{int64Class, "System.Int64"}})
+      if (!type) spdlog::warn("[FasterQueueRecovery] unavailable: missing class {}", name);
     return;
   }
   using method_contract::Resolve;
@@ -274,13 +288,41 @@ void InstallActionQueueRecovery()
       && engage != retry && engage != course && engage != clear
       && retry != course && retry != clear && course != clear;
   if (!valid) {
-    spdlog::warn("[FasterQueueRecovery] unavailable: incompatible method signature or queue layout");
+    const std::array methods{
+        std::pair{engage_info, "ActionQueueManager.TryPlanPathAndEngageTarget(FleetPlayerData, ActionQueueInstance) -> EngageResult"},
+        std::pair{retry_info, "ActionQueueManager.ShouldRetryFailedSetCourse(Int64, ActionQueueInstance) -> Boolean"},
+        std::pair{info, "ActionQueueManager.OnSetCourseResponseEventHandler(SetCourseResponseEventArgs) -> Void"},
+        std::pair{clear_info, "ActionQueueManager.StopWatchdogAndClearAllQueues() -> Void"}};
+    for (const auto& [method, name] : methods)
+      if (!method || !method->methodPointer || method->has_full_generic_sharing_signature)
+        spdlog::warn("[FasterQueueRecovery] unavailable: {}: {}", name,
+                       method && method->has_full_generic_sharing_signature ? "unsupported generic sharing"
+                                                                           : "instance method unavailable");
+    if (!underlying || underlying->type != IL2CPP_TYPE_I4)
+      spdlog::warn("[FasterQueueRecovery] unavailable: EngageResult must be an Int32 enum");
+    const auto event_size = event && info->parameters[0]->type == IL2CPP_TYPE_VALUETYPE
+                                ? il2cpp_class_value_size(event, &alignment) : -1;
+    if (event_size != sizeof(CourseResponse))
+      spdlog::warn("[FasterQueueRecovery] unavailable: SetCourseResponseEventArgs expected value type size={}; actual={}",
+                     sizeof(CourseResponse), event_size);
+    for (size_t i = 0; i < methods.size(); ++i)
+      for (size_t j = 0; j < i; ++j)
+        if (methods[i].first && methods[j].first && methods[i].first->methodPointer
+            && methods[i].first->methodPointer == methods[j].first->methodPointer)
+          spdlog::warn("[FasterQueueRecovery] unavailable: {} and {} share a native hook target",
+                         methods[i].second, methods[j].second);
     return;
   }
   const bool a = SPUD_STATIC_DETOUR(engage, Engage) != nullptr;
   const bool b = SPUD_STATIC_DETOUR(retry, Retry) != nullptr;
   const bool c = SPUD_STATIC_DETOUR(course, Course) != nullptr;
   const bool d = SPUD_STATIC_DETOUR(clear, ClearAll) != nullptr;
+  for (const auto& [installed, name] : std::array{
+           std::pair{a, "ActionQueueManager.TryPlanPathAndEngageTarget"},
+           std::pair{b, "ActionQueueManager.ShouldRetryFailedSetCourse"},
+           std::pair{c, "ActionQueueManager.OnSetCourseResponseEventHandler"},
+           std::pair{d, "ActionQueueManager.StopWatchdogAndClearAllQueues"}})
+    if (!installed) spdlog::warn("[FasterQueueRecovery] hook installation failed: {}; feature unavailable", name);
   ready.store(a && b && c && d);
   spdlog::info("[FasterQueueRecovery] ready={}", ready.load());
 }
