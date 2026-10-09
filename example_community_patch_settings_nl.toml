@@ -7,7 +7,7 @@
 #  |    #***     #    #       #***         #   *   #**    #***    | 
 #  |                                                              | 
 #  +--------------------------------------------------------------+ 
-#   Gegenereerd op 2026-09-27T19:44:17.171Z
+#   Gegenereerd op 2026-10-04T20:00:48.781Z
 #   
 #   Dit configuratiebestand is gegenereerd door https://modconfig.pages.dev
 #   en wordt geleverd zoals het is. Meld problemen met de STFC Community Mod,
@@ -17,7 +17,7 @@
 #       Discord : https://discord.gg/PrpHgs7Vjs
 #       GitHub  : https://github.com/netniV/stfc-mod
 #   
-#   Het configuratiebestand van vandaag wordt u aangeboden door de letter C en het getal 8
+#   Het configuratiebestand van vandaag wordt u aangeboden door de letter T en het getal 0
 #   
 
 #  <[=======================================]> 
@@ -31,11 +31,20 @@
 #  <[=======================================]> 
 
 [audio]
-# Comma-separated audio event names to suppress; leave blank to allow all audio events
+# Comma-separated audio event names to suppress; use "All" as a wildcard for named events handled by this filter
 disabled_events = ""
 
 # Write audio event names to the trace log for troubleshooting
 trace_events = false
+
+# Optional generated notification cues; "none" disables an alert.
+# Available sounds: default, info, success, warning, alarm, arrival, soft, ping, repair
+# Requires patches.toastbannerhooks = true.
+alert_victory = "none"
+alert_defeat = "none"
+alert_armada_created = "none"
+alert_armada_battle_won = "none"
+alert_armada_battle_lost = "none"
 
 #  <[=======================================]> 
 #                                              
@@ -114,9 +123,6 @@ enable_experimental = false
 #  <[==============================================================================================================================================================]> 
 
 [graphics]
-# Toon de resterende tijd van de galactische anomalie onder Help All / Engage / Claim.
-galactic_anomaly_timer = false
-
 
 # Subgroup: Display
 # -----------------
@@ -130,11 +136,11 @@ transition_time = 0.01
 # Dit getal bepaalt de schaal van de UI. Standaardwaarde is 1.0, best incrementeren in decimaal
 ui_scale = 0.6
 
-# Dit getal bepaalt met hoeveel de schaalwaarde zich aanpast met de sneltoetsen. Standaardwaarde is 0.05
-ui_scale_adjust = 0.05
-
 # Dit bepaalt de schaalfactor voor de scheepsmodellen in de systeemweergave, waarbij 1.0 de standaardwaarde is
 ui_scale_ship = 1.0
+
+# This specifies the amount to adjust the scale by, 0.05 being default
+ui_scale_step = 0.05
 
 # Dit getal bepaalde de schaal van het objectscherm. Standaarwaarde is 1.0
 ui_scale_viewer = 1.2
@@ -223,6 +229,9 @@ borderless_fullscreen = true
 # Sta het vrij schalen van het venster toe, zit dit uit om het uit te schakelen
 free_resize = true
 
+# Show the remaining Galactic Anomaly time below Help All, Engage, and Claim
+galactic_anomaly_timer = false
+
 # Na het gebruiken van een zoom voorinstellingen, zet de waarde als de standaardwaarde
 use_presets_as_default = true
 
@@ -265,21 +274,30 @@ zoom = 5000.0
 # Subgroup: Leave Well Alone
 # --------------------------
 
+artifactexchangehooks = true
+audioeventhooks = true
+
 # Enable the buff fixes
 bufffixhooks = true
 cargoformathooks = true
-instantcargocounterhooks = true
 chatpatches = true
 
 # Schakelt bulkclaimen per factie in voor dagelijkse doelen
 dailyfactionbulkclaimhooks = true
-focussearch = true
+doubleclickassignshiphooks = true
+forbiddentechconfirmhooks = true
 freeresizehooks = true
+galacticanomalytimerhooks = true
 game_version = true
 giftsbulkclaimhooks = true
 hotkeyhooks = true
+
+# Show cargo totals immediately instead of counting up
+instantcargocounterhooks = true
 loadingscreenhooks = true
+loadingtiphooks = true
 miscpatches = true
+missionhudtweakshooks = true
 objecttracker = true
 officersorthooks = true
 panhooks = true
@@ -531,8 +549,14 @@ show_inventory = "I"
 # Ga naar Missies
 show_missions = "M"
 
+# Go directly to Officer Presets
+show_officerpresets = "CTRL-O"
+
 # Ga naar Officieren
 show_officers = "SHIFT-O"
+
+# Go directly to Officer Swap
+show_officerswap = "ALT-O"
 
 # Ga naar Q Proeven
 show_qtrials = "SHIFT-Q"
@@ -555,11 +579,11 @@ show_shields = "CTRL-S"
 # Open het scherm Schip bouwen van de scheepswerf
 show_shipconstruction = "SHIFT-N"
 
-# Ga direct naar Schip wisselen
-show_shipswap = "ALT-N"
-
 # Ga naar Scheepsmanagement
 show_ships = "N"
+
+# Go directly to Ship Swap
+show_shipswap = "ALT-N"
 
 # Station Exterieur
 show_stationexterior = "SHIFT-G"
@@ -785,21 +809,35 @@ hud_outposts = "auto"
 #   "hide" - Always hide this HUD item
 hud_q_trials = "auto"
 
+# Subgroup: Options
+# -----------------
+
+# Hide the Exchange All button in the Artifact Gallery
+disable_exchange_all = false
+
+# Enable the shortcut that focuses the search box on supported screens
+focus_search = true
+
+# Format abbreviated cargo values using Cargo Significant Decimals
+format_cargo_values = true
+
+# Restore the Below Deck Ability officer sort option
+officer_sort = true
+
 # Subgroup: Previews
 # ------------------
 
 # Decimal places used for abbreviated cargo values
 cargo_significant_decimals = 2
 
-# Toon vracht/capaciteit direct zonder optellen. Herstart na wijzigingen.
-# Alleen Windows-client 263; andere versies behouden het normale gedrag.
-instant_cargo_counter = true
-
 # Zorgt ervoor dat lokaliseren niet werkt als je naar de vracht van een schip of andere nodes bekijkt
 disable_preview_locate = false
 
 # Zorgt ervoor dat het terugroepen van je schip niet werkt als je naar de vracht van een schip of andere nodes bekijkt
 disable_preview_recall = false
+
+# Show cargo used and capacity immediately instead of counting up. Restart after changing. Windows client 263 only; other builds keep native behavior
+instant_cargo_counter = true
 
 # Zet dit aan als je altijd de vracht wilt zien van armadas
 show_armada_cargo = true
@@ -831,6 +869,9 @@ show_station_cargo = true
 # Subgroup: Data
 # --------------
 
+# Do you want to sync away team assignment data?
+away_assignments = true
+
 # Wil je Gevechtslogboeken syncen?
 battlelogs = true
 
@@ -849,8 +890,8 @@ jobs = true
 # Wil je data van missies syncen?
 missions = true
 
-# Wil je data van officieren die je in bezit hebt syncen?
-officer = true
+# Do you want to sync owned officer data?
+officers = true
 
 # Wil je data van onderzoeken syncen?
 research = true

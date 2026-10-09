@@ -7,7 +7,7 @@
 #  |    #***     #    #       #***         #   *   #**    #***    | 
 #  |                                                              | 
 #  +--------------------------------------------------------------+ 
-#   Erstellt am 2026-09-27T19:44:17.162Z
+#   Erstellt am 2026-10-04T20:00:48.766Z
 #   
 #   Diese Konfigurationsdatei wurde von https://modconfig.pages.dev erstellt
 #   und wird ohne Gewähr bereitgestellt. Bei Problemen mit dem STFC Community Mod,
@@ -17,7 +17,7 @@
 #       Discord : https://discord.gg/PrpHgs7Vjs
 #       GitHub  : https://github.com/netniV/stfc-mod
 #   
-#   Die heutige Konfigurationsdatei wird Ihnen präsentiert vom Buchstaben R und der Zahl 0
+#   Die heutige Konfigurationsdatei wird Ihnen präsentiert vom Buchstaben T und der Zahl 1
 #   
 
 #  <[=======================================]> 
@@ -31,11 +31,20 @@
 #  <[=======================================]> 
 
 [audio]
-# Comma-separated audio event names to suppress; leave blank to allow all audio events
+# Comma-separated audio event names to suppress; use "All" as a wildcard for named events handled by this filter
 disabled_events = ""
 
 # Write audio event names to the trace log for troubleshooting
 trace_events = false
+
+# Optional generated notification cues; "none" disables an alert.
+# Available sounds: default, info, success, warning, alarm, arrival, soft, ping, repair
+# Requires patches.toastbannerhooks = true.
+alert_victory = "none"
+alert_defeat = "none"
+alert_armada_created = "none"
+alert_armada_battle_won = "none"
+alert_armada_battle_lost = "none"
 
 #  <[=======================================]> 
 #                                              
@@ -114,9 +123,6 @@ enable_experimental = false
 #  <[=========================================================================================================================================]> 
 
 [graphics]
-# Verbleibende Zeit der galaktischen Anomalie unter Helfen / Starten / Abholen anzeigen.
-galactic_anomaly_timer = false
-
 
 # Subgroup: Anzeige
 # -----------------
@@ -130,11 +136,11 @@ transition_time = 0.01
 # Legt die Skalierung der Benutzeroberfläche fest; 1,0 ist der Standardwert
 ui_scale = 0.6
 
-# Legt fest, um welchen Betrag die Skalierung angepasst wird; 0,05 ist der Standardwert
-ui_scale_adjust = 0.05
-
 # Dies gibt an, um welchen Betrag die Schiffsmodelle in der Systemansicht skaliert werden; 1,0 ist der Standardwert
 ui_scale_ship = 1.0
+
+# This specifies the amount to adjust the scale by, 0.05 being default
+ui_scale_step = 0.05
 
 # Legt die Skalierung der UI-Objektansichten fest; 1,0 ist der Standardwert
 ui_scale_viewer = 1.2
@@ -223,6 +229,9 @@ borderless_fullscreen = true
 # Freie Größenänderung erlauben; zum Deaktivieren auf false setzen
 free_resize = true
 
+# Show the remaining Galactic Anomaly time below Help All, Engage, and Claim
+galactic_anomaly_timer = false
+
 # Diese Zoom-Voreinstellung wird als Standard-Zoom festgelegt
 use_presets_as_default = true
 
@@ -265,21 +274,30 @@ zoom = 5000.0
 # Subgroup: Nicht verändern
 # -------------------------
 
+artifactexchangehooks = true
+audioeventhooks = true
+
 # Buff-Korrekturen aktivieren
 bufffixhooks = true
 cargoformathooks = true
-instantcargocounterhooks = true
 chatpatches = true
 
 # Aktiviert das fraktionsweise Sammeln von Belohnungen für tägliche Ziele
 dailyfactionbulkclaimhooks = true
-focussearch = true
+doubleclickassignshiphooks = true
+forbiddentechconfirmhooks = true
 freeresizehooks = true
+galacticanomalytimerhooks = true
 game_version = true
 giftsbulkclaimhooks = true
 hotkeyhooks = true
+
+# Show cargo totals immediately instead of counting up
+instantcargocounterhooks = true
 loadingscreenhooks = true
+loadingtiphooks = true
 miscpatches = true
+missionhudtweakshooks = true
 objecttracker = true
 officersorthooks = true
 panhooks = true
@@ -531,8 +549,14 @@ show_inventory = "I"
 # Zu den Missionen
 show_missions = "M"
 
+# Go directly to Officer Presets
+show_officerpresets = "CTRL-O"
+
 # Zu den Offizieren
 show_officers = "SHIFT-O"
+
+# Go directly to Officer Swap
+show_officerswap = "ALT-O"
 
 # Zu den Q-Prüfungen
 show_qtrials = "SHIFT-Q"
@@ -555,11 +579,11 @@ show_shields = "CTRL-S"
 # Den Bildschirm Schiff bauen der Werft öffnen
 show_shipconstruction = "SHIFT-N"
 
-# Direkt zum Schiffstausch
-show_shipswap = "ALT-N"
-
 # Zur Schiffsverwaltung
 show_ships = "N"
+
+# Go directly to Ship Swap
+show_shipswap = "ALT-N"
 
 # Stationsaußenansicht
 show_stationexterior = "SHIFT-G"
@@ -785,21 +809,35 @@ hud_outposts = "auto"
 #   "hide" - Always hide this HUD item
 hud_q_trials = "auto"
 
+# Subgroup: Options
+# -----------------
+
+# Hide the Exchange All button in the Artifact Gallery
+disable_exchange_all = false
+
+# Enable the shortcut that focuses the search box on supported screens
+focus_search = true
+
+# Format abbreviated cargo values using Cargo Significant Decimals
+format_cargo_values = true
+
+# Restore the Below Deck Ability officer sort option
+officer_sort = true
+
 # Subgroup: Vorschauen
 # --------------------
 
 # Decimal places used for abbreviated cargo values
 cargo_significant_decimals = 2
 
-# Frachtmenge/Kapazitaet sofort statt hochzaehlend anzeigen. Nach Aenderungen neu starten.
-# Nur Windows-Client 263; andere Versionen behalten das normale Verhalten.
-instant_cargo_counter = true
-
 # Verhindert das Orten, während Schiffs- oder Knotenvorschauen angezeigt werden
 disable_preview_locate = false
 
 # Verhindert den Rückruf, während Schiffs- oder Knotenvorschauen angezeigt werden
 disable_preview_recall = false
+
+# Show cargo used and capacity immediately instead of counting up. Restart after changing. Windows client 263 only; other builds keep native behavior
+instant_cargo_counter = true
 
 # Auf true setzen, um die Belohnungen für ausgewählte Schiffe/Stationen immer anzuzeigen
 show_armada_cargo = true
@@ -831,6 +869,9 @@ show_station_cargo = true
 # Subgroup: Daten
 # ---------------
 
+# Do you want to sync away team assignment data?
+away_assignments = true
+
 # Kampfberichte synchronisieren?
 battlelogs = true
 
@@ -849,8 +890,8 @@ jobs = true
 # Missionsdaten synchronisieren?
 missions = true
 
-# Daten eigener Offiziere synchronisieren?
-officer = true
+# Do you want to sync owned officer data?
+officers = true
 
 # Forschungsdaten synchronisieren?
 research = true
