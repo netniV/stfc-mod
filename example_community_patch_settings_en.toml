@@ -251,8 +251,15 @@ system_zoom_preset_4 = 2750.0
 # Zoom preset F5 for system view
 system_zoom_preset_5 = 5000.0
 
-# This controls the maximum zoom distance in System View. Default is 2500. Higher values increase label distance
+# Maximum zoom-out distance in System View. Mod default is 5000. Higher values increase label distance.
 zoom = 5000.0
+
+# Maximum zoom-out distance in The Haven, in camera distance units (like zoom above).
+# Higher values extend the native range; 0.0 keeps the native range. Default is 4000.0.
+# Uses the normal scroll/pinch controls; this sets the range, not the current zoom.
+# Expanded Haven zoom also keeps road surfaces separated from the ground at every zoom level.
+# Requires [patches].havenzoomhooks; independent of the System View zoomhooks switch.
+haven_zoom = 4000.0
 
 #  <[=====================================================]> 
 #                                                            
@@ -311,6 +318,9 @@ toastbannerhooks = true
 transitionscreenhooks = true
 uiscalehooks = true
 zoomhooks = true
+
+# Compatibility switch for Haven zoom hooks. Use graphics.haven_zoom = 0.0 for native behavior.
+havenzoomhooks = true
 
 #  <[==================================================================================================================================]> 
 #                                                                                                                                         
