@@ -13,4 +13,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Thin Queue Protection test compilation failed.' }
     & ./build/thin_queue_protection_tests.exe
     if ($LASTEXITCODE -ne 0) { throw 'Thin Queue Protection regression failed.' }
+    & clang++ -std=c++23 -Imods/src tests/queue_address_guard.cc -o build/queue_address_guard_tests.exe
+    if ($LASTEXITCODE -ne 0) { throw "Kirshara address guard test compilation failed." }
+    & ./build/queue_address_guard_tests.exe
+    if ($LASTEXITCODE -ne 0) { throw "Kirshara address guard policy regression failed." }
 } finally { Pop-Location }

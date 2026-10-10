@@ -33,6 +33,7 @@ namespace Control
   constexpr bool queue_enabled       = true;
   constexpr bool faster_queue_recovery = false;
   constexpr bool thin_queue_protection = true;
+  constexpr bool queue_address_guard = true;
   constexpr auto select_timer        = 500;
 } // namespace Control
 
@@ -102,6 +103,7 @@ namespace Patches
   constexpr bool forbiddentechconfirmhooks  = true;
   constexpr bool audioeventhooks            = true;
   constexpr bool actionqueuerecoveryhooks   = true;
+  constexpr bool queueaddressguardhooks     = true;
   constexpr bool thinqueueprotectionhooks   = true;
   constexpr bool artifactexchangehooks      = true;
   constexpr bool instantcargocounterhooks   = true;
