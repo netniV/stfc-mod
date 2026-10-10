@@ -9,6 +9,7 @@
 #include <prime/EntityGroup.h>
 #include <prime/RealtimeDataPayload.h>
 #include <prime/ServiceResponse.h>
+#include <prime/UserProfileManager.h>
 #include <spud/detour.h>
 
 #include <spdlog/spdlog.h>
@@ -612,6 +613,23 @@ namespace types
     std::vector<int64_t> components;
   };
 
+  struct PlanetaryBaseState {
+    explicit PlanetaryBaseState(const int32_t l = -1, const int32_t s = -1, const int64_t p = -1)
+        : level(l)
+        , status(s)
+        , position(p)
+    {
+    }
+
+    bool operator==(const PlanetaryBaseState& other) const
+    { return this->level == other.level && this->status == other.status && this->position == other.position; }
+
+  private:
+    int32_t level    = -1;
+    int32_t status   = -1;
+    int64_t position = -1;
+  };
+
   struct pairhash {
     template <typename T, typename U> std::size_t operator()(const std::pair<T, U>& x) const
     { return std::hash<T>()(x.first) ^ std::hash<U>()(x.second); }
@@ -799,8 +817,8 @@ static std::mutex                           slot_states_mtx;
 static std::unordered_map<int64_t, size_t> away_assignment_states;
 static std::mutex                          away_assignment_states_mtx;
 
-static std::unordered_map<int64_t, int64_t> structure_states;
-static std::mutex                           structure_states_mtx;
+static std::unordered_map<int64_t, types::PlanetaryBaseState> structure_states;
+static std::mutex                                             structure_states_mtx;
 
 static std::unordered_map<int64_t, int64_t> pieces_states;
 static std::mutex                           pieces_states_mtx;
@@ -1470,43 +1488,21 @@ static void starbase_modules(std::unique_ptr<std::string>&& bytes)
 static void planetary_base_data(std::unique_ptr<std::string>&& bytes)
 {
   using json = nlohmann::json;
-  using trackers::structure_states;
-  using trackers::structure_states_mtx;
   using trackers::pieces_states;
   using trackers::pieces_states_mtx;
 
   if (auto response = Digit::PrimeServer::Models::PlanetaryBase(); response.ParseFromString(*bytes)) {
-    http::logging::trace("PROCESS", "planetary base data", STR_FORMAT("Processing {} buildings", response.buildings_size()));
-
-    auto structure_array = json::array();
-    {
-      std::scoped_lock lk(structure_states_mtx);
-
-      for (const auto& building : response.buildings() | std::views::values) {
-        if (const auto& it = structure_states.find(building.id()); it == structure_states.end() || it->second != building.level()) {
-          structure_states[building.id()] = building.level();
-          structure_array.push_back({{"type", SyncConfig::Type::Haven},
-                                     {"sid", building.specid()},
-                                     {"id", building.id()},
-                                     {"level", building.level()}});
-        }
-      }
-    }
-
+    http::logging::trace("PROCESS", "planetary base data", STR_FORMAT("Processing {} haven building pieces", response.pieces_size()));
     auto pieces_array = json::array();
     {
       std::scoped_lock lk(pieces_states_mtx);
 
       for (const auto& [piece, count] : response.pieces()) {
         if (const auto& it = pieces_states.find(piece); it == pieces_states.end() || it->second != count) {
-          pieces_states[piece] = piece;
-          pieces_array.push_back({{"type", SyncConfig::Type::Haven + "_pieces"}, {"sid", piece}, {"count", piece}});
+          pieces_states[piece] = count;
+          pieces_array.push_back({{"type", SyncConfig::Type::Haven + "_pieces"}, {"sid", piece}, {"count", count}});
         }
       }
-    }
-
-    if (!structure_array.empty()) {
-      workers::queue_data(SyncConfig::Type::Haven, structure_array);
     }
 
     if (!pieces_array.empty()) {
@@ -1519,9 +1515,22 @@ static void planetary_map_building_data(const google::protobuf::Map<int64_t, Dig
 {
   // TODO: use PlanetaryMapBuildingDiff for updates during game session
 
+  using trackers::structure_states;
+  using trackers::structure_states_mtx;
+  using trackers::types::PlanetaryBaseState;
+
   auto structure_array = nlohmann::json::array();
-  for (const auto& [id, building] : buildings) {
-    structure_array.push_back({{"type", SyncConfig::Type::Haven + "_map"}, {"sid", building.specid()}, {"id", id}, {"level", building.level()}, {"status", building.status()}, {"position", building.position()}});
+  {
+    std::scoped_lock lk(structure_states_mtx);
+
+    for (const auto& [id, building] : buildings) {
+      const PlanetaryBaseState state{building.level(), building.status(), building.position()};
+
+      if (const auto& it = structure_states.find(id); it == structure_states.end() || it->second != state) {
+        structure_states[id] = state;
+        structure_array.push_back({{"type", SyncConfig::Type::Haven}, {"sid", building.specid()}, {"id", id}, {"level", building.level()}, {"status", building.status()}, {"position", building.position()}});
+      }
+    }
   }
 
   if (!structure_array.empty()) {
@@ -1547,18 +1556,51 @@ static void planetary_map_prosperity(std::unique_ptr<std::string>&& bytes)
   }
 }
 
-/* static void planetary_map(std::unique_ptr<std::string>&& bytes)
+static void planetary_map(std::unique_ptr<std::string>&& bytes)
 {
   if (auto response = Digit::PrimeServer::Models::PlanetaryMapResponse(); response.ParseFromString(*bytes)) {
     http::logging::trace("PROCESS", "planetary map", STR_FORMAT("Processing {} haven structures", response.mapdata().buildings_size()));
-    const auto& owner = response.owneruserid();
 
-    // TODO: If the owner is not the current player, we may want to skip processing the map data, as it may not be relevant to the player's own structures.
+    const auto& owner = response.owneruserid();
+    if (!owner.empty()) {
+      auto profileManager = UserProfileManager::Instance();
+      if (profileManager == nullptr) {
+        spdlog::error("Failed to get UserProfileManager instance");
+        return;
+      }
+
+      static auto& class_helper = profileManager->get_class_helper();
+      static auto fn = class_helper.GetMethodInfo("GetLocalUserProfile");
+
+      if (fn == nullptr ) {
+        spdlog::error("Failed to get method info for GetLocalUserProfile");
+        return;
+      }
+
+      Il2CppException* exception = nullptr;
+      auto localProfile = reinterpret_cast<UserProfile*>(il2cpp_runtime_invoke(fn, profileManager, nullptr, &exception));
+      if (exception != nullptr || localProfile == nullptr) {
+        spdlog::error("Failed to get local user profile");
+        return;
+      }
+
+      const auto userId = localProfile->UserId;
+      if (userId == nullptr) {
+        spdlog::error("Local user profile has empty UserId");
+        return;
+      }
+
+      if (owner != userId) {
+        spdlog::debug("Planetary map data is not for local user, skipping processing");
+        return;
+      }
+    }
+
     planetary_map_building_data(response.mapdata().buildings());
   } else {
     spdlog::error("Failed to parse planetary map");
   }
-} */
+}
 
 static void player_inventories(std::unique_ptr<std::string>&& bytes)
 {
@@ -2539,11 +2581,11 @@ static void HandleEntityGroup(EntityGroup* entity_group)
       }
       break;
 
-    // case EntityGroup::Type::PlanetaryMapResponse:
-    //   if (sync_options.haven) {
-    //     submit_async(processors::planetary_map);
-    //   }
-    //   break;
+    case EntityGroup::Type::PlanetaryMapResponse:
+      if (sync_options.haven) {
+        submit_async(processors::planetary_map);
+      }
+      break;
 
     // inventory
     case EntityGroup::Type::PlayerInventories:
