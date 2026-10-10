@@ -104,6 +104,42 @@ public:
     return nullptr;
   }
 
+  bool HasFleetService()
+  {
+    static auto* fleet_service_cache =
+        il2cpp_class_get_field_from_name(get_class_helper().get_cls(), "_fleetServiceCache");
+    static auto FleetServiceCacheWarn = true;
+    if (!fleet_service_cache) {
+      if (FleetServiceCacheWarn) {
+        FleetServiceCacheWarn = false;
+        spdlog::error("Unable to find field 'FleetsManager->_fleetServiceCache'");
+      }
+      return false;
+    }
+
+    auto* cache = reinterpret_cast<void**>(reinterpret_cast<char*>(this) + fleet_service_cache->offset);
+    if (*cache) {
+      return true;
+    }
+
+    static auto* HasServiceMethod = [] {
+      auto* cache_class = il2cpp_class_from_type(il2cpp_field_get_type(fleet_service_cache));
+      return cache_class ? il2cpp_class_get_method_from_name(cache_class, "get_HasService", 0) : nullptr;
+    }();
+    static auto HasServiceWarn = true;
+    if (!HasServiceMethod) {
+      if (HasServiceWarn) {
+        HasServiceWarn = false;
+        ErrorMsg::MissingMethod("CachedService<FleetService>", "get_HasService");
+      }
+      return false;
+    }
+
+    Il2CppException* exception = nullptr;
+    auto*            result    = il2cpp_runtime_invoke(HasServiceMethod, cache, nullptr, &exception);
+    return !exception && result && *static_cast<bool*>(il2cpp_object_unbox(result));
+  }
+
   FleetDeployedData* __get_TargetFleetData()
   {
     static auto field = get_class_helper().GetField("_targetFleetData").offset();

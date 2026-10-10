@@ -44,6 +44,7 @@ public:
   bool __get_isFocused()
   {
     static auto field = get_class_helper().GetProperty("isFocused");
-    return field.Get<bool>(this);
+    const auto* focused = field.Get<bool>(this);
+    return focused && *focused;
   }
 };

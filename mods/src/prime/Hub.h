@@ -130,6 +130,7 @@ enum class SectionID {
   Missions_AvailableList                   = 1719419183,
   ShipManagement_Upgrade                   = 1742145916,
   GameSettings                             = 1754181205,
+  Starbase_Planetary                       = 1781357748,
   ShipScrapping_List                       = 1844785206,
   OnScreen_Station                         = 1883947040,
   RewardScreen                             = 1890775195,
@@ -251,6 +252,39 @@ private:
 };
 
 struct PrimeApp {
+  void Quit()
+  {
+    static auto quit = get_class_helper().GetMethod<void(PrimeApp*)>("Quit");
+    static auto warn = true;
+    if (quit) {
+      quit(this);
+    } else if (warn) {
+      warn = false;
+      ErrorMsg::MissingMethod("PrimeApp", "Quit");
+    }
+  }
+
+  void Reload()
+  {
+    struct CustomReloadArgs {
+      void* SectionArgs;
+      bool  ForceFakeReload;
+    };
+    struct NullableCustomReloadArgs {
+      bool             hasValue;
+      CustomReloadArgs value;
+    };
+
+    static auto reload = get_class_helper().GetMethod<void(PrimeApp*, bool, NullableCustomReloadArgs, bool)>("Reload");
+    static auto warn   = true;
+    if (reload) {
+      reload(this, false, {}, false);
+    } else if (warn) {
+      warn = false;
+      ErrorMsg::MissingMethod("PrimeApp", "Reload");
+    }
+  }
+
   GSServiceRegistry* get_Services()
   {
     static auto field = get_class_helper().GetProperty("Services");

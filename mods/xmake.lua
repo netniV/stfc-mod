@@ -3,11 +3,15 @@ do
     add_ldflags("-v")
     set_kind("static")
 
-    -- Regenerate embedded image headers before each build
+    -- Regenerate embedded image headers when their source image changes.
     before_build(function(target)
         local function embed_image(input_file, output_file, symbol)
             if not os.isfile(input_file) then
                 raise("[error] missing file: " .. input_file)
+                return
+            end
+
+            if os.isfile(output_file) and os.mtime(output_file) >= os.mtime(input_file) then
                 return
             end
 
@@ -112,6 +116,7 @@ do
     if is_plat("windows") then
         add_cxflags("/bigobj")
         add_linkdirs("src/il2cpp")
+        add_syslinks("winmm")
     elseif is_plat("macosx") then
         add_cxflags("-fms-extensions")
         -- Add Objective-C++ source

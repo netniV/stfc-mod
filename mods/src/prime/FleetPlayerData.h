@@ -1,5 +1,7 @@
 #pragma once
 
+#include "errormsg.h"
+
 #include "BattleTargetData.h"
 #include "HullSpec.h"
 #include "RecallRequirement.h"
@@ -8,26 +10,32 @@
 #include <cstdint>
 
 enum class FleetState {
-  Unknown      = 0,
-  IdleInSpace  = 1,
-  Docked       = 2,
-  Mining       = 4,
-  Destroyed    = 8,
-  TieringUp    = 16,
-  Repairing    = 32,
-  CannotLaunch = 56,
-  Battling     = 64,
-  WarpCharging = 128,
-  Warping      = 256,
-  CanRemove    = 384,
-  CannotMove   = 504,
-  Impulsing    = 512,
-  CanManage    = 899,
-  Capturing    = 1024,
-  CanRecall    = 1541,
-  CanEngage    = 1543,
-  Deployed     = 1989,
-  CanLocate    = 1991
+  Unknown                = 0,
+  IdleInSpace            = 1,
+  Docked                 = 2,
+  Mining                 = 4,
+  Destroyed              = 8,
+  TieringUp              = 16,
+  CanReplaceOfficers     = 18,
+  Repairing              = 32,
+  CannotLaunch           = 56,
+  Battling               = 64,
+  WarpCharging           = 128,
+  Warping                = 256,
+  CanRemove              = 384,
+  Impulsing              = 512,
+  CanActivateAbility     = 513,
+  CanDisco               = 515,
+  Capturing              = 1024,
+  AutoHunting            = 2048,
+  CannotMove             = 2552,
+  CanManage              = 2947,
+  CanBeTargetedByAbility = 3589,
+  CanEngage              = 3591,
+  Outposting             = 4096,
+  CanRecall              = 5637,
+  Deployed               = 8133,
+  CanLocate              = 8135
 };
     
 struct FleetPlayerData {
@@ -37,6 +45,8 @@ public:
   __declspec(property(get = __get_Id)) uint64_t Id;
   __declspec(property(get = __get_Hull)) HullSpec* Hull;
   __declspec(property(get = __get_Address)) void* Address;
+  __declspec(property(get = __get_Level)) int64_t Level;
+  __declspec(property(get = __get_HasShip)) bool HasShip;
 
 private:
   static IL2CppClassHelper& get_class_helper()
@@ -60,17 +70,49 @@ public:
   FleetState __get_CurrentState()
   {
     static auto field = get_class_helper().GetProperty("CurrentState");
-    return *field.Get<FleetState>(this);
+    auto*      value  = field.Get<FleetState>(this);
+    return value ? *value : FleetState::Unknown;
   }
   FleetState __get_PreviousState()
   {
     static auto field = get_class_helper().GetProperty("PreviousState");
-    return *field.Get<FleetState>(this);
+    auto*      value  = field.Get<FleetState>(this);
+    return value ? *value : FleetState::Unknown;
   }
   
   uint64_t __get_Id()
   {
     static auto field = get_class_helper().GetProperty("Id");
-    return *field.Get<uint64_t>(this);
+    auto*      value  = field.Get<uint64_t>(this);
+    return value ? *value : 0;
+  }
+  int64_t __get_Level()
+  {
+    static auto field = get_class_helper().GetProperty("Level");
+    auto*      value  = field.Get<int64_t>(this);
+    return value ? *value : 0;
+  }
+
+  bool __get_HasShip()
+  {
+    static auto field = get_class_helper().GetProperty("HasShip");
+    auto*      value  = field.Get<bool>(this);
+    return value ? *value : false;
+  }
+
+  int64_t GetLocaId()
+  {
+    static auto GetLocaIdWarn = true;
+    static auto GetLocaIdMethod = get_class_helper().GetMethod<int64_t(FleetPlayerData*)>("GetLocaId");
+
+    if (GetLocaIdMethod) {
+      return GetLocaIdMethod(this);
+    }
+    if (GetLocaIdWarn) {
+      GetLocaIdWarn = false;
+      ErrorMsg::MissingMethod("FleetPlayerData", "GetLocaId");
+    }
+
+    return 0;
   }
 };

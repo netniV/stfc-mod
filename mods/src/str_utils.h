@@ -39,10 +39,33 @@ constexpr std::string_view StripAsciiWhitespace(const std::string_view str)
   return StripTrailingAsciiWhitespace(StripLeadingAsciiWhitespace(str));
 }
 
+constexpr std::string_view StripSuffix(std::string_view str, const std::string_view suffix)
+{
+  if (str.size() >= suffix.size() && str.substr(str.size() - suffix.size()) == suffix) {
+    return str.substr(0, str.size() - suffix.size());
+  }
+  return str;
+}
+
+constexpr std::string_view StripPrefix(std::string_view str, const std::string_view prefix)
+{
+  if (str.size() >= prefix.size() && str.substr(0, prefix.size()) == prefix) {
+    return str.substr(prefix.size());
+  }
+  return str;
+}
+
 constexpr std::string AsciiStrToUpper(const std::string_view s)
 {
   std::string str = s.data();
   std::ranges::transform(str, str.begin(), ::toupper);
+  return str;
+}
+
+constexpr std::string AsciiStrToLower(const std::string_view s)
+{
+  std::string str = s.data();
+  std::ranges::transform(str, str.begin(), ::tolower);
   return str;
 }
 
@@ -120,6 +143,16 @@ inline std::string to_string(const Il2CppString* str)
     reinterpret_cast<const char16_t*>(str->chars), str->length, result.data());
   result.resize(actual_utf8_bytes);
   return result;
+}
+
+inline bool operator==(const Il2CppString* lhs, const std::string& rhs)
+{
+  return to_string(lhs) == rhs;
+}
+
+inline bool operator==(const std::string& lhs, const Il2CppString* rhs)
+{
+  return lhs == to_string(rhs);
 }
 
 inline std::optional<std::chrono::time_point<std::chrono::system_clock>> parse_timestamp(const std::string& timestamp)

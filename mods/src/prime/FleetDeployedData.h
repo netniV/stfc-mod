@@ -10,6 +10,7 @@ enum class DeployedFleetType {
   NpcInstantiated,
   Sentinel,
   Alliance,
+  Challenge,
 };
 
 struct FleetDeployedData {
@@ -43,5 +44,17 @@ public:
   {
     static auto field = get_class_helper().GetProperty("FleetType");
     return *field.Get<DeployedFleetType>(this);
+  }
+
+  bool TryGetFleetType(DeployedFleetType& fleet_type)
+  {
+    static auto property = get_class_helper().GetProperty("FleetType");
+    const auto* value    = property.Get<DeployedFleetType>(this);
+    if (value == nullptr) {
+      return false;
+    }
+
+    fleet_type = *value;
+    return true;
   }
 };

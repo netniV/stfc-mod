@@ -20,6 +20,7 @@
 
 void InstallUiScaleHooks();
 void InstallZoomHooks();
+void InstallHavenZoomHooks();
 void InstallBuffFixHooks();
 #if _WIN32
 void InstallFreeResizeHooks();
@@ -28,22 +29,29 @@ void InstallToastBannerHooks();
 void InstallPanHooks();
 void InstallHotkeyHooks();
 void InstallGiftsBulkClaimHooks();
+void InstallDailyFactionBulkClaimHooks();
 
 void InstallTestPatches();
 void InstallMiscPatches();
 void InstallMissionHudTweaksHooks();
+void InstallArtifactExchangeHooks();
 void InstallChatPatches();
 void InstallTempCrashFixes();
 void InstallSyncPatches();
 void InstallObjectTrackers();
 void InstallLoadingScreenHooks();
 void InstallTransitionScreenHooks();
+void InstallGalacticAnomalyTimer();
 void InstallLoadingTipHooks();
-void InstallFocusSearchHooks();
 void InstallCargoFormatHooks();
+void InstallInstantCargoCounterHooks();
 void InstallOfficerSortHooks();
+void InstallPinnedShipSortHooks();
+void InstallDoubleClickAssignShipHooks();
 void InstallInstantWarpConfirmationHooks();
 void InstallForbiddenTechConfirmationHooks();
+void InstallAudioEventHooks();
+void InstallHavenHistoryHooks();
 
 __int64 il2cpp_init_hook(auto original, const char* domain_name)
 {
@@ -119,11 +127,13 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
   const PatchEntry patches[] = {
       {"UiScaleHooks", {InstallUiScaleHooks, &cfg.installUiScaleHooks}},
       {"ZoomHooks", {InstallZoomHooks, &cfg.installZoomHooks}},
+      {"HavenZoomHooks", {InstallHavenZoomHooks, &cfg.installHavenZoomHooks}},
       {"BuffFixHooks", {InstallBuffFixHooks, &cfg.installBuffFixHooks}},
       {"ToastBannerHooks", {InstallToastBannerHooks, &cfg.installToastBannerHooks}},
       {"PanHooks", {InstallPanHooks, &cfg.installPanHooks}},
       {"HotkeyHooks", {InstallHotkeyHooks, &cfg.installHotkeyHooks}},
       {"GiftsBulkClaimHooks", {InstallGiftsBulkClaimHooks, &cfg.installGiftsBulkClaimHooks}},
+      {"DailyFactionBulkClaimHooks", {InstallDailyFactionBulkClaimHooks, &cfg.installDailyFactionBulkClaimHooks}},
 #if _WIN32
       {"FreeResizeHooks", {InstallFreeResizeHooks, &cfg.installFreeResizeHooks}},
 #endif
@@ -131,17 +141,23 @@ __int64 il2cpp_init_hook(auto original, const char* domain_name)
       {"TestPatches", {InstallTestPatches, &cfg.installTestPatches}},
       {"MiscPatches", {InstallMiscPatches, &cfg.installMiscPatches}},
       {"MissionHudTweaksHooks", {InstallMissionHudTweaksHooks, &cfg.installMissionHudTweaksHooks}},
+      {"ArtifactExchangeHooks", {InstallArtifactExchangeHooks, &cfg.installArtifactExchangeHooks}},
       {"ChatPatches", {InstallChatPatches, &cfg.installChatPatches}},
       {"SyncPatches", {InstallSyncPatches, &cfg.installSyncPatches}},
       {"ObjectTracker", {InstallObjectTrackers, &cfg.installObjectTracker}},
-      {"LoadingScreen",        {InstallLoadingScreenHooks,   &cfg.installLoadingScreenHooks}},
-      {"TransitionScreen",     {InstallTransitionScreenHooks, &cfg.installTransitionScreenHooks}},
-      {"LoadingTip",           {InstallLoadingTipHooks,       &cfg.loader_tip_enabled}},
-      {"FocusSearch",          {InstallFocusSearchHooks,      &cfg.installFocusSearchHooks}},
-      {"CargoFormat",          {InstallCargoFormatHooks,      &cfg.installCargoFormatHooks}},
-      {"OfficerSortHooks",     {InstallOfficerSortHooks,      &cfg.installOfficerSortHooks}},
-      {"InstantWarpConfirm",   {InstallInstantWarpConfirmationHooks, &cfg.installInstantWarpConfirmationHooks}},
-      {"ForbiddenTechConfirm", {InstallForbiddenTechConfirmationHooks, &cfg.auto_confirm_ft_upgrade}},
+      {"LoadingScreen", {InstallLoadingScreenHooks, &cfg.installLoadingScreenHooks}},
+      {"TransitionScreen", {InstallTransitionScreenHooks, &cfg.installTransitionScreenHooks}},
+      {"GalacticAnomalyTimer", {InstallGalacticAnomalyTimer, &cfg.installGalacticAnomalyTimerHooks}},
+      {"LoadingTip", {InstallLoadingTipHooks, &cfg.installLoadingTipHooks}},
+      {"InstantCargoCounter", {InstallInstantCargoCounterHooks, &cfg.installInstantCargoCounterHooks}},
+      {"CargoFormat", {InstallCargoFormatHooks, &cfg.installCargoFormatHooks}},
+      {"OfficerSortHooks", {InstallOfficerSortHooks, &cfg.installOfficerSortHooks}},
+      {"PinnedShipSort", {InstallPinnedShipSortHooks, &cfg.installPinnedShipSortHooks}},
+      {"DoubleClickAssignShip", {InstallDoubleClickAssignShipHooks, &cfg.installDoubleClickAssignShipHooks}},
+      {"InstantWarpConfirm", {InstallInstantWarpConfirmationHooks, &cfg.installInstantWarpConfirmationHooks}},
+      {"ForbiddenTechConfirm", {InstallForbiddenTechConfirmationHooks, &cfg.installForbiddenTechConfirmationHooks}},
+      {"AudioEvents", {InstallAudioEventHooks, &cfg.installAudioEventHooks}},
+      {"HavenHistory", {InstallHavenHistoryHooks, &cfg.installHavenHistoryHooks}},
   };
   printf("il2cpp_init_hook(%s)\n", domain_name);
 

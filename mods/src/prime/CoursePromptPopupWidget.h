@@ -1,5 +1,6 @@
 #pragma once
 
+#include "CourseData.h"
 #include "GenericButtonWidget.h"
 #include "Widget.h"
 
@@ -14,6 +15,12 @@ public:
   {
     static auto field = get_class_helper().GetField("HasInstantWarp");
     return *(bool*)((char*)this + field.offset());
+  }
+
+  CourseData* GetCourseData()
+  {
+    static auto field = get_class_helper().GetField("CourseData");
+    return *(CourseData**)((char*)this + field.offset());
   }
 
 private:
