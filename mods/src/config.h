@@ -253,6 +253,8 @@ public:
   bool reverse_haven_history;
   bool arrow_keys_to_select_ship;
 
+  bool only_show_first_popup;
+
   bool show_cargo_default;
   bool show_player_cargo;
   bool show_station_cargo;

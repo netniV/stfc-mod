@@ -227,9 +227,10 @@ namespace Sync
   constexpr const char* nextspocksclub_url = "https://next.spocks.club/sync/ingress/";
 
   constexpr bool        away_assignments   = true;
-  constexpr bool        battlelogs         = true;
+  constexpr bool        battlelogs         = false;
   constexpr bool        buffs              = true;
   constexpr bool        buildings          = true;
+  constexpr bool        haven              = true;
   constexpr bool        inventory          = true;
   constexpr bool        jobs               = true;
   constexpr bool        missions           = true;
@@ -258,6 +259,7 @@ namespace UI
   constexpr bool        auto_open_bulk_claim_flyout        = false;
   constexpr const char* daily_bulk_claim_factions          = "";
   constexpr bool        daily_bulk_claim_toggle_default_on = false;
+  constexpr bool        only_show_first_popup              = false;
   constexpr bool        disable_escape_exit                = true;
   // Maximum gap between Escape presses that opens the exit prompt.
   // 0 disables double-tap and preserves the existing blocked behavior.

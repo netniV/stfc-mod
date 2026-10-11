@@ -6,6 +6,7 @@ struct UserProfile {
 public:
   __declspec(property(get = __get_LocaId)) long LocaId;
   __declspec(property(get = __get_Name)) Il2CppString* Name;
+  __declspec(property(get = __get_UserId)) Il2CppString* UserId;
 
 private:
   static IL2CppClassHelper& get_class_helper()
@@ -28,4 +29,9 @@ public:
     return *(Il2CppString**)((char*)this + field);
   }
 
+  Il2CppString* __get_UserId()
+  {
+    static auto prop = get_class_helper().GetProperty("UserId");
+    return prop.GetRaw<Il2CppString>(this);
+  }
 };
